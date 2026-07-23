@@ -8,27 +8,15 @@ on:
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cirruslabs/flutter:stable
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
       - name: Resolve packages
-        continue-on-error: true
-        run: flutter pub get > ci.log 2>&1
+        run: flutter pub get
       - name: Format sources
-        continue-on-error: true
-        run: dart format lib test >> ci.log 2>&1
+        run: dart format lib test
       - name: Analyze
-        continue-on-error: true
-        run: flutter analyze >> ci.log 2>&1
+        run: flutter analyze
       - name: Test
-        continue-on-error: true
-        run: flutter test >> ci.log 2>&1
-      - name: Upload CI log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-ci-log
-          path: ci.log
-          if-no-files-found: warn
+        run: flutter test
