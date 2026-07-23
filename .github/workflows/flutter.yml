@@ -13,7 +13,6 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          cache: true
       - name: Resolve packages
         continue-on-error: true
         run: flutter pub get > ci.log 2>&1
