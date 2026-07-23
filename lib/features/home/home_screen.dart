@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/local_progress_store.dart';
+import '../../localization/app_strings.dart';
 import '../../widgets/menu_card.dart';
 import '../career/career_screen.dart';
 import '../daily/daily_screen.dart';
@@ -17,10 +18,10 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sudoku Duel'),
+        title: Text(context.tr('app_name')),
         actions: [
           IconButton(
-            tooltip: 'Ayarlar',
+            tooltip: context.tr('settings'),
             onPressed: () => _open(context, SettingsScreen(store: store)),
             icon: const Icon(Icons.settings_outlined),
           ),
@@ -36,37 +37,36 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 18),
             MenuCard(
               icon: Icons.route_outlined,
-              title: 'Kariyer',
-              subtitle: 'Başlangıçtan uzman seviyesine ilerle',
-              trailing: Text('${store.completedLevelCount}/30', style: const TextStyle(fontWeight: FontWeight.w800)),
+              title: context.tr('career'),
+              subtitle: context.tr('career_subtitle'),
+              trailing: Text(
+                '${store.completedLevelCount}/30',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
               onTap: () => _open(context, CareerScreen(store: store)),
             ),
             const SizedBox(height: 12),
             MenuCard(
               icon: Icons.sports_esports_outlined,
-              title: 'Yerel Düello',
-              subtitle: 'Aynı telefonda 10 saniyelik sıra savaşı',
+              title: context.tr('local_duel'),
+              subtitle: context.tr('local_duel_subtitle'),
               onTap: () => _open(context, const DuelScreen()),
             ),
             const SizedBox(height: 12),
             MenuCard(
               icon: Icons.today_outlined,
-              title: 'Günlük Sudoku',
-              subtitle: 'Her gün değişen tek bir sade bulmaca',
+              title: context.tr('daily_sudoku'),
+              subtitle: context.tr('daily_subtitle'),
               onTap: () => _open(context, const DailyScreen()),
             ),
             const SizedBox(height: 12),
             MenuCard(
               icon: Icons.school_outlined,
-              title: 'Nasıl oynanır?',
-              subtitle: store.tutorialCompleted ? 'Eğitimi tekrar aç' : '4×4 mini tahta ile birkaç dakikada öğren',
+              title: context.tr('how_to_play'),
+              subtitle: store.tutorialCompleted
+                  ? context.tr('tutorial_repeat')
+                  : context.tr('tutorial_new'),
               onTap: () => _open(context, TutorialScreen(store: store)),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Online düello altyapısı sonraki fazda bu yerel düello motoruna bağlanacak.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -90,22 +90,31 @@ class _WelcomePanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [scheme.primaryContainer, scheme.secondaryContainer]),
+        gradient: LinearGradient(
+          colors: [scheme.primaryContainer, scheme.secondaryContainer],
+        ),
         borderRadius: BorderRadius.circular(26),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            store.tutorialCompleted ? 'Bir tur Sudoku?' : 'Sudoku bilmek zorunda değilsin.',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, color: scheme.onPrimaryContainer),
+            store.tutorialCompleted
+                ? context.tr('welcome_returning_title')
+                : context.tr('welcome_new_title'),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: scheme.onPrimaryContainer,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             store.tutorialCompleted
-                ? 'Kaldığın yerden devam et veya yanındaki biriyle düello yap.'
-                : 'Mini eğitimle kuralları öğren, sonra kariyere geç.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: scheme.onPrimaryContainer),
+                ? context.tr('welcome_returning_body')
+                : context.tr('welcome_new_body'),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: scheme.onPrimaryContainer,
+                ),
           ),
         ],
       ),
