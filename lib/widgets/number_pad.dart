@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_strings.dart';
+
 class NumberPad extends StatelessWidget {
   const NumberPad({
     super.key,
@@ -43,7 +45,13 @@ class NumberPad extends StatelessWidget {
                     backgroundColor: scheme.secondaryContainer,
                     foregroundColor: scheme.onSecondaryContainer,
                   ),
-                  child: Text('$value', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
+                  child: Text(
+                    '$value',
+                    style: const TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -53,18 +61,34 @@ class NumberPad extends StatelessWidget {
           alignment: WrapAlignment.center,
           spacing: 4,
           children: [
-            _ActionButton(icon: Icons.backspace_outlined, label: 'Temizle', onPressed: enabled ? onErase : null),
+            _ActionButton(
+              icon: Icons.backspace_outlined,
+              label: context.tr('erase'),
+              onPressed: enabled ? onErase : null,
+            ),
             if (onToggleNotes != null)
               _ActionButton(
-                icon: notesEnabled ? Icons.edit_note : Icons.edit_note_outlined,
-                label: notesEnabled ? 'Not açık' : 'Not',
+                icon: notesEnabled
+                    ? Icons.edit_note
+                    : Icons.edit_note_outlined,
+                label: notesEnabled
+                    ? context.tr('notes_on')
+                    : context.tr('notes'),
                 selected: notesEnabled,
                 onPressed: enabled ? onToggleNotes : null,
               ),
             if (onUndo != null)
-              _ActionButton(icon: Icons.undo, label: 'Geri al', onPressed: enabled ? onUndo : null),
+              _ActionButton(
+                icon: Icons.undo,
+                label: context.tr('undo'),
+                onPressed: enabled ? onUndo : null,
+              ),
             if (onHint != null)
-              _ActionButton(icon: Icons.lightbulb_outline, label: 'İpucu', onPressed: enabled ? onHint : null),
+              _ActionButton(
+                icon: Icons.lightbulb_outline,
+                label: context.tr('hint'),
+                onPressed: enabled ? onHint : null,
+              ),
           ],
         ),
       ],
@@ -73,7 +97,12 @@ class NumberPad extends StatelessWidget {
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.icon, required this.label, required this.onPressed, this.selected = false});
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.selected = false,
+  });
 
   final IconData icon;
   final String label;
@@ -85,7 +114,9 @@ class _ActionButton extends StatelessWidget {
     return TextButton.icon(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        backgroundColor: selected ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
+        backgroundColor: selected
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Colors.transparent,
       ),
       icon: Icon(icon),
       label: Text(label),
