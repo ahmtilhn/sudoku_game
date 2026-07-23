@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,6 +12,9 @@ class AppStrings {
   static const MethodChannel _channel = MethodChannel(
     'com.devovia.sudoku/localization',
   );
+
+  static const String _catalogAsset =
+      'assets/localization/Localizable.xcstrings';
 
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
@@ -127,6 +133,7 @@ class AppStrings {
 
   static Future<AppStrings> load() async {
     final values = Map<String, String>.from(english);
+    await _loadStringCatalog(values);
     try {
       final response = await _channel.invokeMethod<Map<Object?, Object?>>(
         'getStrings',
@@ -136,17 +143,61 @@ class AppStrings {
         for (final entry in response.entries) {
           final key = entry.key;
           final value = entry.value;
-          if (key is String && value is String && value.isNotEmpty) {
+          if (key is String &&
+              value is String &&
+              value.isNotEmpty &&
+              value != key) {
             values[key] = value;
           }
         }
       }
     } on MissingPluginException {
-      // Unit tests and unsupported platforms use the English fallback.
+      // Unit tests and unsupported platforms use the catalog or English fallback.
     } on PlatformException {
       // A platform localization failure must never block app startup.
     }
     return AppStrings._(values);
+  }
+
+  static Future<void> _loadStringCatalog(Map<String, String> values) async {
+    try {
+      final source = await rootBundle.loadString(_catalogAsset);
+      final catalog = jsonDecode(source) as Map<String, dynamic>;
+      final catalogStrings = catalog['strings'];
+      if (catalogStrings is! Map) return;
+
+      final locale = PlatformDispatcher.instance.locale;
+      final candidates = <String>[
+        locale.toLanguageTag(),
+        if (locale.scriptCode != null)
+          '${locale.languageCode}-${locale.scriptCode}',
+        locale.languageCode,
+        'en',
+      ];
+
+      for (final entry in catalogStrings.entries) {
+        final key = entry.key.toString();
+        final definition = entry.value;
+        if (definition is! Map) continue;
+        final localizations = definition['localizations'];
+        if (localizations is! Map) continue;
+        for (final candidate in candidates) {
+          final localization = localizations[candidate];
+          if (localization is! Map) continue;
+          final stringUnit = localization['stringUnit'];
+          if (stringUnit is! Map) continue;
+          final value = stringUnit['value'];
+          if (value is String && value.isNotEmpty) {
+            values[key] = value;
+            break;
+          }
+        }
+      }
+    } on FlutterError {
+      // The catalog is optional on platforms that use native resources.
+    } on FormatException {
+      // Keep the English fallback if a catalog is temporarily malformed.
+    }
   }
 
   String text(String key, [List<Object> arguments = const <Object>[]]) {
