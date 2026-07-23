@@ -31,11 +31,7 @@ class _CareerScreenState extends State<CareerScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             Text(
-<<<<<<< HEAD
-              'En kolaydan başlayıp adım adım ilerle.',
-=======
               context.tr('career_intro'),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 14),
@@ -47,13 +43,9 @@ class _CareerScreenState extends State<CareerScreen> {
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: ChoiceChip(
-<<<<<<< HEAD
-                        label: Text(difficulty.label),
-=======
                         label: Text(
                           context.strings.difficultyLabel(difficulty),
                         ),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                         selected: difficulty == _difficulty,
                         onSelected: (_) =>
                             setState(() => _difficulty = difficulty),
@@ -76,12 +68,7 @@ class _CareerScreenState extends State<CareerScreen> {
               itemBuilder: (context, index) {
                 final puzzle = puzzles[index];
                 final progress = widget.store.progressFor(puzzle.id);
-<<<<<<< HEAD
-                final unlocked =
-                    index == 0 ||
-=======
                 final unlocked = index == 0 ||
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                     widget.store.isCompleted(puzzles[index - 1].id);
                 return _LevelCard(
                   puzzle: puzzle,
@@ -102,16 +89,6 @@ class _CareerScreenState extends State<CareerScreen> {
       MaterialPageRoute(
         builder: (_) => GameScreen(
           puzzle: puzzle,
-<<<<<<< HEAD
-          onCompleted:
-              ({required seconds, required mistakes, required hints}) =>
-                  widget.store.recordResult(
-                    puzzleId: puzzle.id,
-                    seconds: seconds,
-                    mistakes: mistakes,
-                    hints: hints,
-                  ),
-=======
           onCompleted: ({
             required seconds,
             required mistakes,
@@ -123,7 +100,6 @@ class _CareerScreenState extends State<CareerScreen> {
             mistakes: mistakes,
             hints: hints,
           ),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
         ),
       ),
     );
@@ -138,10 +114,7 @@ class _LevelCard extends StatelessWidget {
     required this.unlocked,
     required this.onTap,
   });
-<<<<<<< HEAD
-=======
 
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
   final SudokuPuzzle puzzle;
   final LevelProgress? progress;
   final bool unlocked;
@@ -165,13 +138,9 @@ class _LevelCard extends StatelessWidget {
                     backgroundColor: unlocked
                         ? scheme.primaryContainer
                         : scheme.surfaceContainerHighest,
-<<<<<<< HEAD
-                    child: Icon(unlocked ? Icons.grid_4x4 : Icons.lock_outline),
-=======
                     child: Icon(
                       unlocked ? Icons.grid_4x4 : Icons.lock_outline,
                     ),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                   ),
                   const Spacer(),
                   if (progress != null)
@@ -191,30 +160,14 @@ class _LevelCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-<<<<<<< HEAD
-                puzzle.title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-=======
                 context.strings.puzzleTitle(puzzle),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
               ),
               const SizedBox(height: 4),
               Text(
                 !unlocked
-<<<<<<< HEAD
-                    ? 'Önceki seviyeyi tamamla'
-                    : progress == null
-                    ? 'Yeni seviye'
-                    : 'En iyi: ${formatDuration(progress!.bestSeconds)}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-=======
                     ? context.tr('complete_previous_level')
                     : progress == null
                         ? context.tr('new_level')
@@ -225,7 +178,6 @@ class _LevelCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
               ),
             ],
           ),
