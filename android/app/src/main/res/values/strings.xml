@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Sudoku Duel</string>
+    <string name="settings">Settings</string>
+    <string name="career">Career</string>
+    <string name="career_subtitle">Progress from beginner to expert</string>
+    <string name="local_duel">Local Duel</string>
+    <string name="local_duel_subtitle">Take 10-second turns on the same device</string>
+    <string name="daily_sudoku">Daily Sudoku</string>
+    <string name="daily_subtitle">One fresh puzzle every day</string>
+    <string name="how_to_play">How to play</string>
+    <string name="tutorial_repeat">Open the tutorial again</string>
+    <string name="tutorial_new">Learn in minutes with a 4×4 board</string>
+    <string name="welcome_returning_title">Ready for a Sudoku?</string>
+    <string name="welcome_new_title">You don\'t need to know Sudoku.</string>
+    <string name="welcome_returning_body">Continue your career or challenge someone beside you.</string>
+    <string name="welcome_new_body">Learn the rules with a quick tutorial, then start your career.</string>
+    <string name="career_intro">Start with the easiest puzzles and progress step by step.</string>
+    <string name="difficulty_beginner">Beginner</string>
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_medium">Medium</string>
+    <string name="difficulty_hard">Hard</string>
+    <string name="difficulty_expert">Expert</string>
+    <string name="complete_previous_level">Complete the previous level</string>
+    <string name="new_level">New level</string>
+    <string name="best_time" formatted="false">Best: %1$s</string>
+    <string name="level_title" formatted="false">%1$s %2$d</string>
+    <string name="daily_puzzle_title">Daily Sudoku</string>
+    <string name="duel_puzzle_title">Local Duel</string>
+    <string name="mini_sudoku_title">Mini Sudoku</string>
+    <string name="congratulations">Congratulations!</string>
+    <string name="time">Time</string>
+    <string name="mistakes">Mistakes</string>
+    <string name="hints">Hints</string>
+    <string name="continue">Continue</string>
+    <string name="mistakes_count" formatted="false">Mistakes: %1$d</string>
+    <string name="hints_count" formatted="false">Hints: %1$d</string>
+    <string name="time_up_turn_passed">Time is up. The turn passed to the other player.</string>
+    <string name="draw">Draw!</string>
+    <string name="player_won" formatted="false">Player %1$d won!</string>
+    <string name="turns_played" formatted="false">%1$d turns played.</string>
+    <string name="main_menu">Main menu</string>
+    <string name="turn" formatted="false">Turn %1$d</string>
+    <string name="seconds" formatted="false">%1$d seconds</string>
+    <string name="player_instruction" formatted="false">Player %1$d: Select a cell and make one move.</string>
+    <string name="player" formatted="false">Player %1$d</string>
+    <string name="today_puzzle_completed">Today\'s puzzle is complete!</string>
+    <string name="tutorial_title">How to play Sudoku</string>
+    <string name="rule_rows_title">Complete each row</string>
+    <string name="rule_rows_description">Each number can appear only once in every row.</string>
+    <string name="rule_columns_title">Check each column</string>
+    <string name="rule_columns_description">The same number cannot appear twice in a column.</string>
+    <string name="rule_boxes_title">Remember the boxes</string>
+    <string name="rule_boxes_description">Each bold box must also contain every number once.</string>
+    <string name="tutorial_ready">Ready? Try a 4×4 mini Sudoku.</string>
+    <string name="tutorial_completed">You understand Sudoku!</string>
+    <string name="start_mini_tutorial">Start mini tutorial</string>
+    <string name="appearance">Appearance</string>
+    <string name="system">System</string>
+    <string name="light">Light</string>
+    <string name="dark">Dark</string>
+    <string name="high_contrast">High contrast</string>
+    <string name="high_contrast_subtitle">Makes the board and text easier to distinguish.</string>
+    <string name="data">Data</string>
+    <string name="clear_career_progress">Clear career progress</string>
+    <string name="completed_levels" formatted="false">%1$d completed levels</string>
+    <string name="clear_progress_title">Clear progress?</string>
+    <string name="clear_progress_body">Completed career levels and records will be removed.</string>
+    <string name="cancel">Cancel</string>
+    <string name="clear">Clear</string>
+    <string name="erase">Erase</string>
+    <string name="notes_on">Notes on</string>
+    <string name="notes">Notes</string>
+    <string name="undo">Undo</string>
+    <string name="hint">Hint</string>
+    <string name="board_label" formatted="false">%1$d by %1$d Sudoku board</string>
+    <string name="cell_label" formatted="false">Row %1$d, column %2$d, %3$s</string>
+    <string name="empty">Empty</string>
+</resources>
