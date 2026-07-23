@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LevelProgress {
   const LevelProgress({
@@ -29,16 +30,14 @@ class LevelProgress {
 }
 
 class LocalProgressStore extends ChangeNotifier {
-  LocalProgressStore._(this._preferences) {
-    _load();
-  }
+  LocalProgressStore._(this._preferences);
 
   static const _progressKey = 'career_progress_v1';
   static const _themeKey = 'theme_mode_v1';
   static const _highContrastKey = 'high_contrast_v1';
   static const _tutorialKey = 'tutorial_complete_v1';
 
-  final SharedPreferences _preferences;
+  final PreferencesBackend _preferences;
   final Map<String, LevelProgress> _progress = <String, LevelProgress>{};
 
   ThemeMode themeMode = ThemeMode.system;
@@ -46,8 +45,19 @@ class LocalProgressStore extends ChangeNotifier {
   bool tutorialCompleted = false;
 
   static Future<LocalProgressStore> create() async {
-    final preferences = await SharedPreferences.getInstance();
-    return LocalProgressStore._(preferences);
+    final store = LocalProgressStore._(SharedPreferencesBackend());
+    await store._load();
+    return store;
+  }
+
+  static Future<LocalProgressStore> createInMemory({
+    Map<String, Object>? initialValues,
+  }) async {
+    final store = LocalProgressStore._(
+      MemoryPreferencesBackend(initialValues),
+    );
+    await store._load();
+    return store;
   }
 
   int get completedLevelCount => _progress.length;
@@ -65,11 +75,7 @@ class LocalProgressStore extends ChangeNotifier {
     final stars = _calculateStars(mistakes: mistakes, hints: hints);
     final previous = _progress[puzzleId];
     _progress[puzzleId] = LevelProgress(
-      stars: previous == null
-          ? stars
-          : stars > previous.stars
-          ? stars
-          : previous.stars,
+      stars: previous == null ? stars : stars > previous.stars ? stars : previous.stars,
       bestSeconds: previous == null || seconds < previous.bestSeconds
           ? seconds
           : previous.bestSeconds,
@@ -107,15 +113,13 @@ class LocalProgressStore extends ChangeNotifier {
 
   void _load() {
     final themeIndex = _preferences.getInt(_themeKey);
-    if (themeIndex != null &&
-        themeIndex >= 0 &&
-        themeIndex < ThemeMode.values.length) {
+    if (themeIndex != null && themeIndex >= 0 && themeIndex < ThemeMode.values.length) {
       themeMode = ThemeMode.values[themeIndex];
     }
-    highContrast = _preferences.getBool(_highContrastKey) ?? false;
-    tutorialCompleted = _preferences.getBool(_tutorialKey) ?? false;
+    highContrast = await _preferences.getBool(_highContrastKey) ?? false;
+    tutorialCompleted = await _preferences.getBool(_tutorialKey) ?? false;
 
-    final raw = _preferences.getString(_progressKey);
+    final raw = await _preferences.getString(_progressKey);
     if (raw == null || raw.isEmpty) {
       return;
     }

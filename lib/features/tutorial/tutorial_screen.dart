@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/local_progress_store.dart';
 import '../../data/puzzle_catalog.dart';
+import '../../localization/app_strings.dart';
 import '../game/game_screen.dart';
 
 class TutorialScreen extends StatelessWidget {
@@ -11,10 +12,11 @@ class TutorialScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sudoku nasıl oynanır?')),
+      appBar: AppBar(title: Text(context.tr('tutorial_title'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
+<<<<<<< HEAD
           const _RuleCard(
             number: '1',
             title: 'Satırları tamamla',
@@ -34,14 +36,41 @@ class TutorialScreen extends StatelessWidget {
             title: 'Kutuları unutma',
             description:
                 'Kalın çizgili her küçük kutu da tüm sayıları birer kez içerir.',
+=======
+          _RuleCard(
+            number: '1',
+            title: context.tr('rule_rows_title'),
+            description: context.tr('rule_rows_description'),
+            icon: Icons.view_stream_outlined,
+          ),
+          const SizedBox(height: 12),
+          _RuleCard(
+            number: '2',
+            title: context.tr('rule_columns_title'),
+            description: context.tr('rule_columns_description'),
+            icon: Icons.view_column_outlined,
+          ),
+          const SizedBox(height: 12),
+          _RuleCard(
+            number: '3',
+            title: context.tr('rule_boxes_title'),
+            description: context.tr('rule_boxes_description'),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
             icon: Icons.grid_view_outlined,
           ),
           const SizedBox(height: 24),
           Text(
+<<<<<<< HEAD
             'Hazırsan 4×4 mini Sudoku ile dene.',
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+=======
+            context.tr('tutorial_ready'),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
           ),
           const SizedBox(height: 14),
           FilledButton.icon(
@@ -50,6 +79,7 @@ class TutorialScreen extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (_) => GameScreen(
                     puzzle: PuzzleCatalog.tutorialPuzzle,
+<<<<<<< HEAD
                     completionTitle: 'Sudoku mantığını çözdün!',
                     onCompleted:
                         ({
@@ -62,9 +92,24 @@ class TutorialScreen extends StatelessWidget {
               );
               if (context.mounted && completed == true)
                 Navigator.of(context).pop();
+=======
+                    completionTitle: context.tr('tutorial_completed'),
+                    onCompleted: ({
+                      required seconds,
+                      required mistakes,
+                      required hints,
+                    }) =>
+                        store.markTutorialComplete(),
+                  ),
+                ),
+              );
+              if (context.mounted && completed == true) {
+                Navigator.of(context).pop();
+              }
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
             },
             icon: const Icon(Icons.play_arrow),
-            label: const Text('Mini eğitimi başlat'),
+            label: Text(context.tr('start_mini_tutorial')),
           ),
         ],
       ),
@@ -79,6 +124,10 @@ class _RuleCard extends StatelessWidget {
     required this.description,
     required this.icon,
   });
+<<<<<<< HEAD
+=======
+
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
   final String number;
   final String title;
   final String description;
@@ -112,7 +161,13 @@ class _RuleCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
+<<<<<<< HEAD
                           style: Theme.of(context).textTheme.titleMedium
+=======
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ),

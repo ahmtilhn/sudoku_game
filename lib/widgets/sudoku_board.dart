@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../domain/sudoku.dart';
+import '../localization/app_strings.dart';
 
 class SudokuBoard extends StatelessWidget {
   const SudokuBoard({
@@ -27,7 +28,7 @@ class SudokuBoard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final selectedValue = selectedIndex == null ? 0 : board[selectedIndex!];
     return Semantics(
-      label: '${puzzle.size} çarpı ${puzzle.size} Sudoku tahtası',
+      label: context.tr('board_label', <Object>[puzzle.size]),
       child: AspectRatio(
         aspectRatio: 1,
         child: DecoratedBox(
@@ -53,7 +54,14 @@ class SudokuBoard extends StatelessWidget {
                     selectedIndex != null &&
                     (selectedIndex! ~/ puzzle.size == row ||
                         selectedIndex! % puzzle.size == column ||
+<<<<<<< HEAD
                         SudokuEngine.relatedBoxIndex(puzzle, selectedIndex!) ==
+=======
+                        SudokuEngine.relatedBoxIndex(
+                              puzzle,
+                              selectedIndex!,
+                            ) ==
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                             SudokuEngine.relatedBoxIndex(puzzle, index));
                 final sameValue = selectedValue != 0 && value == selectedValue;
                 final background = errorIndex == index
@@ -68,8 +76,19 @@ class SudokuBoard extends StatelessWidget {
                 return Semantics(
                   button: !puzzle.isFixed(index),
                   selected: selected,
+<<<<<<< HEAD
                   label:
                       'Satır ${row + 1}, sütun ${column + 1}, ${value == 0 ? 'boş' : value}',
+=======
+                  label: context.tr(
+                    'cell_label',
+                    <Object>[
+                      row + 1,
+                      column + 1,
+                      value == 0 ? context.tr('empty') : value,
+                    ],
+                  ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                   child: InkWell(
                     onTap: enabled ? () => onCellTap(index) : null,
                     child: DecoratedBox(
@@ -78,16 +97,24 @@ class SudokuBoard extends StatelessWidget {
                         border: Border(
                           right: BorderSide(
                             color: scheme.outline,
+<<<<<<< HEAD
                             width:
                                 (column + 1) % puzzle.boxColumns == 0 &&
+=======
+                            width: (column + 1) % puzzle.boxColumns == 0 &&
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                                     column != puzzle.size - 1
                                 ? 2
                                 : 0.4,
                           ),
                           bottom: BorderSide(
                             color: scheme.outline,
+<<<<<<< HEAD
                             width:
                                 (row + 1) % puzzle.boxRows == 0 &&
+=======
+                            width: (row + 1) % puzzle.boxRows == 0 &&
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                                     row != puzzle.size - 1
                                 ? 2
                                 : 0.4,

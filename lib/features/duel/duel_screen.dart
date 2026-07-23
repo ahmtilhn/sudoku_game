@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../data/puzzle_catalog.dart';
 import '../../domain/sudoku.dart';
+import '../../localization/app_strings.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 
@@ -66,8 +67,14 @@ class _DuelScreenState extends State<DuelScreen> {
     if (index == null ||
         _puzzle.isFixed(index) ||
         _board[index] != 0 ||
+<<<<<<< HEAD
         _completed)
       return;
+=======
+        _completed) {
+      return;
+    }
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
     if (_puzzle.solution[index] == value) {
       HapticFeedback.selectionClick();
       setState(() {
@@ -99,9 +106,15 @@ class _DuelScreenState extends State<DuelScreen> {
     });
     if (timeout) {
       ScaffoldMessenger.of(context).showSnackBar(
+<<<<<<< HEAD
         const SnackBar(
           content: Text('Süre doldu. Sıra diğer oyuncuda.'),
           duration: Duration(milliseconds: 850),
+=======
+        SnackBar(
+          content: Text(context.tr('time_up_turn_passed')),
+          duration: const Duration(milliseconds: 850),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
         ),
       );
     }
@@ -113,14 +126,25 @@ class _DuelScreenState extends State<DuelScreen> {
     final winner = _scores[0] == _scores[1]
         ? null
         : _scores[0] > _scores[1]
+<<<<<<< HEAD
         ? 0
         : 1;
+=======
+            ? 0
+            : 1;
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
         title: Text(
+<<<<<<< HEAD
           winner == null ? 'Berabere!' : 'Oyuncu ${winner + 1} kazandı!',
+=======
+          winner == null
+              ? context.tr('draw')
+              : context.tr('player_won', <Object>[winner + 1]),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -129,12 +153,18 @@ class _DuelScreenState extends State<DuelScreen> {
             const SizedBox(height: 16),
             Text(
               '${_scores[0]}  —  ${_scores[1]}',
+<<<<<<< HEAD
               style: Theme.of(
                 context,
               ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
+=======
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
             ),
             const SizedBox(height: 8),
-            Text('Toplam $_turn tur oynandı.'),
+            Text(context.tr('turns_played', <Object>[_turn])),
           ],
         ),
         actions: [
@@ -143,7 +173,7 @@ class _DuelScreenState extends State<DuelScreen> {
               Navigator.of(dialogContext).pop();
               Navigator.of(context).pop();
             },
-            child: const Text('Ana menü'),
+            child: Text(context.tr('main_menu')),
           ),
         ],
       ),
@@ -154,7 +184,7 @@ class _DuelScreenState extends State<DuelScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Yerel Düello')),
+      appBar: AppBar(title: Text(context.tr('local_duel'))),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -190,7 +220,11 @@ class _DuelScreenState extends State<DuelScreen> {
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          Chip(label: Text('Tur $_turn')),
+                          Chip(
+                            label: Text(
+                              context.tr('turn', <Object>[_turn]),
+                            ),
+                          ),
                           const Spacer(),
                           SizedBox(
                             width: 150,
@@ -198,7 +232,14 @@ class _DuelScreenState extends State<DuelScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
+<<<<<<< HEAD
                                   '$_remainingSeconds saniye',
+=======
+                                  context.tr(
+                                    'seconds',
+                                    <Object>[_remainingSeconds],
+                                  ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -228,10 +269,21 @@ class _DuelScreenState extends State<DuelScreen> {
                       ),
                       const SizedBox(height: 18),
                       Text(
+<<<<<<< HEAD
                         'Oyuncu ${_currentPlayer + 1}: Bir hücre seç ve tek hamleni yap.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w700),
+=======
+                        context.tr(
+                          'player_instruction',
+                          <Object>[_currentPlayer + 1],
+                        ),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                       ),
                       const SizedBox(height: 12),
                       NumberPad(
@@ -258,6 +310,10 @@ class _PlayerScore extends StatelessWidget {
     required this.score,
     required this.active,
   });
+<<<<<<< HEAD
+=======
+
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
   final int player;
   final int score;
   final bool active;
@@ -278,13 +334,19 @@ class _PlayerScore extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('Oyuncu $player'),
+          Text(context.tr('player', <Object>[player])),
           const SizedBox(height: 4),
           Text(
             '$score',
+<<<<<<< HEAD
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+=======
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
           ),
         ],
       ),

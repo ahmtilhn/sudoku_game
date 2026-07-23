@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
 import '../../domain/sudoku.dart';
+import '../../localization/app_strings.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 
@@ -22,14 +23,14 @@ class GameScreen extends StatefulWidget {
     this.onCompleted,
     this.allowNotes = true,
     this.allowHints = true,
-    this.completionTitle = 'Tebrikler!',
+    this.completionTitle,
   });
 
   final SudokuPuzzle puzzle;
   final GameCompleted? onCompleted;
   final bool allowNotes;
   final bool allowHints;
-  final String completionTitle;
+  final String? completionTitle;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -87,7 +88,9 @@ class _GameScreenState extends State<GameScreen> {
         _errorIndex = index;
       });
       Future<void>.delayed(const Duration(milliseconds: 650), () {
-        if (mounted && _errorIndex == index) setState(() => _errorIndex = null);
+        if (mounted && _errorIndex == index) {
+          setState(() => _errorIndex = null);
+        }
       });
       return;
     }
@@ -97,7 +100,13 @@ class _GameScreenState extends State<GameScreen> {
         _MoveRecord(
           index: index,
           previousValue: _board[index],
+<<<<<<< HEAD
           previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
+=======
+          previousNotes: Set<int>.from(
+            _notes[index] ?? const <int>{},
+          ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
         ),
       );
       _board[index] = value;
@@ -115,7 +124,13 @@ class _GameScreenState extends State<GameScreen> {
         _MoveRecord(
           index: index,
           previousValue: _board[index],
+<<<<<<< HEAD
           previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
+=======
+          previousNotes: Set<int>.from(
+            _notes[index] ?? const <int>{},
+          ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
         ),
       );
       _board[index] = 0;
@@ -150,7 +165,13 @@ class _GameScreenState extends State<GameScreen> {
         _MoveRecord(
           index: index,
           previousValue: _board[index],
+<<<<<<< HEAD
           previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
+=======
+          previousNotes: Set<int>.from(
+            _notes[index] ?? const <int>{},
+          ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
         ),
       );
       _selectedIndex = index;
@@ -188,13 +209,20 @@ class _GameScreenState extends State<GameScreen> {
     final stars = _mistakes == 0 && _hints == 0
         ? 3
         : _mistakes <= 2 && _hints <= 1
+<<<<<<< HEAD
         ? 2
         : 1;
+=======
+            ? 2
+            : 1;
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: Text(widget.completionTitle),
+        title: Text(
+          widget.completionTitle ?? context.tr('congratulations'),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -212,9 +240,18 @@ class _GameScreenState extends State<GameScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _ResultRow(label: 'Süre', value: formatDuration(_elapsedSeconds)),
-            _ResultRow(label: 'Hata', value: '$_mistakes'),
-            _ResultRow(label: 'İpucu', value: '$_hints'),
+            _ResultRow(
+              label: context.tr('time'),
+              value: formatDuration(_elapsedSeconds),
+            ),
+            _ResultRow(
+              label: context.tr('mistakes'),
+              value: '$_mistakes',
+            ),
+            _ResultRow(
+              label: context.tr('hints'),
+              value: '$_hints',
+            ),
           ],
         ),
         actions: [
@@ -223,7 +260,7 @@ class _GameScreenState extends State<GameScreen> {
               Navigator.of(dialogContext).pop();
               Navigator.of(context).pop(true);
             },
-            child: const Text('Devam et'),
+            child: Text(context.tr('continue')),
           ),
         ],
       ),
@@ -234,7 +271,11 @@ class _GameScreenState extends State<GameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+<<<<<<< HEAD
         title: Text(widget.puzzle.title),
+=======
+        title: Text(context.strings.puzzleTitle(widget.puzzle)),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -263,8 +304,21 @@ class _GameScreenState extends State<GameScreen> {
                       Row(
                         children: [
                           Chip(
+<<<<<<< HEAD
                             avatar: const Icon(Icons.error_outline, size: 18),
                             label: Text('Hata: $_mistakes'),
+=======
+                            avatar: const Icon(
+                              Icons.error_outline,
+                              size: 18,
+                            ),
+                            label: Text(
+                              context.tr(
+                                'mistakes_count',
+                                <Object>[_mistakes],
+                              ),
+                            ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                           ),
                           const SizedBox(width: 8),
                           Chip(
@@ -272,11 +326,26 @@ class _GameScreenState extends State<GameScreen> {
                               Icons.lightbulb_outline,
                               size: 18,
                             ),
+<<<<<<< HEAD
                             label: Text('İpucu: $_hints'),
                           ),
                           const Spacer(),
                           Text(
                             widget.puzzle.difficulty.label,
+=======
+                            label: Text(
+                              context.tr(
+                                'hints_count',
+                                <Object>[_hints],
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            context.strings.difficultyLabel(
+                              widget.puzzle.difficulty,
+                            ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                             style: Theme.of(context).textTheme.labelLarge,
                           ),
                         ],
@@ -299,7 +368,13 @@ class _GameScreenState extends State<GameScreen> {
                         onNumber: _enterNumber,
                         onErase: _erase,
                         onToggleNotes: widget.allowNotes
+<<<<<<< HEAD
                             ? () => setState(() => _notesMode = !_notesMode)
+=======
+                            ? () => setState(
+                                  () => _notesMode = !_notesMode,
+                                )
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                             : null,
                         onUndo: _history.isEmpty ? null : _undo,
                         onHint: widget.allowHints ? _hint : null,
@@ -322,6 +397,10 @@ class _MoveRecord {
     required this.previousValue,
     required this.previousNotes,
   });
+<<<<<<< HEAD
+=======
+
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
   final int index;
   final int previousValue;
   final Set<int> previousNotes;
@@ -329,6 +408,7 @@ class _MoveRecord {
 
 class _ResultRow extends StatelessWidget {
   const _ResultRow({required this.label, required this.value});
+
   final String label;
   final String value;
 
@@ -340,7 +420,14 @@ class _ResultRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label),
+<<<<<<< HEAD
           Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+=======
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
         ],
       ),
     );

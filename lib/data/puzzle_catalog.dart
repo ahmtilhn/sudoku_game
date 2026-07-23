@@ -11,7 +11,7 @@ class PuzzleCatalog {
     final source = careerPuzzles[seed % careerPuzzles.length];
     return source.copyWith(
       id: 'daily-${normalized.toIso8601String().split('T').first}',
-      title: 'Günün Sudokusu',
+      title: 'Daily Sudoku',
     );
   }
 
@@ -21,7 +21,7 @@ class PuzzleCatalog {
         .toList(growable: false);
     return candidates[seed.abs() % candidates.length].copyWith(
       id: 'duel-${seed.abs() % candidates.length}',
-      title: 'Yerel Düello',
+      title: 'Local Duel',
     );
   }
 
@@ -128,7 +128,14 @@ class PuzzleCatalog {
       }
       if (digitShift > 0) {
         current = current
+<<<<<<< HEAD
             .map((value) => value == 0 ? 0 : ((value - 1 + digitShift) % 9) + 1)
+=======
+            .map(
+              (value) =>
+                  value == 0 ? 0 : ((value - 1 + digitShift) % 9) + 1,
+            )
+>>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
             .toList(growable: false);
       }
       return current;

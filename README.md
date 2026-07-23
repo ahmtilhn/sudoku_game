@@ -1,37 +1,48 @@
 # Sudoku Duel
 
-Flutter ile geliştirilen sade Sudoku prototipi. İlk teslim online bağlantı eklemeden temel oyun döngüsünü doğrular.
+A simple Flutter Sudoku game with a guided career, a daily puzzle, and a shared-board local duel prototype.
 
-## Hazır özellikler
+English is the canonical source language. Android is prepared for Google Play's **App strings translation using Gemini**, while iOS uses the same keys through an Xcode-compatible String Catalog.
 
-- 4×4 etkileşimli başlangıç eğitimi
-- Beş zorlukta 30 seviyelik kariyer
-- Doğru çözümü doğrulanan ve dönüşümlerle çeşitlendirilen puzzle kataloğu
-- Not alma, silme, geri alma ve ipucu
-- Süre, hata, yıldız ve en iyi süre kaydı
-- Her gün deterministik günlük Sudoku
-- Aynı telefonda iki oyunculu düello
-- Düelloda 10 saniyelik tur, doğru hamlede +10 ve yanlışta -5 puan
-- Açık, koyu ve yüksek kontrast görünüm
-- SharedPreferences ile local kariyer ve ayar kaydı
-- Sudoku motoru ve ana ekran widget testleri
+## Current features
 
-## Çalıştırma
+- Interactive 4×4 beginner tutorial
+- 30 career levels across five difficulties
+- Validated Sudoku puzzle and solution catalog
+- Notes, erase, undo, and hints
+- Timer, mistakes, stars, and personal best records
+- Deterministic daily Sudoku
+- Two-player local duel on one device
+- 10-second duel turns, +10 for a correct move, and -5 for an incorrect move
+- Light, dark, and high-contrast themes
+- Local career and settings persistence
+- English source interface with 22 declared app locales
+- Android native string bridge for Google Play-generated translations
+- iOS String Catalog support
+- Sudoku engine and home-screen widget tests
+
+## Run
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-## Doğrulama
+## Validation
 
-Repo yapısını, importları ve puzzle/çözüm tutarlılığını Flutter SDK olmadan doğrulamak için:
+Validate the repository structure, imports, and puzzle consistency:
 
 ```bash
 python3 tool/validate_prototype.py
 ```
 
-Tam Flutter doğrulaması için:
+Validate that Dart, Android, and iOS expose the same localization keys:
+
+```bash
+python3 tool/validate_localizations.py
+```
+
+Run the complete Flutter checks:
 
 ```bash
 dart format --output=none --set-exit-if-changed lib test
@@ -39,12 +50,21 @@ flutter analyze
 flutter test
 ```
 
-## Sonraki faz
+## Localization
 
-- Firebase Anonymous Auth
+See [`docs/LOCALIZATION.md`](docs/LOCALIZATION.md) for:
+
+- the supported language list
+- Google Play Console's Gemini app-string translation steps
+- the iOS Xcode agent and String Catalog workflow
+- rules for adding new user-visible text
+
+## Next online phase
+
+- Firebase Anonymous Authentication
 - Cloudflare Worker
-- Matchmaker ve GameRoom Durable Objects
-- WebSocket yeniden bağlantı
-- Arkadaş odası ve hızlı eşleştirme
+- Matchmaker and GameRoom Durable Objects
+- WebSocket reconnection
+- Friend rooms and quick matchmaking
 
-Detaylı sınırlar için `docs/ARCHITECTURE.md` dosyasına bakın.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the planned online boundaries.
