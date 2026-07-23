@@ -3,6 +3,88 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+abstract class PreferencesBackend {
+  Future<int?> getInt(String key);
+
+  Future<bool?> getBool(String key);
+
+  Future<String?> getString(String key);
+
+  Future<void> setInt(String key, int value);
+
+  Future<void> setBool(String key, bool value);
+
+  Future<void> setString(String key, String value);
+
+  Future<void> remove(String key);
+}
+
+class SharedPreferencesBackend implements PreferencesBackend {
+  SharedPreferencesBackend() : _preferences = SharedPreferencesAsync();
+
+  final SharedPreferencesAsync _preferences;
+
+  @override
+  Future<int?> getInt(String key) => _preferences.getInt(key);
+
+  @override
+  Future<bool?> getBool(String key) => _preferences.getBool(key);
+
+  @override
+  Future<String?> getString(String key) => _preferences.getString(key);
+
+  @override
+  Future<void> setInt(String key, int value) =>
+      _preferences.setInt(key, value);
+
+  @override
+  Future<void> setBool(String key, bool value) =>
+      _preferences.setBool(key, value);
+
+  @override
+  Future<void> setString(String key, String value) =>
+      _preferences.setString(key, value);
+
+  @override
+  Future<void> remove(String key) => _preferences.remove(key);
+}
+
+class MemoryPreferencesBackend implements PreferencesBackend {
+  MemoryPreferencesBackend([Map<String, Object>? initialValues])
+      : _values = <String, Object>{...?initialValues};
+
+  final Map<String, Object> _values;
+
+  @override
+  Future<int?> getInt(String key) async => _values[key] as int?;
+
+  @override
+  Future<bool?> getBool(String key) async => _values[key] as bool?;
+
+  @override
+  Future<String?> getString(String key) async => _values[key] as String?;
+
+  @override
+  Future<void> setInt(String key, int value) async {
+    _values[key] = value;
+  }
+
+  @override
+  Future<void> setBool(String key, bool value) async {
+    _values[key] = value;
+  }
+
+  @override
+  Future<void> setString(String key, String value) async {
+    _values[key] = value;
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    _values.remove(key);
+  }
+}
+
 class LevelProgress {
   const LevelProgress({
     required this.stars,
@@ -15,10 +97,10 @@ class LevelProgress {
   final int bestMistakes;
 
   Map<String, Object> toJson() => <String, Object>{
-    'stars': stars,
-    'bestSeconds': bestSeconds,
-    'bestMistakes': bestMistakes,
-  };
+        'stars': stars,
+        'bestSeconds': bestSeconds,
+        'bestMistakes': bestMistakes,
+      };
 
   factory LevelProgress.fromJson(Map<String, dynamic> json) {
     return LevelProgress(
@@ -75,7 +157,11 @@ class LocalProgressStore extends ChangeNotifier {
     final stars = _calculateStars(mistakes: mistakes, hints: hints);
     final previous = _progress[puzzleId];
     _progress[puzzleId] = LevelProgress(
-      stars: previous == null ? stars : stars > previous.stars ? stars : previous.stars,
+      stars: previous == null
+          ? stars
+          : stars > previous.stars
+              ? stars
+              : previous.stars,
       bestSeconds: previous == null || seconds < previous.bestSeconds
           ? seconds
           : previous.bestSeconds,
@@ -111,9 +197,11 @@ class LocalProgressStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _load() {
-    final themeIndex = _preferences.getInt(_themeKey);
-    if (themeIndex != null && themeIndex >= 0 && themeIndex < ThemeMode.values.length) {
+  Future<void> _load() async {
+    final themeIndex = await _preferences.getInt(_themeKey);
+    if (themeIndex != null &&
+        themeIndex >= 0 &&
+        themeIndex < ThemeMode.values.length) {
       themeMode = ThemeMode.values[themeIndex];
     }
     highContrast = await _preferences.getBool(_highContrastKey) ?? false;

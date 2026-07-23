@@ -63,11 +63,7 @@ class NumberPad extends StatelessWidget {
           children: [
             _ActionButton(
               icon: Icons.backspace_outlined,
-<<<<<<< HEAD
-              label: 'Temizle',
-=======
               label: context.tr('erase'),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
               onPressed: enabled ? onErase : null,
             ),
             if (onToggleNotes != null)
@@ -84,21 +80,13 @@ class NumberPad extends StatelessWidget {
             if (onUndo != null)
               _ActionButton(
                 icon: Icons.undo,
-<<<<<<< HEAD
-                label: 'Geri al',
-=======
                 label: context.tr('undo'),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                 onPressed: enabled ? onUndo : null,
               ),
             if (onHint != null)
               _ActionButton(
                 icon: Icons.lightbulb_outline,
-<<<<<<< HEAD
-                label: 'İpucu',
-=======
                 label: context.tr('hint'),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                 onPressed: enabled ? onHint : null,
               ),
           ],

@@ -28,23 +28,6 @@ class SettingsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SegmentedButton<ThemeMode>(
-<<<<<<< HEAD
-                      segments: const [
-                        ButtonSegment(
-                          value: ThemeMode.system,
-                          label: Text('Sistem'),
-                          icon: Icon(Icons.settings_brightness),
-                        ),
-                        ButtonSegment(
-                          value: ThemeMode.light,
-                          label: Text('Açık'),
-                          icon: Icon(Icons.light_mode_outlined),
-                        ),
-                        ButtonSegment(
-                          value: ThemeMode.dark,
-                          label: Text('Koyu'),
-                          icon: Icon(Icons.dark_mode_outlined),
-=======
                       segments: [
                         ButtonSegment(
                           value: ThemeMode.system,
@@ -60,7 +43,6 @@ class SettingsScreen extends StatelessWidget {
                           value: ThemeMode.dark,
                           label: Text(context.tr('dark')),
                           icon: const Icon(Icons.dark_mode_outlined),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                         ),
                       ],
                       selected: <ThemeMode>{store.themeMode},
@@ -72,15 +54,9 @@ class SettingsScreen extends StatelessWidget {
                       contentPadding: EdgeInsets.zero,
                       value: store.highContrast,
                       onChanged: store.setHighContrast,
-<<<<<<< HEAD
-                      title: const Text('Yüksek kontrast'),
-                      subtitle: const Text(
-                        'Tahta ve metin ayrımını güçlendirir.',
-=======
                       title: Text(context.tr('high_contrast')),
                       subtitle: Text(
                         context.tr('high_contrast_subtitle'),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                       ),
                     ),
                   ],
@@ -96,18 +72,12 @@ class SettingsScreen extends StatelessWidget {
             Card(
               child: ListTile(
                 leading: const Icon(Icons.delete_outline),
-<<<<<<< HEAD
-                title: const Text('Kariyer ilerlemesini temizle'),
-                subtitle: Text(
-                  '${store.completedLevelCount} tamamlanan seviye',
-=======
                 title: Text(context.tr('clear_career_progress')),
                 subtitle: Text(
                   context.tr(
                     'completed_levels',
                     <Object>[store.completedLevelCount],
                   ),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
                 ),
                 onTap: () => _confirmClear(context),
               ),
@@ -122,20 +92,6 @@ class SettingsScreen extends StatelessWidget {
     final approved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-<<<<<<< HEAD
-        title: const Text('İlerleme temizlensin mi?'),
-        content: const Text(
-          'Tamamlanan kariyer seviyeleri ve rekorlar kaldırılacak.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Vazgeç'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Temizle'),
-=======
         title: Text(context.tr('clear_progress_title')),
         content: Text(context.tr('clear_progress_body')),
         actions: [
@@ -146,7 +102,6 @@ class SettingsScreen extends StatelessWidget {
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(context.tr('clear')),
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
           ),
         ],
       ),
