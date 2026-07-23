@@ -32,8 +32,18 @@ class PuzzleCatalog {
     size: 4,
     boxRows: 2,
     boxColumns: 2,
-    puzzle: <int>[1, 0, 0, 4, 0, 4, 1, 0, 0, 1, 4, 0, 4, 0, 0, 1],
-    solution: <int>[1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
+    puzzle: <int>[
+      1, 0, 0, 4,
+      0, 4, 1, 0,
+      0, 1, 4, 0,
+      4, 0, 0, 1,
+    ],
+    solution: <int>[
+      1, 2, 3, 4,
+      3, 4, 1, 2,
+      2, 1, 4, 3,
+      4, 3, 2, 1,
+    ],
   );
 
   static List<SudokuPuzzle> _buildCareerPuzzles() {
@@ -112,30 +122,32 @@ class PuzzleCatalog {
     List<int> transformGrid(List<int> source) {
       var current = List<int>.from(source);
       if (transpose) {
-        current = List<int>.generate(81, (index) {
-          final row = index ~/ 9;
-          final column = index % 9;
-          return source[column * 9 + row];
-        });
+        current = List<int>.generate(
+          81,
+          (index) {
+            final row = index ~/ 9;
+            final column = index % 9;
+            return source[column * 9 + row];
+          },
+        );
       }
       for (var turn = 0; turn < rotation; turn++) {
         final previous = current;
-        current = List<int>.generate(81, (index) {
-          final row = index ~/ 9;
-          final column = index % 9;
-          return previous[(8 - column) * 9 + row];
-        });
+        current = List<int>.generate(
+          81,
+          (index) {
+            final row = index ~/ 9;
+            final column = index % 9;
+            return previous[(8 - column) * 9 + row];
+          },
+        );
       }
       if (digitShift > 0) {
         current = current
-<<<<<<< HEAD
-            .map((value) => value == 0 ? 0 : ((value - 1 + digitShift) % 9) + 1)
-=======
             .map(
               (value) =>
                   value == 0 ? 0 : ((value - 1 + digitShift) % 9) + 1,
             )
->>>>>>> 8fe6ccd91d5db3ce3d8e23617e404a1b183eb2fe
             .toList(growable: false);
       }
       return current;
