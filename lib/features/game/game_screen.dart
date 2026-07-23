@@ -149,7 +149,7 @@ class _GameScreenState extends State<GameScreen> {
         _board[candidate] != 0) {
       candidate = _board.indexOf(0);
     }
-    if (candidate == null || candidate < 0) return;
+    if (candidate < 0) return;
     final index = candidate;
     setState(() {
       _history.add(
