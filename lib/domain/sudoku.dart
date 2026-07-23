@@ -2,11 +2,11 @@ enum SudokuDifficulty { beginner, easy, medium, hard, expert }
 
 extension SudokuDifficultyLabel on SudokuDifficulty {
   String get label => switch (this) {
-        SudokuDifficulty.beginner => 'Başlangıç',
-        SudokuDifficulty.easy => 'Kolay',
-        SudokuDifficulty.medium => 'Orta',
-        SudokuDifficulty.hard => 'Zor',
-        SudokuDifficulty.expert => 'Uzman',
+        SudokuDifficulty.beginner => 'Beginner',
+        SudokuDifficulty.easy => 'Easy',
+        SudokuDifficulty.medium => 'Medium',
+        SudokuDifficulty.hard => 'Hard',
+        SudokuDifficulty.expert => 'Expert',
       };
 }
 
