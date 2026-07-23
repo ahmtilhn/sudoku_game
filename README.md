@@ -25,6 +25,14 @@ flutter run
 
 ## Doğrulama
 
+Repo yapısını, importları ve puzzle/çözüm tutarlılığını Flutter SDK olmadan doğrulamak için:
+
+```bash
+python3 tool/validate_prototype.py
+```
+
+Tam Flutter doğrulaması için:
+
 ```bash
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze
