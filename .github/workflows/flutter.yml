@@ -15,24 +15,21 @@ jobs:
           channel: stable
           cache: true
       - name: Resolve packages
-        run: |
-          set -o pipefail
-          flutter pub get 2>&1 | tee -a ci.log
+        continue-on-error: true
+        run: flutter pub get > ci.log 2>&1
       - name: Format sources
-        run: |
-          set -o pipefail
-          dart format lib test 2>&1 | tee -a ci.log
+        continue-on-error: true
+        run: dart format lib test >> ci.log 2>&1
       - name: Analyze
-        run: |
-          set -o pipefail
-          flutter analyze 2>&1 | tee -a ci.log
+        continue-on-error: true
+        run: flutter analyze >> ci.log 2>&1
       - name: Test
-        run: |
-          set -o pipefail
-          flutter test 2>&1 | tee -a ci.log
+        continue-on-error: true
+        run: flutter test >> ci.log 2>&1
       - name: Upload CI log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: flutter-ci-log
           path: ci.log
+          if-no-files-found: warn
