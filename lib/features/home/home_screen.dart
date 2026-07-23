@@ -38,7 +38,10 @@ class HomeScreen extends StatelessWidget {
               icon: Icons.route_outlined,
               title: 'Kariyer',
               subtitle: 'Başlangıçtan uzman seviyesine ilerle',
-              trailing: Text('${store.completedLevelCount}/30', style: const TextStyle(fontWeight: FontWeight.w800)),
+              trailing: Text(
+                '${store.completedLevelCount}/30',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
               onTap: () => _open(context, CareerScreen(store: store)),
             ),
             const SizedBox(height: 12),
@@ -59,14 +62,18 @@ class HomeScreen extends StatelessWidget {
             MenuCard(
               icon: Icons.school_outlined,
               title: 'Nasıl oynanır?',
-              subtitle: store.tutorialCompleted ? 'Eğitimi tekrar aç' : '4×4 mini tahta ile birkaç dakikada öğren',
+              subtitle: store.tutorialCompleted
+                  ? 'Eğitimi tekrar aç'
+                  : '4×4 mini tahta ile birkaç dakikada öğren',
               onTap: () => _open(context, TutorialScreen(store: store)),
             ),
             const SizedBox(height: 20),
             Text(
               'Online düello altyapısı sonraki fazda bu yerel düello motoruna bağlanacak.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -90,22 +97,31 @@ class _WelcomePanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [scheme.primaryContainer, scheme.secondaryContainer]),
+        gradient: LinearGradient(
+          colors: [scheme.primaryContainer, scheme.secondaryContainer],
+        ),
         borderRadius: BorderRadius.circular(26),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            store.tutorialCompleted ? 'Bir tur Sudoku?' : 'Sudoku bilmek zorunda değilsin.',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, color: scheme.onPrimaryContainer),
+            store.tutorialCompleted
+                ? 'Bir tur Sudoku?'
+                : 'Sudoku bilmek zorunda değilsin.',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: scheme.onPrimaryContainer,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             store.tutorialCompleted
                 ? 'Kaldığın yerden devam et veya yanındaki biriyle düello yap.'
                 : 'Mini eğitimle kuralları öğren, sonra kariyere geç.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: scheme.onPrimaryContainer),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: scheme.onPrimaryContainer),
           ),
         ],
       ),

@@ -8,11 +8,12 @@ import '../../domain/sudoku.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 
-typedef GameCompleted = Future<void> Function({
-  required int seconds,
-  required int mistakes,
-  required int hints,
-});
+typedef GameCompleted =
+    Future<void> Function({
+      required int seconds,
+      required int mistakes,
+      required int hints,
+    });
 
 class GameScreen extends StatefulWidget {
   const GameScreen({
@@ -92,7 +93,13 @@ class _GameScreenState extends State<GameScreen> {
     }
     HapticFeedback.selectionClick();
     setState(() {
-      _history.add(_MoveRecord(index: index, previousValue: _board[index], previousNotes: Set<int>.from(_notes[index] ?? const <int>{})));
+      _history.add(
+        _MoveRecord(
+          index: index,
+          previousValue: _board[index],
+          previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
+        ),
+      );
       _board[index] = value;
       _notes.remove(index);
       _removeRelatedNotes(index, value);
@@ -104,7 +111,13 @@ class _GameScreenState extends State<GameScreen> {
     final index = _selectedIndex;
     if (index == null || widget.puzzle.isFixed(index) || _completed) return;
     setState(() {
-      _history.add(_MoveRecord(index: index, previousValue: _board[index], previousNotes: Set<int>.from(_notes[index] ?? const <int>{})));
+      _history.add(
+        _MoveRecord(
+          index: index,
+          previousValue: _board[index],
+          previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
+        ),
+      );
       _board[index] = 0;
       _notes.remove(index);
     });
@@ -115,7 +128,9 @@ class _GameScreenState extends State<GameScreen> {
     final move = _history.removeLast();
     setState(() {
       _board[move.index] = move.previousValue;
-      move.previousNotes.isEmpty ? _notes.remove(move.index) : _notes[move.index] = Set<int>.from(move.previousNotes);
+      move.previousNotes.isEmpty
+          ? _notes.remove(move.index)
+          : _notes[move.index] = Set<int>.from(move.previousNotes);
       _selectedIndex = move.index;
     });
   }
@@ -123,13 +138,21 @@ class _GameScreenState extends State<GameScreen> {
   void _hint() {
     if (!widget.allowHints || _completed) return;
     var candidate = _selectedIndex;
-    if (candidate == null || widget.puzzle.isFixed(candidate) || _board[candidate] != 0) {
+    if (candidate == null ||
+        widget.puzzle.isFixed(candidate) ||
+        _board[candidate] != 0) {
       candidate = _board.indexOf(0);
     }
-    if (candidate == null || candidate < 0) return;
+    if (candidate < 0) return;
     final index = candidate;
     setState(() {
-      _history.add(_MoveRecord(index: index, previousValue: _board[index], previousNotes: Set<int>.from(_notes[index] ?? const <int>{})));
+      _history.add(
+        _MoveRecord(
+          index: index,
+          previousValue: _board[index],
+          previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
+        ),
+      );
       _selectedIndex = index;
       _board[index] = widget.puzzle.solution[index];
       _notes.remove(index);
@@ -156,9 +179,17 @@ class _GameScreenState extends State<GameScreen> {
     if (!SudokuEngine.isComplete(widget.puzzle, _board)) return;
     _timer?.cancel();
     setState(() => _completed = true);
-    await widget.onCompleted?.call(seconds: _elapsedSeconds, mistakes: _mistakes, hints: _hints);
+    await widget.onCompleted?.call(
+      seconds: _elapsedSeconds,
+      mistakes: _mistakes,
+      hints: _hints,
+    );
     if (!mounted) return;
-    final stars = _mistakes == 0 && _hints == 0 ? 3 : _mistakes <= 2 && _hints <= 1 ? 2 : 1;
+    final stars = _mistakes == 0 && _hints == 0
+        ? 3
+        : _mistakes <= 2 && _hints <= 1
+        ? 2
+        : 1;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -169,7 +200,16 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List<Widget>.generate(3, (index) => Icon(index < stars ? Icons.star_rounded : Icons.star_border_rounded, size: 42, color: Theme.of(context).colorScheme.tertiary)),
+              children: List<Widget>.generate(
+                3,
+                (index) => Icon(
+                  index < stars
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
+                  size: 42,
+                  color: Theme.of(context).colorScheme.tertiary,
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             _ResultRow(label: 'Süre', value: formatDuration(_elapsedSeconds)),
@@ -195,12 +235,24 @@ class _GameScreenState extends State<GameScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.puzzle.title),
-        actions: [Padding(padding: const EdgeInsets.only(right: 16), child: Center(child: Text(formatDuration(_elapsedSeconds), style: const TextStyle(fontWeight: FontWeight.w800))))],
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Text(
+                formatDuration(_elapsedSeconds),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final width = constraints.maxWidth > 620 ? 560.0 : constraints.maxWidth;
+            final width = constraints.maxWidth > 620
+                ? 560.0
+                : constraints.maxWidth;
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
               child: Center(
@@ -210,15 +262,35 @@ class _GameScreenState extends State<GameScreen> {
                     children: [
                       Row(
                         children: [
-                          Chip(avatar: const Icon(Icons.error_outline, size: 18), label: Text('Hata: $_mistakes')),
+                          Chip(
+                            avatar: const Icon(Icons.error_outline, size: 18),
+                            label: Text('Hata: $_mistakes'),
+                          ),
                           const SizedBox(width: 8),
-                          Chip(avatar: const Icon(Icons.lightbulb_outline, size: 18), label: Text('İpucu: $_hints')),
+                          Chip(
+                            avatar: const Icon(
+                              Icons.lightbulb_outline,
+                              size: 18,
+                            ),
+                            label: Text('İpucu: $_hints'),
+                          ),
                           const Spacer(),
-                          Text(widget.puzzle.difficulty.label, style: Theme.of(context).textTheme.labelLarge),
+                          Text(
+                            widget.puzzle.difficulty.label,
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      SudokuBoard(puzzle: widget.puzzle, board: _board, selectedIndex: _selectedIndex, notes: _notes, errorIndex: _errorIndex, enabled: !_completed, onCellTap: _selectCell),
+                      SudokuBoard(
+                        puzzle: widget.puzzle,
+                        board: _board,
+                        selectedIndex: _selectedIndex,
+                        notes: _notes,
+                        errorIndex: _errorIndex,
+                        enabled: !_completed,
+                        onCellTap: _selectCell,
+                      ),
                       const SizedBox(height: 18),
                       NumberPad(
                         maxValue: widget.puzzle.size,
@@ -226,7 +298,9 @@ class _GameScreenState extends State<GameScreen> {
                         notesEnabled: _notesMode,
                         onNumber: _enterNumber,
                         onErase: _erase,
-                        onToggleNotes: widget.allowNotes ? () => setState(() => _notesMode = !_notesMode) : null,
+                        onToggleNotes: widget.allowNotes
+                            ? () => setState(() => _notesMode = !_notesMode)
+                            : null,
                         onUndo: _history.isEmpty ? null : _undo,
                         onHint: widget.allowHints ? _hint : null,
                       ),
@@ -243,7 +317,11 @@ class _GameScreenState extends State<GameScreen> {
 }
 
 class _MoveRecord {
-  const _MoveRecord({required this.index, required this.previousValue, required this.previousNotes});
+  const _MoveRecord({
+    required this.index,
+    required this.previousValue,
+    required this.previousNotes,
+  });
   final int index;
   final int previousValue;
   final Set<int> previousNotes;
@@ -258,7 +336,13 @@ class _ResultRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label), Text(value, style: const TextStyle(fontWeight: FontWeight.w800))]),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+        ],
+      ),
     );
   }
 }

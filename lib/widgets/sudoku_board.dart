@@ -40,31 +40,36 @@ class SudokuBoard extends StatelessWidget {
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
               padding: EdgeInsets.zero,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: puzzle.size),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: puzzle.size,
+              ),
               itemCount: puzzle.cellCount,
               itemBuilder: (context, index) {
                 final value = board[index];
                 final row = index ~/ puzzle.size;
                 final column = index % puzzle.size;
                 final selected = selectedIndex == index;
-                final related = selectedIndex != null &&
+                final related =
+                    selectedIndex != null &&
                     (selectedIndex! ~/ puzzle.size == row ||
                         selectedIndex! % puzzle.size == column ||
-                        SudokuEngine.relatedBoxIndex(puzzle, selectedIndex!) == SudokuEngine.relatedBoxIndex(puzzle, index));
+                        SudokuEngine.relatedBoxIndex(puzzle, selectedIndex!) ==
+                            SudokuEngine.relatedBoxIndex(puzzle, index));
                 final sameValue = selectedValue != 0 && value == selectedValue;
                 final background = errorIndex == index
                     ? scheme.errorContainer
                     : selected
-                        ? scheme.primaryContainer
-                        : sameValue
-                            ? scheme.secondaryContainer
-                            : related
-                                ? scheme.surfaceContainerHighest
-                                : scheme.surface;
+                    ? scheme.primaryContainer
+                    : sameValue
+                    ? scheme.secondaryContainer
+                    : related
+                    ? scheme.surfaceContainerHighest
+                    : scheme.surface;
                 return Semantics(
                   button: !puzzle.isFixed(index),
                   selected: selected,
-                  label: 'Satır ${row + 1}, sütun ${column + 1}, ${value == 0 ? 'boş' : value}',
+                  label:
+                      'Satır ${row + 1}, sütun ${column + 1}, ${value == 0 ? 'boş' : value}',
                   child: InkWell(
                     onTap: enabled ? () => onCellTap(index) : null,
                     child: DecoratedBox(
@@ -73,23 +78,38 @@ class SudokuBoard extends StatelessWidget {
                         border: Border(
                           right: BorderSide(
                             color: scheme.outline,
-                            width: (column + 1) % puzzle.boxColumns == 0 && column != puzzle.size - 1 ? 2 : 0.4,
+                            width:
+                                (column + 1) % puzzle.boxColumns == 0 &&
+                                    column != puzzle.size - 1
+                                ? 2
+                                : 0.4,
                           ),
                           bottom: BorderSide(
                             color: scheme.outline,
-                            width: (row + 1) % puzzle.boxRows == 0 && row != puzzle.size - 1 ? 2 : 0.4,
+                            width:
+                                (row + 1) % puzzle.boxRows == 0 &&
+                                    row != puzzle.size - 1
+                                ? 2
+                                : 0.4,
                           ),
                         ),
                       ),
                       child: value == 0
-                          ? _NotesCell(values: notes[index] ?? const <int>{}, size: puzzle.size)
+                          ? _NotesCell(
+                              values: notes[index] ?? const <int>{},
+                              size: puzzle.size,
+                            )
                           : Center(
                               child: Text(
                                 '$value',
                                 style: TextStyle(
                                   fontSize: puzzle.size == 9 ? 25 : 34,
-                                  fontWeight: puzzle.isFixed(index) ? FontWeight.w800 : FontWeight.w600,
-                                  color: puzzle.isFixed(index) ? scheme.onSurface : scheme.primary,
+                                  fontWeight: puzzle.isFixed(index)
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                  color: puzzle.isFixed(index)
+                                      ? scheme.onSurface
+                                      : scheme.primary,
                                 ),
                               ),
                             ),

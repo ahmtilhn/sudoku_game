@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class LevelProgress {
   const LevelProgress({
@@ -15,10 +14,10 @@ class LevelProgress {
   final int bestMistakes;
 
   Map<String, Object> toJson() => <String, Object>{
-        'stars': stars,
-        'bestSeconds': bestSeconds,
-        'bestMistakes': bestMistakes,
-      };
+    'stars': stars,
+    'bestSeconds': bestSeconds,
+    'bestMistakes': bestMistakes,
+  };
 
   factory LevelProgress.fromJson(Map<String, dynamic> json) {
     return LevelProgress(
@@ -66,7 +65,11 @@ class LocalProgressStore extends ChangeNotifier {
     final stars = _calculateStars(mistakes: mistakes, hints: hints);
     final previous = _progress[puzzleId];
     _progress[puzzleId] = LevelProgress(
-      stars: previous == null ? stars : stars > previous.stars ? stars : previous.stars,
+      stars: previous == null
+          ? stars
+          : stars > previous.stars
+          ? stars
+          : previous.stars,
       bestSeconds: previous == null || seconds < previous.bestSeconds
           ? seconds
           : previous.bestSeconds,
@@ -104,7 +107,9 @@ class LocalProgressStore extends ChangeNotifier {
 
   void _load() {
     final themeIndex = _preferences.getInt(_themeKey);
-    if (themeIndex != null && themeIndex >= 0 && themeIndex < ThemeMode.values.length) {
+    if (themeIndex != null &&
+        themeIndex >= 0 &&
+        themeIndex < ThemeMode.values.length) {
       themeMode = ThemeMode.values[themeIndex];
     }
     highContrast = _preferences.getBool(_highContrastKey) ?? false;

@@ -6,7 +6,11 @@ void main() {
   group('SudokuEngine', () {
     test('catalog puzzles have a valid shape and solution', () {
       for (final puzzle in PuzzleCatalog.careerPuzzles) {
-        expect(SudokuEngine.isPuzzleShapeValid(puzzle), isTrue, reason: puzzle.id);
+        expect(
+          SudokuEngine.isPuzzleShapeValid(puzzle),
+          isTrue,
+          reason: puzzle.id,
+        );
       }
     });
 
@@ -17,14 +21,23 @@ void main() {
     });
 
     test('returns legal candidates for an empty cell', () {
-      final puzzle = PuzzleCatalog.careerPuzzles.firstWhere((item) => item.difficulty == SudokuDifficulty.easy);
-      final candidates = SudokuEngine.candidates(puzzle, List<int>.from(puzzle.puzzle), 2);
+      final puzzle = PuzzleCatalog.careerPuzzles.firstWhere(
+        (item) => item.difficulty == SudokuDifficulty.easy,
+      );
+      final candidates = SudokuEngine.candidates(
+        puzzle,
+        List<int>.from(puzzle.puzzle),
+        2,
+      );
       expect(candidates, contains(puzzle.solution[2]));
     });
 
     test('recognizes a completed board', () {
       final puzzle = PuzzleCatalog.careerPuzzles.last;
-      expect(SudokuEngine.isComplete(puzzle, List<int>.from(puzzle.solution)), isTrue);
+      expect(
+        SudokuEngine.isComplete(puzzle, List<int>.from(puzzle.solution)),
+        isTrue,
+      );
     });
   });
 }
