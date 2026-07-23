@@ -1,4 +1,4 @@
-name: Flutter checks
+name: Prototype checks
 
 on:
   push:
@@ -6,17 +6,9 @@ on:
   pull_request:
 
 jobs:
-  analyze-and-test:
+  validate-prototype:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cirruslabs/flutter:stable
     steps:
       - uses: actions/checkout@v4
-      - name: Resolve packages
-        run: flutter pub get
-      - name: Format sources
-        run: dart format lib test
-      - name: Analyze
-        run: flutter analyze
-      - name: Test
-        run: flutter test
+      - name: Validate repository structure and puzzles
+        run: python3 tool/validate_prototype.py
