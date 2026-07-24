@@ -2,20 +2,18 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_runtime_config.dart';
+import 'firebase_services.dart';
 import 'social_api_client.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (!FirebaseRuntimeConfig.configured) return;
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(options: FirebaseRuntimeConfig.options);
-  }
+  await FirebaseRuntimeConfig.initializeIfConfigured();
 }
 
 class PushNotificationService {
@@ -24,10 +22,14 @@ class PushNotificationService {
   static final PushNotificationService instance = PushNotificationService._();
 
   static const String _challengeChannelId = 'online_challenges';
+  static const String _enabledKey = 'challenge_push_enabled_v1';
 
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
+  final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
+
   final ValueNotifier<bool> initialized = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> enabled = ValueNotifier<bool>(false);
   final ValueNotifier<bool> permissionGranted = ValueNotifier<bool>(false);
   final ValueNotifier<String?> openedChallengeId = ValueNotifier<String?>(null);
 
@@ -47,14 +49,14 @@ class PushNotificationService {
 
   Future<void> _initializeOnce() async {
     try {
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(options: FirebaseRuntimeConfig.options);
-      }
+      await FirebaseRuntimeConfig.initializeIfConfigured();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
       if (FirebaseAuth.instance.currentUser == null) {
         await FirebaseAuth.instance.signInAnonymously();
       }
+
+      enabled.value = await _preferences.getBool(_enabledKey) ?? false;
 
       await _initializeLocalNotifications();
       await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
@@ -82,7 +84,7 @@ class PushNotificationService {
 
       final settings = await FirebaseMessaging.instance.getNotificationSettings();
       permissionGranted.value = _isAuthorized(settings.authorizationStatus);
-      if (permissionGranted.value) {
+      if (enabled.value && permissionGranted.value) {
         final token = await FirebaseMessaging.instance.getToken();
         if (token != null) await _registerToken(token);
       }
@@ -90,9 +92,9 @@ class PushNotificationService {
       initialized.value = true;
     } catch (error, stackTrace) {
       initialized.value = false;
-      permissionGranted.value = false;
       debugPrint('Challenge push initialization failed: $error');
       debugPrintStack(stackTrace: stackTrace);
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
     }
   }
 
@@ -113,23 +115,49 @@ class PushNotificationService {
       );
       final allowed = _isAuthorized(settings.authorizationStatus);
       permissionGranted.value = allowed;
-      if (!allowed) return false;
+      if (!allowed) {
+        enabled.value = false;
+        await _preferences.setBool(_enabledKey, false);
+        return false;
+      }
 
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) return false;
+
+      enabled.value = true;
+      await _preferences.setBool(_enabledKey, true);
       await _registerToken(token);
       return true;
-    } catch (error) {
+    } catch (error, stackTrace) {
       debugPrint('Challenge notification permission failed: $error');
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
       return false;
     }
   }
 
-  Future<void> deleteDeviceToken() async {
-    if (!configured || !initialized.value) return;
-    await FirebaseMessaging.instance.deleteToken();
-    permissionGranted.value = false;
+  Future<void> disableChallengeNotifications() async {
+    if (!configured) return;
+    if (!initialized.value) await initialize();
+
+    enabled.value = false;
+    await _preferences.setBool(_enabledKey, false);
+
+    try {
+      await SocialApiClient.instance.disableCurrentDeviceToken();
+    } on SocialApiException catch (error, stackTrace) {
+      debugPrint('Push token disable failed: $error');
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
+    }
+
+    try {
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (error, stackTrace) {
+      debugPrint('Local FCM token deletion failed: $error');
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
+    }
   }
+
+  Future<void> deleteDeviceToken() => disableChallengeNotifications();
 
   Future<void> _initializeLocalNotifications() async {
     const settings = InitializationSettings(
@@ -168,6 +196,7 @@ class PushNotificationService {
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    if (!enabled.value) return;
     final challengeId = message.data['challengeId']?.toString();
     if (challengeId == null || challengeId.isEmpty) return;
 
@@ -200,15 +229,18 @@ class PushNotificationService {
   }
 
   Future<void> _registerToken(String token) async {
-    if (!SocialApiClient.instance.configured || token.isEmpty) return;
+    if (!enabled.value || !SocialApiClient.instance.configured || token.isEmpty) {
+      return;
+    }
     final platform = !kIsWeb && Platform.isIOS ? 'ios' : 'android';
     try {
       await SocialApiClient.instance.registerDeviceToken(
         token: token,
         platform: platform,
       );
-    } on SocialApiException catch (error) {
+    } on SocialApiException catch (error, stackTrace) {
       debugPrint('Push token registration failed: $error');
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
     }
   }
 
