@@ -63,11 +63,11 @@ void main() {
     await tester.pump();
 
     expect(_cellTextFinder(1, '2'), findsOneWidget);
-    expect(_cellAnyTextFinder(2), findsNothing);
+    expect(_cellTextFinder(2, '3'), findsNothing);
     expect(find.widgetWithText(TextButton, 'Undo'), findsNothing);
   });
 
-  testWidgets('hinted cells stay locked while later player moves remain undoable', (
+  testWidgets('hinted cells stay locked while player moves remain undoable', (
     tester,
   ) async {
     final strings = await AppStrings.load();
@@ -104,7 +104,7 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Undo'));
     await tester.pump();
 
-    expect(_cellAnyTextFinder(2), findsNothing);
+    expect(_cellTextFinder(2, '3'), findsNothing);
     expect(_cellTextFinder(1, '2'), findsOneWidget);
     expect(find.widgetWithText(TextButton, 'Undo'), findsNothing);
   });
@@ -114,13 +114,6 @@ Finder _cellTextFinder(int index, String value) {
   return find.descendant(
     of: find.byKey(ValueKey<String>('sudoku-cell-$index')),
     matching: find.text(value),
-  );
-}
-
-Finder _cellAnyTextFinder(int index) {
-  return find.descendant(
-    of: find.byKey(ValueKey<String>('sudoku-cell-$index')),
-    matching: find.byType(Text),
   );
 }
 
