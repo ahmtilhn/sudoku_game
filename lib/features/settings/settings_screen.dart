@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
+import '../../services/ads_service.dart';
 import '../../services/reminder_notification_service.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -11,6 +12,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reminders = ReminderNotificationService.instance;
+    final ads = AdsService.instance;
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('settings'))),
       body: AnimatedBuilder(
@@ -85,6 +87,34 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 22),
+            ValueListenableBuilder<bool>(
+              valueListenable: ads.privacyOptionsRequired,
+              builder: (context, required, _) {
+                if (!required) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Privacy',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 10),
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.privacy_tip_outlined),
+                        title: const Text('Ad privacy choices'),
+                        subtitle: const Text(
+                          'Review or change the privacy choices used for advertising.',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: ads.showPrivacyOptions,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                  ],
+                );
+              },
+            ),
             Text(
               context.tr('data'),
               style: Theme.of(context).textTheme.titleLarge,

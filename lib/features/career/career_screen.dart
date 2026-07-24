@@ -5,6 +5,7 @@ import '../../data/local_progress_store.dart';
 import '../../data/puzzle_catalog.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../services/ads_service.dart';
 import '../game/game_screen.dart';
 import '../game/hint_economy.dart';
 
@@ -102,7 +103,7 @@ class _CareerScreenState extends State<CareerScreen> {
           mistakeLimit: 3,
           coinContinueCost: 25,
           onCoinContinue: widget.store.spendCoins,
-          onRewardedContinue: _showRewardedPrototype,
+          onRewardedContinue: AdsService.instance.showRewarded,
           onConsumeHint: () => HintEconomy.consumeOrAcquire(
             gameContext,
             widget.store,
@@ -125,28 +126,6 @@ class _CareerScreenState extends State<CareerScreen> {
       ),
     );
     if (mounted) setState(() {});
-  }
-
-  Future<bool> _showRewardedPrototype() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(context.tr('watch_rewarded_ad')),
-        content: Text(context.tr('rewarded_ad_prototype_body')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(context.tr('cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(context.tr('continue_action')),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
   }
 }
 

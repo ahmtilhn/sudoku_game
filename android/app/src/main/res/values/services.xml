@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Google-provided test App ID. Replace before publishing. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+
+    <!-- Meta App Events stays disabled until real values are supplied. -->
+    <string name="facebook_app_id" translatable="false">000000000000000</string>
+    <string name="facebook_client_token" translatable="false">REPLACE_WITH_META_CLIENT_TOKEN</string>
+    <string name="fb_login_protocol_scheme" translatable="false">fb000000000000000</string>
+</resources>
