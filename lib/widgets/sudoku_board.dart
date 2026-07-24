@@ -12,6 +12,7 @@ class SudokuBoard extends StatelessWidget {
     required this.onCellTap,
     this.notes = const <int, Set<int>>{},
     this.errorIndex,
+    this.hintedIndexes = const <int>{},
     this.enabled = true,
   });
 
@@ -21,6 +22,7 @@ class SudokuBoard extends StatelessWidget {
   final ValueChanged<int> onCellTap;
   final Map<int, Set<int>> notes;
   final int? errorIndex;
+  final Set<int> hintedIndexes;
   final bool enabled;
 
   @override
@@ -55,6 +57,9 @@ class SudokuBoard extends StatelessWidget {
                 final row = index ~/ puzzle.size;
                 final column = index % puzzle.size;
                 final selected = selectedIndex == index;
+                final hinted = hintedIndexes.contains(index);
+                final fixed = puzzle.isFixed(index);
+                final locked = fixed || hinted;
                 final related =
                     selectedIndex != null &&
                     (selectedIndex! ~/ puzzle.size == row ||
@@ -66,13 +71,16 @@ class SudokuBoard extends StatelessWidget {
                     ? scheme.errorContainer
                     : selected
                         ? scheme.primaryContainer
-                        : sameValue
-                            ? matchingValueBackground
-                            : related
-                                ? scheme.surfaceContainerHighest
-                                : scheme.surface;
+                        : hinted
+                            ? scheme.tertiaryContainer
+                            : sameValue
+                                ? matchingValueBackground
+                                : related
+                                    ? scheme.surfaceContainerHighest
+                                    : scheme.surface;
+
                 return Semantics(
-                  button: !puzzle.isFixed(index),
+                  button: !locked,
                   selected: selected,
                   label: context.tr('cell_label', <Object>[
                     row + 1,
@@ -80,6 +88,7 @@ class SudokuBoard extends StatelessWidget {
                     value == 0 ? context.tr('empty') : value,
                   ]),
                   child: InkWell(
+                    key: ValueKey<String>('sudoku-cell-$index'),
                     onTap: enabled ? () => onCellTap(index) : null,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -89,13 +98,14 @@ class SudokuBoard extends StatelessWidget {
                             color: scheme.outline,
                             width:
                                 (column + 1) % puzzle.boxColumns == 0 &&
-                                        column != puzzle.size - 1
-                                    ? 2
-                                    : 0.4,
+                                    column != puzzle.size - 1
+                                ? 2
+                                : 0.4,
                           ),
                           bottom: BorderSide(
                             color: scheme.outline,
-                            width: (row + 1) % puzzle.boxRows == 0 &&
+                            width:
+                                (row + 1) % puzzle.boxRows == 0 &&
                                     row != puzzle.size - 1
                                 ? 2
                                 : 0.4,
@@ -112,12 +122,14 @@ class SudokuBoard extends StatelessWidget {
                                 '$value',
                                 style: TextStyle(
                                   fontSize: puzzle.size == 9 ? 25 : 34,
-                                  fontWeight: puzzle.isFixed(index)
+                                  fontWeight: locked
                                       ? FontWeight.w800
                                       : FontWeight.w600,
-                                  color: puzzle.isFixed(index)
-                                      ? scheme.onSurface
-                                      : scheme.primary,
+                                  color: hinted
+                                      ? scheme.onTertiaryContainer
+                                      : fixed
+                                          ? scheme.onSurface
+                                          : scheme.primary,
                                 ),
                               ),
                             ),
