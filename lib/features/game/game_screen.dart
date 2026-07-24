@@ -9,12 +9,14 @@ import '../../localization/app_strings.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 
-typedef GameCompleted =
-    Future<void> Function({
-      required int seconds,
-      required int mistakes,
-      required int hints,
-    });
+typedef GameCompleted = Future<void> Function({
+  required int seconds,
+  required int mistakes,
+  required int hints,
+});
+
+typedef CoinContinue = Future<bool> Function(int cost);
+typedef RewardedContinue = Future<bool> Function();
 
 class GameScreen extends StatefulWidget {
   const GameScreen({
@@ -24,6 +26,10 @@ class GameScreen extends StatefulWidget {
     this.allowNotes = true,
     this.allowHints = true,
     this.completionTitle,
+    this.mistakeLimit,
+    this.coinContinueCost = 25,
+    this.onCoinContinue,
+    this.onRewardedContinue,
   });
 
   final SudokuPuzzle puzzle;
@@ -31,6 +37,10 @@ class GameScreen extends StatefulWidget {
   final bool allowNotes;
   final bool allowHints;
   final String? completionTitle;
+  final int? mistakeLimit;
+  final int coinContinueCost;
+  final CoinContinue? onCoinContinue;
+  final RewardedContinue? onRewardedContinue;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -45,16 +55,21 @@ class _GameScreenState extends State<GameScreen> {
   int? _errorIndex;
   int _elapsedSeconds = 0;
   int _mistakes = 0;
+  int _totalMistakes = 0;
   int _hints = 0;
   bool _notesMode = false;
   bool _completed = false;
+  bool _roundLost = false;
+  bool _lossDialogVisible = false;
 
   @override
   void initState() {
     super.initState();
     _board = List<int>.from(widget.puzzle.puzzle);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && !_completed) setState(() => _elapsedSeconds++);
+      if (mounted && !_completed && !_roundLost) {
+        setState(() => _elapsedSeconds++);
+      }
     });
   }
 
@@ -65,6 +80,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _selectCell(int index) {
+    if (_roundLost) return;
     setState(() {
       _selectedIndex = index;
       _errorIndex = null;
@@ -73,7 +89,12 @@ class _GameScreenState extends State<GameScreen> {
 
   void _enterNumber(int value) {
     final index = _selectedIndex;
-    if (index == null || widget.puzzle.isFixed(index) || _completed) return;
+    if (index == null ||
+        widget.puzzle.isFixed(index) ||
+        _completed ||
+        _roundLost) {
+      return;
+    }
     if (_notesMode && widget.allowNotes && _board[index] == 0) {
       setState(() {
         final values = _notes.putIfAbsent(index, () => <int>{});
@@ -83,15 +104,22 @@ class _GameScreenState extends State<GameScreen> {
     }
     if (widget.puzzle.solution[index] != value) {
       HapticFeedback.heavyImpact();
+      final nextMistakes = _mistakes + 1;
       setState(() {
-        _mistakes++;
+        _mistakes = nextMistakes;
+        _totalMistakes++;
         _errorIndex = index;
       });
-      Future<void>.delayed(const Duration(milliseconds: 650), () {
-        if (mounted && _errorIndex == index) {
-          setState(() => _errorIndex = null);
-        }
-      });
+      final limit = widget.mistakeLimit;
+      if (limit != null && nextMistakes >= limit) {
+        Future<void>.microtask(_showRoundLostDialog);
+      } else {
+        Future<void>.delayed(const Duration(milliseconds: 650), () {
+          if (mounted && _errorIndex == index) {
+            setState(() => _errorIndex = null);
+          }
+        });
+      }
       return;
     }
     HapticFeedback.selectionClick();
@@ -112,7 +140,12 @@ class _GameScreenState extends State<GameScreen> {
 
   void _erase() {
     final index = _selectedIndex;
-    if (index == null || widget.puzzle.isFixed(index) || _completed) return;
+    if (index == null ||
+        widget.puzzle.isFixed(index) ||
+        _completed ||
+        _roundLost) {
+      return;
+    }
     setState(() {
       _history.add(
         _MoveRecord(
@@ -127,7 +160,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _undo() {
-    if (_history.isEmpty || _completed) return;
+    if (_history.isEmpty || _completed || _roundLost) return;
     final move = _history.removeLast();
     setState(() {
       _board[move.index] = move.previousValue;
@@ -139,7 +172,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _hint() {
-    if (!widget.allowHints || _completed) return;
+    if (!widget.allowHints || _completed || _roundLost) return;
     var candidate = _selectedIndex;
     if (candidate == null ||
         widget.puzzle.isFixed(candidate) ||
@@ -164,6 +197,109 @@ class _GameScreenState extends State<GameScreen> {
     _checkCompletion();
   }
 
+  Future<void> _showRoundLostDialog() async {
+    if (!mounted || _lossDialogVisible || _completed) return;
+    setState(() {
+      _roundLost = true;
+      _lossDialogVisible = true;
+    });
+
+    final action = await showDialog<_LossAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr('round_lost')),
+        content: Text(
+          context.tr('mistake_limit_reached', <Object>[
+            widget.mistakeLimit ?? 3,
+          ]),
+        ),
+        actions: [
+          if (widget.onCoinContinue != null)
+            TextButton.icon(
+              onPressed: () => Navigator.of(dialogContext).pop(_LossAction.coin),
+              icon: const Icon(Icons.monetization_on_outlined),
+              label: Text(
+                context.tr('continue_with_coins', <Object>[
+                  widget.coinContinueCost,
+                ]),
+              ),
+            ),
+          if (widget.onRewardedContinue != null)
+            TextButton.icon(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_LossAction.rewardedAd),
+              icon: const Icon(Icons.ondemand_video_outlined),
+              label: Text(context.tr('watch_rewarded_ad')),
+            ),
+          FilledButton.icon(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_LossAction.restart),
+            icon: const Icon(Icons.restart_alt),
+            label: Text(context.tr('restart_puzzle')),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() => _lossDialogVisible = false);
+
+    switch (action) {
+      case _LossAction.coin:
+        final continued =
+            await widget.onCoinContinue?.call(widget.coinContinueCost) ?? false;
+        if (!mounted) return;
+        if (continued) {
+          _resumeAfterLoss();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.tr('not_enough_coins'))),
+          );
+          await _showRoundLostDialog();
+        }
+      case _LossAction.rewardedAd:
+        final continued = await widget.onRewardedContinue?.call() ?? false;
+        if (!mounted) return;
+        if (continued) {
+          _resumeAfterLoss();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
+          );
+          await _showRoundLostDialog();
+        }
+      case _LossAction.restart:
+        _restartPuzzle();
+      case null:
+        await _showRoundLostDialog();
+    }
+  }
+
+  void _resumeAfterLoss() {
+    setState(() {
+      _mistakes = 0;
+      _errorIndex = null;
+      _roundLost = false;
+    });
+  }
+
+  void _restartPuzzle() {
+    setState(() {
+      _board = List<int>.from(widget.puzzle.puzzle);
+      _notes.clear();
+      _history.clear();
+      _selectedIndex = null;
+      _errorIndex = null;
+      _elapsedSeconds = 0;
+      _mistakes = 0;
+      _totalMistakes = 0;
+      _hints = 0;
+      _notesMode = false;
+      _roundLost = false;
+    });
+  }
+
   void _removeRelatedNotes(int index, int value) {
     final row = index ~/ widget.puzzle.size;
     final column = index % widget.puzzle.size;
@@ -184,15 +320,15 @@ class _GameScreenState extends State<GameScreen> {
     setState(() => _completed = true);
     await widget.onCompleted?.call(
       seconds: _elapsedSeconds,
-      mistakes: _mistakes,
+      mistakes: _totalMistakes,
       hints: _hints,
     );
     if (!mounted) return;
-    final stars = _mistakes == 0 && _hints == 0
+    final stars = _totalMistakes == 0 && _hints == 0
         ? 3
-        : _mistakes <= 2 && _hints <= 1
-        ? 2
-        : 1;
+        : _totalMistakes <= 2 && _hints <= 1
+            ? 2
+            : 1;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -219,7 +355,10 @@ class _GameScreenState extends State<GameScreen> {
               label: context.tr('time'),
               value: formatDuration(_elapsedSeconds),
             ),
-            _ResultRow(label: context.tr('mistakes'), value: '$_mistakes'),
+            _ResultRow(
+              label: context.tr('mistakes'),
+              value: '$_totalMistakes',
+            ),
             _ResultRow(label: context.tr('hints'), value: '$_hints'),
           ],
         ),
@@ -238,6 +377,14 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final controlsEnabled = !_completed && !_roundLost;
+    final mistakeLabel = widget.mistakeLimit == null
+        ? context.tr('mistakes_count', <Object>[_mistakes])
+        : context.tr('mistakes_limit_count', <Object>[
+            _mistakes,
+            widget.mistakeLimit!,
+          ]);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(context.strings.puzzleTitle(widget.puzzle)),
@@ -260,7 +407,7 @@ class _GameScreenState extends State<GameScreen> {
             board: _board,
             maxValue: widget.puzzle.size,
           ),
-          enabled: !_completed,
+          enabled: controlsEnabled,
           notesEnabled: _notesMode,
           onNumber: _enterNumber,
           onErase: _erase,
@@ -288,9 +435,7 @@ class _GameScreenState extends State<GameScreen> {
                         children: [
                           Chip(
                             avatar: const Icon(Icons.error_outline, size: 18),
-                            label: Text(
-                              context.tr('mistakes_count', <Object>[_mistakes]),
-                            ),
+                            label: Text(mistakeLabel),
                           ),
                           const SizedBox(width: 8),
                           Chip(
@@ -318,7 +463,7 @@ class _GameScreenState extends State<GameScreen> {
                         selectedIndex: _selectedIndex,
                         notes: _notes,
                         errorIndex: _errorIndex,
-                        enabled: !_completed,
+                        enabled: controlsEnabled,
                         onCellTap: _selectCell,
                       ),
                     ],
@@ -332,6 +477,8 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 }
+
+enum _LossAction { coin, rewardedAd, restart }
 
 class _MoveRecord {
   const _MoveRecord({
