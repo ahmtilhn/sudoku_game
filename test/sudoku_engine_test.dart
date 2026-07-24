@@ -37,8 +37,8 @@ void main() {
         SudokuDifficulty.medium,
         seed: 99123,
       );
-      expect(second.puzzle, first.puzzle);
-      expect(second.solution, first.solution);
+      expect(second.puzzle, equals(first.puzzle));
+      expect(second.solution, equals(first.solution));
     });
 
     test('different seeds produce different boards', () {
@@ -50,7 +50,7 @@ void main() {
         SudokuDifficulty.easy,
         seed: 202,
       );
-      expect(second.puzzle, isNot(first.puzzle));
+      expect(second.puzzle, isNot(equals(first.puzzle)));
     });
 
     test('duel puzzle keeps the selected difficulty', () {
