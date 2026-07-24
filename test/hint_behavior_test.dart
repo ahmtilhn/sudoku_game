@@ -15,21 +15,30 @@ void main() {
   );
 
   setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(
       localizationChannel,
       (_) async => AppStrings.english,
+    );
+    messenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (_) async => null,
     );
   });
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(localizationChannel, null);
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(localizationChannel, null);
+    messenger.setMockMethodCallHandler(SystemChannels.platform, null);
   });
 
   testWidgets('a rapid double tap consumes and reveals exactly one hint', (
     tester,
   ) async {
+    addTearDown(() => _disposeGame(tester));
+
     final strings = await AppStrings.load();
     final completer = Completer<bool>();
     addTearDown(() {
@@ -79,6 +88,8 @@ void main() {
   testWidgets('hinted cells stay locked while player moves remain undoable', (
     tester,
   ) async {
+    addTearDown(() => _disposeGame(tester));
+
     final strings = await AppStrings.load();
 
     await tester.pumpWidget(
