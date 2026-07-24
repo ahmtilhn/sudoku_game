@@ -240,6 +240,15 @@ import UIKit
 
   private func loadFriends(result: @escaping FlutterResult) {
     guard ensureAuthenticated(result: result) else { return }
+    guard #available(iOS 14.5, *) else {
+      result(FlutterError(
+        code: "unsupported_platform",
+        message: "Game Center friend loading requires a newer iOS version.",
+        details: nil
+      ))
+      return
+    }
+
     GKLocalPlayer.local.loadFriends { players, error in
       DispatchQueue.main.async {
         if let error {
@@ -308,8 +317,12 @@ import UIKit
           result(FlutterError(code: "player_not_found", message: nil, details: nil))
           return
         }
-        let controller = GKGameCenterViewController(player: player)
-        self.presentGameCenter(controller, result: result)
+        if #available(iOS 14.5, *) {
+          let controller = GKGameCenterViewController(player: player)
+          self.presentGameCenter(controller, result: result)
+        } else {
+          self.showDashboard(state: .default, result: result)
+        }
       }
     }
   }
@@ -319,17 +332,17 @@ import UIKit
     let resolvedID = nonPlaceholder(
       leaderboardID ?? Bundle.main.object(forInfoDictionaryKey: "SudokuLeaderboardGlobalRating") as? String
     )
-    let controller: GKGameCenterViewController
-    if let resolvedID {
-      controller = GKGameCenterViewController(
+
+    if let resolvedID, #available(iOS 14.0, *) {
+      let controller = GKGameCenterViewController(
         leaderboardID: resolvedID,
         playerScope: .global,
         timeScope: .allTime
       )
+      presentGameCenter(controller, result: result)
     } else {
-      controller = GKGameCenterViewController(state: .leaderboards)
+      showDashboard(state: .leaderboards, result: result)
     }
-    presentGameCenter(controller, result: result)
   }
 
   private func showDashboard(state: GKGameCenterViewControllerState, result: FlutterResult) {
@@ -409,7 +422,7 @@ import UIKit
 
   private func requestIdentityVerification(result: @escaping FlutterResult) {
     guard ensureAuthenticated(result: result) else { return }
-    GKLocalPlayer.local.fetchItems(forIdentityVerificationSignature:) {
+    GKLocalPlayer.local.fetchItems(forIdentityVerificationSignature: {
       publicKeyURL,
       signature,
       salt,
@@ -434,7 +447,7 @@ import UIKit
           "bundleId": Bundle.main.bundleIdentifier ?? "",
         ])
       }
-    }
+    })
   }
 
   private func nonPlaceholder(_ value: String?) -> String? {
