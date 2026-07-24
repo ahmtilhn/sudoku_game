@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
+import '../../services/ads_service.dart';
 
 class HintEconomy {
   const HintEconomy._();
@@ -56,25 +57,14 @@ class HintEconomy {
       return store.consumeHint();
     }
 
-    final watched = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(context.tr('watch_rewarded_ad')),
-        content: Text(context.tr('rewarded_ad_prototype_body')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(context.tr('cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(context.tr('continue_action')),
-          ),
-        ],
-      ),
-    );
-    if (watched != true) return false;
+    final watched = await AdsService.instance.showRewarded();
+    if (!context.mounted) return false;
+    if (!watched) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
+      );
+      return false;
+    }
 
     await store.addHints(1);
     return store.consumeHint();
