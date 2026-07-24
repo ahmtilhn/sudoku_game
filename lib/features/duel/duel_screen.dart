@@ -10,7 +10,9 @@ import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 
 class DuelScreen extends StatefulWidget {
-  const DuelScreen({super.key});
+  const DuelScreen({super.key, required this.difficulty});
+
+  final SudokuDifficulty difficulty;
 
   @override
   State<DuelScreen> createState() => _DuelScreenState();
@@ -33,6 +35,7 @@ class _DuelScreenState extends State<DuelScreen> {
   void initState() {
     super.initState();
     _puzzle = PuzzleCatalog.duelPuzzle(
+      difficulty: widget.difficulty,
       seed: DateTime.now().millisecondsSinceEpoch,
     );
     _board = List<int>.from(_puzzle.puzzle);
@@ -115,8 +118,8 @@ class _DuelScreenState extends State<DuelScreen> {
     final winner = _scores[0] == _scores[1]
         ? null
         : _scores[0] > _scores[1]
-        ? 0
-        : 1;
+            ? 0
+            : 1;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -133,9 +136,9 @@ class _DuelScreenState extends State<DuelScreen> {
             const SizedBox(height: 16),
             Text(
               '${_scores[0]}  —  ${_scores[1]}',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(context.tr('turns_played', <Object>[_turn])),
@@ -158,7 +161,21 @@ class _DuelScreenState extends State<DuelScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('local_duel'))),
+      appBar: AppBar(
+        title: Text(context.tr('duel_puzzle_title')),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Chip(
+                label: Text(
+                  context.strings.difficultyLabel(widget.difficulty),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: NumberPadDock(
         child: NumberPad(
           maxValue: 9,
@@ -253,8 +270,8 @@ class _DuelScreenState extends State<DuelScreen> {
                         ]),
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ],
                   ),
@@ -299,9 +316,9 @@ class _PlayerScore extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '$score',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
           ),
         ],
       ),

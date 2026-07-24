@@ -1,0 +1,132 @@
+import 'package:flutter/material.dart';
+
+import '../../domain/sudoku.dart';
+import '../../localization/app_strings.dart';
+import 'duel_screen.dart';
+
+class MatchmakingScreen extends StatefulWidget {
+  const MatchmakingScreen({super.key});
+
+  @override
+  State<MatchmakingScreen> createState() => _MatchmakingScreenState();
+}
+
+class _MatchmakingScreenState extends State<MatchmakingScreen> {
+  SudokuDifficulty _difficulty = SudokuDifficulty.easy;
+  bool _searching = false;
+
+  String get _queueKey => 'duel_${_difficulty.name}';
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      appBar: AppBar(title: Text(context.tr('online_duel'))),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+        children: [
+          Text(
+            context.tr('choose_duel_difficulty'),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.tr('same_difficulty_match'),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 20),
+          for (final difficulty in SudokuDifficulty.values) ...[
+            Card(
+              color: _difficulty == difficulty
+                  ? scheme.primaryContainer
+                  : null,
+              child: RadioListTile<SudokuDifficulty>(
+                value: difficulty,
+                groupValue: _difficulty,
+                onChanged: _searching
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          setState(() => _difficulty = value);
+                        }
+                      },
+                title: Text(
+                  context.strings.difficultyLabel(difficulty),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: Text(
+                  context.tr('difficulty_queue', <Object>[
+                    context.strings.difficultyLabel(difficulty),
+                  ]),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 12),
+          if (_searching)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: scheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Column(
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr('searching_opponent'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    context.tr('queue_key', <Object>[_queueKey]),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    context.tr('matchmaking_backend_pending'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  OutlinedButton(
+                    onPressed: () => setState(() => _searching = false),
+                    child: Text(context.tr('cancel_search')),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            FilledButton.icon(
+              onPressed: () => setState(() => _searching = true),
+              icon: const Icon(Icons.public),
+              label: Text(context.tr('find_opponent')),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: _openLocalPractice,
+              icon: const Icon(Icons.people_outline),
+              label: Text(context.tr('local_practice')),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _openLocalPractice() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DuelScreen(difficulty: _difficulty),
+      ),
+    );
+  }
+}

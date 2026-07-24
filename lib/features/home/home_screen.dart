@@ -5,7 +5,7 @@ import '../../localization/app_strings.dart';
 import '../../widgets/menu_card.dart';
 import '../career/career_screen.dart';
 import '../daily/daily_screen.dart';
-import '../duel/duel_screen.dart';
+import '../duel/matchmaking_screen.dart';
 import '../settings/settings_screen.dart';
 import '../tutorial/tutorial_screen.dart';
 
@@ -20,6 +20,15 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.tr('app_name')),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Center(
+              child: Chip(
+                avatar: const Icon(Icons.monetization_on_outlined, size: 18),
+                label: Text('${store.coins}'),
+              ),
+            ),
+          ),
           IconButton(
             tooltip: context.tr('settings'),
             onPressed: () => _open(context, SettingsScreen(store: store)),
@@ -36,21 +45,21 @@ class HomeScreen extends StatelessWidget {
             _WelcomePanel(store: store),
             const SizedBox(height: 18),
             MenuCard(
-              icon: Icons.route_outlined,
+              icon: Icons.casino_outlined,
               title: context.tr('career'),
-              subtitle: context.tr('career_subtitle'),
+              subtitle: context.tr('career_random_subtitle'),
               trailing: Text(
-                '${store.completedLevelCount}/30',
+                context.tr('coins_count', <Object>[store.coins]),
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               onTap: () => _open(context, CareerScreen(store: store)),
             ),
             const SizedBox(height: 12),
             MenuCard(
-              icon: Icons.sports_esports_outlined,
-              title: context.tr('local_duel'),
-              subtitle: context.tr('local_duel_subtitle'),
-              onTap: () => _open(context, const DuelScreen()),
+              icon: Icons.public,
+              title: context.tr('online_duel'),
+              subtitle: context.tr('online_duel_subtitle'),
+              onTap: () => _open(context, const MatchmakingScreen()),
             ),
             const SizedBox(height: 12),
             MenuCard(
@@ -103,18 +112,18 @@ class _WelcomePanel extends StatelessWidget {
                 ? context.tr('welcome_returning_title')
                 : context.tr('welcome_new_title'),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: scheme.onPrimaryContainer,
-            ),
+                  fontWeight: FontWeight.w900,
+                  color: scheme.onPrimaryContainer,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             store.tutorialCompleted
                 ? context.tr('welcome_returning_body')
                 : context.tr('welcome_new_body'),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: scheme.onPrimaryContainer),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: scheme.onPrimaryContainer,
+                ),
           ),
         ],
       ),

@@ -4,8 +4,24 @@
     <string name="settings">Settings</string>
     <string name="career">Career</string>
     <string name="career_subtitle">Progress from beginner to expert</string>
+    <string name="career_random_subtitle">Choose a difficulty and get a new puzzle</string>
+    <string name="career_random_intro">Choose a difficulty. A fresh, unique Sudoku will be generated for every game.</string>
+    <string name="three_mistake_rule">Career rule: the round ends after 3 wrong moves.</string>
+    <string name="coins_count" formatted="false">%1$d coins</string>
+    <string name="random_clue_count" formatted="false">About %1$d starting clues</string>
     <string name="local_duel">Local Duel</string>
     <string name="local_duel_subtitle">Take 10-second turns on the same device</string>
+    <string name="online_duel">Online Duel</string>
+    <string name="online_duel_subtitle">Choose a difficulty and match with the same queue</string>
+    <string name="choose_duel_difficulty">Choose your duel difficulty</string>
+    <string name="same_difficulty_match">You will only be matched with players who selected the same difficulty.</string>
+    <string name="difficulty_queue" formatted="false">%1$s difficulty queue</string>
+    <string name="searching_opponent">Searching for an opponent…</string>
+    <string name="queue_key" formatted="false">Queue: %1$s</string>
+    <string name="matchmaking_backend_pending">The online connection will use this queue when the matchmaking backend is enabled.</string>
+    <string name="cancel_search">Cancel search</string>
+    <string name="find_opponent">Find opponent</string>
+    <string name="local_practice">Play local practice</string>
     <string name="daily_sudoku">Daily Sudoku</string>
     <string name="daily_subtitle">One fresh puzzle every day</string>
     <string name="how_to_play">How to play</string>
@@ -13,7 +29,7 @@
     <string name="tutorial_new">Learn in minutes with a 4×4 board</string>
     <string name="welcome_returning_title">Ready for a Sudoku?</string>
     <string name="welcome_new_title">You don\'t need to know Sudoku.</string>
-    <string name="welcome_returning_body">Continue your career or challenge someone beside you.</string>
+    <string name="welcome_returning_body">Continue your career or challenge another player.</string>
     <string name="welcome_new_body">Learn the rules with a quick tutorial, then start your career.</string>
     <string name="career_intro">Start with the easiest puzzles and progress step by step.</string>
     <string name="difficulty_beginner">Beginner</string>
@@ -26,7 +42,7 @@
     <string name="best_time" formatted="false">Best: %1$s</string>
     <string name="level_title" formatted="false">%1$s %2$d</string>
     <string name="daily_puzzle_title">Daily Sudoku</string>
-    <string name="duel_puzzle_title">Local Duel</string>
+    <string name="duel_puzzle_title">Duel</string>
     <string name="mini_sudoku_title">Mini Sudoku</string>
     <string name="congratulations">Congratulations!</string>
     <string name="time">Time</string>
@@ -34,7 +50,16 @@
     <string name="hints">Hints</string>
     <string name="continue_action">Continue</string>
     <string name="mistakes_count" formatted="false">Mistakes: %1$d</string>
+    <string name="mistakes_limit_count" formatted="false">Mistakes: %1$d/%2$d</string>
     <string name="hints_count" formatted="false">Hints: %1$d</string>
+    <string name="round_lost">Round lost</string>
+    <string name="mistake_limit_reached" formatted="false">You made %1$d wrong moves. Choose how you want to continue.</string>
+    <string name="continue_with_coins" formatted="false">Continue for %1$d coins</string>
+    <string name="watch_rewarded_ad">Watch rewarded ad</string>
+    <string name="restart_puzzle">Restart from the beginning</string>
+    <string name="not_enough_coins">You do not have enough coins.</string>
+    <string name="rewarded_ad_unavailable">The rewarded ad is not available right now.</string>
+    <string name="rewarded_ad_prototype_body">The rewarded ad provider will be connected in the monetization phase. Continue now to test the recovery flow.</string>
     <string name="time_up_turn_passed">Time is up. The turn passed to the other player.</string>
     <string name="draw">Draw!</string>
     <string name="player_won" formatted="false">Player %1$d won!</string>

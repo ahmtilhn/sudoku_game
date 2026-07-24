@@ -33,7 +33,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Career'), findsOneWidget);
-    expect(find.text('Local Duel'), findsOneWidget);
+    expect(find.text('Online Duel'), findsOneWidget);
     expect(find.text('Daily Sudoku'), findsOneWidget);
     expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
   });

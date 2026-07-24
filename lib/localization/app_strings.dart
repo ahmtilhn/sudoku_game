@@ -46,8 +46,29 @@ class AppStrings {
     'settings': 'Settings',
     'career': 'Career',
     'career_subtitle': 'Progress from beginner to expert',
+    'career_random_subtitle': 'Choose a difficulty and get a new puzzle',
+    'career_random_intro':
+        'Choose a difficulty. A fresh, unique Sudoku will be generated for every game.',
+    'three_mistake_rule':
+        'Career rule: the round ends after 3 wrong moves.',
+    'coins_count': '%1d coins',
+    'random_clue_count': 'About %1d starting clues',
     'local_duel': 'Local Duel',
     'local_duel_subtitle': 'Take 10-second turns on the same device',
+    'online_duel': 'Online Duel',
+    'online_duel_subtitle':
+        'Choose a difficulty and match with the same queue',
+    'choose_duel_difficulty': 'Choose your duel difficulty',
+    'same_difficulty_match':
+        'You will only be matched with players who selected the same difficulty.',
+    'difficulty_queue': '%1s difficulty queue',
+    'searching_opponent': 'Searching for an opponent…',
+    'queue_key': 'Queue: %1s',
+    'matchmaking_backend_pending':
+        'The online connection will use this queue when the matchmaking backend is enabled.',
+    'cancel_search': 'Cancel search',
+    'find_opponent': 'Find opponent',
+    'local_practice': 'Play local practice',
     'daily_sudoku': 'Daily Sudoku',
     'daily_subtitle': 'One fresh puzzle every day',
     'how_to_play': 'How to play',
@@ -56,7 +77,7 @@ class AppStrings {
     'welcome_returning_title': 'Ready for a Sudoku?',
     'welcome_new_title': "You don't need to know Sudoku.",
     'welcome_returning_body':
-        'Continue your career or challenge someone beside you.',
+        'Continue your career or challenge another player.',
     'welcome_new_body':
         'Learn the rules with a quick tutorial, then start your career.',
     'career_intro': 'Start with the easiest puzzles and progress step by step.',
@@ -70,7 +91,7 @@ class AppStrings {
     'best_time': 'Best: %1s',
     'level_title': '%1s %2d',
     'daily_puzzle_title': 'Daily Sudoku',
-    'duel_puzzle_title': 'Local Duel',
+    'duel_puzzle_title': 'Duel',
     'mini_sudoku_title': 'Mini Sudoku',
     'congratulations': 'Congratulations!',
     'time': 'Time',
@@ -78,7 +99,18 @@ class AppStrings {
     'hints': 'Hints',
     'continue_action': 'Continue',
     'mistakes_count': 'Mistakes: %1d',
+    'mistakes_limit_count': 'Mistakes: %1d/%2d',
     'hints_count': 'Hints: %1d',
+    'round_lost': 'Round lost',
+    'mistake_limit_reached':
+        'You made %1d wrong moves. Choose how you want to continue.',
+    'continue_with_coins': 'Continue for %1d coins',
+    'watch_rewarded_ad': 'Watch rewarded ad',
+    'restart_puzzle': 'Restart from the beginning',
+    'not_enough_coins': 'You do not have enough coins.',
+    'rewarded_ad_unavailable': 'The rewarded ad is not available right now.',
+    'rewarded_ad_prototype_body':
+        'The rewarded ad provider will be connected in the monetization phase. Continue now to test the recovery flow.',
     'time_up_turn_passed': 'Time is up. The turn passed to the other player.',
     'draw': 'Draw!',
     'player_won': 'Player %1d won!',
@@ -106,7 +138,8 @@ class AppStrings {
     'light': 'Light',
     'dark': 'Dark',
     'high_contrast': 'High contrast',
-    'high_contrast_subtitle': 'Makes the board and text easier to distinguish.',
+    'high_contrast_subtitle':
+        'Makes the board and text easier to distinguish.',
     'data': 'Data',
     'clear_career_progress': 'Clear career progress',
     'completed_levels': '%1d completed levels',
@@ -227,6 +260,10 @@ class AppStrings {
     }
     if (puzzle.id.startsWith('duel-')) {
       return text('duel_puzzle_title');
+    }
+    if (puzzle.id.startsWith('career-random-') ||
+        puzzle.id.startsWith('sample-')) {
+      return difficultyLabel(puzzle.difficulty);
     }
     final level = int.tryParse(puzzle.id.split('-').last);
     if (level != null) {

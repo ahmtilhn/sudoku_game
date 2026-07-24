@@ -1,27 +1,68 @@
+import 'dart:math';
+
 import '../domain/sudoku.dart';
 
 class PuzzleCatalog {
   const PuzzleCatalog._();
 
-  static final List<SudokuPuzzle> careerPuzzles = _buildCareerPuzzles();
+  /// Compatibility samples used by tests and development tools. Career mode
+  /// itself generates a fresh puzzle whenever the player starts a game.
+  static final List<SudokuPuzzle> careerPuzzles = <SudokuPuzzle>[
+    for (var index = 0; index < SudokuDifficulty.values.length; index++)
+      generatePuzzle(
+        SudokuDifficulty.values[index],
+        seed: 1000 + index,
+        idPrefix: 'sample',
+      ),
+  ];
+
+  static SudokuPuzzle generatePuzzle(
+    SudokuDifficulty difficulty, {
+    int? seed,
+    String idPrefix = 'career-random',
+    String? title,
+  }) {
+    final actualSeed = seed ??
+        DateTime.now().microsecondsSinceEpoch ^
+            Object().hashCode ^
+            Random().nextInt(1 << 31);
+    final random = Random(actualSeed);
+    final solution = _generateSolvedGrid(random);
+    final puzzle = _carveUniquePuzzle(
+      solution,
+      difficulty: difficulty,
+      random: random,
+    );
+
+    return SudokuPuzzle(
+      id: '$idPrefix-${difficulty.name}-${actualSeed.abs()}',
+      title: title ?? difficulty.label,
+      difficulty: difficulty,
+      puzzle: puzzle,
+      solution: solution,
+    );
+  }
 
   static SudokuPuzzle dailyPuzzle(DateTime date) {
     final normalized = DateTime(date.year, date.month, date.day);
     final seed = normalized.difference(DateTime(2025)).inDays.abs();
-    final source = careerPuzzles[seed % careerPuzzles.length];
-    return source.copyWith(
-      id: 'daily-${normalized.toIso8601String().split('T').first}',
+    return generatePuzzle(
+      SudokuDifficulty.medium,
+      seed: seed,
+      idPrefix: 'daily',
       title: 'Daily Sudoku',
     );
   }
 
-  static SudokuPuzzle duelPuzzle({int seed = 0}) {
-    final candidates = careerPuzzles
-        .where((puzzle) => puzzle.difficulty == SudokuDifficulty.easy)
-        .toList(growable: false);
-    return candidates[seed.abs() % candidates.length].copyWith(
-      id: 'duel-${seed.abs() % candidates.length}',
-      title: 'Local Duel',
+  static SudokuPuzzle duelPuzzle({
+    required SudokuDifficulty difficulty,
+    int seed = 0,
+  }) {
+    return generatePuzzle(
+      difficulty,
+      seed: seed,
+      idPrefix: 'duel',
+      title: 'Duel',
     );
   }
 
@@ -36,123 +77,122 @@ class PuzzleCatalog {
     solution: <int>[1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
   );
 
-  static List<SudokuPuzzle> _buildCareerPuzzles() {
-    final result = <SudokuPuzzle>[];
-    final definitions = <_PuzzleDefinition>[
-      const _PuzzleDefinition(
-        difficulty: SudokuDifficulty.beginner,
-        puzzle:
-            '530678012602195308198042067850761023420853701713024806961037280280419635045086179',
-        solution:
-            '534678912672195348198342567859761423426853791713924856961537284287419635345286179',
-      ),
-      const _PuzzleDefinition(
-        difficulty: SudokuDifficulty.easy,
-        puzzle:
-            '530070000600195000098000060800060003400803001700020006060000280000419005000080079',
-        solution:
-            '534678912672195348198342567859761423426853791713924856961537284287419635345286179',
-      ),
-      const _PuzzleDefinition(
-        difficulty: SudokuDifficulty.medium,
-        puzzle:
-            '003020600900305001001806400008102900700000008006708200002609500800203009005010300',
-        solution:
-            '483921657967345821251876493548132976729564138136798245372689514814253769695417382',
-      ),
-      const _PuzzleDefinition(
-        difficulty: SudokuDifficulty.hard,
-        puzzle:
-            '200080300060070084030500209000105408000000000402706000301007040720040060004010003',
-        solution:
-            '245981376169273584837564219976125438513498627482736951391657842728349165654812793',
-      ),
-      const _PuzzleDefinition(
-        difficulty: SudokuDifficulty.expert,
-        puzzle:
-            '100007090030020008009600500005300900010080002600004000300000010040000007007000300',
-        solution:
-            '162857493534129678789643521475312986913586742628794135356478219241935867897261354',
-      ),
+  static int targetClueCount(SudokuDifficulty difficulty) => switch (difficulty) {
+        SudokuDifficulty.beginner => 48,
+        SudokuDifficulty.easy => 42,
+        SudokuDifficulty.medium => 36,
+        SudokuDifficulty.hard => 31,
+        SudokuDifficulty.expert => 27,
+      };
+
+  static bool hasUniqueSolution(List<int> puzzle) {
+    if (puzzle.length != 81) return false;
+    return _countSolutions(List<int>.from(puzzle), limit: 2) == 1;
+  }
+
+  static List<int> _generateSolvedGrid(Random random) {
+    const side = 3;
+    const size = 9;
+
+    int pattern(int row, int column) =>
+        (side * (row % side) + row ~/ side + column) % size;
+
+    final bands = <int>[0, 1, 2]..shuffle(random);
+    final stacks = <int>[0, 1, 2]..shuffle(random);
+    final rows = <int>[
+      for (final band in bands)
+        ...(<int>[0, 1, 2]..shuffle(random)).map(
+          (offset) => band * side + offset,
+        ),
     ];
+    final columns = <int>[
+      for (final stack in stacks)
+        ...(<int>[0, 1, 2]..shuffle(random)).map(
+          (offset) => stack * side + offset,
+        ),
+    ];
+    final numbers = <int>[1, 2, 3, 4, 5, 6, 7, 8, 9]
+      ..shuffle(random);
 
-    for (final definition in definitions) {
-      for (var variant = 0; variant < 6; variant++) {
-        final transformed = _transform(
-          definition.puzzle,
-          definition.solution,
-          rotation: variant % 4,
-          transpose: variant.isOdd,
-          digitShift: variant,
-        );
-        result.add(
-          SudokuPuzzle(
-            id: '${definition.difficulty.name}-${variant + 1}',
-            title: '${definition.difficulty.label} ${variant + 1}',
-            difficulty: definition.difficulty,
-            puzzle: transformed.$1,
-            solution: transformed.$2,
-          ),
-        );
-      }
-    }
-    return result;
+    return <int>[
+      for (final row in rows)
+        for (final column in columns) numbers[pattern(row, column)],
+    ];
   }
 
-  static (List<int>, List<int>) _transform(
-    String puzzle,
-    String solution, {
-    required int rotation,
-    required bool transpose,
-    required int digitShift,
+  static List<int> _carveUniquePuzzle(
+    List<int> solution, {
+    required SudokuDifficulty difficulty,
+    required Random random,
   }) {
-    var puzzleValues = _parse(puzzle);
-    var solutionValues = _parse(solution);
+    final puzzle = List<int>.from(solution);
+    final cells = List<int>.generate(81, (index) => index)..shuffle(random);
+    final targetClues = targetClueCount(difficulty);
+    var clueCount = 81;
 
-    List<int> transformGrid(List<int> source) {
-      var current = List<int>.from(source);
-      if (transpose) {
-        current = List<int>.generate(81, (index) {
-          final row = index ~/ 9;
-          final column = index % 9;
-          return source[column * 9 + row];
-        });
+    for (final index in cells) {
+      if (clueCount <= targetClues) break;
+      final previous = puzzle[index];
+      puzzle[index] = 0;
+      if (_countSolutions(List<int>.from(puzzle), limit: 2) == 1) {
+        clueCount--;
+      } else {
+        puzzle[index] = previous;
       }
-      for (var turn = 0; turn < rotation; turn++) {
-        final previous = current;
-        current = List<int>.generate(81, (index) {
-          final row = index ~/ 9;
-          final column = index % 9;
-          return previous[(8 - column) * 9 + row];
-        });
-      }
-      if (digitShift > 0) {
-        current = current
-            .map((value) => value == 0 ? 0 : ((value - 1 + digitShift) % 9) + 1)
-            .toList(growable: false);
-      }
-      return current;
     }
 
-    puzzleValues = transformGrid(puzzleValues);
-    solutionValues = transformGrid(solutionValues);
-    return (puzzleValues, solutionValues);
+    return puzzle;
   }
 
-  static List<int> _parse(String source) => source
-      .split('')
-      .map((character) => int.parse(character))
-      .toList(growable: false);
-}
+  static int _countSolutions(List<int> board, {required int limit}) {
+    var selectedIndex = -1;
+    List<int>? selectedCandidates;
 
-class _PuzzleDefinition {
-  const _PuzzleDefinition({
-    required this.difficulty,
-    required this.puzzle,
-    required this.solution,
-  });
+    for (var index = 0; index < board.length; index++) {
+      if (board[index] != 0) continue;
+      final candidates = _legalValues(board, index);
+      if (candidates.isEmpty) return 0;
+      if (selectedCandidates == null ||
+          candidates.length < selectedCandidates.length) {
+        selectedIndex = index;
+        selectedCandidates = candidates;
+        if (candidates.length == 1) break;
+      }
+    }
 
-  final SudokuDifficulty difficulty;
-  final String puzzle;
-  final String solution;
+    if (selectedIndex == -1) return 1;
+
+    var count = 0;
+    for (final value in selectedCandidates!) {
+      board[selectedIndex] = value;
+      count += _countSolutions(board, limit: limit);
+      board[selectedIndex] = 0;
+      if (count >= limit) return count;
+    }
+    return count;
+  }
+
+  static List<int> _legalValues(List<int> board, int index) {
+    final used = <int>{};
+    final row = index ~/ 9;
+    final column = index % 9;
+
+    for (var cursor = 0; cursor < 9; cursor++) {
+      used.add(board[row * 9 + cursor]);
+      used.add(board[cursor * 9 + column]);
+    }
+
+    final boxRow = (row ~/ 3) * 3;
+    final boxColumn = (column ~/ 3) * 3;
+    for (var rowOffset = 0; rowOffset < 3; rowOffset++) {
+      for (var columnOffset = 0; columnOffset < 3; columnOffset++) {
+        used.add(board[(boxRow + rowOffset) * 9 + boxColumn + columnOffset]);
+      }
+    }
+
+    return <int>[
+      for (var value = 1; value <= 9; value++)
+        if (!used.contains(value)) value,
+    ];
+  }
 }
