@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../social/platform_social_screen.dart';
 import 'duel_screen.dart';
 
 class MatchmakingScreen extends StatefulWidget {
@@ -21,10 +22,25 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('online_duel'))),
+      appBar: AppBar(
+        title: Text(context.tr('online_duel')),
+        actions: [
+          IconButton(
+            tooltip: 'Friends & challenges',
+            onPressed: _openPlatformFriends,
+            icon: const Icon(Icons.people_alt_outlined),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
         children: [
+          OutlinedButton.icon(
+            onPressed: _openPlatformFriends,
+            icon: const Icon(Icons.person_search_outlined),
+            label: const Text('Friends, profiles & challenges'),
+          ),
+          const SizedBox(height: 18),
           Text(
             context.tr('choose_duel_difficulty'),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -100,6 +116,12 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  void _openPlatformFriends() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PlatformSocialScreen()),
     );
   }
 
