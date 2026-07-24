@@ -55,6 +55,7 @@ class NumberPad extends StatelessWidget {
     this.onToggleNotes,
     this.onUndo,
     this.onHint,
+    this.hintCount,
     this.enabled = true,
   });
 
@@ -66,6 +67,7 @@ class NumberPad extends StatelessWidget {
   final VoidCallback? onToggleNotes;
   final VoidCallback? onUndo;
   final VoidCallback? onHint;
+  final int? hintCount;
   final bool enabled;
 
   @override
@@ -139,7 +141,9 @@ class NumberPad extends StatelessWidget {
             if (onHint != null)
               _ActionButton(
                 icon: Icons.lightbulb_outline,
-                label: context.tr('hint'),
+                label: hintCount == null
+                    ? context.tr('hint')
+                    : '${context.tr('hint')} ($hintCount)',
                 onPressed: enabled ? onHint : null,
               ),
           ],

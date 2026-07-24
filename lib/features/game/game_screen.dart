@@ -17,6 +17,7 @@ typedef GameCompleted = Future<void> Function({
 
 typedef CoinContinue = Future<bool> Function(int cost);
 typedef RewardedContinue = Future<bool> Function();
+typedef HintConsumer = Future<bool> Function();
 
 class GameScreen extends StatefulWidget {
   const GameScreen({
@@ -30,6 +31,8 @@ class GameScreen extends StatefulWidget {
     this.coinContinueCost = 25,
     this.onCoinContinue,
     this.onRewardedContinue,
+    this.onConsumeHint,
+    this.hintBalanceProvider,
   });
 
   final SudokuPuzzle puzzle;
@@ -41,6 +44,8 @@ class GameScreen extends StatefulWidget {
   final int coinContinueCost;
   final CoinContinue? onCoinContinue;
   final RewardedContinue? onRewardedContinue;
+  final HintConsumer? onConsumeHint;
+  final int Function()? hintBalanceProvider;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -56,7 +61,7 @@ class _GameScreenState extends State<GameScreen> {
   int _elapsedSeconds = 0;
   int _mistakes = 0;
   int _totalMistakes = 0;
-  int _hints = 0;
+  int _hintsUsed = 0;
   bool _notesMode = false;
   bool _completed = false;
   bool _roundLost = false;
@@ -95,6 +100,7 @@ class _GameScreenState extends State<GameScreen> {
         _roundLost) {
       return;
     }
+
     if (_notesMode && widget.allowNotes && _board[index] == 0) {
       setState(() {
         final values = _notes.putIfAbsent(index, () => <int>{});
@@ -102,6 +108,7 @@ class _GameScreenState extends State<GameScreen> {
       });
       return;
     }
+
     if (widget.puzzle.solution[index] != value) {
       HapticFeedback.heavyImpact();
       final nextMistakes = _mistakes + 1;
@@ -110,6 +117,7 @@ class _GameScreenState extends State<GameScreen> {
         _totalMistakes++;
         _errorIndex = index;
       });
+
       final limit = widget.mistakeLimit;
       if (limit != null && nextMistakes >= limit) {
         Future<void>.microtask(_showRoundLostDialog);
@@ -122,6 +130,7 @@ class _GameScreenState extends State<GameScreen> {
       }
       return;
     }
+
     HapticFeedback.selectionClick();
     setState(() {
       _history.add(
@@ -171,8 +180,9 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  void _hint() {
+  Future<void> _hint() async {
     if (!widget.allowHints || _completed || _roundLost) return;
+
     var candidate = _selectedIndex;
     if (candidate == null ||
         widget.puzzle.isFixed(candidate) ||
@@ -180,6 +190,13 @@ class _GameScreenState extends State<GameScreen> {
       candidate = _board.indexOf(0);
     }
     if (candidate < 0) return;
+
+    final consumeHint = widget.onConsumeHint;
+    if (consumeHint != null) {
+      final allowed = await consumeHint();
+      if (!mounted || !allowed) return;
+    }
+
     final index = candidate;
     setState(() {
       _history.add(
@@ -192,7 +209,7 @@ class _GameScreenState extends State<GameScreen> {
       _selectedIndex = index;
       _board[index] = widget.puzzle.solution[index];
       _notes.remove(index);
-      _hints++;
+      _hintsUsed++;
     });
     _checkCompletion();
   }
@@ -245,35 +262,41 @@ class _GameScreenState extends State<GameScreen> {
     if (!mounted) return;
     setState(() => _lossDialogVisible = false);
 
-    switch (action) {
-      case _LossAction.coin:
-        final continued =
-            await widget.onCoinContinue?.call(widget.coinContinueCost) ?? false;
-        if (!mounted) return;
-        if (continued) {
-          _resumeAfterLoss();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.tr('not_enough_coins'))),
-          );
-          await _showRoundLostDialog();
-        }
-      case _LossAction.rewardedAd:
-        final continued = await widget.onRewardedContinue?.call() ?? false;
-        if (!mounted) return;
-        if (continued) {
-          _resumeAfterLoss();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
-          );
-          await _showRoundLostDialog();
-        }
-      case _LossAction.restart:
-        _restartPuzzle();
-      case null:
+    if (action == _LossAction.coin) {
+      final continued =
+          await widget.onCoinContinue?.call(widget.coinContinueCost) ?? false;
+      if (!mounted) return;
+      if (continued) {
+        _resumeAfterLoss();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('not_enough_coins'))),
+        );
         await _showRoundLostDialog();
+      }
+      return;
     }
+
+    if (action == _LossAction.rewardedAd) {
+      final continued = await widget.onRewardedContinue?.call() ?? false;
+      if (!mounted) return;
+      if (continued) {
+        _resumeAfterLoss();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
+        );
+        await _showRoundLostDialog();
+      }
+      return;
+    }
+
+    if (action == _LossAction.restart) {
+      _restartPuzzle();
+      return;
+    }
+
+    await _showRoundLostDialog();
   }
 
   void _resumeAfterLoss() {
@@ -294,7 +317,7 @@ class _GameScreenState extends State<GameScreen> {
       _elapsedSeconds = 0;
       _mistakes = 0;
       _totalMistakes = 0;
-      _hints = 0;
+      _hintsUsed = 0;
       _notesMode = false;
       _roundLost = false;
     });
@@ -321,14 +344,16 @@ class _GameScreenState extends State<GameScreen> {
     await widget.onCompleted?.call(
       seconds: _elapsedSeconds,
       mistakes: _totalMistakes,
-      hints: _hints,
+      hints: _hintsUsed,
     );
     if (!mounted) return;
-    final stars = _totalMistakes == 0 && _hints == 0
+
+    final stars = _totalMistakes == 0 && _hintsUsed == 0
         ? 3
-        : _totalMistakes <= 2 && _hints <= 1
+        : _totalMistakes <= 2 && _hintsUsed <= 1
             ? 2
             : 1;
+
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -359,7 +384,7 @@ class _GameScreenState extends State<GameScreen> {
               label: context.tr('mistakes'),
               value: '$_totalMistakes',
             ),
-            _ResultRow(label: context.tr('hints'), value: '$_hints'),
+            _ResultRow(label: context.tr('hints'), value: '$_hintsUsed'),
           ],
         ),
         actions: [
@@ -378,6 +403,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final controlsEnabled = !_completed && !_roundLost;
+    final availableHints = widget.hintBalanceProvider?.call();
     final mistakeLabel = widget.mistakeLimit == null
         ? context.tr('mistakes_count', <Object>[_mistakes])
         : context.tr('mistakes_limit_count', <Object>[
@@ -409,6 +435,7 @@ class _GameScreenState extends State<GameScreen> {
           ),
           enabled: controlsEnabled,
           notesEnabled: _notesMode,
+          hintCount: availableHints,
           onNumber: _enterNumber,
           onErase: _erase,
           onToggleNotes: widget.allowNotes
@@ -444,7 +471,9 @@ class _GameScreenState extends State<GameScreen> {
                               size: 18,
                             ),
                             label: Text(
-                              context.tr('hints_count', <Object>[_hints]),
+                              context.tr('hints_count', <Object>[
+                                availableHints ?? _hintsUsed,
+                              ]),
                             ),
                           ),
                           const Spacer(),

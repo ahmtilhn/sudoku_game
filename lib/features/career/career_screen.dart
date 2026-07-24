@@ -6,6 +6,7 @@ import '../../data/puzzle_catalog.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../game/game_screen.dart';
+import '../game/hint_economy.dart';
 
 class CareerScreen extends StatefulWidget {
   const CareerScreen({super.key, required this.store});
@@ -25,12 +26,25 @@ class _CareerScreenState extends State<CareerScreen> {
       appBar: AppBar(
         title: Text(context.tr('career')),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Chip(
-                avatar: const Icon(Icons.monetization_on_outlined, size: 18),
-                label: Text('${widget.store.coins}'),
+          AnimatedBuilder(
+            animation: widget.store,
+            builder: (context, _) => Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Row(
+                children: [
+                  Chip(
+                    avatar: const Icon(Icons.lightbulb_outline, size: 18),
+                    label: Text('${widget.store.hints}'),
+                  ),
+                  const SizedBox(width: 6),
+                  Chip(
+                    avatar: const Icon(
+                      Icons.monetization_on_outlined,
+                      size: 18,
+                    ),
+                    label: Text('${widget.store.coins}'),
+                  ),
+                ],
               ),
             ),
           ),
@@ -83,12 +97,17 @@ class _CareerScreenState extends State<CareerScreen> {
 
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => GameScreen(
+        builder: (gameContext) => GameScreen(
           puzzle: puzzle,
           mistakeLimit: 3,
           coinContinueCost: 25,
           onCoinContinue: widget.store.spendCoins,
           onRewardedContinue: _showRewardedPrototype,
+          onConsumeHint: () => HintEconomy.consumeOrAcquire(
+            gameContext,
+            widget.store,
+          ),
+          hintBalanceProvider: () => widget.store.hints,
           onCompleted: ({
             required seconds,
             required mistakes,
