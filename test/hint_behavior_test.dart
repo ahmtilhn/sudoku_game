@@ -32,6 +32,9 @@ void main() {
   ) async {
     final strings = await AppStrings.load();
     final completer = Completer<bool>();
+    addTearDown(() {
+      if (!completer.isCompleted) completer.complete(false);
+    });
     var consumeCalls = 0;
 
     await tester.pumpWidget(
@@ -51,7 +54,8 @@ void main() {
     );
     await tester.pump();
 
-    final hintButton = find.widgetWithText(TextButton, 'Hint');
+    final hintButton = find.byKey(const ValueKey<String>('action-hint'));
+    expect(hintButton, findsOneWidget);
     await tester.tap(hintButton);
     await tester.tap(hintButton);
     await tester.pump();
@@ -64,7 +68,10 @@ void main() {
 
     expect(_cellTextFinder(1, '2'), findsOneWidget);
     expect(_cellTextFinder(2, '3'), findsNothing);
-    expect(find.widgetWithText(TextButton, 'Undo'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('action-undo')),
+      findsNothing,
+    );
   });
 
   testWidgets('hinted cells stay locked while player moves remain undoable', (
@@ -86,27 +93,30 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.widgetWithText(TextButton, 'Hint'));
+    await tester.tap(find.byKey(const ValueKey<String>('action-hint')));
     await tester.pump();
 
     expect(_cellTextFinder(1, '2'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-1')));
-    await tester.tap(find.widgetWithText(TextButton, 'Erase'));
+    await tester.tap(find.byKey(const ValueKey<String>('action-erase')));
     await tester.pump();
     expect(_cellTextFinder(1, '2'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-2')));
-    await tester.tap(find.widgetWithText(FilledButton, '3'));
+    await tester.tap(find.byKey(const ValueKey<String>('number-3')));
     await tester.pump();
     expect(_cellTextFinder(2, '3'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(TextButton, 'Undo'));
+    await tester.tap(find.byKey(const ValueKey<String>('action-undo')));
     await tester.pump();
 
     expect(_cellTextFinder(2, '3'), findsNothing);
     expect(_cellTextFinder(1, '2'), findsOneWidget);
-    expect(find.widgetWithText(TextButton, 'Undo'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('action-undo')),
+      findsNothing,
+    );
   });
 }
 
