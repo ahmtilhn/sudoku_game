@@ -14,7 +14,7 @@ Future<void> main() async {
   final store = await LocalProgressStore.create();
   final strings = await AppStrings.load();
   await ReminderNotificationService.instance.initialize();
-  await PushNotificationService.instance.initialize();
   runApp(SudokuApp(store: store, strings: strings));
+  unawaited(PushNotificationService.instance.initialize());
   unawaited(AdsService.instance.initialize());
 }
