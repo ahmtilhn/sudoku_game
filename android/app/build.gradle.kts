@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.devoviastudio.sudoku"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -18,7 +18,7 @@ android {
     defaultConfig {
         applicationId = "com.devoviastudio.sudoku"
         minSdk = 23
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
