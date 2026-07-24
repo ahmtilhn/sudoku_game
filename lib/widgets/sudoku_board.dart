@@ -50,35 +50,30 @@ class SudokuBoard extends StatelessWidget {
                 final row = index ~/ puzzle.size;
                 final column = index % puzzle.size;
                 final selected = selectedIndex == index;
-                final related = selectedIndex != null &&
+                final related =
+                    selectedIndex != null &&
                     (selectedIndex! ~/ puzzle.size == row ||
                         selectedIndex! % puzzle.size == column ||
-                        SudokuEngine.relatedBoxIndex(
-                              puzzle,
-                              selectedIndex!,
-                            ) ==
+                        SudokuEngine.relatedBoxIndex(puzzle, selectedIndex!) ==
                             SudokuEngine.relatedBoxIndex(puzzle, index));
                 final sameValue = selectedValue != 0 && value == selectedValue;
                 final background = errorIndex == index
                     ? scheme.errorContainer
                     : selected
-                        ? scheme.primaryContainer
-                        : sameValue
-                            ? scheme.secondaryContainer
-                            : related
-                                ? scheme.surfaceContainerHighest
-                                : scheme.surface;
+                    ? scheme.primaryContainer
+                    : sameValue
+                    ? scheme.secondaryContainer
+                    : related
+                    ? scheme.surfaceContainerHighest
+                    : scheme.surface;
                 return Semantics(
                   button: !puzzle.isFixed(index),
                   selected: selected,
-                  label: context.tr(
-                    'cell_label',
-                    <Object>[
-                      row + 1,
-                      column + 1,
-                      value == 0 ? context.tr('empty') : value,
-                    ],
-                  ),
+                  label: context.tr('cell_label', <Object>[
+                    row + 1,
+                    column + 1,
+                    value == 0 ? context.tr('empty') : value,
+                  ]),
                   child: InkWell(
                     onTap: enabled ? () => onCellTap(index) : null,
                     child: DecoratedBox(
@@ -87,14 +82,16 @@ class SudokuBoard extends StatelessWidget {
                         border: Border(
                           right: BorderSide(
                             color: scheme.outline,
-                            width: (column + 1) % puzzle.boxColumns == 0 &&
+                            width:
+                                (column + 1) % puzzle.boxColumns == 0 &&
                                     column != puzzle.size - 1
                                 ? 2
                                 : 0.4,
                           ),
                           bottom: BorderSide(
                             color: scheme.outline,
-                            width: (row + 1) % puzzle.boxRows == 0 &&
+                            width:
+                                (row + 1) % puzzle.boxRows == 0 &&
                                     row != puzzle.size - 1
                                 ? 2
                                 : 0.4,

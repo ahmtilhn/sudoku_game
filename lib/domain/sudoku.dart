@@ -2,12 +2,12 @@ enum SudokuDifficulty { beginner, easy, medium, hard, expert }
 
 extension SudokuDifficultyLabel on SudokuDifficulty {
   String get label => switch (this) {
-        SudokuDifficulty.beginner => 'Beginner',
-        SudokuDifficulty.easy => 'Easy',
-        SudokuDifficulty.medium => 'Medium',
-        SudokuDifficulty.hard => 'Hard',
-        SudokuDifficulty.expert => 'Expert',
-      };
+    SudokuDifficulty.beginner => 'Beginner',
+    SudokuDifficulty.easy => 'Easy',
+    SudokuDifficulty.medium => 'Medium',
+    SudokuDifficulty.hard => 'Hard',
+    SudokuDifficulty.expert => 'Expert',
+  };
 }
 
 class SudokuPuzzle {
@@ -130,16 +130,17 @@ class SudokuEngine {
     }
 
     final boxStartRow = (row ~/ puzzle.boxRows) * puzzle.boxRows;
-    final boxStartColumn =
-        (column ~/ puzzle.boxColumns) * puzzle.boxColumns;
+    final boxStartColumn = (column ~/ puzzle.boxColumns) * puzzle.boxColumns;
     for (var rowOffset = 0; rowOffset < puzzle.boxRows; rowOffset++) {
-      for (var columnOffset = 0;
-          columnOffset < puzzle.boxColumns;
-          columnOffset++) {
+      for (
+        var columnOffset = 0;
+        columnOffset < puzzle.boxColumns;
+        columnOffset++
+      ) {
         final boxIndex =
             (boxStartRow + rowOffset) * puzzle.size +
-                boxStartColumn +
-                columnOffset;
+            boxStartColumn +
+            columnOffset;
         if (boxIndex != index && board[boxIndex] == value) {
           return false;
         }
@@ -148,11 +149,7 @@ class SudokuEngine {
     return true;
   }
 
-  static Set<int> candidates(
-    SudokuPuzzle puzzle,
-    List<int> board,
-    int index,
-  ) {
+  static Set<int> candidates(SudokuPuzzle puzzle, List<int> board, int index) {
     if (index < 0 || index >= puzzle.cellCount || board[index] != 0) {
       return const <int>{};
     }

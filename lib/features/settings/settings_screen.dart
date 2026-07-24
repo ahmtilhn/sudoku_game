@@ -55,9 +55,7 @@ class SettingsScreen extends StatelessWidget {
                       value: store.highContrast,
                       onChanged: store.setHighContrast,
                       title: Text(context.tr('high_contrast')),
-                      subtitle: Text(
-                        context.tr('high_contrast_subtitle'),
-                      ),
+                      subtitle: Text(context.tr('high_contrast_subtitle')),
                     ),
                   ],
                 ),
@@ -74,10 +72,9 @@ class SettingsScreen extends StatelessWidget {
                 leading: const Icon(Icons.delete_outline),
                 title: Text(context.tr('clear_career_progress')),
                 subtitle: Text(
-                  context.tr(
-                    'completed_levels',
-                    <Object>[store.completedLevelCount],
-                  ),
+                  context.tr('completed_levels', <Object>[
+                    store.completedLevelCount,
+                  ]),
                 ),
                 onTap: () => _confirmClear(context),
               ),

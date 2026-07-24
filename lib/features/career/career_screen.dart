@@ -68,7 +68,8 @@ class _CareerScreenState extends State<CareerScreen> {
               itemBuilder: (context, index) {
                 final puzzle = puzzles[index];
                 final progress = widget.store.progressFor(puzzle.id);
-                final unlocked = index == 0 ||
+                final unlocked =
+                    index == 0 ||
                     widget.store.isCompleted(puzzles[index - 1].id);
                 return _LevelCard(
                   puzzle: puzzle,
@@ -89,17 +90,14 @@ class _CareerScreenState extends State<CareerScreen> {
       MaterialPageRoute(
         builder: (_) => GameScreen(
           puzzle: puzzle,
-          onCompleted: ({
-            required seconds,
-            required mistakes,
-            required hints,
-          }) =>
-              widget.store.recordResult(
-            puzzleId: puzzle.id,
-            seconds: seconds,
-            mistakes: mistakes,
-            hints: hints,
-          ),
+          onCompleted:
+              ({required seconds, required mistakes, required hints}) =>
+                  widget.store.recordResult(
+                    puzzleId: puzzle.id,
+                    seconds: seconds,
+                    mistakes: mistakes,
+                    hints: hints,
+                  ),
         ),
       ),
     );
@@ -138,9 +136,7 @@ class _LevelCard extends StatelessWidget {
                     backgroundColor: unlocked
                         ? scheme.primaryContainer
                         : scheme.surfaceContainerHighest,
-                    child: Icon(
-                      unlocked ? Icons.grid_4x4 : Icons.lock_outline,
-                    ),
+                    child: Icon(unlocked ? Icons.grid_4x4 : Icons.lock_outline),
                   ),
                   const Spacer(),
                   if (progress != null)
@@ -161,23 +157,22 @@ class _LevelCard extends StatelessWidget {
               const Spacer(),
               Text(
                 context.strings.puzzleTitle(puzzle),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 4),
               Text(
                 !unlocked
                     ? context.tr('complete_previous_level')
                     : progress == null
-                        ? context.tr('new_level')
-                        : context.tr(
-                            'best_time',
-                            <Object>[formatDuration(progress!.bestSeconds)],
-                          ),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    ? context.tr('new_level')
+                    : context.tr('best_time', <Object>[
+                        formatDuration(progress!.bestSeconds),
+                      ]),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
           ),

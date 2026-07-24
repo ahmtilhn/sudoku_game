@@ -39,9 +39,9 @@ class TutorialScreen extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             context.tr('tutorial_ready'),
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 14),
           FilledButton.icon(
@@ -51,12 +51,12 @@ class TutorialScreen extends StatelessWidget {
                   builder: (_) => GameScreen(
                     puzzle: PuzzleCatalog.tutorialPuzzle,
                     completionTitle: context.tr('tutorial_completed'),
-                    onCompleted: ({
-                      required seconds,
-                      required mistakes,
-                      required hints,
-                    }) =>
-                        store.markTutorialComplete(),
+                    onCompleted:
+                        ({
+                          required seconds,
+                          required mistakes,
+                          required hints,
+                        }) => store.markTutorialComplete(),
                   ),
                 ),
               );
@@ -114,9 +114,7 @@ class _RuleCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
+                          style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ),

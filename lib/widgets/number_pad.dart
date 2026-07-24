@@ -68,9 +68,7 @@ class NumberPad extends StatelessWidget {
             ),
             if (onToggleNotes != null)
               _ActionButton(
-                icon: notesEnabled
-                    ? Icons.edit_note
-                    : Icons.edit_note_outlined,
+                icon: notesEnabled ? Icons.edit_note : Icons.edit_note_outlined,
                 label: notesEnabled
                     ? context.tr('notes_on')
                     : context.tr('notes'),

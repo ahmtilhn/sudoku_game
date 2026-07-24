@@ -9,11 +9,12 @@ import '../../localization/app_strings.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 
-typedef GameCompleted = Future<void> Function({
-  required int seconds,
-  required int mistakes,
-  required int hints,
-});
+typedef GameCompleted =
+    Future<void> Function({
+      required int seconds,
+      required int mistakes,
+      required int hints,
+    });
 
 class GameScreen extends StatefulWidget {
   const GameScreen({
@@ -99,9 +100,7 @@ class _GameScreenState extends State<GameScreen> {
         _MoveRecord(
           index: index,
           previousValue: _board[index],
-          previousNotes: Set<int>.from(
-            _notes[index] ?? const <int>{},
-          ),
+          previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
         ),
       );
       _board[index] = value;
@@ -119,9 +118,7 @@ class _GameScreenState extends State<GameScreen> {
         _MoveRecord(
           index: index,
           previousValue: _board[index],
-          previousNotes: Set<int>.from(
-            _notes[index] ?? const <int>{},
-          ),
+          previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
         ),
       );
       _board[index] = 0;
@@ -156,9 +153,7 @@ class _GameScreenState extends State<GameScreen> {
         _MoveRecord(
           index: index,
           previousValue: _board[index],
-          previousNotes: Set<int>.from(
-            _notes[index] ?? const <int>{},
-          ),
+          previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
         ),
       );
       _selectedIndex = index;
@@ -196,15 +191,13 @@ class _GameScreenState extends State<GameScreen> {
     final stars = _mistakes == 0 && _hints == 0
         ? 3
         : _mistakes <= 2 && _hints <= 1
-            ? 2
-            : 1;
+        ? 2
+        : 1;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: Text(
-          widget.completionTitle ?? context.tr('congratulations'),
-        ),
+        title: Text(widget.completionTitle ?? context.tr('congratulations')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -226,14 +219,8 @@ class _GameScreenState extends State<GameScreen> {
               label: context.tr('time'),
               value: formatDuration(_elapsedSeconds),
             ),
-            _ResultRow(
-              label: context.tr('mistakes'),
-              value: '$_mistakes',
-            ),
-            _ResultRow(
-              label: context.tr('hints'),
-              value: '$_hints',
-            ),
+            _ResultRow(label: context.tr('mistakes'), value: '$_mistakes'),
+            _ResultRow(label: context.tr('hints'), value: '$_hints'),
           ],
         ),
         actions: [
@@ -282,15 +269,9 @@ class _GameScreenState extends State<GameScreen> {
                       Row(
                         children: [
                           Chip(
-                            avatar: const Icon(
-                              Icons.error_outline,
-                              size: 18,
-                            ),
+                            avatar: const Icon(Icons.error_outline, size: 18),
                             label: Text(
-                              context.tr(
-                                'mistakes_count',
-                                <Object>[_mistakes],
-                              ),
+                              context.tr('mistakes_count', <Object>[_mistakes]),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -300,10 +281,7 @@ class _GameScreenState extends State<GameScreen> {
                               size: 18,
                             ),
                             label: Text(
-                              context.tr(
-                                'hints_count',
-                                <Object>[_hints],
-                              ),
+                              context.tr('hints_count', <Object>[_hints]),
                             ),
                           ),
                           const Spacer(),
@@ -333,9 +311,7 @@ class _GameScreenState extends State<GameScreen> {
                         onNumber: _enterNumber,
                         onErase: _erase,
                         onToggleNotes: widget.allowNotes
-                            ? () => setState(
-                                  () => _notesMode = !_notesMode,
-                                )
+                            ? () => setState(() => _notesMode = !_notesMode)
                             : null,
                         onUndo: _history.isEmpty ? null : _undo,
                         onHint: widget.allowHints ? _hint : null,
@@ -378,10 +354,7 @@ class _ResultRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
         ],
       ),
     );

@@ -115,8 +115,8 @@ class _DuelScreenState extends State<DuelScreen> {
     final winner = _scores[0] == _scores[1]
         ? null
         : _scores[0] > _scores[1]
-            ? 0
-            : 1;
+        ? 0
+        : 1;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -133,9 +133,9 @@ class _DuelScreenState extends State<DuelScreen> {
             const SizedBox(height: 16),
             Text(
               '${_scores[0]}  —  ${_scores[1]}',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(context.tr('turns_played', <Object>[_turn])),
@@ -195,9 +195,7 @@ class _DuelScreenState extends State<DuelScreen> {
                       Row(
                         children: [
                           Chip(
-                            label: Text(
-                              context.tr('turn', <Object>[_turn]),
-                            ),
+                            label: Text(context.tr('turn', <Object>[_turn])),
                           ),
                           const Spacer(),
                           SizedBox(
@@ -206,10 +204,9 @@ class _DuelScreenState extends State<DuelScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  context.tr(
-                                    'seconds',
-                                    <Object>[_remainingSeconds],
-                                  ),
+                                  context.tr('seconds', <Object>[
+                                    _remainingSeconds,
+                                  ]),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -239,14 +236,12 @@ class _DuelScreenState extends State<DuelScreen> {
                       ),
                       const SizedBox(height: 18),
                       Text(
-                        context.tr(
-                          'player_instruction',
-                          <Object>[_currentPlayer + 1],
-                        ),
+                        context.tr('player_instruction', <Object>[
+                          _currentPlayer + 1,
+                        ]),
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 12),
                       NumberPad(
@@ -298,9 +293,9 @@ class _PlayerScore extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '$score',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
         ],
       ),
