@@ -93,12 +93,16 @@ class FirebaseServices {
   }
 
   Future<void> _activateAppCheck() async {
+    const AndroidAppCheckProvider androidProvider = kDebugMode
+        ? AndroidDebugProvider()
+        : AndroidPlayIntegrityProvider();
+    const AppleAppCheckProvider appleProvider = kDebugMode
+        ? AppleDebugProvider()
+        : AppleAppAttestWithDeviceCheckFallbackProvider();
+
     await FirebaseAppCheck.instance.activate(
-      providerAndroid:
-          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-      providerApple: kDebugMode
-          ? AppleProvider.debug
-          : AppleProvider.appAttestWithDeviceCheckFallback,
+      providerAndroid: androidProvider,
+      providerApple: appleProvider,
     );
   }
 
