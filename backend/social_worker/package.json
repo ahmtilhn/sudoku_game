@@ -1,0 +1,21 @@
+{
+  "name": "sudoku-duel-social-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "db:local": "wrangler d1 migrations apply sudoku-duel-social --local",
+    "db:remote": "wrangler d1 migrations apply sudoku-duel-social --remote"
+  },
+  "dependencies": {
+    "jose": "^6.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.63.0"
+  }
+}

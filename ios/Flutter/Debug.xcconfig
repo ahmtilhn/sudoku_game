@@ -1,6 +1,7 @@
 #include "Generated.xcconfig"
 PRODUCT_BUNDLE_IDENTIFIER = com.devoviastudio.sudoku
-IPHONEOS_DEPLOYMENT_TARGET = 14.0
+IPHONEOS_DEPLOYMENT_TARGET = 15.0
+APS_ENVIRONMENT = development
 CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
 INFOPLIST_KEY_NSGKFriendListUsageDescription = Sudoku Duel uses your Game Center friends to help you find familiar players and send challenges.
 INFOPLIST_KEY_SudokuLeaderboardGlobalRating = REPLACE_WITH_LEADERBOARD_ID

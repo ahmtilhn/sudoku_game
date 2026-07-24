@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../social/friend_requests_screen.dart';
 import '../social/platform_social_screen.dart';
 import 'duel_screen.dart';
 
@@ -25,6 +26,11 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       appBar: AppBar(
         title: Text(context.tr('online_duel')),
         actions: [
+          IconButton(
+            tooltip: 'Friend requests',
+            onPressed: _openFriendRequests,
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+          ),
           IconButton(
             tooltip: 'Friends & challenges',
             onPressed: _openPlatformFriends,
@@ -116,6 +122,12 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  void _openFriendRequests() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const FriendRequestsScreen()),
     );
   }
 
