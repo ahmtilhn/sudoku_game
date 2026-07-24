@@ -2,7 +2,7 @@ package com.devoviastudio.sudoku
 
 import android.app.Activity
 import android.content.Intent
-import com.google.android.gms.common.data.AnnotatedData
+import com.google.android.gms.games.AnnotatedData
 import com.google.android.gms.games.FriendsResolutionRequiredException
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayerBuffer
