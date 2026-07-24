@@ -52,19 +52,19 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
     final challengeId = _push.openedChallengeId.value;
     if (challengeId == null || challengeId.isEmpty || !_backendReady) return;
     _push.openedChallengeId.value = null;
-    _refreshBackend(showLoading: false);
+    _refreshSocial(showLoading: false);
   }
 
   Future<void> _refresh() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
-    await Future.wait<void>(<Future<void>>[
-      _refreshPlatform(),
-      _refreshBackend(showLoading: false),
-    ]);
+    await _refreshPlatform();
+    await _refreshSocial(showLoading: false);
 
     if (mounted) setState(() => _loading = false);
   }
@@ -92,12 +92,11 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         _platformFriends = friends;
       });
     } on PlatformGameServicesException catch (error) {
-      if (!mounted) return;
-      setState(() => _error = error.message);
+      if (mounted) setState(() => _error = error.message);
     }
   }
 
-  Future<void> _refreshBackend({required bool showLoading}) async {
+  Future<void> _refreshSocial({required bool showLoading}) async {
     if (!_backendReady) return;
     if (showLoading && mounted) setState(() => _loading = true);
 
@@ -106,25 +105,25 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       final profile = await _social.ensureProfile(
         displayName: _platformPlayer?.displayName,
       );
-      final values = await Future.wait<Object>(<Future<Object>>[
-        _social.loadFriends(),
-        _social.loadRecentOpponents(),
-        _social.loadPendingChallenges(),
-      ]);
+      final friends = await _social.loadFriends();
+      final recentOpponents = await _social.loadRecentOpponents();
+      final pendingChallenges = await _social.loadPendingChallenges();
 
       if (!mounted) return;
       setState(() {
         _socialPlayer = profile;
-        _friends = values[0] as List<SocialPlayer>;
-        _recentOpponents = values[1] as List<SocialPlayer>;
-        _pendingChallenges = values[2] as List<SocialChallenge>;
+        _friends = friends;
+        _recentOpponents = recentOpponents;
+        _pendingChallenges = pendingChallenges;
       });
     } on SocialApiException catch (error) {
-      if (!mounted) return;
-      setState(() => _error = error.message);
+      if (mounted) setState(() => _error = error.message);
     } catch (error) {
-      if (!mounted) return;
-      setState(() => _error = 'Social services could not be initialized: $error');
+      if (mounted) {
+        setState(() {
+          _error = 'Social services could not be initialized: $error';
+        });
+      }
     } finally {
       if (showLoading && mounted) setState(() => _loading = false);
     }
@@ -143,14 +142,17 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
   }
 
   Future<void> _authenticatePlatform() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+
     try {
       await _platform.authenticate();
       await _refreshPlatform();
-      await _refreshBackend(showLoading: false);
+      await _refreshSocial(showLoading: false);
     } on PlatformGameServicesException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } finally {
@@ -160,22 +162,18 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
 
   Future<void> _enableChallengeNotifications() async {
     final enabled = await _push.requestPermissionAndRegister();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          enabled
-              ? 'Challenge notifications are enabled.'
-              : 'Notification permission or push configuration is unavailable.',
-        ),
-      ),
+    _showMessage(
+      enabled
+          ? 'Challenge notifications are enabled.'
+          : 'Notification permission or push configuration is unavailable.',
     );
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   Future<void> _search() async {
     final query = _searchController.text.trim();
     if (query.length < 3 || !_backendReady) return;
+
     setState(() {
       _searching = true;
       _error = null;
@@ -248,7 +246,6 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
                           'Search a username and send a friend request to build your list.',
                       players: _friends,
                       onChallenge: _challenge,
-                      onAddFriend: null,
                     ),
                     const SizedBox(height: 22),
                     _SocialPlayerSection(
@@ -369,6 +366,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
     final incoming = _pendingChallenges
         .where((challenge) => challenge.recipient.publicId == current?.publicId)
         .toList(growable: false);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -381,15 +379,16 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         const SizedBox(height: 10),
         if (incoming.isEmpty)
           const _MessageCard(
-            icon: Icons.swords,
+            icon: Icons.bolt_outlined,
             title: 'No pending challenges',
-            body: 'New invitations will appear here and can also arrive by push notification.',
+            body:
+                'New invitations will appear here and can also arrive by push notification.',
           )
         else
           for (final challenge in incoming)
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.swords)),
+                leading: const CircleAvatar(child: Icon(Icons.bolt_outlined)),
                 title: Text(
                   challenge.challenger.displayName,
                   style: const TextStyle(fontWeight: FontWeight.w900),
@@ -429,7 +428,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
     try {
       await _social.sendFriendRequest(player.publicId);
       _showMessage('Friend request sent to ${player.displayName}.');
-      await _refreshBackend(showLoading: false);
+      await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
       _showMessage(error.message);
     }
@@ -438,41 +437,19 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
   Future<void> _challenge(SocialPlayer player) async {
     final difficulty = await showDialog<SudokuDifficulty>(
       context: context,
-      builder: (dialogContext) {
-        var selected = SudokuDifficulty.easy;
-        return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: Text('Challenge ${player.displayName}'),
-            content: DropdownButtonFormField<SudokuDifficulty>(
-              initialValue: selected,
-              decoration: const InputDecoration(
-                labelText: 'Difficulty',
-                border: OutlineInputBorder(),
+      builder: (dialogContext) => SimpleDialog(
+        title: Text('Challenge ${player.displayName}'),
+        children: [
+          for (final value in SudokuDifficulty.values)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(value),
+              child: ListTile(
+                leading: const Icon(Icons.grid_view_outlined),
+                title: Text(context.strings.difficultyLabel(value)),
               ),
-              items: [
-                for (final value in SudokuDifficulty.values)
-                  DropdownMenuItem(
-                    value: value,
-                    child: Text(context.strings.difficultyLabel(value)),
-                  ),
-              ],
-              onChanged: (value) {
-                if (value != null) setDialogState(() => selected = value);
-              },
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(selected),
-                child: const Text('Send challenge'),
-              ),
-            ],
-          ),
-        );
-      },
+        ],
+      ),
     );
     if (difficulty == null) return;
 
@@ -482,7 +459,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         difficulty: difficulty.name,
       );
       _showMessage('Challenge sent to ${player.displayName}.');
-      await _refreshBackend(showLoading: false);
+      await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
       _showMessage(error.message);
     }
@@ -499,12 +476,12 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       );
       if (accept && updated.roomId != null) {
         _showMessage(
-          'Challenge accepted. Secure game room ${updated.roomId} is ready for the online gameplay connection.',
+          'Challenge accepted. Secure room ${updated.roomId} is ready for the online gameplay connection.',
         );
       } else {
         _showMessage('Challenge declined.');
       }
-      await _refreshBackend(showLoading: false);
+      await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
       _showMessage(error.message);
     }
@@ -584,7 +561,9 @@ class _PlatformProfileCard extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         subtitle: Text(
-          player?.platform == 'game_center' ? 'Game Center' : 'Google Play Games',
+          player?.platform == 'game_center'
+              ? 'Game Center'
+              : 'Google Play Games',
         ),
         trailing: const Icon(Icons.verified_outlined),
       ),
@@ -626,7 +605,7 @@ class _SocialProfileCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Wrap(
-              spacing: 14,
+              spacing: 10,
               runSpacing: 8,
               children: [
                 _Stat(label: 'Rating', value: '${player.rating}'),
@@ -760,7 +739,7 @@ class _SocialPlayerSection extends StatelessWidget {
     required this.emptyText,
     required this.players,
     required this.onChallenge,
-    required this.onAddFriend,
+    this.onAddFriend,
   });
 
   final String title;
