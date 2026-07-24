@@ -32,7 +32,7 @@
     <string name="time">Time</string>
     <string name="mistakes">Mistakes</string>
     <string name="hints">Hints</string>
-    <string name="continue">Continue</string>
+    <string name="continue_action">Continue</string>
     <string name="mistakes_count" formatted="false">Mistakes: %1$d</string>
     <string name="hints_count" formatted="false">Hints: %1$d</string>
     <string name="time_up_turn_passed">Time is up. The turn passed to the other player.</string>
