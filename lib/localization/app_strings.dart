@@ -76,7 +76,7 @@ class AppStrings {
     'time': 'Time',
     'mistakes': 'Mistakes',
     'hints': 'Hints',
-    'continue': 'Continue',
+    'continue_action': 'Continue',
     'mistakes_count': 'Mistakes: %1d',
     'hints_count': 'Hints: %1d',
     'time_up_turn_passed': 'Time is up. The turn passed to the other player.',
@@ -211,12 +211,12 @@ class AppStrings {
   }
 
   String difficultyLabel(SudokuDifficulty difficulty) => switch (difficulty) {
-    SudokuDifficulty.beginner => text('difficulty_beginner'),
-    SudokuDifficulty.easy => text('difficulty_easy'),
-    SudokuDifficulty.medium => text('difficulty_medium'),
-    SudokuDifficulty.hard => text('difficulty_hard'),
-    SudokuDifficulty.expert => text('difficulty_expert'),
-  };
+        SudokuDifficulty.beginner => text('difficulty_beginner'),
+        SudokuDifficulty.easy => text('difficulty_easy'),
+        SudokuDifficulty.medium => text('difficulty_medium'),
+        SudokuDifficulty.hard => text('difficulty_hard'),
+        SudokuDifficulty.expert => text('difficulty_expert'),
+      };
 
   String puzzleTitle(SudokuPuzzle puzzle) {
     if (puzzle.id == 'tutorial-4x4') {
