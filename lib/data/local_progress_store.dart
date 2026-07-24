@@ -118,7 +118,10 @@ class LocalProgressStore extends ChangeNotifier {
   static const _highContrastKey = 'high_contrast_v1';
   static const _tutorialKey = 'tutorial_complete_v1';
   static const _coinsKey = 'career_coins_v1';
+  static const _hintsKey = 'hint_inventory_v1';
+
   static const int initialCoins = 100;
+  static const int initialHints = 3;
 
   final PreferencesBackend _preferences;
   final Map<String, LevelProgress> _progress = <String, LevelProgress>{};
@@ -127,6 +130,7 @@ class LocalProgressStore extends ChangeNotifier {
   bool highContrast = false;
   bool tutorialCompleted = false;
   int coins = initialCoins;
+  int hints = initialHints;
 
   static Future<LocalProgressStore> create() async {
     final store = LocalProgressStore._(SharedPreferencesBackend());
@@ -188,6 +192,33 @@ class LocalProgressStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> consumeHint() async {
+    if (hints <= 0) return false;
+    hints--;
+    await _preferences.setInt(_hintsKey, hints);
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> addHints(int amount) async {
+    if (amount <= 0) return;
+    hints += amount;
+    await _preferences.setInt(_hintsKey, hints);
+    notifyListeners();
+  }
+
+  Future<bool> purchaseHint({required int coinCost}) async {
+    if (coinCost <= 0 || coins < coinCost) return false;
+    coins -= coinCost;
+    hints++;
+    await Future.wait<void>(<Future<void>>[
+      _preferences.setInt(_coinsKey, coins),
+      _preferences.setInt(_hintsKey, hints),
+    ]);
+    notifyListeners();
+    return true;
+  }
+
   Future<void> setThemeMode(ThemeMode value) async {
     themeMode = value;
     await _preferences.setInt(_themeKey, value.index);
@@ -222,6 +253,7 @@ class LocalProgressStore extends ChangeNotifier {
     highContrast = await _preferences.getBool(_highContrastKey) ?? false;
     tutorialCompleted = await _preferences.getBool(_tutorialKey) ?? false;
     coins = await _preferences.getInt(_coinsKey) ?? initialCoins;
+    hints = await _preferences.getInt(_hintsKey) ?? initialHints;
 
     final raw = await _preferences.getString(_progressKey);
     if (raw == null || raw.isEmpty) {
