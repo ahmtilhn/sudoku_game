@@ -27,6 +27,11 @@ class SudokuBoard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final selectedValue = selectedIndex == null ? 0 : board[selectedIndex!];
+    final matchingValueBackground = Color.alphaBlend(
+      scheme.secondaryContainer.withAlpha(105),
+      scheme.surface,
+    );
+
     return Semantics(
       label: context.tr('board_label', <Object>[puzzle.size]),
       child: AspectRatio(
@@ -60,12 +65,12 @@ class SudokuBoard extends StatelessWidget {
                 final background = errorIndex == index
                     ? scheme.errorContainer
                     : selected
-                    ? scheme.primaryContainer
-                    : sameValue
-                    ? scheme.secondaryContainer
-                    : related
-                    ? scheme.surfaceContainerHighest
-                    : scheme.surface;
+                        ? scheme.primaryContainer
+                        : sameValue
+                            ? matchingValueBackground
+                            : related
+                                ? scheme.surfaceContainerHighest
+                                : scheme.surface;
                 return Semantics(
                   button: !puzzle.isFixed(index),
                   selected: selected,
@@ -84,14 +89,13 @@ class SudokuBoard extends StatelessWidget {
                             color: scheme.outline,
                             width:
                                 (column + 1) % puzzle.boxColumns == 0 &&
-                                    column != puzzle.size - 1
-                                ? 2
-                                : 0.4,
+                                        column != puzzle.size - 1
+                                    ? 2
+                                    : 0.4,
                           ),
                           bottom: BorderSide(
                             color: scheme.outline,
-                            width:
-                                (row + 1) % puzzle.boxRows == 0 &&
+                            width: (row + 1) % puzzle.boxRows == 0 &&
                                     row != puzzle.size - 1
                                 ? 2
                                 : 0.4,
