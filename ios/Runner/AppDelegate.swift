@@ -98,7 +98,7 @@ import UIKit
       case "loadRecentPlayers":
         self.loadRecentPlayers(result: result)
       case "showFriends":
-        self.showDashboard(state: .localPlayerFriendsList, result: result)
+        self.showFriends(result: result)
       case "showPlayerProfile":
         let arguments = call.arguments as? [String: Any]
         self.showPlayerProfile(
@@ -281,6 +281,15 @@ import UIKit
     ]
   }
 
+  private func showFriends(result: FlutterResult) {
+    guard ensureAuthenticated(result: result) else { return }
+    if #available(iOS 14.0, *) {
+      showDashboard(state: .localPlayerFriendsList, result: result)
+    } else {
+      showDashboard(state: .default, result: result)
+    }
+  }
+
   private func showPlayerProfile(playerID: String?, result: @escaping FlutterResult) {
     guard ensureAuthenticated(result: result) else { return }
     guard let playerID, !playerID.isEmpty else {
@@ -434,7 +443,7 @@ import UIKit
   }
 
   private func topViewController() -> UIViewController? {
-    let root = connectedScenes
+    let root = UIApplication.shared.connectedScenes
       .compactMap { $0 as? UIWindowScene }
       .flatMap { $0.windows }
       .first(where: { $0.isKeyWindow })?
