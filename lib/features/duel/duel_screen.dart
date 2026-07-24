@@ -159,6 +159,18 @@ class _DuelScreenState extends State<DuelScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('local_duel'))),
+      bottomNavigationBar: NumberPadDock(
+        child: NumberPad(
+          maxValue: 9,
+          completedValues: completedSudokuNumbers(
+            board: _board,
+            maxValue: 9,
+          ),
+          enabled: !_completed,
+          onNumber: _enterNumber,
+          onErase: () => setState(() => _selectedIndex = null),
+        ),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -166,7 +178,7 @@ class _DuelScreenState extends State<DuelScreen> {
                 ? 560.0
                 : constraints.maxWidth;
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               child: Center(
                 child: SizedBox(
                   width: width,
@@ -240,15 +252,9 @@ class _DuelScreenState extends State<DuelScreen> {
                           _currentPlayer + 1,
                         ]),
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 12),
-                      NumberPad(
-                        maxValue: 9,
-                        enabled: !_completed,
-                        onNumber: _enterNumber,
-                        onErase: () => setState(() => _selectedIndex = null),
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
