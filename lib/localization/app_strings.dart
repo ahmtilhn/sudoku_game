@@ -160,6 +160,10 @@ class AppStrings {
 
   final Map<String, String> _values;
 
+  static AppStrings englishFallback() {
+    return AppStrings._(Map<String, String>.from(english));
+  }
+
   static Future<AppStrings> load() async {
     final values = Map<String, String>.from(english);
     await _loadStringCatalog(values);
@@ -222,57 +226,31 @@ class AppStrings {
           }
         }
       }
-    } on FlutterError {
-      // The catalog is optional on platforms that use native resources.
-    } on FormatException {
-      // Keep the English fallback if a catalog is temporarily malformed.
+    } on Object {
+      // The generated catalog is optional at runtime; English is the fallback.
     }
   }
 
-  String text(String key, [List<Object> arguments = const <Object>[]]) {
+  String tr(String key, [List<Object> arguments = const <Object>[]]) {
     var value = _values[key] ?? english[key] ?? key;
     for (var index = 0; index < arguments.length; index++) {
       final position = index + 1;
-      final replacement = arguments[index].toString();
       value = value
-          .replaceAll('%$position\$s', replacement)
-          .replaceAll('%$position\$d', replacement)
-          .replaceAll('%${position}s', replacement)
-          .replaceAll('%${position}d', replacement);
+          .replaceAll('%${position}d', '${arguments[index]}')
+          .replaceAll('%${position}s', '${arguments[index]}');
     }
     return value;
   }
 
-  String difficultyLabel(SudokuDifficulty difficulty) => switch (difficulty) {
-        SudokuDifficulty.beginner => text('difficulty_beginner'),
-        SudokuDifficulty.easy => text('difficulty_easy'),
-        SudokuDifficulty.medium => text('difficulty_medium'),
-        SudokuDifficulty.hard => text('difficulty_hard'),
-        SudokuDifficulty.expert => text('difficulty_expert'),
-      };
-
   String puzzleTitle(SudokuPuzzle puzzle) {
-    if (puzzle.id == 'tutorial-4x4') {
-      return text('mini_sudoku_title');
-    }
-    if (puzzle.id.startsWith('daily-')) {
-      return text('daily_puzzle_title');
-    }
-    if (puzzle.id.startsWith('duel-')) {
-      return text('duel_puzzle_title');
-    }
-    if (puzzle.id.startsWith('career-random-') ||
-        puzzle.id.startsWith('sample-')) {
-      return difficultyLabel(puzzle.difficulty);
-    }
-    final level = int.tryParse(puzzle.id.split('-').last);
-    if (level != null) {
-      return text('level_title', <Object>[
-        difficultyLabel(puzzle.difficulty),
-        level,
-      ]);
-    }
+    if (puzzle.id == 'daily') return tr('daily_puzzle_title');
+    if (puzzle.id == 'duel') return tr('duel_puzzle_title');
+    if (puzzle.size == 4) return tr('mini_sudoku_title');
     return puzzle.title;
+  }
+
+  String difficultyLabel(SudokuDifficulty difficulty) {
+    return tr('difficulty_${difficulty.name}');
   }
 }
 
@@ -287,18 +265,18 @@ class AppStringsScope extends InheritedWidget {
 
   static AppStrings of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppStringsScope>();
-    assert(scope != null, 'AppStringsScope is missing above this context.');
+    assert(scope != null, 'No AppStringsScope found in context');
     return scope!.strings;
   }
 
   @override
-  bool updateShouldNotify(AppStringsScope oldWidget) =>
-      oldWidget.strings != strings;
+  bool updateShouldNotify(AppStringsScope oldWidget) => strings != oldWidget.strings;
 }
 
-extension AppStringsContext on BuildContext {
+extension AppStringsBuildContext on BuildContext {
   AppStrings get strings => AppStringsScope.of(this);
 
-  String tr(String key, [List<Object> arguments = const <Object>[]]) =>
-      strings.text(key, arguments);
+  String tr(String key, [List<Object> arguments = const <Object>[]]) {
+    return strings.tr(key, arguments);
+  }
 }
