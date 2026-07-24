@@ -1,6 +1,14 @@
 import java.io.FileInputStream
 import java.util.Properties
 
+plugins {
+    id("com.android.application")
+    // The Flutter Gradle Plugin must be applied after the Flutter and Kotlin plugins.
+    id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
+}
+
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val releaseSigningConfigured = keystorePropertiesFile.exists()
@@ -9,14 +17,6 @@ if (releaseSigningConfigured) {
     FileInputStream(keystorePropertiesFile).use { stream ->
         keystoreProperties.load(stream)
     }
-}
-
-plugins {
-    id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Flutter and Kotlin plugins.
-    id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics")
 }
 
 android {
