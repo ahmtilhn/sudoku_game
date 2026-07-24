@@ -89,6 +89,7 @@ class NumberPad extends StatelessWidget {
                     width: maxValue == 9 ? 52 : 64,
                     height: 52,
                     child: FilledButton.tonal(
+                      key: ValueKey<String>('number-$value'),
                       onPressed: enabled && !isCompleted
                           ? () => onNumber(value)
                           : null,
@@ -119,12 +120,14 @@ class NumberPad extends StatelessWidget {
           spacing: 4,
           children: [
             _ActionButton(
+              buttonKey: const ValueKey<String>('action-erase'),
               icon: Icons.backspace_outlined,
               label: context.tr('erase'),
               onPressed: enabled ? onErase : null,
             ),
             if (onToggleNotes != null)
               _ActionButton(
+                buttonKey: const ValueKey<String>('action-notes'),
                 icon: notesEnabled ? Icons.edit_note : Icons.edit_note_outlined,
                 label: notesEnabled
                     ? context.tr('notes_on')
@@ -134,12 +137,14 @@ class NumberPad extends StatelessWidget {
               ),
             if (onUndo != null)
               _ActionButton(
+                buttonKey: const ValueKey<String>('action-undo'),
                 icon: Icons.undo,
                 label: context.tr('undo'),
                 onPressed: enabled ? onUndo : null,
               ),
             if (onHint != null)
               _ActionButton(
+                buttonKey: const ValueKey<String>('action-hint'),
                 icon: Icons.lightbulb_outline,
                 label: hintCount == null
                     ? context.tr('hint')
@@ -155,12 +160,14 @@ class NumberPad extends StatelessWidget {
 
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
+    required this.buttonKey,
     required this.icon,
     required this.label,
     required this.onPressed,
     this.selected = false,
   });
 
+  final Key buttonKey;
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
@@ -169,6 +176,7 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
+      key: buttonKey,
       onPressed: onPressed,
       style: TextButton.styleFrom(
         backgroundColor: selected

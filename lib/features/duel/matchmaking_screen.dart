@@ -40,30 +40,11 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           ),
           const SizedBox(height: 20),
           for (final difficulty in SudokuDifficulty.values) ...[
-            Card(
-              color: _difficulty == difficulty
-                  ? scheme.primaryContainer
-                  : null,
-              child: RadioListTile<SudokuDifficulty>(
-                value: difficulty,
-                groupValue: _difficulty,
-                onChanged: _searching
-                    ? null
-                    : (value) {
-                        if (value != null) {
-                          setState(() => _difficulty = value);
-                        }
-                      },
-                title: Text(
-                  context.strings.difficultyLabel(difficulty),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: Text(
-                  context.tr('difficulty_queue', <Object>[
-                    context.strings.difficultyLabel(difficulty),
-                  ]),
-                ),
-              ),
+            _DifficultyCard(
+              difficulty: difficulty,
+              selected: _difficulty == difficulty,
+              enabled: !_searching,
+              onSelected: () => setState(() => _difficulty = difficulty),
             ),
             const SizedBox(height: 8),
           ],
@@ -126,6 +107,47 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => DuelScreen(difficulty: _difficulty),
+      ),
+    );
+  }
+}
+
+class _DifficultyCard extends StatelessWidget {
+  const _DifficultyCard({
+    required this.difficulty,
+    required this.selected,
+    required this.enabled,
+    required this.onSelected,
+  });
+
+  final SudokuDifficulty difficulty;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      color: selected ? scheme.primaryContainer : null,
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        enabled: enabled,
+        onTap: enabled ? onSelected : null,
+        leading: Icon(
+          selected ? Icons.radio_button_checked : Icons.radio_button_off,
+          color: selected ? scheme.primary : scheme.onSurfaceVariant,
+        ),
+        title: Text(
+          context.strings.difficultyLabel(difficulty),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: Text(
+          context.tr('difficulty_queue', <Object>[
+            context.strings.difficultyLabel(difficulty),
+          ]),
+        ),
+        trailing: selected ? const Icon(Icons.check_rounded) : null,
       ),
     );
   }

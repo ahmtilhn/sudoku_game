@@ -1,4 +1,4 @@
-package com.example.sudoku_game
+package com.devoviastudio.sudoku
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
