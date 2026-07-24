@@ -55,6 +55,7 @@ class _GameScreenState extends State<GameScreen> {
   late List<int> _board;
   final Map<int, Set<int>> _notes = <int, Set<int>>{};
   final List<_MoveRecord> _history = <_MoveRecord>[];
+  final Set<int> _hintedIndexes = <int>{};
   Timer? _timer;
   int? _selectedIndex;
   int? _errorIndex;
@@ -66,6 +67,9 @@ class _GameScreenState extends State<GameScreen> {
   bool _completed = false;
   bool _roundLost = false;
   bool _lossDialogVisible = false;
+  bool _hintInProgress = false;
+
+  bool get _canUndo => _history.isNotEmpty && !_completed && !_roundLost;
 
   @override
   void initState() {
@@ -96,6 +100,7 @@ class _GameScreenState extends State<GameScreen> {
     final index = _selectedIndex;
     if (index == null ||
         widget.puzzle.isFixed(index) ||
+        _hintedIndexes.contains(index) ||
         _completed ||
         _roundLost) {
       return;
@@ -151,6 +156,7 @@ class _GameScreenState extends State<GameScreen> {
     final index = _selectedIndex;
     if (index == null ||
         widget.puzzle.isFixed(index) ||
+        _hintedIndexes.contains(index) ||
         _completed ||
         _roundLost) {
       return;
@@ -169,7 +175,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _undo() {
-    if (_history.isEmpty || _completed || _roundLost) return;
+    if (!_canUndo) return;
     final move = _history.removeLast();
     setState(() {
       _board[move.index] = move.previousValue;
@@ -181,37 +187,52 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _hint() async {
-    if (!widget.allowHints || _completed || _roundLost) return;
+    if (!widget.allowHints ||
+        _completed ||
+        _roundLost ||
+        _hintInProgress) {
+      return;
+    }
 
-    var candidate = _selectedIndex;
-    if (candidate == null ||
+    var candidate = _selectedIndex ?? -1;
+    if (candidate < 0 ||
         widget.puzzle.isFixed(candidate) ||
+        _hintedIndexes.contains(candidate) ||
         _board[candidate] != 0) {
       candidate = _board.indexOf(0);
     }
     if (candidate < 0) return;
 
-    final consumeHint = widget.onConsumeHint;
-    if (consumeHint != null) {
-      final allowed = await consumeHint();
-      if (!mounted || !allowed) return;
-    }
+    setState(() => _hintInProgress = true);
+    try {
+      final consumeHint = widget.onConsumeHint;
+      if (consumeHint != null) {
+        final allowed = await consumeHint();
+        if (!mounted || !allowed) return;
+      }
 
-    final index = candidate;
-    setState(() {
-      _history.add(
-        _MoveRecord(
-          index: index,
-          previousValue: _board[index],
-          previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
-        ),
-      );
-      _selectedIndex = index;
-      _board[index] = widget.puzzle.solution[index];
-      _notes.remove(index);
-      _hintsUsed++;
-    });
-    _checkCompletion();
+      if (_board[candidate] != 0 ||
+          widget.puzzle.isFixed(candidate) ||
+          _hintedIndexes.contains(candidate)) {
+        candidate = _board.indexOf(0);
+      }
+      if (!mounted || candidate < 0) return;
+
+      final index = candidate;
+      setState(() {
+        _selectedIndex = index;
+        _board[index] = widget.puzzle.solution[index];
+        _hintedIndexes.add(index);
+        _notes.remove(index);
+        _removeRelatedNotes(index, _board[index]);
+        _hintsUsed++;
+      });
+      _checkCompletion();
+    } finally {
+      if (mounted) {
+        setState(() => _hintInProgress = false);
+      }
+    }
   }
 
   Future<void> _showRoundLostDialog() async {
@@ -312,6 +333,7 @@ class _GameScreenState extends State<GameScreen> {
       _board = List<int>.from(widget.puzzle.puzzle);
       _notes.clear();
       _history.clear();
+      _hintedIndexes.clear();
       _selectedIndex = null;
       _errorIndex = null;
       _elapsedSeconds = 0;
@@ -320,6 +342,7 @@ class _GameScreenState extends State<GameScreen> {
       _hintsUsed = 0;
       _notesMode = false;
       _roundLost = false;
+      _hintInProgress = false;
     });
   }
 
@@ -441,7 +464,7 @@ class _GameScreenState extends State<GameScreen> {
           onToggleNotes: widget.allowNotes
               ? () => setState(() => _notesMode = !_notesMode)
               : null,
-          onUndo: _history.isEmpty ? null : _undo,
+          onUndo: _canUndo ? _undo : null,
           onHint: widget.allowHints ? _hint : null,
         ),
       ),
@@ -492,6 +515,7 @@ class _GameScreenState extends State<GameScreen> {
                         selectedIndex: _selectedIndex,
                         notes: _notes,
                         errorIndex: _errorIndex,
+                        hintedIndexes: _hintedIndexes,
                         enabled: controlsEnabled,
                         onCellTap: _selectCell,
                       ),
