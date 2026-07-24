@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Cloudflare Worker local state and secrets
+**/node_modules/
+**/.wrangler/
+**/.dev.vars
+**/.dev.vars.*
+
+# Firebase / Google service credentials must never be committed
+**/service-account*.json
+**/*firebase-admin*.json
