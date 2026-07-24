@@ -1,3 +1,16 @@
+import java.io.FileInputStream
+import java.util.Properties
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val releaseSigningConfigured = keystorePropertiesFile.exists()
+
+if (releaseSigningConfigured) {
+    FileInputStream(keystorePropertiesFile).use { stream ->
+        keystoreProperties.load(stream)
+    }
+}
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Flutter and Kotlin plugins.
@@ -26,10 +39,37 @@ android {
         multiDexEnabled = true
     }
 
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                val storeFilePath = keystoreProperties.getProperty("storeFile")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw GradleException("storeFile is missing from android/key.properties")
+                val configuredStorePassword = keystoreProperties.getProperty("storePassword")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw GradleException("storePassword is missing from android/key.properties")
+                val configuredKeyAlias = keystoreProperties.getProperty("keyAlias")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw GradleException("keyAlias is missing from android/key.properties")
+                val configuredKeyPassword = keystoreProperties.getProperty("keyPassword")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw GradleException("keyPassword is missing from android/key.properties")
+
+                storeFile = rootProject.file(storeFilePath)
+                storePassword = configuredStorePassword
+                keyAlias = configuredKeyAlias
+                keyPassword = configuredKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Replace this with the production upload key before store release.
-            signingConfig = signingConfigs.getByName("debug")
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
@@ -47,4 +87,14 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    doFirst {
+        if (!releaseSigningConfigured) {
+            throw GradleException(
+                "Missing android/key.properties. Release builds must use the private upload key and must never fall back to the debug key.",
+            )
+        }
+    }
 }
