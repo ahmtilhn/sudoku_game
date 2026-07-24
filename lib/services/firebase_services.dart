@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -95,9 +94,9 @@ class FirebaseServices {
 
   Future<void> _activateAppCheck() async {
     await FirebaseAppCheck.instance.activate(
-      androidProvider:
+      providerAndroid:
           kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-      appleProvider: kDebugMode
+      providerApple: kDebugMode
           ? AppleProvider.debug
           : AppleProvider.appAttestWithDeviceCheckFallback,
     );
