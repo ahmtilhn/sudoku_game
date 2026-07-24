@@ -253,6 +253,24 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: NumberPadDock(
+        child: NumberPad(
+          maxValue: widget.puzzle.size,
+          completedValues: completedSudokuNumbers(
+            board: _board,
+            maxValue: widget.puzzle.size,
+          ),
+          enabled: !_completed,
+          notesEnabled: _notesMode,
+          onNumber: _enterNumber,
+          onErase: _erase,
+          onToggleNotes: widget.allowNotes
+              ? () => setState(() => _notesMode = !_notesMode)
+              : null,
+          onUndo: _history.isEmpty ? null : _undo,
+          onHint: widget.allowHints ? _hint : null,
+        ),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -260,7 +278,7 @@ class _GameScreenState extends State<GameScreen> {
                 ? 560.0
                 : constraints.maxWidth;
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               child: Center(
                 child: SizedBox(
                   width: width,
@@ -302,19 +320,6 @@ class _GameScreenState extends State<GameScreen> {
                         errorIndex: _errorIndex,
                         enabled: !_completed,
                         onCellTap: _selectCell,
-                      ),
-                      const SizedBox(height: 18),
-                      NumberPad(
-                        maxValue: widget.puzzle.size,
-                        enabled: !_completed,
-                        notesEnabled: _notesMode,
-                        onNumber: _enterNumber,
-                        onErase: _erase,
-                        onToggleNotes: widget.allowNotes
-                            ? () => setState(() => _notesMode = !_notesMode)
-                            : null,
-                        onUndo: _history.isEmpty ? null : _undo,
-                        onHint: widget.allowHints ? _hint : null,
                       ),
                     ],
                   ),

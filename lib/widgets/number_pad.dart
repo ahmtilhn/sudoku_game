@@ -2,12 +2,55 @@ import 'package:flutter/material.dart';
 
 import '../localization/app_strings.dart';
 
+Set<int> completedSudokuNumbers({
+  required List<int> board,
+  required int maxValue,
+}) {
+  final counts = List<int>.filled(maxValue + 1, 0);
+  for (final value in board) {
+    if (value >= 1 && value <= maxValue) {
+      counts[value]++;
+    }
+  }
+  return <int>{
+    for (var value = 1; value <= maxValue; value++)
+      if (counts[value] >= maxValue) value,
+  };
+}
+
+class NumberPadDock extends StatelessWidget {
+  const NumberPadDock({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 10,
+      color: Theme.of(context).colorScheme.surface,
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Align(
+          alignment: Alignment.center,
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class NumberPad extends StatelessWidget {
   const NumberPad({
     super.key,
     required this.maxValue,
     required this.onNumber,
     required this.onErase,
+    this.completedValues = const <int>{},
     this.notesEnabled = false,
     this.onToggleNotes,
     this.onUndo,
@@ -18,6 +61,7 @@ class NumberPad extends StatelessWidget {
   final int maxValue;
   final ValueChanged<int> onNumber;
   final VoidCallback onErase;
+  final Set<int> completedValues;
   final bool notesEnabled;
   final VoidCallback? onToggleNotes;
   final VoidCallback? onUndo;
@@ -28,6 +72,7 @@ class NumberPad extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Wrap(
           alignment: WrapAlignment.center,
@@ -35,24 +80,34 @@ class NumberPad extends StatelessWidget {
           runSpacing: 8,
           children: [
             for (var value = 1; value <= maxValue; value++)
-              SizedBox(
-                width: maxValue == 9 ? 52 : 64,
-                height: 52,
-                child: FilledButton.tonal(
-                  onPressed: enabled ? () => onNumber(value) : null,
-                  style: FilledButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    backgroundColor: scheme.secondaryContainer,
-                    foregroundColor: scheme.onSecondaryContainer,
-                  ),
-                  child: Text(
-                    '$value',
-                    style: const TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w800,
+              Builder(
+                builder: (context) {
+                  final isCompleted = completedValues.contains(value);
+                  return SizedBox(
+                    width: maxValue == 9 ? 52 : 64,
+                    height: 52,
+                    child: FilledButton.tonal(
+                      onPressed: enabled && !isCompleted
+                          ? () => onNumber(value)
+                          : null,
+                      style: FilledButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: scheme.secondaryContainer,
+                        foregroundColor: scheme.onSecondaryContainer,
+                      ),
+                      child: Text(
+                        '$value',
+                        style: TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
+                          decoration: isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
           ],
         ),
