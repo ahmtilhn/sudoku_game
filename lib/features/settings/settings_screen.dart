@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
+import '../../services/reminder_notification_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key, required this.store});
@@ -9,6 +10,7 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reminders = ReminderNotificationService.instance;
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('settings'))),
       body: AnimatedBuilder(
@@ -63,6 +65,27 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             Text(
+              'Notifications',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            Card(
+              child: ValueListenableBuilder<bool>(
+                valueListenable: reminders.enabled,
+                builder: (context, enabled, _) => SwitchListTile(
+                  secondary: const Icon(Icons.notifications_active_outlined),
+                  value: enabled,
+                  title: const Text('Daily Sudoku challenges'),
+                  subtitle: const Text(
+                    'Three optional reminders each day at 09:00, 15:00, and 20:30. You can turn them off at any time.',
+                  ),
+                  onChanged: (value) =>
+                      _setDailyReminders(context, reminders, value),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Text(
               context.tr('data'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
@@ -83,6 +106,28 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _setDailyReminders(
+    BuildContext context,
+    ReminderNotificationService service,
+    bool value,
+  ) async {
+    if (!value) {
+      await service.disable();
+      return;
+    }
+
+    final enabled = await service.requestPermissionAndEnable();
+    if (!enabled && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Notification permission was not granted. Daily reminders remain off.',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmClear(BuildContext context) async {
