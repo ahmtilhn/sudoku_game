@@ -1,0 +1,6 @@
+# Copy this file to android/key.properties and replace every placeholder.
+# Never commit android/key.properties or any .jks/.keystore file.
+storePassword=REPLACE_WITH_LOCAL_SECRET
+keyPassword=REPLACE_WITH_LOCAL_SECRET
+keyAlias=sudoku_upload
+storeFile=C:/Users/REPLACE_WITH_USER/sudoku-duel-upload.jks
