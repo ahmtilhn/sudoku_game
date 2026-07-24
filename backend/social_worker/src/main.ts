@@ -152,7 +152,7 @@ function json(env: Env, status: number, body: unknown): Response {
       'content-type': 'application/json; charset=utf-8',
       'access-control-allow-origin': env.ALLOWED_ORIGIN || '*',
       'access-control-allow-headers': 'authorization, content-type',
-      'access-control-allow-methods': 'GET, POST, PUT, OPTIONS',
+      'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
     },
   });
 }

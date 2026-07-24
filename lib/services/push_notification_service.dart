@@ -8,14 +8,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'firebase_runtime_config.dart';
+import 'firebase_services.dart';
 import 'social_api_client.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (!FirebaseRuntimeConfig.configured) return;
-  if (Firebase.apps.isEmpty) {
-    await Firebase.initializeApp(options: FirebaseRuntimeConfig.options);
-  }
+  await FirebaseRuntimeConfig.initializeIfConfigured();
 }
 
 class PushNotificationService {
@@ -47,9 +45,7 @@ class PushNotificationService {
 
   Future<void> _initializeOnce() async {
     try {
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(options: FirebaseRuntimeConfig.options);
-      }
+      await FirebaseRuntimeConfig.initializeIfConfigured();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
       if (FirebaseAuth.instance.currentUser == null) {
@@ -127,6 +123,12 @@ class PushNotificationService {
 
   Future<void> deleteDeviceToken() async {
     if (!configured || !initialized.value) return;
+    try {
+      await SocialApiClient.instance.disableCurrentDeviceToken();
+    } on SocialApiException catch (error, stackTrace) {
+      debugPrint('Push token disable failed: $error');
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
+    }
     await FirebaseMessaging.instance.deleteToken();
     permissionGranted.value = false;
   }

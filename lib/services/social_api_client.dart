@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 
 class SocialPlayer {
@@ -126,6 +127,17 @@ class SocialApiClient {
     );
   }
 
+  Future<void> disableCurrentDeviceToken() async {
+    if (!configured) return;
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null || token.isEmpty) return;
+    await _request(
+      'DELETE',
+      '/v1/me/devices/current',
+      body: <String, Object>{'token': token},
+    );
+  }
+
   Future<List<SocialPlayer>> searchPlayers(String query) async {
     if (query.trim().length < 3) return const <SocialPlayer>[];
     final response = await _request(
@@ -248,6 +260,11 @@ class SocialApiClient {
           body: jsonEncode(body ?? const <String, Object?>{}),
         ),
       'PUT' => await _client.put(
+          uri,
+          headers: headers,
+          body: jsonEncode(body ?? const <String, Object?>{}),
+        ),
+      'DELETE' => await _client.delete(
           uri,
           headers: headers,
           body: jsonEncode(body ?? const <String, Object?>{}),

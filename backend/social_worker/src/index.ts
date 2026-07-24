@@ -87,6 +87,11 @@ export default {
       ) {
         response = await registerDevice(request, env, player);
       } else if (
+        url.pathname === '/v1/me/devices/current' &&
+        request.method === 'DELETE'
+      ) {
+        response = await disableDevice(request, env, player);
+      } else if (
         url.pathname === '/v1/players/search' &&
         request.method === 'GET'
       ) {
@@ -244,6 +249,22 @@ async function registerDevice(
        updated_at = excluded.updated_at`,
   )
     .bind(crypto.randomUUID(), player.id, token, platform, now, now)
+    .run();
+  return reply(env, { ok: true });
+}
+
+async function disableDevice(
+  request: Request,
+  env: Env,
+  player: PlayerRow,
+): Promise<Response> {
+  const body = await readJson(request);
+  const token = requiredString(body.token, 'token', 32, 4096);
+  await env.DB.prepare(
+    `UPDATE device_tokens SET enabled = 0, updated_at = ?
+     WHERE player_id = ? AND token = ?`,
+  )
+    .bind(new Date().toISOString(), player.id, token)
     .run();
   return reply(env, { ok: true });
 }
@@ -830,7 +851,7 @@ function corsResponse(env: Env, response: Response): Response {
   const headers = new Headers(response.headers);
   headers.set('access-control-allow-origin', env.ALLOWED_ORIGIN || '*');
   headers.set('access-control-allow-headers', 'authorization, content-type');
-  headers.set('access-control-allow-methods', 'GET, POST, PUT, OPTIONS');
+  headers.set('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
   headers.set('vary', 'origin');
   return new Response(response.body, {
     status: response.status,
