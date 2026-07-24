@@ -1,0 +1,252 @@
+# Cross-Platform Social Backend and Challenge Push Setup
+
+Reviewed against the current Firebase Authentication, Firebase Cloud Messaging HTTP v1, FlutterFire Messaging, Cloudflare Workers, D1, Durable Objects, and Apple Push Notification documentation on 2026-07-24.
+
+## What is implemented
+
+The repository contains:
+
+- Firebase runtime initialization without committed app secrets;
+- anonymous Firebase authentication for an initial device account;
+- Firebase ID-token authenticated social API requests;
+- device FCM-token registration and token refresh;
+- foreground, background, and terminated-app challenge notification handling;
+- Android high-importance challenge channel;
+- iOS development/production APNs entitlements;
+- Cloudflare Worker REST API;
+- D1 schema for players, devices, friends, challenges, recent opponents, and rate limits;
+- FCM HTTP v1 challenge and challenge-response sending;
+- disabled-token cleanup after FCM reports an unregistered token;
+- Durable Object WebSocket room transport;
+- username search, friend request send/accept/decline, recent opponents, challenge send/accept/decline, and pending challenge UI.
+
+The checked-in repository contains no Firebase service-account private key and no production backend URL.
+
+## Important current game-room boundary
+
+The included Durable Object authenticates both participants, creates one room per accepted challenge, and provides WebSocket transport for ready/move/forfeit/ping events.
+
+Before public competitive release, the room still needs the final authoritative Sudoku rules layer:
+
+- server-side puzzle generation;
+- one shared puzzle seed;
+- server-side move validation;
+- per-player board and mistake state;
+- reconnect snapshots;
+- winner/forfeit settlement;
+- D1 statistics and recent-opponent updates.
+
+Do not treat client-submitted match outcomes as authoritative until that layer is completed.
+
+## Firebase project
+
+Use one Firebase project for Android and iOS.
+
+### Android app
+
+Create an Android app with:
+
+- package: `com.devoviastudio.sudoku`;
+- debug and Play App Signing SHA fingerprints where Firebase products require them.
+
+### iOS app
+
+Create an Apple app with:
+
+- bundle ID: `com.devoviastudio.sudoku`.
+
+### Authentication
+
+In Firebase Console:
+
+1. Open **Authentication > Sign-in method**.
+2. Enable **Anonymous** authentication.
+3. Do not expose Admin SDK credentials to the Flutter app.
+
+Anonymous accounts make the first no-friction MVP possible. Before users can recover accounts across devices, link the Firebase account to a verified Play Games/Game Center identity or another recovery method.
+
+### Cloud Messaging
+
+1. Enable Cloud Messaging for the project.
+2. For iOS, upload an APNs authentication key in Firebase Console.
+3. The APNs key must belong to the Apple developer team that owns `com.devoviastudio.sudoku`.
+4. Enable Push Notifications for the App ID and regenerate provisioning profiles.
+5. Test Android from a Play/internal build and iOS from a physical development/TestFlight build.
+
+## Flutter runtime values
+
+Build with the Firebase values from the Firebase app configuration:
+
+```powershell
+flutter run `
+  --dart-define=FIREBASE_API_KEY=REPLACE `
+  --dart-define=FIREBASE_PROJECT_ID=REPLACE `
+  --dart-define=FIREBASE_MESSAGING_SENDER_ID=REPLACE `
+  --dart-define=FIREBASE_ANDROID_APP_ID=REPLACE `
+  --dart-define=FIREBASE_IOS_APP_ID=REPLACE `
+  --dart-define=FIREBASE_STORAGE_BUCKET=REPLACE `
+  --dart-define=FIREBASE_IOS_BUNDLE_ID=com.devoviastudio.sudoku `
+  --dart-define=SOCIAL_BACKEND_URL=https://REPLACE.workers.dev
+```
+
+For an Android-only local run, `FIREBASE_IOS_APP_ID` may remain empty. For iOS, provide the iOS app ID.
+
+When these values are absent, Firebase push and the shared social backend remain disabled without preventing the offline Sudoku game from launching.
+
+## Cloudflare Worker deployment
+
+The backend is in `backend/social_worker`.
+
+### 1. Install
+
+```powershell
+cd backend\social_worker
+npm install
+npx wrangler login
+```
+
+### 2. Create D1
+
+```powershell
+npx wrangler d1 create sudoku-duel-social
+```
+
+Copy `wrangler.example.toml` to `wrangler.toml` and replace:
+
+- D1 database ID;
+- Firebase project ID;
+- FCM project ID;
+- allowed origin if a web client is introduced.
+
+The native mobile app uses bearer authentication and is not protected by browser CORS alone.
+
+### 3. Apply migration
+
+```powershell
+npm run db:remote
+```
+
+### 4. Add FCM service-account secrets
+
+Create a narrowly managed Google service account that can send FCM HTTP v1 messages. Keep the JSON private.
+
+Add only the required values as encrypted Worker secrets:
+
+```powershell
+npx wrangler secret put FCM_CLIENT_EMAIL
+npx wrangler secret put FCM_PRIVATE_KEY
+```
+
+Paste the private key with its PEM boundaries. Newline escapes are accepted and normalized by the Worker.
+
+Never:
+
+- commit the service-account JSON;
+- place the private key in Flutter Dart defines;
+- place a legacy FCM server key in the app;
+- send FCM HTTP v1 requests directly from the device.
+
+### 5. Type check and deploy
+
+```powershell
+npm run typecheck
+npm run deploy
+```
+
+Test:
+
+```powershell
+curl https://YOUR-WORKER.workers.dev/health
+```
+
+Expected:
+
+```json
+{"ok":true,"service":"sudoku-duel-social"}
+```
+
+## Challenge notification behavior
+
+When player A creates a challenge:
+
+1. The Worker validates Firebase identity.
+2. The Worker rate-limits the sender.
+3. The Worker checks that neither player blocked the other.
+4. A 15-minute pending challenge is stored in D1.
+5. The Worker sends an FCM HTTP v1 notification to every active device token belonging to player B.
+6. Notification data includes `challengeId`, difficulty, and challenger public ID.
+7. Opening the notification refreshes the pending challenge list.
+8. Accepting creates a one-time room ID and notifies the challenger.
+
+Foreground Android messages are shown through the local notification plugin. iOS uses the foreground presentation options of Firebase Messaging. Background and terminated-app notification display is handled by FCM/APNs when notification permission has been granted.
+
+## Notification consent
+
+Challenge notification permission is requested only after the player presses **Enable challenge notifications**.
+
+Daily reminder permission and online challenge permission share the operating-system notification authorization, but the app exposes them as separate product choices:
+
+- daily local reminders can be disabled from Settings;
+- remote challenge token registration is initiated from the social screen.
+
+An operating system may not provide separate authorization switches for each category. The backend must honor an in-app disable preference by disabling/deleting the registered token endpoint in a later account-settings pass.
+
+## Security rules
+
+- Every private endpoint verifies the Firebase ID token issuer, audience, signature, and expiry.
+- Device tokens are stored server-side and never exposed in public player payloads.
+- FCM service-account credentials are Cloudflare secrets.
+- Search, friend requests, and challenge creation are rate-limited.
+- Blocked relationships prevent search/challenge interaction.
+- Challenges expire after 15 minutes.
+- Only the recipient can accept or decline.
+- Only challenge participants can connect to the room.
+- WebSocket room responses are returned directly so Cloudflare's WebSocket attachment is preserved.
+- Display names are sanitized and length-limited.
+- There is no free-text chat in the first release.
+- Public payloads exclude email, Firebase UID, platform IDs, IP address, and FCM token.
+
+## Platform identity linking
+
+The Play Games and Game Center bridges already return the proof needed for backend verification:
+
+- Android: one-time Play Games server auth code;
+- iOS: Game Center player ID, public key URL, signature, salt, timestamp, and bundle ID.
+
+The current Firebase anonymous account remains the active social identity until backend endpoints for verified platform linking are deployed. Do not link accounts by trusting a raw player ID from the client.
+
+## No-cost expectations
+
+Firebase Authentication anonymous sign-in and FCM can start within Firebase's no-cost usage model. Cloudflare Workers, D1, and Durable Objects can start on their free tier.
+
+This is a no-cost MVP architecture, not an unlimited guarantee. Configure:
+
+- Cloudflare analytics and request limits;
+- Firebase/Google Cloud quota monitoring;
+- application-level rate limits;
+- alerts for unusual token registration, search, or challenge traffic.
+
+## Release checklist
+
+- Firebase Android package is exactly `com.devoviastudio.sudoku`;
+- Firebase iOS bundle ID is exactly `com.devoviastudio.sudoku`;
+- Anonymous Auth is enabled;
+- APNs key is uploaded to Firebase;
+- provisioning profiles contain Push Notifications and Game Center;
+- Worker D1 migration is applied;
+- FCM secrets are installed with Wrangler;
+- production Worker URL is supplied with `SOCIAL_BACKEND_URL`;
+- challenge push is tested foreground/background/terminated on Android and iOS;
+- privacy policy covers account identifiers, friends, challenges, device tokens, push notifications, Google/Firebase, Apple, and Cloudflare;
+- store privacy declarations match actual collection;
+- final authoritative room validation is completed before ranked online results are trusted.
+
+## Official references
+
+- Firebase Cloud Messaging Flutter setup and receive-message guides
+- Firebase Cloud Messaging HTTP v1 send API
+- Firebase registration-token management guidance
+- Firebase anonymous authentication
+- Firebase ID-token verification
+- Apple Push Notification service and provisioning documentation
+- Cloudflare Workers, D1, Durable Objects, and WebSocket hibernation documentation
