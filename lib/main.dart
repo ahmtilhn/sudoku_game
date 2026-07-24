@@ -7,6 +7,7 @@ import 'app.dart';
 import 'data/local_progress_store.dart';
 import 'localization/app_strings.dart';
 import 'services/ads_service.dart';
+import 'services/firebase_services.dart';
 import 'services/push_notification_service.dart';
 import 'services/reminder_notification_service.dart';
 
@@ -26,8 +27,12 @@ Future<void> main() async {
     );
     unawaited(
       _initializeOptionalService(
-        'push notifications',
-        PushNotificationService.instance.initialize,
+        'Firebase and push notifications',
+        () async {
+          await FirebaseServices.instance.initialize();
+          await PushNotificationService.instance.initialize();
+        },
+        timeout: const Duration(seconds: 45),
       ),
     );
     unawaited(
