@@ -229,7 +229,7 @@ class _GameScreenState extends State<GameScreen> {
               Navigator.of(dialogContext).pop();
               Navigator.of(context).pop(true);
             },
-            child: Text(context.tr('continue')),
+            child: Text(context.tr('continue_action')),
           ),
         ],
       ),
