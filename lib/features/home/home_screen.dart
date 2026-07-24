@@ -20,13 +20,20 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.tr('app_name')),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Center(
-              child: Chip(
-                avatar: const Icon(Icons.monetization_on_outlined, size: 18),
-                label: Text('${store.coins}'),
-              ),
+          AnimatedBuilder(
+            animation: store,
+            builder: (context, _) => Row(
+              children: [
+                Chip(
+                  avatar: const Icon(Icons.lightbulb_outline, size: 18),
+                  label: Text('${store.hints}'),
+                ),
+                const SizedBox(width: 4),
+                Chip(
+                  avatar: const Icon(Icons.monetization_on_outlined, size: 18),
+                  label: Text('${store.coins}'),
+                ),
+              ],
             ),
           ),
           IconButton(
@@ -66,7 +73,7 @@ class HomeScreen extends StatelessWidget {
               icon: Icons.today_outlined,
               title: context.tr('daily_sudoku'),
               subtitle: context.tr('daily_subtitle'),
-              onTap: () => _open(context, const DailyScreen()),
+              onTap: () => _open(context, DailyScreen(store: store)),
             ),
             const SizedBox(height: 12),
             MenuCard(
