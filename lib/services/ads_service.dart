@@ -215,9 +215,8 @@ class AdsService {
     if (!_metaSdkEnabled) return;
 
     await _facebookEvents.setAutoLogAppEventsEnabled(true);
-    await _facebookEvents.setAdvertiserTracking(
-      enabled: _metaAdvertiserTrackingEnabled,
-      collectId: _metaAdvertiserTrackingEnabled,
+    await _facebookEvents.setAdvertiserIdCollectionEnabled(
+      _metaAdvertiserTrackingEnabled,
     );
     await _facebookEvents.activateApp();
   }

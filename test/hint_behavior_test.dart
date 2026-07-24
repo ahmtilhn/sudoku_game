@@ -72,6 +72,8 @@ void main() {
       find.byKey(const ValueKey<String>('action-undo')),
       findsNothing,
     );
+
+    await _disposeGame(tester);
   });
 
   testWidgets('hinted cells stay locked while player moves remain undoable', (
@@ -117,7 +119,14 @@ void main() {
       find.byKey(const ValueKey<String>('action-undo')),
       findsNothing,
     );
+
+    await _disposeGame(tester);
   });
+}
+
+Future<void> _disposeGame(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
 }
 
 Finder _cellTextFinder(int index, String value) {
