@@ -51,6 +51,7 @@ class SocialChallenge {
     required this.challenger,
     required this.recipient,
     required this.expiresAt,
+    this.roomId,
   });
 
   final String id;
@@ -59,6 +60,7 @@ class SocialChallenge {
   final SocialPlayer challenger;
   final SocialPlayer recipient;
   final DateTime expiresAt;
+  final String? roomId;
 
   factory SocialChallenge.fromJson(Map<String, dynamic> json) {
     return SocialChallenge(
@@ -75,6 +77,7 @@ class SocialChallenge {
       ),
       expiresAt: DateTime.tryParse(json['expiresAt']?.toString() ?? '') ??
           DateTime.now(),
+      roomId: json['roomId']?.toString(),
     );
   }
 }
@@ -134,6 +137,11 @@ class SocialApiClient {
 
   Future<List<SocialPlayer>> loadFriends() async {
     final response = await _request('GET', '/v1/friends');
+    return _playerList(response['players']);
+  }
+
+  Future<List<SocialPlayer>> loadIncomingFriendRequests() async {
+    final response = await _request('GET', '/v1/friends/requests');
     return _playerList(response['players']);
   }
 
@@ -219,7 +227,10 @@ class SocialApiClient {
     }
     final idToken = await user.getIdToken();
     if (idToken == null || idToken.isEmpty) {
-      throw const SocialApiException(401, 'Unable to obtain a Firebase ID token.');
+      throw const SocialApiException(
+        401,
+        'Unable to obtain a Firebase ID token.',
+      );
     }
 
     final uri = Uri.parse('$_baseUrl$path');
@@ -229,25 +240,20 @@ class SocialApiClient {
       if (body != null) 'content-type': 'application/json',
     };
 
-    late final http.Response response;
-    switch (method) {
-      case 'GET':
-        response = await _client.get(uri, headers: headers);
-      case 'POST':
-        response = await _client.post(
+    final response = switch (method) {
+      'GET' => await _client.get(uri, headers: headers),
+      'POST' => await _client.post(
           uri,
           headers: headers,
           body: jsonEncode(body ?? const <String, Object?>{}),
-        );
-      case 'PUT':
-        response = await _client.put(
+        ),
+      'PUT' => await _client.put(
           uri,
           headers: headers,
           body: jsonEncode(body ?? const <String, Object?>{}),
-        );
-      default:
-        throw ArgumentError.value(method, 'method');
-    }
+        ),
+      _ => throw ArgumentError.value(method, 'method'),
+    };
 
     final decoded = response.body.isEmpty
         ? <String, dynamic>{}
