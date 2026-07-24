@@ -33,7 +33,7 @@
     "time" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Time" } } } },
     "mistakes" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Mistakes" } } } },
     "hints" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Hints" } } } },
-    "continue" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Continue" } } } },
+    "continue_action" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Continue" } } } },
     "mistakes_count" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Mistakes: %1$d" } } } },
     "hints_count" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Hints: %1$d" } } } },
     "time_up_turn_passed" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Time is up. The turn passed to the other player." } } } },
