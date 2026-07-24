@@ -9,6 +9,7 @@ import '../game/game_screen.dart';
 
 class CareerScreen extends StatefulWidget {
   const CareerScreen({super.key, required this.store});
+
   final LocalProgressStore store;
 
   @override
@@ -16,106 +17,133 @@ class CareerScreen extends StatefulWidget {
 }
 
 class _CareerScreenState extends State<CareerScreen> {
-  SudokuDifficulty _difficulty = SudokuDifficulty.beginner;
+  SudokuDifficulty? _generatingDifficulty;
 
   @override
   Widget build(BuildContext context) {
-    final puzzles = PuzzleCatalog.careerPuzzles
-        .where((puzzle) => puzzle.difficulty == _difficulty)
-        .toList(growable: false);
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('career'))),
+      appBar: AppBar(
+        title: Text(context.tr('career')),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(
+              child: Chip(
+                avatar: const Icon(Icons.monetization_on_outlined, size: 18),
+                label: Text('${widget.store.coins}'),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: AnimatedBuilder(
         animation: widget.store,
         builder: (context, _) => ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             Text(
-              context.tr('career_intro'),
+              context.tr('career_random_intro'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 14),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final difficulty in SudokuDifficulty.values)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(
-                          context.strings.difficultyLabel(difficulty),
-                        ),
-                        selected: difficulty == _difficulty,
-                        onSelected: (_) =>
-                            setState(() => _difficulty = difficulty),
-                      ),
-                    ),
-                ],
-              ),
+            const SizedBox(height: 8),
+            Text(
+              context.tr('three_mistake_rule'),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
             ),
             const SizedBox(height: 18),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 260,
-                mainAxisExtent: 152,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+            for (final difficulty in SudokuDifficulty.values) ...[
+              _DifficultyCard(
+                difficulty: difficulty,
+                clueCount: PuzzleCatalog.targetClueCount(difficulty),
+                progress: widget.store.progressFor(
+                  'career-${difficulty.name}',
+                ),
+                generating: _generatingDifficulty == difficulty,
+                onTap: _generatingDifficulty == null
+                    ? () => _startRandomPuzzle(difficulty)
+                    : null,
               ),
-              itemCount: puzzles.length,
-              itemBuilder: (context, index) {
-                final puzzle = puzzles[index];
-                final progress = widget.store.progressFor(puzzle.id);
-                final unlocked =
-                    index == 0 ||
-                    widget.store.isCompleted(puzzles[index - 1].id);
-                return _LevelCard(
-                  puzzle: puzzle,
-                  progress: progress,
-                  unlocked: unlocked,
-                  onTap: unlocked ? () => _openPuzzle(puzzle) : null,
-                );
-              },
-            ),
+              const SizedBox(height: 12),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Future<void> _openPuzzle(SudokuPuzzle puzzle) async {
+  Future<void> _startRandomPuzzle(SudokuDifficulty difficulty) async {
+    setState(() => _generatingDifficulty = difficulty);
+    final puzzle = await Future<SudokuPuzzle>(() {
+      return PuzzleCatalog.generatePuzzle(difficulty);
+    });
+    if (!mounted) return;
+    setState(() => _generatingDifficulty = null);
+
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => GameScreen(
           puzzle: puzzle,
-          onCompleted:
-              ({required seconds, required mistakes, required hints}) =>
-                  widget.store.recordResult(
-                    puzzleId: puzzle.id,
-                    seconds: seconds,
-                    mistakes: mistakes,
-                    hints: hints,
-                  ),
+          mistakeLimit: 3,
+          coinContinueCost: 25,
+          onCoinContinue: widget.store.spendCoins,
+          onRewardedContinue: _showRewardedPrototype,
+          onCompleted: ({
+            required seconds,
+            required mistakes,
+            required hints,
+          }) async {
+            await widget.store.recordResult(
+              puzzleId: 'career-${difficulty.name}',
+              seconds: seconds,
+              mistakes: mistakes,
+              hints: hints,
+            );
+            await widget.store.addCoins(10);
+          },
         ),
       ),
     );
     if (mounted) setState(() {});
   }
+
+  Future<bool> _showRewardedPrototype() async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr('watch_rewarded_ad')),
+        content: Text(context.tr('rewarded_ad_prototype_body')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(context.tr('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(context.tr('continue_action')),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
 }
 
-class _LevelCard extends StatelessWidget {
-  const _LevelCard({
-    required this.puzzle,
+class _DifficultyCard extends StatelessWidget {
+  const _DifficultyCard({
+    required this.difficulty,
+    required this.clueCount,
     required this.progress,
-    required this.unlocked,
+    required this.generating,
     required this.onTap,
   });
 
-  final SudokuPuzzle puzzle;
+  final SudokuDifficulty difficulty;
+  final int clueCount;
   final LevelProgress? progress;
-  final bool unlocked;
+  final bool generating;
   final VoidCallback? onTap;
 
   @override
@@ -126,54 +154,52 @@ class _LevelCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.all(18),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: unlocked
-                        ? scheme.primaryContainer
-                        : scheme.surfaceContainerHighest,
-                    child: Icon(unlocked ? Icons.grid_4x4 : Icons.lock_outline),
-                  ),
-                  const Spacer(),
-                  if (progress != null)
-                    Row(
-                      children: List<Widget>.generate(
-                        3,
-                        (index) => Icon(
-                          index < progress!.stars
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          size: 20,
-                          color: scheme.tertiary,
-                        ),
-                      ),
+              CircleAvatar(
+                radius: 25,
+                backgroundColor: scheme.primaryContainer,
+                child: generating
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
+                    : const Icon(Icons.casino_outlined),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.strings.difficultyLabel(difficulty),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                     ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr('random_clue_count', <Object>[clueCount]),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                    if (progress != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        context.tr('best_time', <Object>[
+                          formatDuration(progress!.bestSeconds),
+                        ]),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              const Spacer(),
-              Text(
-                context.strings.puzzleTitle(puzzle),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                !unlocked
-                    ? context.tr('complete_previous_level')
-                    : progress == null
-                    ? context.tr('new_level')
-                    : context.tr('best_time', <Object>[
-                        formatDuration(progress!.bestSeconds),
-                      ]),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-              ),
+              const SizedBox(width: 8),
+              Icon(Icons.play_arrow_rounded, color: scheme.primary, size: 30),
             ],
           ),
         ),
