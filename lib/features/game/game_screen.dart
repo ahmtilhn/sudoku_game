@@ -69,11 +69,7 @@ class _GameScreenState extends State<GameScreen> {
   bool _lossDialogVisible = false;
   bool _hintInProgress = false;
 
-  bool get _canUndo =>
-      _history.isNotEmpty &&
-      !_history.last.isHint &&
-      !_completed &&
-      !_roundLost;
+  bool get _canUndo => _history.isNotEmpty && !_completed && !_roundLost;
 
   @override
   void initState() {
@@ -198,8 +194,8 @@ class _GameScreenState extends State<GameScreen> {
       return;
     }
 
-    var candidate = _selectedIndex;
-    if (candidate == null ||
+    var candidate = _selectedIndex ?? -1;
+    if (candidate < 0 ||
         widget.puzzle.isFixed(candidate) ||
         _hintedIndexes.contains(candidate) ||
         _board[candidate] != 0) {
@@ -224,14 +220,6 @@ class _GameScreenState extends State<GameScreen> {
 
       final index = candidate;
       setState(() {
-        _history.add(
-          _MoveRecord(
-            index: index,
-            previousValue: _board[index],
-            previousNotes: Set<int>.from(_notes[index] ?? const <int>{}),
-            isHint: true,
-          ),
-        );
         _selectedIndex = index;
         _board[index] = widget.puzzle.solution[index];
         _hintedIndexes.add(index);
@@ -550,13 +538,11 @@ class _MoveRecord {
     required this.index,
     required this.previousValue,
     required this.previousNotes,
-    this.isHint = false,
   });
 
   final int index;
   final int previousValue;
   final Set<int> previousNotes;
-  final bool isHint;
 }
 
 class _ResultRow extends StatelessWidget {
