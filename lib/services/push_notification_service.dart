@@ -34,76 +34,99 @@ class PushNotificationService {
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _messageSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
+  Future<void>? _initialization;
 
   bool get configured => FirebaseRuntimeConfig.configured;
 
-  Future<void> initialize() async {
-    if (!configured || initialized.value) return;
+  Future<void> initialize() {
+    if (!configured || initialized.value) return Future<void>.value();
+    return _initialization ??= _initializeOnce().whenComplete(() {
+      _initialization = null;
+    });
+  }
 
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(options: FirebaseRuntimeConfig.options);
+  Future<void> _initializeOnce() async {
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(options: FirebaseRuntimeConfig.options);
+      }
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+      }
+
+      await _initializeLocalNotifications();
+      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: false,
+        sound: true,
+      );
+
+      await _tokenSubscription?.cancel();
+      await _messageSubscription?.cancel();
+      await _openedSubscription?.cancel();
+
+      _messageSubscription = FirebaseMessaging.onMessage.listen(
+        _handleForegroundMessage,
+      );
+      _openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen(
+        _handleOpenedMessage,
+      );
+      _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
+        _registerToken,
+      );
+
+      final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMessage != null) _handleOpenedMessage(initialMessage);
+
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      permissionGranted.value = _isAuthorized(settings.authorizationStatus);
+      if (permissionGranted.value) {
+        final token = await FirebaseMessaging.instance.getToken();
+        if (token != null) await _registerToken(token);
+      }
+
+      initialized.value = true;
+    } catch (error, stackTrace) {
+      initialized.value = false;
+      permissionGranted.value = false;
+      debugPrint('Challenge push initialization failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
-    if (FirebaseAuth.instance.currentUser == null) {
-      await FirebaseAuth.instance.signInAnonymously();
-    }
-
-    await _initializeLocalNotifications();
-    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: false,
-      sound: true,
-    );
-
-    _messageSubscription = FirebaseMessaging.onMessage.listen(
-      _handleForegroundMessage,
-    );
-    _openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen(
-      _handleOpenedMessage,
-    );
-    _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
-      _registerToken,
-    );
-
-    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) _handleOpenedMessage(initialMessage);
-
-    final settings = await FirebaseMessaging.instance.getNotificationSettings();
-    permissionGranted.value = _isAuthorized(settings.authorizationStatus);
-    if (permissionGranted.value) {
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token != null) await _registerToken(token);
-    }
-
-    initialized.value = true;
   }
 
   Future<bool> requestPermissionAndRegister() async {
     if (!configured) return false;
     if (!initialized.value) await initialize();
+    if (!initialized.value) return false;
 
-    final settings = await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
-    final allowed = _isAuthorized(settings.authorizationStatus);
-    permissionGranted.value = allowed;
-    if (!allowed) return false;
+    try {
+      final settings = await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+      final allowed = _isAuthorized(settings.authorizationStatus);
+      permissionGranted.value = allowed;
+      if (!allowed) return false;
 
-    final token = await FirebaseMessaging.instance.getToken();
-    if (token == null || token.isEmpty) return false;
-    await _registerToken(token);
-    return true;
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null || token.isEmpty) return false;
+      await _registerToken(token);
+      return true;
+    } catch (error) {
+      debugPrint('Challenge notification permission failed: $error');
+      return false;
+    }
   }
 
   Future<void> deleteDeviceToken() async {
-    if (!configured) return;
+    if (!configured || !initialized.value) return;
     await FirebaseMessaging.instance.deleteToken();
     permissionGranted.value = false;
   }
