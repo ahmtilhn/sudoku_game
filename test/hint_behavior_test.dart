@@ -27,91 +27,65 @@ void main() {
         .setMockMethodCallHandler(localizationChannel, null);
   });
 
-  testWidgets('a rapid double tap consumes and reveals exactly one hint', (
-    tester,
-  ) async {
-    final strings = await AppStrings.load();
-    final completer = Completer<bool>();
-    addTearDown(() {
-      if (!completer.isCompleted) completer.complete(false);
-    });
-    var consumeCalls = 0;
+  testWidgets(
+    'a rapid double tap consumes one hint and the hinted cell stays locked',
+    (tester) async {
+      final strings = await AppStrings.load();
+      final completer = Completer<bool>();
+      addTearDown(() {
+        if (!completer.isCompleted) completer.complete(false);
+      });
+      var consumeCalls = 0;
 
-    await tester.pumpWidget(
-      AppStringsScope(
-        strings: strings,
-        child: MaterialApp(
-          home: GameScreen(
-            puzzle: _hintPuzzle,
-            hintBalanceProvider: () => 3,
-            onConsumeHint: () {
-              consumeCalls++;
-              return completer.future;
-            },
+      await tester.pumpWidget(
+        AppStringsScope(
+          strings: strings,
+          child: MaterialApp(
+            home: GameScreen(
+              puzzle: _hintPuzzle,
+              hintBalanceProvider: () => 3,
+              onConsumeHint: () {
+                consumeCalls++;
+                return completer.future;
+              },
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pump();
+      );
+      await tester.pump();
 
-    final hintButton = find.byKey(const ValueKey<String>('action-hint'));
-    expect(hintButton, findsOneWidget);
-    await tester.tap(hintButton);
-    await tester.tap(hintButton);
-    await tester.pump();
+      final hintButton = find.byKey(const ValueKey<String>('action-hint'));
+      expect(hintButton, findsOneWidget);
+      await tester.tap(hintButton);
+      await tester.tap(hintButton);
+      await tester.pump();
 
-    expect(consumeCalls, 1);
+      expect(consumeCalls, 1);
 
-    completer.complete(true);
-    await tester.pump();
-    await tester.pump();
+      completer.complete(true);
+      await tester.pump();
+      await tester.pump();
 
-    expect(_cellTextFinder(1, '2'), findsOneWidget);
-    expect(_cellTextFinder(2, '3'), findsNothing);
-    expect(
-      find.byKey(const ValueKey<String>('action-undo')),
-      findsNothing,
-    );
+      expect(_cellTextFinder(1, '2'), findsOneWidget);
+      expect(_cellTextFinder(2, '3'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('action-undo')),
+        findsNothing,
+      );
 
-    await _disposeGame(tester);
-  });
+      await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-1')));
+      await tester.tap(find.byKey(const ValueKey<String>('action-erase')));
+      await tester.pump();
 
-  testWidgets('a hinted cell stays locked when erase is pressed', (
-    tester,
-  ) async {
-    final strings = await AppStrings.load();
+      expect(_cellTextFinder(1, '2'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('action-undo')),
+        findsNothing,
+      );
 
-    await tester.pumpWidget(
-      AppStringsScope(
-        strings: strings,
-        child: MaterialApp(
-          home: GameScreen(
-            puzzle: _hintPuzzle,
-            hintBalanceProvider: () => 3,
-            onConsumeHint: () async => true,
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    await tester.tap(find.byKey(const ValueKey<String>('action-hint')));
-    await tester.pump();
-
-    expect(_cellTextFinder(1, '2'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-1')));
-    await tester.tap(find.byKey(const ValueKey<String>('action-erase')));
-    await tester.pump();
-
-    expect(_cellTextFinder(1, '2'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('action-undo')),
-      findsNothing,
-    );
-
-    await _disposeGame(tester);
-  });
+      await _disposeGame(tester);
+    },
+  );
 }
 
 Future<void> _disposeGame(WidgetTester tester) async {
