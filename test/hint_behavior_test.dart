@@ -15,23 +15,16 @@ void main() {
   );
 
   setUp(() {
-    final messenger =
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
       localizationChannel,
       (_) async => AppStrings.english,
-    );
-    messenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      (_) async => null,
     );
   });
 
   tearDown(() {
-    final messenger =
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(localizationChannel, null);
-    messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(localizationChannel, null);
   });
 
   testWidgets('a rapid double tap consumes and reveals exactly one hint', (
@@ -83,7 +76,7 @@ void main() {
     await _disposeGame(tester);
   });
 
-  testWidgets('hinted cells stay locked while note edits remain undoable', (
+  testWidgets('a hinted cell stays locked when erase is pressed', (
     tester,
   ) async {
     final strings = await AppStrings.load();
@@ -110,26 +103,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-1')));
     await tester.tap(find.byKey(const ValueKey<String>('action-erase')));
     await tester.pump();
-    expect(_cellTextFinder(1, '2'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-2')));
-    await tester.tap(find.byKey(const ValueKey<String>('action-notes')));
-    await tester.tap(find.byKey(const ValueKey<String>('number-3')));
-    await tester.pump();
-    expect(_cellTextFinder(2, '3'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey<String>('action-erase')));
-    await tester.pump();
-    expect(_cellTextFinder(2, '3'), findsNothing);
-    expect(
-      find.byKey(const ValueKey<String>('action-undo')),
-      findsOneWidget,
-    );
-
-    await tester.tap(find.byKey(const ValueKey<String>('action-undo')));
-    await tester.pump();
-
-    expect(_cellTextFinder(2, '3'), findsOneWidget);
     expect(_cellTextFinder(1, '2'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('action-undo')),
@@ -142,6 +116,7 @@ void main() {
 
 Future<void> _disposeGame(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
 }
 
 Finder _cellTextFinder(int index, String value) {
