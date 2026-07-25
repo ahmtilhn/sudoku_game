@@ -37,8 +37,6 @@ void main() {
   testWidgets('a rapid double tap consumes and reveals exactly one hint', (
     tester,
   ) async {
-    addTearDown(() => _disposeGame(tester));
-
     final strings = await AppStrings.load();
     final completer = Completer<bool>();
     addTearDown(() {
@@ -85,11 +83,9 @@ void main() {
     await _disposeGame(tester);
   });
 
-  testWidgets('hinted cells stay locked while player moves remain undoable', (
+  testWidgets('hinted cells stay locked while note edits remain undoable', (
     tester,
   ) async {
-    addTearDown(() => _disposeGame(tester));
-
     final strings = await AppStrings.load();
 
     await tester.pumpWidget(
@@ -117,14 +113,23 @@ void main() {
     expect(_cellTextFinder(1, '2'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-2')));
+    await tester.tap(find.byKey(const ValueKey<String>('action-notes')));
     await tester.tap(find.byKey(const ValueKey<String>('number-3')));
     await tester.pump();
     expect(_cellTextFinder(2, '3'), findsOneWidget);
 
+    await tester.tap(find.byKey(const ValueKey<String>('action-erase')));
+    await tester.pump();
+    expect(_cellTextFinder(2, '3'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('action-undo')),
+      findsOneWidget,
+    );
+
     await tester.tap(find.byKey(const ValueKey<String>('action-undo')));
     await tester.pump();
 
-    expect(_cellTextFinder(2, '3'), findsNothing);
+    expect(_cellTextFinder(2, '3'), findsOneWidget);
     expect(_cellTextFinder(1, '2'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('action-undo')),
@@ -137,7 +142,6 @@ void main() {
 
 Future<void> _disposeGame(WidgetTester tester) async {
   await tester.pumpWidget(const SizedBox.shrink());
-  await tester.pump();
 }
 
 Finder _cellTextFinder(int index, String value) {
