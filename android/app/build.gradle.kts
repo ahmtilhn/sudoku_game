@@ -32,7 +32,7 @@ android {
 
     defaultConfig {
         applicationId = "com.devoviastudio.sudoku"
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
