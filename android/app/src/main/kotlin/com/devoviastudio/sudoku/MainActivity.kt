@@ -19,7 +19,9 @@ class MainActivity : FlutterActivity() {
     private val isPlayGamesConfigured: Boolean
         get() {
             val projectId = getString(R.string.game_services_project_id).trim()
-            return projectId.isNotEmpty() && projectId != "0000000000"
+            return projectId.length in 10..20 &&
+                projectId.all(Char::isDigit) &&
+                projectId != "0000000000"
         }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
