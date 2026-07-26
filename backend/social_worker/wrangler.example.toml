@@ -6,6 +6,7 @@ compatibility_date = "2026-07-24"
 FIREBASE_PROJECT_ID = "REPLACE_WITH_FIREBASE_PROJECT_ID"
 FCM_PROJECT_ID = "REPLACE_WITH_FIREBASE_PROJECT_ID"
 ALLOWED_ORIGIN = "*"
+REQUIRE_APP_CHECK = "false"
 
 [[d1_databases]]
 binding = "DB"
@@ -17,9 +18,17 @@ migrations_dir = "migrations"
 name = "GAME_ROOMS"
 class_name = "GameRoom"
 
+[[durable_objects.bindings]]
+name = "MATCHMAKING_QUEUE"
+class_name = "MatchmakingQueue"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["MatchmakingQueue"]
 
 # Add secrets with Wrangler; never commit their values:
 # wrangler secret put FCM_CLIENT_EMAIL

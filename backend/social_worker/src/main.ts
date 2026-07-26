@@ -1,8 +1,9 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
-import worker, { Env, GameRoom } from './index';
+import worker, { Env, GameRoom, MatchmakingQueue } from './index';
 
 export { GameRoom };
+export { MatchmakingQueue };
 
 const FIREBASE_JWKS = createRemoteJWKSet(
   new URL(
@@ -96,18 +97,18 @@ async function connectRoomWithoutResponseWrapping(
     if (!player) return json(env, 404, { error: 'Player profile not found.' });
 
     const roomId = url.pathname.split('/')[3];
-    const challenge = await env.DB.prepare(
-      `SELECT challenger_id, recipient_id
-       FROM challenges
-       WHERE room_id = ? AND status = 'accepted'
+    const match = await env.DB.prepare(
+      `SELECT player_a_id, player_b_id
+       FROM matches
+       WHERE room_id = ?
        LIMIT 1`,
     )
       .bind(roomId)
-      .first<{ challenger_id: string; recipient_id: string }>();
-    if (!challenge) return json(env, 404, { error: 'Game room not found.' });
+      .first<{ player_a_id: string; player_b_id: string }>();
+    if (!match) return json(env, 404, { error: 'Game room not found.' });
     if (
-      challenge.challenger_id !== player.id &&
-      challenge.recipient_id !== player.id
+      match.player_a_id !== player.id &&
+      match.player_b_id !== player.id
     ) {
       return json(env, 403, { error: 'You are not a participant in this room.' });
     }
@@ -151,8 +152,8 @@ function json(env: Env, status: number, body: unknown): Response {
     headers: {
       'content-type': 'application/json; charset=utf-8',
       'access-control-allow-origin': env.ALLOWED_ORIGIN || '*',
-      'access-control-allow-headers': 'authorization, content-type',
-      'access-control-allow-methods': 'GET, POST, PUT, OPTIONS',
+      'access-control-allow-headers': 'authorization, content-type, x-firebase-appcheck',
+      'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
     },
   });
 }
