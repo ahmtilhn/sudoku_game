@@ -12,7 +12,20 @@
           "package_name": "com.devoviastudio.sudoku"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "31445697560-je35cv393qqb01v45j2f3edilmcp5g4l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.devoviastudio.sudoku",
+            "certificate_hash": "ca1b9fbbbaa03cd29e85a57b6d758022c7b030a4"
+          }
+        },
+        {
+          "client_id": "31445697560-srkgbb34irg821mamsq0tnd6hvr4j8li.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDB5B9tqMae8LVB9Ct-x9_HhPrZAZnBXFY"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "31445697560-srkgbb34irg821mamsq0tnd6hvr4j8li.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "31445697560-cc144fncsuise033sulqkt92o635ncd9.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.devoviastudio.sudoku"
+              }
+            }
+          ]
         }
       }
     }
