@@ -23,21 +23,31 @@ class OnlineDuelScreen extends StatefulWidget {
 class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   OnlineDuelController? _controller;
   StreamSubscription<OnlineDuelSnapshot>? _subscription;
+  StreamSubscription<OnlineDuelFeedback>? _feedbackSubscription;
   OnlineDuelSnapshot? _snapshot;
   Object? _error;
   int? _selectedIndex;
+  int? _feedbackCell;
   bool _loading = true;
+  bool _screenLoadedSent = false;
+  Timer? _ticker;
+  String? _shownResultFor;
 
   @override
   void initState() {
     super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
     unawaited(_connect());
   }
 
   @override
   void dispose() {
     unawaited(_subscription?.cancel());
+    unawaited(_feedbackSubscription?.cancel());
     unawaited(_controller?.dispose());
+    _ticker?.cancel();
     super.dispose();
   }
 
@@ -56,10 +66,26 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
           _loading = false;
           _error = null;
         });
+        _sendScreenLoadedAfterRender(snapshot);
+        _showResultOnce(snapshot);
+      });
+      final feedbackSubscription = controller.feedback.listen((feedback) {
+        if (!mounted) return;
+        setState(() {
+          _feedbackCell = feedback.cellIndex;
+          if (feedback.accepted) _selectedIndex = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(feedback.message),
+            duration: const Duration(seconds: 1),
+          ),
+        );
       });
       setState(() {
         _controller = controller;
         _subscription = subscription;
+        _feedbackSubscription = feedbackSubscription;
       });
       controller.requestSnapshot();
     } catch (error) {
@@ -97,9 +123,17 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
 
   void _selectCell(int index) {
     final snapshot = _snapshot;
-    if (snapshot == null ||
-        !snapshot.isLocalTurn ||
-        snapshot.puzzle[index] != 0 ||
+    if (snapshot == null || snapshot.isFinished) return;
+    if (!snapshot.isLocalTurn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sıra rakibinde'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+    if (snapshot.puzzle[index] != 0 ||
         snapshot.board[index] != 0 ||
         _controller?.pendingMove == true) {
       return;
@@ -110,8 +144,41 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   void _enterNumber(int value) {
     final index = _selectedIndex;
     if (index == null) return;
-    final sent = _controller?.move(index, value) ?? false;
-    if (sent) setState(() => _selectedIndex = null);
+    _controller?.move(index, value);
+  }
+
+  void _sendScreenLoadedAfterRender(OnlineDuelSnapshot snapshot) {
+    if (_screenLoadedSent ||
+        snapshot.status == OnlineDuelStatus.active ||
+        snapshot.isFinished) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _screenLoadedSent) return;
+      _screenLoadedSent = true;
+      _controller?.screenLoaded();
+    });
+  }
+
+  void _showResultOnce(OnlineDuelSnapshot snapshot) {
+    if (!snapshot.isFinished || _shownResultFor == snapshot.matchId) return;
+    _shownResultFor = snapshot.matchId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(_resultTitle(snapshot)),
+          content: Text(_coinText(snapshot)),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Tamam'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   @override
@@ -124,16 +191,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(context.tr('online_duel')),
-          actions: [
-            IconButton(
-              tooltip: context.tr('refresh'),
-              onPressed: _controller?.requestSnapshot,
-              icon: const Icon(Icons.sync),
-            ),
-          ],
-        ),
+        appBar: AppBar(title: Text(context.tr('online_duel'))),
         bottomNavigationBar: _snapshot == null
             ? null
             : NumberPadDock(
@@ -180,30 +238,93 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       puzzle: snapshot.puzzle,
       solution: List<int>.filled(81, 1),
     );
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: [
-        _ScoreHeader(snapshot: snapshot),
-        const SizedBox(height: 12),
-        _TurnBanner(snapshot: snapshot),
-        const SizedBox(height: 12),
-        SudokuBoard(
-          puzzle: puzzle,
-          board: snapshot.board,
-          selectedIndex: _selectedIndex,
-          enabled: snapshot.isLocalTurn && !snapshot.isFinished,
-          onCellTap: _selectCell,
-        ),
-        const SizedBox(height: 16),
-        if (snapshot.status == OnlineDuelStatus.waiting)
-          FilledButton.icon(
-            onPressed: _controller?.ready,
-            icon: const Icon(Icons.check_circle_outline),
-            label: Text(context.tr('ready')),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 560;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            12,
+            compact ? 4 : 8,
+            12,
+            compact ? 6 : 10,
           ),
-        if (snapshot.isFinished) _ResultPanel(snapshot: snapshot),
-      ],
+          child: Column(
+            children: [
+              _ScoreHeader(snapshot: snapshot, compact: compact),
+              SizedBox(height: compact ? 4 : 8),
+              _TurnBanner(
+                snapshot: snapshot,
+                readySeconds: _secondsUntil(snapshot.readyDeadline),
+                turnSeconds: _secondsUntil(snapshot.turnDeadline),
+              ),
+              if (snapshot.status == OnlineDuelStatus.readyWindow ||
+                  snapshot.status == OnlineDuelStatus.waiting)
+                Padding(
+                  padding: EdgeInsets.only(top: compact ? 4 : 8),
+                  child: _ReadyPanel(
+                    snapshot: snapshot,
+                    seconds: _secondsUntil(snapshot.readyDeadline),
+                    onReady: _controller?.ready,
+                  ),
+                ),
+              SizedBox(height: compact ? 4 : 8),
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: SudokuBoard(
+                      puzzle: puzzle,
+                      board: snapshot.board,
+                      selectedIndex: _selectedIndex,
+                      errorIndex: _feedbackCell,
+                      enabled: !snapshot.isFinished,
+                      onCellTap: _selectCell,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: compact ? 4 : 8),
+              SizedBox(
+                height: compact ? 20 : 24,
+                child: Center(
+                  child: Text(
+                    _controller?.pendingMove == true
+                        ? 'Hamle gönderiliyor'
+                        : snapshot.isLocalTurn
+                        ? 'Boş hücre seç ve rakam gir'
+                        : 'Rakibin hamlesi bekleniyor',
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  int? _secondsUntil(DateTime? deadline) {
+    if (deadline == null) return null;
+    final diff = deadline.difference(DateTime.now()).inMilliseconds;
+    return diff <= 0 ? 0 : (diff / 1000).ceil();
+  }
+
+  String _resultTitle(OnlineDuelSnapshot snapshot) {
+    if (snapshot.winnerSeat == null) return context.tr('draw');
+    return snapshot.winnerSeat == snapshot.youSeat ? 'Kazandın!' : 'Kaybettin';
+  }
+
+  String _coinText(OnlineDuelSnapshot snapshot) {
+    final delta = snapshot.coinSettlement?.deltas[snapshot.youSeat];
+    if (delta == null || delta == 0) {
+      return context.tr('online_final_score', <Object>[
+        snapshot.scores[OnlineDuelSeat.a] ?? 0,
+        snapshot.scores[OnlineDuelSeat.b] ?? 0,
+      ]);
+    }
+    return 'Coin değişimi: ${delta > 0 ? '+' : ''}$delta Coin';
   }
 
   SudokuDifficulty _difficulty(String value) {
@@ -215,20 +336,29 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
 }
 
 class _ScoreHeader extends StatelessWidget {
-  const _ScoreHeader({required this.snapshot});
+  const _ScoreHeader({required this.snapshot, required this.compact});
 
   final OnlineDuelSnapshot snapshot;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
-          child: _PlayerCard(snapshot: snapshot, seat: OnlineDuelSeat.a),
+          child: _PlayerCard(
+            snapshot: snapshot,
+            seat: OnlineDuelSeat.a,
+            compact: compact,
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _PlayerCard(snapshot: snapshot, seat: OnlineDuelSeat.b),
+          child: _PlayerCard(
+            snapshot: snapshot,
+            seat: OnlineDuelSeat.b,
+            compact: compact,
+          ),
         ),
       ],
     );
@@ -236,10 +366,15 @@ class _ScoreHeader extends StatelessWidget {
 }
 
 class _PlayerCard extends StatelessWidget {
-  const _PlayerCard({required this.snapshot, required this.seat});
+  const _PlayerCard({
+    required this.snapshot,
+    required this.seat,
+    required this.compact,
+  });
 
   final OnlineDuelSnapshot snapshot;
   final OnlineDuelSeat seat;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -249,15 +384,16 @@ class _PlayerCard extends StatelessWidget {
     return Card(
       color: active ? scheme.primaryContainer : null,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(compact ? 6 : 10),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               player.displayName,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: compact ? 2 : 4),
             Text('${snapshot.scores[seat] ?? 0}'),
             Text(
               player.connected
@@ -273,75 +409,96 @@ class _PlayerCard extends StatelessWidget {
 }
 
 class _TurnBanner extends StatelessWidget {
-  const _TurnBanner({required this.snapshot});
+  const _TurnBanner({
+    required this.snapshot,
+    required this.readySeconds,
+    required this.turnSeconds,
+  });
 
   final OnlineDuelSnapshot snapshot;
+  final int? readySeconds;
+  final int? turnSeconds;
 
   @override
   Widget build(BuildContext context) {
     final text = snapshot.isLocalTurn
         ? context.tr('your_turn')
         : context.tr('opponents_turn');
+    final subtitle = snapshot.status == OnlineDuelStatus.active
+        ? 'Hamle süresi: ${turnSeconds ?? 0}'
+        : snapshot.status == OnlineDuelStatus.readyWindow
+        ? 'Otomatik başlangıç: ${readySeconds ?? 0}'
+        : context.tr('online_turn_number', <Object>[snapshot.turnNumber]);
     return Semantics(
       liveRegion: true,
-      child: ListTile(
-        leading: const Icon(Icons.timer_outlined),
-        title: Text(text, style: const TextStyle(fontWeight: FontWeight.w900)),
-        subtitle: Text(
-          context.tr('online_turn_number', <Object>[snapshot.turnNumber]),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: snapshot.isLocalTurn
+              ? Theme.of(context).colorScheme.primaryContainer
+              : Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.timer_outlined),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Flexible(
+              child: Text(
+                subtitle,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ResultPanel extends StatelessWidget {
-  const _ResultPanel({required this.snapshot});
+class _ReadyPanel extends StatelessWidget {
+  const _ReadyPanel({
+    required this.snapshot,
+    required this.seconds,
+    required this.onReady,
+  });
 
   final OnlineDuelSnapshot snapshot;
+  final int? seconds;
+  final VoidCallback? onReady;
 
   @override
   Widget build(BuildContext context) {
-    final result = snapshot.winnerSeat == null
-        ? context.tr('draw')
-        : snapshot.winnerSeat == snapshot.youSeat
-        ? context.tr('you_won')
-        : context.tr('you_lost');
-    final rating = snapshot.rating?[snapshot.youSeat];
-    return Semantics(
-      liveRegion: true,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            children: [
-              const Icon(Icons.emoji_events_outlined, size: 48),
-              const SizedBox(height: 8),
-              Text(
-                result,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                context.tr('online_final_score', <Object>[
-                  snapshot.scores[OnlineDuelSeat.a] ?? 0,
-                  snapshot.scores[OnlineDuelSeat.b] ?? 0,
-                ]),
-              ),
-              if (rating != null)
-                Text(
-                  context.tr('rating_delta', <Object>[
-                    rating.beforeGlobal,
-                    rating.afterGlobal,
-                    rating.deltaGlobal,
-                  ]),
-                ),
-            ],
+    final you = snapshot.players[snapshot.youSeat]!;
+    final opponentSeat = snapshot.youSeat == OnlineDuelSeat.a
+        ? OnlineDuelSeat.b
+        : OnlineDuelSeat.a;
+    final opponent = snapshot.players[opponentSeat]!;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Rakip: ${opponent.connected ? 'bağlandı' : 'bekleniyor'} | ekran: ${opponent.screenLoaded ? 'hazır' : 'bekleniyor'} | başlangıç: ${seconds ?? '-'}',
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-      ),
+        const SizedBox(width: 8),
+        FilledButton.icon(
+          onPressed: you.ready ? null : onReady,
+          icon: Icon(
+            you.ready ? Icons.check_circle : Icons.check_circle_outline,
+          ),
+          label: Text(you.ready ? 'Hazırsın' : 'Ben hazırım'),
+        ),
+      ],
     );
   }
 }

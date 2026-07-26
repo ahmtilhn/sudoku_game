@@ -68,6 +68,31 @@ void main() {
     await controller.dispose();
   });
 
+  test('game_started applies active board without manual refresh', () async {
+    final transport = FakeOnlineDuelTransport();
+    final controller = OnlineDuelController(transport)..start();
+
+    transport.emit(
+      _event('game_started', _snapshot(status: 'active'), revision: 4),
+    );
+    await pumpEventQueue();
+
+    expect(controller.current?.status, OnlineDuelStatus.active);
+    expect(controller.current?.isLocalTurn, isTrue);
+    expect(controller.move(2, 3), isTrue);
+    await controller.dispose();
+  });
+
+  test('screen loaded sends the backend loaded event', () async {
+    final transport = FakeOnlineDuelTransport();
+    final controller = OnlineDuelController(transport)..start();
+
+    controller.screenLoaded();
+
+    expect(transport.sent.single['type'], 'game_screen_loaded');
+    await controller.dispose();
+  });
+
   test('move rejected applies recovery snapshot when provided', () async {
     final transport = FakeOnlineDuelTransport();
     final controller = OnlineDuelController(transport)..start();
@@ -85,6 +110,31 @@ void main() {
 
     expect(controller.pendingMove, isFalse);
     expect(controller.current?.revision, 7);
+    await controller.dispose();
+  });
+
+  test('rejected move emits feedback and clears pending state', () async {
+    final transport = FakeOnlineDuelTransport();
+    final controller = OnlineDuelController(transport)..start();
+    final feedback = expectLater(
+      controller.feedback,
+      emits(
+        isA<OnlineDuelFeedback>().having(
+          (f) => f.message,
+          'message',
+          'Sıra sende değil.',
+        ),
+      ),
+    );
+    transport.emit(_event('snapshot', _snapshot()));
+    await pumpEventQueue();
+
+    controller.move(2, 3);
+    transport.emit(_event('move_rejected', {'reason': 'not_your_turn'}));
+    await feedback;
+
+    expect(controller.pendingMove, isFalse);
+    expect(transport.sent.last['type'], 'request_snapshot');
     await controller.dispose();
   });
 
@@ -121,6 +171,7 @@ OnlineDuelEvent _event(
 Map<String, dynamic> _snapshot({
   String youSeat = 'A',
   String currentTurnSeat = 'A',
+  String status = 'active',
   List<int>? board,
   int revision = 2,
 }) {
@@ -130,7 +181,7 @@ Map<String, dynamic> _snapshot({
     'matchId': 'match',
     'mode': 'ranked',
     'difficulty': 'easy',
-    'status': 'active',
+    'status': status,
     'youSeat': youSeat,
     'players': {
       'A': {
@@ -139,6 +190,7 @@ Map<String, dynamic> _snapshot({
         'displayName': 'Alice',
         'avatarKey': 'default',
         'ready': true,
+        'screenLoaded': true,
         'connected': true,
       },
       'B': {
@@ -147,6 +199,7 @@ Map<String, dynamic> _snapshot({
         'displayName': 'Bob',
         'avatarKey': 'default',
         'ready': true,
+        'screenLoaded': true,
         'connected': true,
       },
     },

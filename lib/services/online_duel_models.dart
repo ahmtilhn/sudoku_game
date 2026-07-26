@@ -1,5 +1,6 @@
 enum OnlineDuelStatus {
   waiting,
+  readyWindow,
   countdown,
   active,
   paused,
@@ -18,6 +19,7 @@ class OnlineDuelPlayer {
     required this.displayName,
     required this.avatarKey,
     required this.ready,
+    required this.screenLoaded,
     required this.connected,
     this.disconnectDeadline,
   });
@@ -27,6 +29,7 @@ class OnlineDuelPlayer {
   final String displayName;
   final String avatarKey;
   final bool ready;
+  final bool screenLoaded;
   final bool connected;
   final DateTime? disconnectDeadline;
 
@@ -37,6 +40,7 @@ class OnlineDuelPlayer {
       displayName: json['displayName']?.toString() ?? 'Player',
       avatarKey: json['avatarKey']?.toString() ?? 'default',
       ready: json['ready'] == true,
+      screenLoaded: json['screenLoaded'] == true,
       connected: json['connected'] == true,
       disconnectDeadline: _dateFromMillis(json['disconnectDeadline']),
     );
@@ -91,10 +95,12 @@ class OnlineDuelSnapshot {
     required this.turnNumber,
     required this.serverTime,
     required this.revision,
+    this.readyDeadline,
     this.turnDeadline,
     this.winnerSeat,
     this.finishReason,
     this.rating,
+    this.coinSettlement,
   });
 
   final String roomId;
@@ -112,12 +118,14 @@ class OnlineDuelSnapshot {
   final Map<OnlineDuelSeat, int> timeouts;
   final OnlineDuelSeat currentTurnSeat;
   final int turnNumber;
+  final DateTime? readyDeadline;
   final DateTime? turnDeadline;
   final DateTime serverTime;
   final int revision;
   final OnlineDuelSeat? winnerSeat;
   final String? finishReason;
   final Map<OnlineDuelSeat, OnlineDuelRatingChange>? rating;
+  final OnlineDuelCoinSettlement? coinSettlement;
 
   bool get isLocalTurn =>
       status == OnlineDuelStatus.active && currentTurnSeat == youSeat;
@@ -138,12 +146,14 @@ class OnlineDuelSnapshot {
     Map<OnlineDuelSeat, int>? timeouts,
     OnlineDuelSeat? currentTurnSeat,
     int? turnNumber,
+    DateTime? readyDeadline,
     DateTime? turnDeadline,
     DateTime? serverTime,
     int? revision,
     OnlineDuelSeat? winnerSeat,
     String? finishReason,
     Map<OnlineDuelSeat, OnlineDuelRatingChange>? rating,
+    OnlineDuelCoinSettlement? coinSettlement,
   }) {
     return OnlineDuelSnapshot(
       roomId: roomId,
@@ -161,12 +171,14 @@ class OnlineDuelSnapshot {
       timeouts: timeouts ?? this.timeouts,
       currentTurnSeat: currentTurnSeat ?? this.currentTurnSeat,
       turnNumber: turnNumber ?? this.turnNumber,
+      readyDeadline: readyDeadline ?? this.readyDeadline,
       turnDeadline: turnDeadline ?? this.turnDeadline,
       serverTime: serverTime ?? this.serverTime,
       revision: revision ?? this.revision,
       winnerSeat: winnerSeat ?? this.winnerSeat,
       finishReason: finishReason ?? this.finishReason,
       rating: rating ?? this.rating,
+      coinSettlement: coinSettlement ?? this.coinSettlement,
     );
   }
 
@@ -188,12 +200,42 @@ class OnlineDuelSnapshot {
       currentTurnSeat:
           _seat(json['currentTurnSeat']?.toString()) ?? OnlineDuelSeat.a,
       turnNumber: (json['turnNumber'] as num?)?.toInt() ?? 1,
+      readyDeadline: _dateFromMillis(json['readyDeadline']),
       turnDeadline: _dateFromMillis(json['turnDeadline']),
       serverTime: _dateFromMillis(json['serverTime']) ?? DateTime.now(),
       revision: (json['revision'] as num?)?.toInt() ?? 0,
       winnerSeat: _seat(json['winnerSeat']?.toString()),
       finishReason: json['finishReason']?.toString(),
       rating: _rating(json['rating']),
+      coinSettlement: OnlineDuelCoinSettlement.parse(json['coinSettlement']),
+    );
+  }
+}
+
+class OnlineDuelCoinSettlement {
+  const OnlineDuelCoinSettlement({
+    required this.amount,
+    required this.winnerSeat,
+    required this.loserSeat,
+    required this.balances,
+    required this.deltas,
+  });
+
+  final int amount;
+  final OnlineDuelSeat winnerSeat;
+  final OnlineDuelSeat loserSeat;
+  final Map<OnlineDuelSeat, int> balances;
+  final Map<OnlineDuelSeat, int> deltas;
+
+  static OnlineDuelCoinSettlement? parse(Object? value) {
+    final json = (value as Map?)?.cast<String, dynamic>();
+    if (json == null) return null;
+    return OnlineDuelCoinSettlement(
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      winnerSeat: _seat(json['winnerSeat']?.toString()) ?? OnlineDuelSeat.a,
+      loserSeat: _seat(json['loserSeat']?.toString()) ?? OnlineDuelSeat.b,
+      balances: _seatIntMap(json['balances']),
+      deltas: _seatIntMap(json['deltas']),
     );
   }
 }
@@ -224,6 +266,7 @@ class OnlineDuelEvent {
 }
 
 OnlineDuelStatus _status(String? value) => switch (value) {
+  'ready_window' => OnlineDuelStatus.readyWindow,
   'countdown' => OnlineDuelStatus.countdown,
   'active' => OnlineDuelStatus.active,
   'paused' => OnlineDuelStatus.paused,

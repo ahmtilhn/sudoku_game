@@ -18,6 +18,7 @@ import {
   applyMove,
   applyRating,
   applyReady,
+  applyScreenLoaded,
   createInitialDuelState,
   eloDelta,
   markConnected,
@@ -1346,6 +1347,8 @@ export class GameRoom {
     let events: PublicEvent[];
     if (parsed.type === 'ready') {
       events = applyReady(duel, seat, now);
+    } else if (parsed.type === 'game_screen_loaded' || parsed.type === 'screen_loaded') {
+      events = applyScreenLoaded(duel, seat, now);
     } else if (parsed.type === 'move') {
       const payload = parsed.payload ?? {};
       events = applyMove(
@@ -1477,7 +1480,7 @@ export class GameRoom {
     const duel = this.roomState;
     if (!duel) return;
     const deadlines = [
-      duel.status === 'waiting' ? duel.readyDeadline : null,
+      duel.status === 'ready_window' ? duel.readyDeadline : null,
       duel.status === 'active' ? duel.turnDeadline : null,
       duel.playerA.disconnectDeadline,
       duel.playerB.disconnectDeadline,
@@ -1540,6 +1543,37 @@ export class GameRoom {
         deltaDifficulty: diffDeltaB,
       },
     };
+    const coinAmount = 100;
+    const coinStatements: D1PreparedStatement[] = [];
+    if (duel.winnerSeat !== null && duel.status !== 'cancelled') {
+      const loserSeat = duel.winnerSeat === 'A' ? 'B' : 'A';
+      const loserId = loserSeat === 'A' ? duel.playerA.player.id : duel.playerB.player.id;
+      coinStatements.push(
+        this.env.DB.prepare(
+          `INSERT INTO match_coin_settlements (match_id, winner_id, loser_id, amount, applied_at)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(match_id) DO NOTHING`,
+        ).bind(duel.matchId, winnerId, loserId, coinAmount, now),
+        this.env.DB.prepare(
+          `UPDATE players
+           SET online_coins = online_coins + ?
+           WHERE id = ?
+             AND EXISTS (
+               SELECT 1 FROM match_coin_settlements
+               WHERE match_id = ? AND winner_id = ? AND applied_at = ?
+             )`,
+        ).bind(coinAmount, winnerId, duel.matchId, winnerId, now),
+        this.env.DB.prepare(
+          `UPDATE players
+           SET online_coins = online_coins - ?
+           WHERE id = ?
+             AND EXISTS (
+               SELECT 1 FROM match_coin_settlements
+               WHERE match_id = ? AND loser_id = ? AND applied_at = ?
+             )`,
+        ).bind(coinAmount, loserId, duel.matchId, loserId, now),
+      );
+    }
     const settlementHash = `${duel.matchId}:${duel.revision}:${duel.finishReason}:${winnerId ?? 'draw'}`;
     await this.env.DB.batch([
       this.env.DB.prepare(
@@ -1560,7 +1594,31 @@ export class GameRoom {
       this.env.DB.prepare(
         'UPDATE challenges SET status = ? WHERE id = ? AND status = ?',
       ).bind(duel.status === 'cancelled' ? 'cancelled' : 'completed', duel.challengeId, 'accepted'),
+      ...coinStatements,
     ]);
+    if (duel.winnerSeat !== null && duel.status !== 'cancelled') {
+      const loserSeat = duel.winnerSeat === 'A' ? 'B' : 'A';
+      const winnerBalance = await this.onlineCoinBalance(duel.winnerSeat === 'A' ? duel.playerA.player.id : duel.playerB.player.id);
+      const loserBalance = await this.onlineCoinBalance(loserSeat === 'A' ? duel.playerA.player.id : duel.playerB.player.id);
+      duel.coinResult = {
+        amount: coinAmount,
+        winnerSeat: duel.winnerSeat,
+        loserSeat,
+        balances: {
+          [duel.winnerSeat]: winnerBalance,
+          [loserSeat]: loserBalance,
+        } as Record<Seat, number>,
+        deltas: {
+          [duel.winnerSeat]: coinAmount,
+          [loserSeat]: -coinAmount,
+        } as Record<Seat, number>,
+      };
+      await this.env.DB.prepare(
+        `UPDATE match_coin_settlements
+         SET winner_balance_after = ?, loser_balance_after = ?
+         WHERE match_id = ?`,
+      ).bind(winnerBalance, loserBalance, duel.matchId).run();
+    }
     duel.settled = true;
     await this.persist();
     this.broadcast([
@@ -1570,9 +1628,16 @@ export class GameRoom {
         eventId: `${duel.roomId}:${duel.revision}:rating_updated`,
         revision: duel.revision,
         serverTime: Date.now(),
-        payload: { rating: duel.ratingResult },
+        payload: { rating: duel.ratingResult, coinSettlement: duel.coinResult },
       },
     ]);
+  }
+
+  private async onlineCoinBalance(playerId: string): Promise<number> {
+    const row = await this.env.DB.prepare('SELECT online_coins FROM players WHERE id = ?')
+      .bind(playerId)
+      .first<{ online_coins: number }>();
+    return row?.online_coins ?? 0;
   }
 
   private async ratingRow(playerId: string, scope: string): Promise<{ rating: number; games_played: number }> {
@@ -1661,9 +1726,24 @@ export class GameRoom {
     if (events.length === 0) return;
     for (const socket of this.state.getWebSockets()) {
       for (const payload of events) {
-        this.send(socket, payload);
+        this.send(socket, this.eventForSocket(socket, payload));
       }
     }
+  }
+
+  private eventForSocket(socket: WebSocket, payload: PublicEvent): PublicEvent {
+    if (payload.type !== 'match_started' && payload.type !== 'game_started' && payload.type !== 'snapshot') {
+      return payload;
+    }
+    const duel = this.roomState;
+    if (!duel) return payload;
+    const [playerId] = this.state.getTags(socket);
+    const seat = this.seatForPlayer(duel, playerId);
+    if (!seat) return payload;
+    return {
+      ...payload,
+      payload: snapshot(duel, seat, payload.serverTime),
+    };
   }
 
   private send(socket: WebSocket, payload: PublicEvent): void {

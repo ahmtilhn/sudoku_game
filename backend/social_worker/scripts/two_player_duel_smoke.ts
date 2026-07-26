@@ -23,6 +23,8 @@ async function main(): Promise<void> {
   assert(!JSON.stringify(connectedA).includes('solution'), 'A connected payload leaked solution');
   assert(!JSON.stringify(connectedB).includes('solution'), 'B connected payload leaked solution');
 
+  a.send('game_screen_loaded');
+  b.send('game_screen_loaded');
   a.send('ready');
   b.send('ready');
   const startA = await a.next('match_started');
@@ -46,7 +48,7 @@ async function main(): Promise<void> {
   const beforeScore = scoreOf(snapA, otherClient.seat);
   otherClient.send('move', { cellIndex: empty, value: solution[empty] }, 'out-of-turn', snapA.revision);
   const rejected = await otherClient.next('move_rejected');
-  assertEqual(rejected.payload.reason, 'out_of_turn', 'out of turn must reject');
+  assertEqual(rejected.payload.reason, 'not_your_turn', 'out of turn must reject');
   assertEqual(scoreOf(snapA, otherClient.seat), beforeScore, 'out of turn changed score');
 
   turnClient.send('move', { cellIndex: empty, value: solution[empty] }, 'correct', snapA.revision);
@@ -65,7 +67,7 @@ async function main(): Promise<void> {
   const wrongScoreBefore = scoreOf(afterCorrect, wrongClient.seat);
   wrongClient.send('move', { cellIndex: wrongCell, value: wrongValue }, 'wrong', afterCorrect.revision);
   const wrong = await wrongClient.next('move_rejected');
-  assertEqual(wrong.payload.reason, 'incorrect_value', 'wrong value must reject');
+  assertEqual(wrong.payload.reason, 'wrong_value', 'wrong value must reject');
   wrongClient.send('move', { cellIndex: wrongCell, value: wrongValue }, 'wrong', afterCorrect.revision);
   await wrongClient.next('move_rejected');
   wrongClient.send('request_snapshot');

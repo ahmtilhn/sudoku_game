@@ -5,6 +5,7 @@ export type DuelMode = 'friendly' | 'ranked';
 export type Seat = 'A' | 'B';
 export type MatchStatus =
   | 'waiting'
+  | 'ready_window'
   | 'countdown'
   | 'active'
   | 'paused'
@@ -13,8 +14,10 @@ export type MatchStatus =
   | 'cancelled'
   | 'abandoned';
 
-export const TURN_DURATION_MS = 10_000;
-export const READY_DEADLINE_MS = 30_000;
+export const TURN_DURATION_SECONDS = 30;
+export const TURN_DURATION_MS = TURN_DURATION_SECONDS * 1_000;
+export const READY_WINDOW_SECONDS = 10;
+export const READY_DEADLINE_MS = READY_WINDOW_SECONDS * 1_000;
 export const DISCONNECT_GRACE_MS = 45_000;
 export const MAX_GRACE_BUDGET_MS = 60_000;
 
@@ -29,6 +32,7 @@ export type PlayerPublic = {
 export type SeatState = {
   player: PlayerPublic;
   ready: boolean;
+  screenLoaded: boolean;
   connected: boolean;
   lastSeenAt: number;
   disconnectDeadline: number | null;
@@ -44,6 +48,14 @@ export type RatingChange = {
   deltaDifficulty: number;
 };
 
+export type CoinSettlementResult = {
+  amount: number;
+  winnerSeat: Seat;
+  loserSeat: Seat;
+  balances: Record<Seat, number>;
+  deltas: Record<Seat, number>;
+};
+
 export type DuelState = {
   schemaVersion: 1;
   roomId: string;
@@ -53,7 +65,7 @@ export type DuelState = {
   difficulty: DuelDifficulty;
   status: MatchStatus;
   createdAt: number;
-  readyDeadline: number;
+  readyDeadline: number | null;
   startedAt: number | null;
   finishedAt: number | null;
   playerA: SeatState;
@@ -78,6 +90,7 @@ export type DuelState = {
   settled: boolean;
   settlementAttempts: number;
   ratingResult: Record<Seat, RatingChange> | null;
+  coinResult: CoinSettlementResult | null;
 };
 
 export type ClientEnvelope = {
@@ -119,7 +132,7 @@ export function createInitialDuelState(input: {
     difficulty: input.difficulty,
     status: 'waiting',
     createdAt: input.now,
-    readyDeadline: input.now + READY_DEADLINE_MS,
+    readyDeadline: null,
     startedAt: null,
     finishedAt: null,
     playerA: seatState(input.playerA, input.now),
@@ -144,22 +157,33 @@ export function createInitialDuelState(input: {
     settled: false,
     settlementAttempts: 0,
     ratingResult: null,
+    coinResult: null,
   };
 }
 
 export function applyReady(state: DuelState, seat: Seat, now: number): PublicEvent[] {
-  if (state.status !== 'waiting') return [event(state, 'player_ready', now, { seat })];
-  seatFor(state, seat).ready = true;
-  state.revision++;
-  const events = [event(state, 'player_ready', now, { seat })];
-  if (state.playerA.ready && state.playerB.ready) {
-    state.status = 'active';
-    state.startedAt = now;
-    state.turnStartedAt = now;
-    state.turnDeadline = now + TURN_DURATION_MS;
+  if (state.status === 'active' || state.finishedAt !== null) return [event(state, 'player_ready', now, { seat })];
+  const current = seatFor(state, seat);
+  if (!current.ready) {
+    current.ready = true;
     state.revision++;
-    events.push(event(state, 'match_started', now, snapshot(state, seat, now)));
   }
+  const events = [event(state, 'player_ready', now, { seat })];
+  events.push(...maybeOpenReadyWindow(state, now));
+  events.push(...maybeStartMatch(state, now));
+  return events;
+}
+
+export function applyScreenLoaded(state: DuelState, seat: Seat, now: number): PublicEvent[] {
+  if (state.status === 'active' || state.finishedAt !== null) return [event(state, 'screen_loaded', now, { seat })];
+  const current = seatFor(state, seat);
+  if (!current.screenLoaded) {
+    current.screenLoaded = true;
+    state.revision++;
+  }
+  const events = [event(state, 'screen_loaded', now, { seat })];
+  events.push(...maybeOpenReadyWindow(state, now));
+  events.push(...maybeStartMatch(state, now));
   return events;
 }
 
@@ -184,10 +208,10 @@ export function applyMove(
     return [...timeoutEvents, stale];
   }
   if (state.status !== 'active') {
-    return rejectMove(state, seat, requestId, now, 'match_not_active', timeoutEvents);
+    return rejectMove(state, seat, requestId, now, 'game_not_active', timeoutEvents);
   }
   if (state.currentTurnSeat !== seat) {
-    return rejectMove(state, seat, requestId, now, 'out_of_turn', timeoutEvents);
+    return rejectMove(state, seat, requestId, now, 'not_your_turn', timeoutEvents);
   }
   if (!Number.isInteger(cellIndex) || cellIndex < 0 || cellIndex >= 81) {
     return rejectMove(state, seat, requestId, now, 'invalid_cell', timeoutEvents);
@@ -196,7 +220,14 @@ export function applyMove(
     return rejectMove(state, seat, requestId, now, 'invalid_value', timeoutEvents);
   }
   if (state.puzzle[cellIndex] !== 0 || state.board[cellIndex] !== 0) {
-    return rejectMove(state, seat, requestId, now, 'cell_locked', timeoutEvents);
+    return rejectMove(
+      state,
+      seat,
+      requestId,
+      now,
+      state.puzzle[cellIndex] !== 0 ? 'cell_not_editable' : 'cell_already_filled',
+      timeoutEvents,
+    );
   }
 
   const correct = state.solution[cellIndex] === value;
@@ -213,7 +244,7 @@ export function applyMove(
     seat,
     cellIndex,
     value: correct ? value : undefined,
-    reason: correct ? null : 'incorrect_value',
+    reason: correct ? null : 'wrong_value',
     scores: state.scores,
   });
   remember(state, seat, requestId, accepted);
@@ -254,12 +285,15 @@ export function applyForfeit(
 
 export function applyDueDeadlines(state: DuelState, now: number): PublicEvent[] {
   const events: PublicEvent[] = [];
-  if (state.status === 'waiting' && now >= state.readyDeadline) {
-    state.status = 'cancelled';
-    state.finishedAt = now;
-    state.finishReason = 'ready_timeout';
-    state.revision++;
-    events.push(event(state, 'match_completed', now, publicResult(state)));
+  if (state.status === 'ready_window' && state.readyDeadline !== null && now >= state.readyDeadline) {
+    if (canStartMatch(state)) {
+      events.push(...startMatch(state, now));
+    } else {
+      state.status = 'waiting';
+      state.readyDeadline = null;
+      state.revision++;
+      events.push(event(state, 'ready_window_cancelled', now, readinessPayload(state)));
+    }
   }
   for (const seat of ['A', 'B'] as const) {
     const current = seatFor(state, seat);
@@ -292,24 +326,29 @@ export function markConnected(state: DuelState, seat: Seat, now: number): Public
   current.lastSeenAt = now;
   current.disconnectDeadline = null;
   state.revision++;
-  return event(state, 'player_presence', now, { seat, connected: true });
+  return event(state, 'player_presence', now, readinessPayload(state, { seat, connected: true }));
 }
 
 export function markDisconnected(state: DuelState, seat: Seat, now: number): PublicEvent {
   const current = seatFor(state, seat);
   current.connected = false;
+  current.screenLoaded = false;
   current.lastSeenAt = now;
   if (state.startedAt !== null && state.status === 'active') {
     const grace = Math.min(DISCONNECT_GRACE_MS, current.graceRemainingMs);
     current.graceRemainingMs -= grace;
     current.disconnectDeadline = now + Math.max(1_000, grace);
   }
+  if (state.status === 'ready_window') {
+    state.status = 'waiting';
+    state.readyDeadline = null;
+  }
   state.revision++;
-  return event(state, 'player_presence', now, {
+  return event(state, 'player_presence', now, readinessPayload(state, {
     seat,
     connected: false,
     disconnectDeadline: current.disconnectDeadline,
-  });
+  }));
 }
 
 export function snapshot(state: DuelState, youSeat: Seat, now: number): Record<string, unknown> {
@@ -336,17 +375,25 @@ export function snapshot(state: DuelState, youSeat: Seat, now: number): Record<s
     currentTurnSeat: state.currentTurnSeat,
     turnNumber: state.turnNumber,
     turnDeadline: state.turnDeadline,
+    readyDeadline: state.readyDeadline,
     serverTime: now,
     ready: { A: state.playerA.ready, B: state.playerB.ready },
     presence: {
       A: state.playerA.connected,
       B: state.playerB.connected,
     },
+    screenLoaded: {
+      A: state.playerA.screenLoaded,
+      B: state.playerB.screenLoaded,
+    },
     revision: state.revision,
     winnerSeat: state.winnerSeat,
     finishReason: state.finishReason,
     rating: state.status === 'completed' || state.status === 'forfeited'
       ? state.ratingResult
+      : null,
+    coinSettlement: state.status === 'completed' || state.status === 'forfeited'
+      ? state.coinResult
       : null,
   };
 }
@@ -365,6 +412,7 @@ function seatState(player: PlayerPublic, now: number): SeatState {
   return {
     player,
     ready: false,
+    screenLoaded: false,
     connected: false,
     lastSeenAt: now,
     disconnectDeadline: null,
@@ -397,6 +445,57 @@ function nextTurn(state: DuelState, now: number): void {
   state.revision++;
 }
 
+function maybeOpenReadyWindow(state: DuelState, now: number): PublicEvent[] {
+  if (state.startedAt !== null || state.finishedAt !== null || state.readyDeadline !== null) return [];
+  if (!bothConnectedAndLoaded(state)) return [];
+  state.status = 'ready_window';
+  state.readyDeadline = now + READY_DEADLINE_MS;
+  state.revision++;
+  return [event(state, 'ready_window_started', now, readinessPayload(state))];
+}
+
+function maybeStartMatch(state: DuelState, now: number): PublicEvent[] {
+  if (!canStartMatch(state) || !(state.playerA.ready && state.playerB.ready)) return [];
+  return startMatch(state, now);
+}
+
+function canStartMatch(state: DuelState): boolean {
+  return state.startedAt === null && state.finishedAt === null && bothConnectedAndLoaded(state);
+}
+
+function bothConnectedAndLoaded(state: DuelState): boolean {
+  return state.playerA.connected && state.playerB.connected && state.playerA.screenLoaded && state.playerB.screenLoaded;
+}
+
+function startMatch(state: DuelState, now: number): PublicEvent[] {
+  if (state.startedAt !== null) return [];
+  state.status = 'active';
+  state.startedAt = now;
+  state.readyDeadline = null;
+  state.turnStartedAt = now;
+  state.turnDeadline = now + TURN_DURATION_MS;
+  state.revision++;
+  const matchStarted = event(state, 'match_started', now, snapshot(state, state.currentTurnSeat, now));
+  return [
+    matchStarted,
+    {
+      ...matchStarted,
+      type: 'game_started',
+      eventId: `${state.roomId}:${state.revision}:game_started`,
+    },
+  ];
+}
+
+function readinessPayload(state: DuelState, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    readyDeadline: state.readyDeadline,
+    ready: { A: state.playerA.ready, B: state.playerB.ready },
+    presence: { A: state.playerA.connected, B: state.playerB.connected },
+    screenLoaded: { A: state.playerA.screenLoaded, B: state.playerB.screenLoaded },
+    ...extra,
+  };
+}
+
 function finishByScore(state: DuelState, now: number, reason: string): void {
   state.status = 'completed';
   state.finishedAt = now;
@@ -424,6 +523,7 @@ function publicResult(state: DuelState): Record<string, unknown> {
     correctMoves: state.correctMoves,
     timeouts: state.timeouts,
     rating: state.ratingResult,
+    coinSettlement: state.coinResult,
   };
 }
 
@@ -434,6 +534,7 @@ function publicSeat(value: SeatState): Record<string, unknown> {
     displayName: value.player.displayName,
     avatarKey: value.player.avatarKey,
     ready: value.ready,
+    screenLoaded: value.screenLoaded,
     connected: value.connected,
     disconnectDeadline: value.disconnectDeadline,
   };

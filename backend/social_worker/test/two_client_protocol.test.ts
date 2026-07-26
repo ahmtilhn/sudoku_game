@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyForfeit,
+  applyScreenLoaded,
   applyMove,
   applyReady,
   createInitialDuelState,
+  markConnected,
   snapshot,
 } from '../src/online_duel';
 
@@ -34,8 +36,12 @@ describe('local two-client protocol simulation', () => {
       randomBytes: new Uint8Array([7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6]),
     });
 
-    applyReady(duel, 'A', 11);
-    applyReady(duel, 'B', 12);
+    markConnected(duel, 'A', 11);
+    markConnected(duel, 'B', 12);
+    applyScreenLoaded(duel, 'A', 13);
+    applyScreenLoaded(duel, 'B', 14);
+    applyReady(duel, 'A', 15);
+    applyReady(duel, 'B', 16);
     const aStart = snapshot(duel, 'A', 12);
     const bStart = snapshot(duel, 'B', 12);
     expect(aStart.roomId).toBe(bStart.roomId);
@@ -48,7 +54,7 @@ describe('local two-client protocol simulation', () => {
     const other = seat === 'A' ? 'B' : 'A';
     const empty = duel.board.findIndex((value) => value === 0);
     const wrongOutOfTurn = applyMove(duel, other, 'oot', duel.revision, empty, duel.solution[empty], 13);
-    expect(wrongOutOfTurn.at(-1)?.payload.reason).toBe('out_of_turn');
+    expect(wrongOutOfTurn.at(-1)?.payload.reason).toBe('not_your_turn');
 
     applyMove(duel, seat, 'correct', duel.revision, empty, duel.solution[empty], 14);
     expect(duel.board[empty]).toBe(duel.solution[empty]);

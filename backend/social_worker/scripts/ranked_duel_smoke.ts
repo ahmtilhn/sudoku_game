@@ -21,6 +21,8 @@ async function main(): Promise<void> {
   const b = await connect(playerB, roomId);
   await a.next('connected');
   await b.next('connected');
+  a.send('game_screen_loaded');
+  b.send('game_screen_loaded');
   a.send('ready');
   b.send('ready');
   const start = await a.next('match_started');

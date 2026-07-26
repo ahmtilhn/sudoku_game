@@ -6,6 +6,7 @@ import {
   applyMove,
   applyRating,
   applyReady,
+  applyScreenLoaded,
   createInitialDuelState,
   eloDelta,
   markConnected,
@@ -39,6 +40,15 @@ function state() {
   });
 }
 
+function startDuel(duel: ReturnType<typeof state>, now = 1_000) {
+  markConnected(duel, 'A', now + 1);
+  markConnected(duel, 'B', now + 2);
+  applyScreenLoaded(duel, 'A', now + 3);
+  applyScreenLoaded(duel, 'B', now + 4);
+  applyReady(duel, 'A', now + 5);
+  applyReady(duel, 'B', now + 6);
+}
+
 describe('authoritative online duel engine', () => {
   it('does not expose the solution in public snapshots', () => {
     const duel = state();
@@ -48,34 +58,81 @@ describe('authoritative online duel engine', () => {
     expect(JSON.stringify(visible)).not.toContain(duel.solution.join(','));
   });
 
-  it('starts only after both players are ready', () => {
+  it('does not start ready deadline until both players loaded the game screen', () => {
     const duel = state();
-    applyReady(duel, 'A', 1_001);
-    expect(duel.status).toBe('waiting');
+    markConnected(duel, 'A', 1_001);
+    markConnected(duel, 'B', 1_002);
+    applyScreenLoaded(duel, 'A', 1_003);
+    applyReady(duel, 'A', 1_004);
 
-    applyReady(duel, 'B', 1_002);
+    expect(duel.status).toBe('waiting');
+    expect(duel.readyDeadline).toBeNull();
+
+    applyScreenLoaded(duel, 'B', 1_005);
+    expect(duel.status).toBe('ready_window');
+    expect(duel.readyDeadline).toBe(11_005);
+  });
+
+  it('starts immediately once both loaded players are ready', () => {
+    const duel = state();
+    markConnected(duel, 'A', 1_001);
+    markConnected(duel, 'B', 1_002);
+    applyScreenLoaded(duel, 'A', 1_003);
+    applyScreenLoaded(duel, 'B', 1_004);
+    applyReady(duel, 'A', 1_005);
+    expect(duel.status).toBe('ready_window');
+
+    const events = applyReady(duel, 'B', 1_006);
     expect(duel.status).toBe('active');
-    expect(duel.turnDeadline).toBe(11_002);
+    expect(duel.turnDeadline).toBe(31_006);
+    expect(events.filter((event) => event.type === 'match_started')).toHaveLength(1);
+    expect(events.filter((event) => event.type === 'game_started')).toHaveLength(1);
+  });
+
+  it('auto-starts after the ready window when both players remain loaded', () => {
+    const duel = state();
+    markConnected(duel, 'A', 1_001);
+    markConnected(duel, 'B', 1_002);
+    applyScreenLoaded(duel, 'A', 1_003);
+    applyScreenLoaded(duel, 'B', 1_004);
+
+    const events = applyDueDeadlines(duel, 11_004);
+
+    expect(duel.status).toBe('active');
+    expect(duel.turnDeadline).toBe(41_004);
+    expect(events.filter((event) => event.type === 'game_started')).toHaveLength(1);
+  });
+
+  it('does not auto-start ready window while a loaded player is disconnected', () => {
+    const duel = state();
+    markConnected(duel, 'A', 1_001);
+    markConnected(duel, 'B', 1_002);
+    applyScreenLoaded(duel, 'A', 1_003);
+    applyScreenLoaded(duel, 'B', 1_004);
+    markDisconnected(duel, 'B', 1_005);
+
+    applyDueDeadlines(duel, 11_004);
+
+    expect(duel.status).toBe('waiting');
+    expect(duel.startedAt).toBeNull();
   });
 
   it('rejects out-of-turn moves without changing score', () => {
     const duel = state();
-    applyReady(duel, 'A', 1_001);
-    applyReady(duel, 'B', 1_002);
+    startDuel(duel);
     const wrongSeat = duel.currentTurnSeat === 'A' ? 'B' : 'A';
 
     const before = { ...duel.scores };
     const events = applyMove(duel, wrongSeat, 'req-1', duel.revision, 0, 1, 1_003);
 
     expect(events.at(-1)?.type).toBe('move_rejected');
-    expect(events.at(-1)?.payload.reason).toBe('out_of_turn');
+    expect(events.at(-1)?.payload.reason).toBe('not_your_turn');
     expect(duel.scores).toEqual(before);
   });
 
   it('accepts correct moves, advances turn, and deduplicates request IDs', () => {
     const duel = state();
-    applyReady(duel, 'A', 1_001);
-    applyReady(duel, 'B', 1_002);
+    startDuel(duel);
     const seat = duel.currentTurnSeat;
     const cellIndex = duel.board.findIndex((value) => value === 0);
     const value = duel.solution[cellIndex];
@@ -92,8 +149,7 @@ describe('authoritative online duel engine', () => {
 
   it('returns stale revision errors with a recovery snapshot', () => {
     const duel = state();
-    applyReady(duel, 'A', 1_001);
-    applyReady(duel, 'B', 1_002);
+    startDuel(duel);
     const seat = duel.currentTurnSeat;
     const cellIndex = duel.board.findIndex((value) => value === 0);
 
@@ -106,8 +162,7 @@ describe('authoritative online duel engine', () => {
 
   it('settles explicit forfeit with the opponent as winner', () => {
     const duel = state();
-    applyReady(duel, 'A', 1_001);
-    applyReady(duel, 'B', 1_002);
+    startDuel(duel);
 
     applyForfeit(duel, 'A', 'ff-1', 1_003);
 
@@ -118,29 +173,27 @@ describe('authoritative online duel engine', () => {
 
   it('rejects invalid, fixed, and filled cell moves', () => {
     const duel = state();
-    applyReady(duel, 'A', 1_001);
-    applyReady(duel, 'B', 1_002);
+    startDuel(duel);
     const seat = duel.currentTurnSeat;
     const fixed = duel.puzzle.findIndex((value) => value !== 0);
     const empty = duel.puzzle.findIndex((value) => value === 0);
 
     expect(applyMove(duel, seat, 'bad-index', duel.revision, -1, 1, 1_003).at(-1)?.payload.reason).toBe('invalid_cell');
     expect(applyMove(duel, seat, 'bad-value', duel.revision, empty, 10, 1_004).at(-1)?.payload.reason).toBe('invalid_value');
-    expect(applyMove(duel, seat, 'fixed', duel.revision, fixed, duel.solution[fixed], 1_005).at(-1)?.payload.reason).toBe('cell_locked');
+    expect(applyMove(duel, seat, 'fixed', duel.revision, fixed, duel.solution[fixed], 1_005).at(-1)?.payload.reason).toBe('cell_not_editable');
 
     applyMove(duel, seat, 'correct-filled', duel.revision, empty, duel.solution[empty], 1_006);
     const other = seat === 'A' ? 'B' : 'A';
-    expect(applyMove(duel, other, 'filled', duel.revision, empty, duel.solution[empty], 1_007).at(-1)?.payload.reason).toBe('cell_locked');
+    expect(applyMove(duel, other, 'filled', duel.revision, empty, duel.solution[empty], 1_007).at(-1)?.payload.reason).toBe('cell_already_filled');
   });
 
   it('server timeout advances turn without changing score', () => {
     const duel = state();
-    applyReady(duel, 'A', 1_001);
-    applyReady(duel, 'B', 1_002);
+    startDuel(duel);
     const seat = duel.currentTurnSeat;
     const before = { ...duel.scores };
 
-    const events = applyDueDeadlines(duel, 11_003);
+    const events = applyDueDeadlines(duel, 31_007);
 
     expect(events.map((event) => event.type)).toContain('turn_timeout');
     expect(duel.currentTurnSeat).not.toBe(seat);
@@ -150,8 +203,7 @@ describe('authoritative online duel engine', () => {
 
   it('disconnect grace allows reconnect before forfeit', () => {
     const duel = state();
-    applyReady(duel, 'A', 1_001);
-    applyReady(duel, 'B', 1_002);
+    startDuel(duel);
     markConnected(duel, 'A', 1_003);
     markDisconnected(duel, 'A', 1_004);
     expect(duel.playerA.disconnectDeadline).toBeGreaterThan(1_004);
@@ -165,8 +217,7 @@ describe('authoritative online duel engine', () => {
 
   it('disconnect grace expiry forfeits to the opponent', () => {
     const duel = state();
-    applyReady(duel, 'A', 1_001);
-    applyReady(duel, 'B', 1_002);
+    startDuel(duel);
     markDisconnected(duel, 'A', 1_003);
 
     applyDueDeadlines(duel, 50_000);

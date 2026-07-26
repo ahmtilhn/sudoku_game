@@ -30,6 +30,8 @@ Server messages use:
 ## Client Messages
 
 - `ready`: marks the authenticated player's seat ready.
+- `game_screen_loaded`: marks the authenticated player's game screen rendered
+  after the first authoritative snapshot.
 - `move`: `{ "cellIndex": 0, "value": 1 }`.
 - `forfeit`: forfeits an active match.
 - `request_snapshot`: asks for the current public state.
@@ -45,7 +47,11 @@ those concepts and computes them from state.
 - `snapshot`
 - `player_presence`
 - `player_ready`
+- `screen_loaded`
+- `ready_window_started`
+- `ready_window_cancelled`
 - `match_started`
+- `game_started`
 - `move_accepted`
 - `move_rejected`
 - `turn_changed`
@@ -61,9 +67,10 @@ those concepts and computes them from state.
 
 Snapshots include room ID, match ID, mode, difficulty, status, local seat,
 public player metadata, public puzzle, current board, scores, mistakes,
-correct move counts, timeouts, current turn, turn number, turn deadline, server
-time, ready state, presence state, revision, winner, finish reason, and rating
-deltas after settlement.
+correct move counts, timeouts, current turn, turn number, ready deadline, turn
+deadline, server time, ready state, presence state, screen loaded state,
+revision, winner, finish reason, rating deltas after settlement, and online
+coin settlement after completion.
 
 Snapshots never include the solution grid, Firebase UID, FCM token, IP address,
 or internal player ID.
@@ -74,11 +81,13 @@ or internal player ID.
 - `invalid_envelope`
 - `unsupported_message_type`
 - `stale_revision`
-- `match_not_active`
-- `out_of_turn`
+- `game_not_active`
+- `not_your_turn`
 - `invalid_cell`
 - `invalid_value`
-- `cell_locked`
+- `cell_not_editable`
+- `cell_already_filled`
+- `wrong_value`
 
 If `stale_revision` includes a recovery snapshot, the Flutter controller applies
 it. Otherwise it sends `request_snapshot`.
