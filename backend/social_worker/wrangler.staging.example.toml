@@ -1,0 +1,39 @@
+name = "sudoku-duel-social-staging"
+main = "src/main.ts"
+compatibility_date = "2026-07-24"
+
+[vars]
+FIREBASE_PROJECT_ID = "REPLACE_WITH_FIREBASE_PROJECT_ID"
+FIREBASE_PROJECT_NUMBER = "REPLACE_WITH_FIREBASE_PROJECT_NUMBER"
+FCM_PROJECT_ID = "REPLACE_WITH_FIREBASE_PROJECT_ID"
+ALLOWED_ORIGIN = "*"
+ALLOWED_APP_CHECK_APP_IDS = "REPLACE_WITH_ANDROID_APP_ID,REPLACE_WITH_IOS_APP_ID"
+REQUIRE_APP_CHECK = "false"
+BUILD_COMMIT = "REPLACE_WITH_BUILD_COMMIT"
+ENVIRONMENT = "staging"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sudoku-duel-social-staging"
+database_id = "REPLACE_WITH_STAGING_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[[durable_objects.bindings]]
+name = "GAME_ROOMS"
+class_name = "GameRoom"
+
+[[durable_objects.bindings]]
+name = "MATCHMAKING_QUEUE"
+class_name = "MatchmakingQueue"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["MatchmakingQueue"]
+
+# Required secrets, set with Wrangler and never commit values:
+# wrangler secret put FCM_CLIENT_EMAIL --config wrangler.toml
+# wrangler secret put FCM_PRIVATE_KEY --config wrangler.toml

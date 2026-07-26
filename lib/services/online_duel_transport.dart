@@ -62,12 +62,10 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
     final appCheckToken = await _appCheckToken();
     final channel = IOWebSocketChannel.connect(
       uri,
-      headers: <String, String>{
-        'authorization': 'Bearer $token',
-        ...?appCheckToken == null
-            ? null
-            : <String, String>{'x-firebase-appcheck': appCheckToken},
-      },
+      headers: onlineDuelHeadersForTest(
+        firebaseIdToken: token,
+        appCheckToken: appCheckToken,
+      ),
     );
     return WebSocketOnlineDuelTransport._(channel);
   }
@@ -86,6 +84,17 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
     await _channel.sink.close();
     await _events.close();
   }
+}
+
+Map<String, String> onlineDuelHeadersForTest({
+  required String firebaseIdToken,
+  String? appCheckToken,
+}) {
+  return <String, String>{
+    'authorization': 'Bearer $firebaseIdToken',
+    if (appCheckToken != null && appCheckToken.isNotEmpty)
+      'x-firebase-appcheck': appCheckToken,
+  };
 }
 
 Future<String?> _appCheckToken() async {
