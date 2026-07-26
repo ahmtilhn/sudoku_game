@@ -5,6 +5,7 @@ import '../../localization/app_strings.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../duel/online_duel_screen.dart';
 
 class PlatformSocialScreen extends StatefulWidget {
   const PlatformSocialScreen({super.key});
@@ -471,9 +472,12 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         challengeId: challenge.id,
         accept: accept,
       );
+      if (!mounted) return;
       if (accept && updated.roomId != null) {
-        _showMessage(
-          'Challenge accepted. Secure room ${updated.roomId} is ready for the online gameplay connection.',
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => OnlineDuelScreen(roomId: updated.roomId!),
+          ),
         );
       } else {
         _showMessage('Challenge declined.');

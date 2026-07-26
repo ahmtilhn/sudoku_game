@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../services/social_api_client.dart';
 import '../social/friend_requests_screen.dart';
 import '../social/platform_social_screen.dart';
 import 'duel_screen.dart';
+import 'leaderboards_screen.dart';
+import 'online_duel_screen.dart';
 
 class MatchmakingScreen extends StatefulWidget {
   const MatchmakingScreen({super.key});
@@ -16,8 +21,16 @@ class MatchmakingScreen extends StatefulWidget {
 class _MatchmakingScreenState extends State<MatchmakingScreen> {
   SudokuDifficulty _difficulty = SudokuDifficulty.easy;
   bool _searching = false;
+  String? _error;
+  Timer? _pollTimer;
 
   String get _queueKey => 'duel_${_difficulty.name}';
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +48,11 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
             tooltip: 'Friends & challenges',
             onPressed: _openPlatformFriends,
             icon: const Icon(Icons.people_alt_outlined),
+          ),
+          IconButton(
+            tooltip: context.tr('leaderboards'),
+            onPressed: _openLeaderboards,
+            icon: const Icon(Icons.leaderboard_outlined),
           ),
         ],
       ),
@@ -95,13 +113,21 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    context.tr('matchmaking_backend_pending'),
+                    context.tr('waiting_for_ranked_opponent'),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: scheme.error),
+                    ),
+                  ],
                   const SizedBox(height: 14),
                   OutlinedButton(
-                    onPressed: () => setState(() => _searching = false),
+                    onPressed: _cancelSearch,
                     child: Text(context.tr('cancel_search')),
                   ),
                 ],
@@ -109,7 +135,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
             )
           else ...[
             FilledButton.icon(
-              onPressed: () => setState(() => _searching = true),
+              onPressed: _findOpponent,
               icon: const Icon(Icons.public),
               label: Text(context.tr('find_opponent')),
             ),
@@ -137,10 +163,74 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     ).push(MaterialPageRoute(builder: (_) => const PlatformSocialScreen()));
   }
 
+  void _openLeaderboards() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LeaderboardsScreen()));
+  }
+
   void _openLocalPractice() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => DuelScreen(difficulty: _difficulty)),
     );
+  }
+
+  Future<void> _findOpponent() async {
+    setState(() {
+      _searching = true;
+      _error = null;
+    });
+    try {
+      final result = await SocialApiClient.instance.joinRankedQueue(
+        difficulty: _difficulty.name,
+      );
+      if (!mounted) return;
+      if (result.roomId != null) {
+        setState(() => _searching = false);
+        _openOnlineRoom(result.roomId!);
+      } else {
+        _startPollingForMatch();
+      }
+    } on SocialApiException catch (error) {
+      if (mounted) {
+        setState(() {
+          _searching = false;
+          _error = error.message;
+        });
+      }
+    }
+  }
+
+  Future<void> _cancelSearch() async {
+    _pollTimer?.cancel();
+    try {
+      await SocialApiClient.instance.cancelRankedQueue();
+    } catch (_) {
+      // Offline/local play must remain available even if queue cancel fails.
+    }
+    if (mounted) setState(() => _searching = false);
+  }
+
+  void _openOnlineRoom(String roomId) {
+    _pollTimer?.cancel();
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)));
+  }
+
+  void _startPollingForMatch() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      try {
+        final match = await SocialApiClient.instance.activeMatch();
+        final roomId = match?['roomId']?.toString();
+        if (!mounted || roomId == null || roomId.isEmpty) return;
+        setState(() => _searching = false);
+        _openOnlineRoom(roomId);
+      } on SocialApiException catch (error) {
+        if (mounted) setState(() => _error = error.message);
+      }
+    });
   }
 }
 

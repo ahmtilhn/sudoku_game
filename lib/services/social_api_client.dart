@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 
@@ -84,6 +85,26 @@ class SocialChallenge {
   }
 }
 
+class MatchmakingResult {
+  const MatchmakingResult({
+    required this.status,
+    required this.difficulty,
+    this.roomId,
+  });
+
+  final String status;
+  final String difficulty;
+  final String? roomId;
+
+  factory MatchmakingResult.fromJson(Map<String, dynamic> json) {
+    return MatchmakingResult(
+      status: json['status']?.toString() ?? 'queued',
+      difficulty: json['difficulty']?.toString() ?? 'easy',
+      roomId: json['roomId']?.toString(),
+    );
+  }
+}
+
 class SocialApiException implements Exception {
   const SocialApiException(this.statusCode, this.message);
 
@@ -104,6 +125,15 @@ class SocialApiClient {
   final http.Client _client = http.Client();
 
   bool get configured => _baseUrl.startsWith('https://');
+
+  Uri websocketUri(String path) {
+    final base = Uri.parse(_baseUrl);
+    return base.replace(
+      scheme: base.scheme == 'https' ? 'wss' : 'ws',
+      path: path,
+      query: '',
+    );
+  }
 
   Future<SocialPlayer> ensureProfile({String? displayName}) async {
     final response = await _request(
@@ -219,6 +249,35 @@ class SocialApiClient {
     return SocialChallenge.fromJson(response);
   }
 
+  Future<MatchmakingResult> joinRankedQueue({
+    required String difficulty,
+  }) async {
+    final response = await _request(
+      'POST',
+      '/v1/matchmaking/queue',
+      body: <String, Object>{'difficulty': difficulty},
+    );
+    return MatchmakingResult.fromJson(response);
+  }
+
+  Future<void> cancelRankedQueue() async {
+    await _request('DELETE', '/v1/matchmaking/queue');
+  }
+
+  Future<Map<String, dynamic>?> activeMatch() async {
+    final response = await _request('GET', '/v1/matches/active');
+    final match = response['match'];
+    return match is Map ? match.cast<String, dynamic>() : null;
+  }
+
+  Future<Map<String, dynamic>> loadLeaderboard(String scope) async {
+    return _request('GET', '/v1/leaderboards/$scope');
+  }
+
+  Future<Map<String, dynamic>> loadRatings() async {
+    return _request('GET', '/v1/me/ratings');
+  }
+
   Future<Map<String, dynamic>> _request(
     String method,
     String path, {
@@ -252,9 +311,13 @@ class SocialApiClient {
     }
 
     final uri = Uri.parse('$_baseUrl$path');
+    final appCheckToken = await _appCheckToken();
     final headers = <String, String>{
       'authorization': 'Bearer $idToken',
       'accept': 'application/json',
+      ...?appCheckToken == null
+          ? null
+          : <String, String>{'x-firebase-appcheck': appCheckToken},
       if (body != null) 'content-type': 'application/json',
     };
 
@@ -297,5 +360,14 @@ class SocialApiClient {
         .map((item) => SocialPlayer.fromJson(item.cast<String, dynamic>()))
         .where((player) => player.publicId.isNotEmpty)
         .toList(growable: false);
+  }
+
+  Future<String?> _appCheckToken() async {
+    try {
+      final token = await FirebaseAppCheck.instance.getToken(false);
+      return token == null || token.isEmpty ? null : token;
+    } catch (_) {
+      return null;
+    }
   }
 }

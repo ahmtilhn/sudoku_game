@@ -117,4 +117,26 @@
     <string name="ad_privacy">Ad privacy</string>
     <string name="ad_privacy_choices">Ad privacy choices</string>
     <string name="ad_privacy_choices_subtitle">Review or change the privacy choices used for advertising.</string>
+    <string name="connected">Connected</string>
+    <string name="forfeit_and_leave">Forfeit and leave</string>
+    <string name="global">Global</string>
+    <string name="leaderboard_empty">No leaderboard entries yet.</string>
+    <string name="leaderboard_row">%1d games · %2d%% win rate</string>
+    <string name="leaderboards">Leaderboards</string>
+    <string name="online_connection_failed">Online duel connection failed: %1s</string>
+    <string name="online_final_score">Final score: %1d - %2d</string>
+    <string name="online_forfeit_body">Leaving an active online duel forfeits the match to your opponent.</string>
+    <string name="online_forfeit_title">Forfeit match?</string>
+    <string name="online_turn_number">Turn %1d</string>
+    <string name="online_waiting_snapshot">Waiting for the server snapshot…</string>
+    <string name="rating_delta">Global rating: %1d to %2d (%3d)</string>
+    <string name="ready">Ready</string>
+    <string name="reconnecting">Reconnecting</string>
+    <string name="refresh">Refresh</string>
+    <string name="stay">Stay</string>
+    <string name="waiting_for_ranked_opponent">You are in the ranked queue. The app checks for a match every few seconds.</string>
+    <string name="you_lost">You lost</string>
+    <string name="you_won">You won!</string>
+    <string name="your_turn">Your turn</string>
+    <string name="opponents_turn">Opponent\'s turn</string>
 </resources>
