@@ -87,12 +87,22 @@ export default {
       ) {
         response = await registerDevice(request, env, player);
       } else if (
+        url.pathname === '/v1/me/devices/current' &&
+        request.method === 'DELETE'
+      ) {
+        response = await disableDevice(request, env, player);
+      } else if (
         url.pathname === '/v1/players/search' &&
         request.method === 'GET'
       ) {
         response = await searchPlayers(url, env, player);
       } else if (url.pathname === '/v1/friends' && request.method === 'GET') {
         response = await listFriends(env, player);
+      } else if (
+        url.pathname === '/v1/friends/requests' &&
+        request.method === 'GET'
+      ) {
+        response = await listIncomingFriendRequests(env, player);
       } else if (
         url.pathname === '/v1/friends/requests' &&
         request.method === 'POST'
@@ -248,6 +258,23 @@ async function registerDevice(
   return reply(env, { ok: true });
 }
 
+async function disableDevice(
+  request: Request,
+  env: Env,
+  player: PlayerRow,
+): Promise<Response> {
+  const body = await readJson(request);
+  const token = requiredString(body.token, 'token', 32, 4096);
+  await env.DB.prepare(
+    `UPDATE device_tokens
+     SET enabled = 0, updated_at = ?
+     WHERE player_id = ? AND token = ?`,
+  )
+    .bind(new Date().toISOString(), player.id, token)
+    .run();
+  return reply(env, { ok: true });
+}
+
 async function searchPlayers(
   url: URL,
   env: Env,
@@ -304,6 +331,25 @@ async function listFriends(env: Env, current: PlayerRow): Promise<Response> {
        AND f.status = 'accepted'
      ORDER BY p.display_name COLLATE NOCASE
      LIMIT 200`,
+  )
+    .bind(current.id, current.id, current.id)
+    .all<PlayerRow>();
+  return reply(env, { players: rows.results.map(playerJson) });
+}
+
+async function listIncomingFriendRequests(
+  env: Env,
+  current: PlayerRow,
+): Promise<Response> {
+  const rows = await env.DB.prepare(
+    `SELECT p.*, 'pending' AS friendship_status
+     FROM friendships f
+     JOIN players p ON p.id = f.requester_id
+     WHERE (f.player_low_id = ? OR f.player_high_id = ?)
+       AND f.status = 'pending'
+       AND f.requester_id != ?
+     ORDER BY f.created_at DESC
+     LIMIT 100`,
   )
     .bind(current.id, current.id, current.id)
     .all<PlayerRow>();
@@ -830,7 +876,7 @@ function corsResponse(env: Env, response: Response): Response {
   const headers = new Headers(response.headers);
   headers.set('access-control-allow-origin', env.ALLOWED_ORIGIN || '*');
   headers.set('access-control-allow-headers', 'authorization, content-type');
-  headers.set('access-control-allow-methods', 'GET, POST, PUT, OPTIONS');
+  headers.set('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
   headers.set('vary', 'origin');
   return new Response(response.body, {
     status: response.status,
