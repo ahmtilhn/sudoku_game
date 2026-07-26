@@ -21,13 +21,12 @@ class ReminderNotificationService {
   static const int _notificationCount = 63;
   static const String _payload = 'daily-reminder';
 
-  static const List<({int hour, int minute})> _dailyTimes = <
-      ({int hour, int minute})
-    >[
-      (hour: 9, minute: 0),
-      (hour: 15, minute: 0),
-      (hour: 20, minute: 30),
-    ];
+  static const List<({int hour, int minute})> _dailyTimes =
+      <({int hour, int minute})>[
+        (hour: 9, minute: 0),
+        (hour: 15, minute: 0),
+        (hour: 20, minute: 30),
+      ];
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
@@ -44,7 +43,8 @@ class ReminderNotificationService {
 
   Future<void> initialize() async {
     enabled.value = await _preferences.getBool(_enabledKey) ?? false;
-    _seed = await _preferences.getInt(_seedKey) ??
+    _seed =
+        await _preferences.getInt(_seedKey) ??
         DateTime.now().microsecondsSinceEpoch & 0x7fffffff;
     await _preferences.setInt(_seedKey, _seed);
 
@@ -89,14 +89,16 @@ class ReminderNotificationService {
 
     var granted = true;
     if (Platform.isAndroid) {
-      granted = await _plugin
+      granted =
+          await _plugin
               .resolvePlatformSpecificImplementation<
                 AndroidFlutterLocalNotificationsPlugin
               >()
               ?.requestNotificationsPermission() ??
           true;
     } else if (Platform.isIOS) {
-      granted = await _plugin
+      granted =
+          await _plugin
               .resolvePlatformSpecificImplementation<
                 IOSFlutterLocalNotificationsPlugin
               >()
@@ -126,8 +128,7 @@ class ReminderNotificationService {
     await _cancelReminderSchedule();
 
     final now = tz.TZDateTime.now(tz.local);
-    final daySeed =
-        now.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
+    final daySeed = now.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
     final messages = ReminderMessageCatalog.shuffled(seed: _seed ^ daySeed);
     final scheduledDates = _nextScheduleDates(now);
 

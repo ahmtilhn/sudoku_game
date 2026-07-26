@@ -83,34 +83,26 @@ class PlatformGameServices {
 
   Future<bool> showFriends() => _invokeBool('showFriends');
 
-  Future<bool> showPlayerProfile(String playerId) => _invokeBool(
-        'showPlayerProfile',
-        <String, Object>{'playerId': playerId},
-      );
+  Future<bool> showPlayerProfile(String playerId) =>
+      _invokeBool('showPlayerProfile', <String, Object>{'playerId': playerId});
 
   Future<bool> showAchievements() => _invokeBool('showAchievements');
 
   Future<bool> showLeaderboard({String? leaderboardId}) => _invokeBool(
-        'showLeaderboard',
-        <String, Object?>{'leaderboardId': leaderboardId},
-      );
+    'showLeaderboard',
+    <String, Object?>{'leaderboardId': leaderboardId},
+  );
 
-  Future<bool> submitScore({
-    required int score,
-    String? leaderboardId,
-  }) =>
-      _invokeBool(
-        'submitScore',
-        <String, Object?>{
-          'leaderboardId': leaderboardId,
-          'score': score,
-        },
-      );
+  Future<bool> submitScore({required int score, String? leaderboardId}) =>
+      _invokeBool('submitScore', <String, Object?>{
+        'leaderboardId': leaderboardId,
+        'score': score,
+      });
 
   Future<bool> unlockAchievement({String? achievementId}) => _invokeBool(
-        'unlockAchievement',
-        <String, Object?>{'achievementId': achievementId},
-      );
+    'unlockAchievement',
+    <String, Object?>{'achievementId': achievementId},
+  );
 
   Future<String?> requestServerAuthCode() async {
     final value = await _invoke<Object?>('requestServerAuthCode');

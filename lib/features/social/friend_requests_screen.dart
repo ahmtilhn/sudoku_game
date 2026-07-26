@@ -73,9 +73,9 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
       await _load();
     } on SocialApiException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
 

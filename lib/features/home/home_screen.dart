@@ -119,18 +119,18 @@ class _WelcomePanel extends StatelessWidget {
                 ? context.tr('welcome_returning_title')
                 : context.tr('welcome_new_title'),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: scheme.onPrimaryContainer,
-                ),
+              fontWeight: FontWeight.w900,
+              color: scheme.onPrimaryContainer,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             store.tutorialCompleted
                 ? context.tr('welcome_returning_body')
                 : context.tr('welcome_new_body'),
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: scheme.onPrimaryContainer,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: scheme.onPrimaryContainer),
           ),
         ],
       ),

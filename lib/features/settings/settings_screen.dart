@@ -3,20 +3,35 @@ import 'package:flutter/material.dart';
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
+import '../../services/firebase_services.dart';
+import '../../services/push_notification_service.dart';
 import '../../services/reminder_notification_service.dart';
+import '../../services/social_api_client.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.store});
   final LocalProgressStore store;
 
   @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _updatingDailyReminders = false;
+  bool _updatingChallengePush = false;
+  bool _updatingAnalytics = false;
+  bool _updatingCrashReports = false;
+
+  @override
   Widget build(BuildContext context) {
     final reminders = ReminderNotificationService.instance;
+    final push = PushNotificationService.instance;
+    final firebase = FirebaseServices.instance;
     final ads = AdsService.instance;
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('settings'))),
       body: AnimatedBuilder(
-        animation: store,
+        animation: widget.store,
         builder: (context, _) => ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
@@ -49,15 +64,15 @@ class SettingsScreen extends StatelessWidget {
                           icon: const Icon(Icons.dark_mode_outlined),
                         ),
                       ],
-                      selected: <ThemeMode>{store.themeMode},
+                      selected: <ThemeMode>{widget.store.themeMode},
                       onSelectionChanged: (values) =>
-                          store.setThemeMode(values.first),
+                          widget.store.setThemeMode(values.first),
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      value: store.highContrast,
-                      onChanged: store.setHighContrast,
+                      value: widget.store.highContrast,
+                      onChanged: widget.store.setHighContrast,
                       title: Text(context.tr('high_contrast')),
                       subtitle: Text(context.tr('high_contrast_subtitle')),
                     ),
@@ -67,7 +82,7 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             Text(
-              'Notifications',
+              context.tr('notifications'),
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 10),
@@ -76,14 +91,81 @@ class SettingsScreen extends StatelessWidget {
                 valueListenable: reminders.enabled,
                 builder: (context, enabled, _) => SwitchListTile(
                   secondary: const Icon(Icons.notifications_active_outlined),
-                  value: enabled,
-                  title: const Text('Daily Sudoku challenges'),
-                  subtitle: const Text(
-                    'Three optional reminders each day at 09:00, 15:00, and 20:30. You can turn them off at any time.',
+                  value: enabled && !_updatingDailyReminders,
+                  title: Text(context.tr('daily_sudoku_challenges')),
+                  subtitle: Text(
+                    context.tr('daily_sudoku_challenges_subtitle'),
                   ),
-                  onChanged: (value) =>
-                      _setDailyReminders(context, reminders, value),
+                  onChanged: _updatingDailyReminders
+                      ? null
+                      : (value) => _setDailyReminders(reminders, value),
                 ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Card(
+              child: ValueListenableBuilder<bool>(
+                valueListenable: push.enabled,
+                builder: (context, enabled, _) {
+                  final available =
+                      push.configured && SocialApiClient.instance.configured;
+                  return SwitchListTile(
+                    secondary: const Icon(Icons.notifications_outlined),
+                    value: enabled && !_updatingChallengePush,
+                    title: Text(context.tr('online_challenge_notifications')),
+                    subtitle: Text(
+                      available
+                          ? context.tr(
+                              'online_challenge_notifications_subtitle',
+                            )
+                          : context.tr(
+                              'online_challenge_notifications_unavailable',
+                            ),
+                    ),
+                    onChanged: !available || _updatingChallengePush
+                        ? null
+                        : (value) => _setChallengeNotifications(push, value),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 22),
+            Text(
+              context.tr('privacy'),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            Card(
+              child: Column(
+                children: [
+                  ValueListenableBuilder<bool>(
+                    valueListenable: firebase.analyticsEnabled,
+                    builder: (context, enabled, _) => SwitchListTile(
+                      secondary: const Icon(Icons.insights_outlined),
+                      value: enabled && !_updatingAnalytics,
+                      title: Text(context.tr('analytics_sharing')),
+                      subtitle: Text(context.tr('analytics_sharing_subtitle')),
+                      onChanged: _updatingAnalytics
+                          ? null
+                          : (value) => _setAnalytics(firebase, value),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: firebase.crashReportingEnabled,
+                    builder: (context, enabled, _) => SwitchListTile(
+                      secondary: const Icon(Icons.bug_report_outlined),
+                      value: enabled && !_updatingCrashReports,
+                      title: Text(context.tr('crash_reports_sharing')),
+                      subtitle: Text(
+                        context.tr('crash_reports_sharing_subtitle'),
+                      ),
+                      onChanged: _updatingCrashReports
+                          ? null
+                          : (value) => _setCrashReports(firebase, value),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 22),
@@ -95,16 +177,16 @@ class SettingsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Privacy',
+                      context.tr('ad_privacy'),
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 10),
                     Card(
                       child: ListTile(
                         leading: const Icon(Icons.privacy_tip_outlined),
-                        title: const Text('Ad privacy choices'),
-                        subtitle: const Text(
-                          'Review or change the privacy choices used for advertising.',
+                        title: Text(context.tr('ad_privacy_choices')),
+                        subtitle: Text(
+                          context.tr('ad_privacy_choices_subtitle'),
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: ads.showPrivacyOptions,
@@ -126,7 +208,7 @@ class SettingsScreen extends StatelessWidget {
                 title: Text(context.tr('clear_career_progress')),
                 subtitle: Text(
                   context.tr('completed_levels', <Object>[
-                    store.completedLevelCount,
+                    widget.store.completedLevelCount,
                   ]),
                 ),
                 onTap: () => _confirmClear(context),
@@ -139,25 +221,67 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _setDailyReminders(
-    BuildContext context,
     ReminderNotificationService service,
     bool value,
   ) async {
-    if (!value) {
-      await service.disable();
-      return;
-    }
+    setState(() => _updatingDailyReminders = true);
+    try {
+      if (!value) {
+        await service.disable();
+        return;
+      }
 
-    final enabled = await service.requestPermissionAndEnable();
-    if (!enabled && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Notification permission was not granted. Daily reminders remain off.',
-          ),
-        ),
-      );
+      final enabled = await service.requestPermissionAndEnable();
+      if (!enabled && mounted) {
+        _showSnack('daily_reminder_permission_denied');
+      }
+    } finally {
+      if (mounted) setState(() => _updatingDailyReminders = false);
     }
+  }
+
+  Future<void> _setChallengeNotifications(
+    PushNotificationService service,
+    bool value,
+  ) async {
+    setState(() => _updatingChallengePush = true);
+    try {
+      if (!value) {
+        await service.disableChallengeNotifications();
+        return;
+      }
+
+      final enabled = await service.requestPermissionAndRegister();
+      if (!enabled && mounted) {
+        _showSnack('challenge_notification_permission_denied');
+      }
+    } finally {
+      if (mounted) setState(() => _updatingChallengePush = false);
+    }
+  }
+
+  Future<void> _setAnalytics(FirebaseServices service, bool value) async {
+    setState(() => _updatingAnalytics = true);
+    try {
+      await service.setAnalyticsEnabled(value);
+    } finally {
+      if (mounted) setState(() => _updatingAnalytics = false);
+    }
+  }
+
+  Future<void> _setCrashReports(FirebaseServices service, bool value) async {
+    setState(() => _updatingCrashReports = true);
+    try {
+      await service.setCrashReportingEnabled(value);
+    } finally {
+      if (mounted) setState(() => _updatingCrashReports = false);
+    }
+  }
+
+  void _showSnack(String key) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.tr(key))));
   }
 
   Future<void> _confirmClear(BuildContext context) async {
@@ -178,6 +302,6 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
-    if (approved == true) await store.clearProgress();
+    if (approved == true) await widget.store.clearProgress();
   }
 }

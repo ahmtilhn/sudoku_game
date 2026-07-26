@@ -49,9 +49,9 @@ class HintEconomy {
       final purchased = await store.purchaseHint(coinCost: coinCost);
       if (!context.mounted) return false;
       if (!purchased) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('not_enough_coins'))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.tr('not_enough_coins'))));
         return false;
       }
       return store.consumeHint();

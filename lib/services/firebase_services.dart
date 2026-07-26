@@ -13,10 +13,8 @@ class FirebaseServices {
 
   static final FirebaseServices instance = FirebaseServices._();
 
-  static const String _analyticsEnabledKey =
-      'analytics_collection_enabled_v1';
-  static const String _crashReportingEnabledKey =
-      'crash_reporting_enabled_v1';
+  static const String _analyticsEnabledKey = 'analytics_collection_enabled_v1';
+  static const String _crashReportingEnabledKey = 'crash_reporting_enabled_v1';
 
   final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
   final ValueNotifier<bool> analyticsEnabled = ValueNotifier<bool>(false);
@@ -70,10 +68,7 @@ class FirebaseServices {
     }
   }
 
-  Future<void> logEvent(
-    String name, {
-    Map<String, Object>? parameters,
-  }) async {
+  Future<void> logEvent(String name, {Map<String, Object>? parameters}) async {
     if (!analyticsEnabled.value || !FirebaseRuntimeConfig.configured) return;
     await FirebaseAnalytics.instance.logEvent(
       name: name,
@@ -118,8 +113,13 @@ class FirebaseServices {
       crashReportingEnabled.value,
     );
 
+    final previousFlutterErrorHandler = FlutterError.onError;
     FlutterError.onError = (details) {
-      FlutterError.presentError(details);
+      if (previousFlutterErrorHandler != null) {
+        previousFlutterErrorHandler(details);
+      } else {
+        FlutterError.presentError(details);
+      }
       if (crashReportingEnabled.value) {
         unawaited(
           FirebaseCrashlytics.instance.recordFlutterFatalError(details),
@@ -127,16 +127,15 @@ class FirebaseServices {
       }
     };
 
+    final previousPlatformErrorHandler = PlatformDispatcher.instance.onError;
     PlatformDispatcher.instance.onError = (error, stack) {
-      if (!crashReportingEnabled.value) return false;
-      unawaited(
-        FirebaseCrashlytics.instance.recordError(
-          error,
-          stack,
-          fatal: true,
-        ),
-      );
-      return true;
+      if (crashReportingEnabled.value) {
+        unawaited(
+          FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+        );
+      }
+      return previousPlatformErrorHandler?.call(error, stack) ??
+          crashReportingEnabled.value;
     };
   }
 

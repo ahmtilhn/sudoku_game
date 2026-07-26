@@ -372,9 +372,9 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       children: [
         Text(
           'Pending challenges',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 10),
         if (incoming.isEmpty)
@@ -465,10 +465,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
     }
   }
 
-  Future<void> _respondChallenge(
-    SocialChallenge challenge,
-    bool accept,
-  ) async {
+  Future<void> _respondChallenge(SocialChallenge challenge, bool accept) async {
     try {
       final updated = await _social.respondToChallenge(
         challengeId: challenge.id,
@@ -489,9 +486,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
 
   void _showMessage(String value) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(value)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
   }
 
   String _difficultyLabel(String value) {
@@ -524,9 +519,9 @@ class _SignInCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Connect your platform profile',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -679,9 +674,9 @@ class _PlatformActions extends StatelessWidget {
       await action();
     } on PlatformGameServicesException catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
 }
@@ -702,9 +697,9 @@ class _PlatformPlayerSection extends StatelessWidget {
       children: [
         Text(
           'Platform friends',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 10),
         if (players.isEmpty)
@@ -755,9 +750,9 @@ class _SocialPlayerSection extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 10),
         if (players.isEmpty)

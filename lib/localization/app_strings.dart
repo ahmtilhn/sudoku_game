@@ -49,15 +49,13 @@ class AppStrings {
     'career_random_subtitle': 'Choose a difficulty and get a new puzzle',
     'career_random_intro':
         'Choose a difficulty. A fresh, unique Sudoku will be generated for every game.',
-    'three_mistake_rule':
-        'Career rule: the round ends after 3 wrong moves.',
+    'three_mistake_rule': 'Career rule: the round ends after 3 wrong moves.',
     'coins_count': '%1d coins',
     'random_clue_count': 'About %1d starting clues',
     'local_duel': 'Local Duel',
     'local_duel_subtitle': 'Take 10-second turns on the same device',
     'online_duel': 'Online Duel',
-    'online_duel_subtitle':
-        'Choose a difficulty and match with the same queue',
+    'online_duel_subtitle': 'Choose a difficulty and match with the same queue',
     'choose_duel_difficulty': 'Choose your duel difficulty',
     'same_difficulty_match':
         'You will only be matched with players who selected the same difficulty.',
@@ -138,8 +136,31 @@ class AppStrings {
     'light': 'Light',
     'dark': 'Dark',
     'high_contrast': 'High contrast',
-    'high_contrast_subtitle':
-        'Makes the board and text easier to distinguish.',
+    'high_contrast_subtitle': 'Makes the board and text easier to distinguish.',
+    'notifications': 'Notifications',
+    'daily_sudoku_challenges': 'Daily Sudoku challenges',
+    'daily_sudoku_challenges_subtitle':
+        'Three optional reminders each day at 09:00, 15:00, and 20:30. You can turn them off at any time.',
+    'daily_reminder_permission_denied':
+        'Notification permission was not granted. Daily reminders remain off.',
+    'online_challenge_notifications': 'Online challenge notifications',
+    'online_challenge_notifications_subtitle':
+        'Shows friend and challenge invitations on this device. You can turn this off at any time.',
+    'online_challenge_notifications_unavailable':
+        'Challenge notifications require Firebase and the social backend to be configured.',
+    'challenge_notification_permission_denied':
+        'Notification permission was not granted. Online challenge notifications remain off.',
+    'privacy': 'Privacy',
+    'analytics_sharing': 'Analytics sharing',
+    'analytics_sharing_subtitle':
+        'Allows anonymous usage analytics to help improve Sudoku Duel.',
+    'crash_reports_sharing': 'Crash reports sharing',
+    'crash_reports_sharing_subtitle':
+        'Sends crash diagnostics when something fails.',
+    'ad_privacy': 'Ad privacy',
+    'ad_privacy_choices': 'Ad privacy choices',
+    'ad_privacy_choices_subtitle':
+        'Review or change the privacy choices used for advertising.',
     'data': 'Data',
     'clear_career_progress': 'Clear career progress',
     'completed_levels': '%1d completed levels',
@@ -244,12 +265,12 @@ class AppStrings {
   }
 
   String difficultyLabel(SudokuDifficulty difficulty) => switch (difficulty) {
-        SudokuDifficulty.beginner => text('difficulty_beginner'),
-        SudokuDifficulty.easy => text('difficulty_easy'),
-        SudokuDifficulty.medium => text('difficulty_medium'),
-        SudokuDifficulty.hard => text('difficulty_hard'),
-        SudokuDifficulty.expert => text('difficulty_expert'),
-      };
+    SudokuDifficulty.beginner => text('difficulty_beginner'),
+    SudokuDifficulty.easy => text('difficulty_easy'),
+    SudokuDifficulty.medium => text('difficulty_medium'),
+    SudokuDifficulty.hard => text('difficulty_hard'),
+    SudokuDifficulty.expert => text('difficulty_expert'),
+  };
 
   String puzzleTitle(SudokuPuzzle puzzle) {
     if (puzzle.id == 'tutorial-4x4') {

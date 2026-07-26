@@ -9,11 +9,12 @@ import '../../localization/app_strings.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 
-typedef GameCompleted = Future<void> Function({
-  required int seconds,
-  required int mistakes,
-  required int hints,
-});
+typedef GameCompleted =
+    Future<void> Function({
+      required int seconds,
+      required int mistakes,
+      required int hints,
+    });
 
 typedef CoinContinue = Future<bool> Function(int cost);
 typedef RewardedContinue = Future<bool> Function();
@@ -187,10 +188,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> _hint() async {
-    if (!widget.allowHints ||
-        _completed ||
-        _roundLost ||
-        _hintInProgress) {
+    if (!widget.allowHints || _completed || _roundLost || _hintInProgress) {
       return;
     }
 
@@ -255,7 +253,8 @@ class _GameScreenState extends State<GameScreen> {
         actions: [
           if (widget.onCoinContinue != null)
             TextButton.icon(
-              onPressed: () => Navigator.of(dialogContext).pop(_LossAction.coin),
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_LossAction.coin),
               icon: const Icon(Icons.monetization_on_outlined),
               label: Text(
                 context.tr('continue_with_coins', <Object>[
@@ -290,9 +289,9 @@ class _GameScreenState extends State<GameScreen> {
       if (continued) {
         _resumeAfterLoss();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('not_enough_coins'))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(context.tr('not_enough_coins'))));
         await _showRoundLostDialog();
       }
       return;
@@ -374,8 +373,8 @@ class _GameScreenState extends State<GameScreen> {
     final stars = _totalMistakes == 0 && _hintsUsed == 0
         ? 3
         : _totalMistakes <= 2 && _hintsUsed <= 1
-            ? 2
-            : 1;
+        ? 2
+        : 1;
 
     await showDialog<void>(
       context: context,
@@ -403,10 +402,7 @@ class _GameScreenState extends State<GameScreen> {
               label: context.tr('time'),
               value: formatDuration(_elapsedSeconds),
             ),
-            _ResultRow(
-              label: context.tr('mistakes'),
-              value: '$_totalMistakes',
-            ),
+            _ResultRow(label: context.tr('mistakes'), value: '$_totalMistakes'),
             _ResultRow(label: context.tr('hints'), value: '$_hintsUsed'),
           ],
         ),

@@ -22,7 +22,8 @@ class PuzzleCatalog {
     String idPrefix = 'career-random',
     String? title,
   }) {
-    final actualSeed = seed ??
+    final actualSeed =
+        seed ??
         DateTime.now().microsecondsSinceEpoch ^
             Object().hashCode ^
             Random().nextInt(1 << 31);
@@ -77,7 +78,8 @@ class PuzzleCatalog {
     solution: <int>[1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
   );
 
-  static int targetClueCount(SudokuDifficulty difficulty) => switch (difficulty) {
+  static int targetClueCount(SudokuDifficulty difficulty) =>
+      switch (difficulty) {
         SudokuDifficulty.beginner => 48,
         SudokuDifficulty.easy => 42,
         SudokuDifficulty.medium => 36,
@@ -101,18 +103,21 @@ class PuzzleCatalog {
     final stacks = <int>[0, 1, 2]..shuffle(random);
     final rows = <int>[
       for (final band in bands)
-        ...(<int>[0, 1, 2]..shuffle(random)).map(
-          (offset) => band * side + offset,
-        ),
+        ...(<int>[
+          0,
+          1,
+          2,
+        ]..shuffle(random)).map((offset) => band * side + offset),
     ];
     final columns = <int>[
       for (final stack in stacks)
-        ...(<int>[0, 1, 2]..shuffle(random)).map(
-          (offset) => stack * side + offset,
-        ),
+        ...(<int>[
+          0,
+          1,
+          2,
+        ]..shuffle(random)).map((offset) => stack * side + offset),
     ];
-    final numbers = <int>[1, 2, 3, 4, 5, 6, 7, 8, 9]
-      ..shuffle(random);
+    final numbers = <int>[1, 2, 3, 4, 5, 6, 7, 8, 9]..shuffle(random);
 
     return <int>[
       for (final row in rows)

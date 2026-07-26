@@ -52,18 +52,18 @@ class PushNotificationService {
       await FirebaseRuntimeConfig.initializeIfConfigured();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-      if (FirebaseAuth.instance.currentUser == null) {
-        await FirebaseAuth.instance.signInAnonymously();
-      }
+      final signedIn = await _ensureAnonymousSession();
+      if (!signedIn) return;
 
       enabled.value = await _preferences.getBool(_enabledKey) ?? false;
 
       await _initializeLocalNotifications();
-      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: false,
-        sound: true,
-      );
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+            alert: true,
+            badge: false,
+            sound: true,
+          );
 
       await _tokenSubscription?.cancel();
       await _messageSubscription?.cancel();
@@ -79,10 +79,12 @@ class PushNotificationService {
         _registerToken,
       );
 
-      final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+      final initialMessage = await FirebaseMessaging.instance
+          .getInitialMessage();
       if (initialMessage != null) _handleOpenedMessage(initialMessage);
 
-      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      final settings = await FirebaseMessaging.instance
+          .getNotificationSettings();
       permissionGranted.value = _isAuthorized(settings.authorizationStatus);
       if (enabled.value && permissionGranted.value) {
         final token = await FirebaseMessaging.instance.getToken();
@@ -159,6 +161,22 @@ class PushNotificationService {
 
   Future<void> deleteDeviceToken() => disableChallengeNotifications();
 
+  Future<bool> _ensureAnonymousSession() async {
+    if (FirebaseAuth.instance.currentUser != null) return true;
+    try {
+      await FirebaseAuth.instance.signInAnonymously();
+      return FirebaseAuth.instance.currentUser != null;
+    } on FirebaseAuthException catch (error, stackTrace) {
+      debugPrint('Anonymous Firebase sign-in failed: ${error.code}');
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
+      return false;
+    } catch (error, stackTrace) {
+      debugPrint('Anonymous Firebase sign-in failed: $error');
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
+      return false;
+    }
+  }
+
   Future<void> _initializeLocalNotifications() async {
     const settings = InitializationSettings(
       android: AndroidInitializationSettings('ic_launcher'),
@@ -204,7 +222,8 @@ class PushNotificationService {
       await _localNotifications.show(
         id: challengeId.hashCode & 0x7fffffff,
         title: message.notification?.title ?? 'New Sudoku challenge',
-        body: message.notification?.body ??
+        body:
+            message.notification?.body ??
             'A player challenged you. Open Sudoku Duel to respond.',
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
@@ -229,7 +248,9 @@ class PushNotificationService {
   }
 
   Future<void> _registerToken(String token) async {
-    if (!enabled.value || !SocialApiClient.instance.configured || token.isEmpty) {
+    if (!enabled.value ||
+        !SocialApiClient.instance.configured ||
+        token.isEmpty) {
       return;
     }
     final platform = !kIsWeb && Platform.isIOS ? 'ios' : 'android';

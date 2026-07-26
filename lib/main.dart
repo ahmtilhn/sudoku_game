@@ -25,14 +25,10 @@ Future<void> main() async {
       ),
     );
     unawaited(
-      _initializeOptionalService(
-        'Firebase and push notifications',
-        () async {
-          await FirebaseServices.instance.initialize();
-          await PushNotificationService.instance.initialize();
-        },
-        timeout: const Duration(seconds: 45),
-      ),
+      _initializeOptionalService('Firebase and push notifications', () async {
+        await FirebaseServices.instance.initialize();
+        await PushNotificationService.instance.initialize();
+      }, timeout: const Duration(seconds: 45)),
     );
     unawaited(
       _initializeOptionalService(

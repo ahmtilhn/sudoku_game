@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name" translatable="false">Sudoku Duel</string>
     <string name="settings">Settings</string>
@@ -101,4 +101,20 @@
     <string name="board_label" formatted="false">%1$d by %1$d Sudoku board</string>
     <string name="cell_label" formatted="false">Row %1$d, column %2$d, %3$s</string>
     <string name="empty">Empty</string>
+    <string name="notifications">Notifications</string>
+    <string name="daily_sudoku_challenges">Daily Sudoku challenges</string>
+    <string name="daily_sudoku_challenges_subtitle">Three optional reminders each day at 09:00, 15:00, and 20:30. You can turn them off at any time.</string>
+    <string name="daily_reminder_permission_denied">Notification permission was not granted. Daily reminders remain off.</string>
+    <string name="online_challenge_notifications">Online challenge notifications</string>
+    <string name="online_challenge_notifications_subtitle">Shows friend and challenge invitations on this device. You can turn this off at any time.</string>
+    <string name="online_challenge_notifications_unavailable">Challenge notifications require Firebase and the social backend to be configured.</string>
+    <string name="challenge_notification_permission_denied">Notification permission was not granted. Online challenge notifications remain off.</string>
+    <string name="privacy">Privacy</string>
+    <string name="analytics_sharing">Analytics sharing</string>
+    <string name="analytics_sharing_subtitle">Allows anonymous usage analytics to help improve Sudoku Duel.</string>
+    <string name="crash_reports_sharing">Crash reports sharing</string>
+    <string name="crash_reports_sharing_subtitle">Sends crash diagnostics when something fails.</string>
+    <string name="ad_privacy">Ad privacy</string>
+    <string name="ad_privacy_choices">Ad privacy choices</string>
+    <string name="ad_privacy_choices_subtitle">Review or change the privacy choices used for advertising.</string>
 </resources>

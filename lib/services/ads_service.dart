@@ -22,16 +22,14 @@ class AdsService {
 
   final FacebookAppEvents _facebookEvents = FacebookAppEvents();
   final ValueNotifier<bool> adsAvailable = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> privacyOptionsRequired =
-      ValueNotifier<bool>(false);
+  final ValueNotifier<bool> privacyOptionsRequired = ValueNotifier<bool>(false);
 
   RewardedAd? _rewardedAd;
   Completer<void>? _rewardedLoadCompleter;
   bool _initializing = false;
   bool _mobileAdsInitialized = false;
 
-  bool get _supported =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  bool get _supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   String get _rewardedAdUnitId {
     if (Platform.isAndroid) {
