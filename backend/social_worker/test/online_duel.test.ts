@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyForfeit,
+  applyDueDeadlines,
   applyMove,
   applyRating,
   applyReady,
   createInitialDuelState,
   eloDelta,
+  markConnected,
+  markDisconnected,
   snapshot,
 } from '../src/online_duel';
 
@@ -111,6 +114,76 @@ describe('authoritative online duel engine', () => {
     expect(duel.status).toBe('forfeited');
     expect(duel.winnerSeat).toBe('B');
     expect(duel.finishReason).toBe('explicit_forfeit');
+  });
+
+  it('rejects invalid, fixed, and filled cell moves', () => {
+    const duel = state();
+    applyReady(duel, 'A', 1_001);
+    applyReady(duel, 'B', 1_002);
+    const seat = duel.currentTurnSeat;
+    const fixed = duel.puzzle.findIndex((value) => value !== 0);
+    const empty = duel.puzzle.findIndex((value) => value === 0);
+
+    expect(applyMove(duel, seat, 'bad-index', duel.revision, -1, 1, 1_003).at(-1)?.payload.reason).toBe('invalid_cell');
+    expect(applyMove(duel, seat, 'bad-value', duel.revision, empty, 10, 1_004).at(-1)?.payload.reason).toBe('invalid_value');
+    expect(applyMove(duel, seat, 'fixed', duel.revision, fixed, duel.solution[fixed], 1_005).at(-1)?.payload.reason).toBe('cell_locked');
+
+    applyMove(duel, seat, 'correct-filled', duel.revision, empty, duel.solution[empty], 1_006);
+    const other = seat === 'A' ? 'B' : 'A';
+    expect(applyMove(duel, other, 'filled', duel.revision, empty, duel.solution[empty], 1_007).at(-1)?.payload.reason).toBe('cell_locked');
+  });
+
+  it('server timeout advances turn without changing score', () => {
+    const duel = state();
+    applyReady(duel, 'A', 1_001);
+    applyReady(duel, 'B', 1_002);
+    const seat = duel.currentTurnSeat;
+    const before = { ...duel.scores };
+
+    const events = applyDueDeadlines(duel, 11_003);
+
+    expect(events.map((event) => event.type)).toContain('turn_timeout');
+    expect(duel.currentTurnSeat).not.toBe(seat);
+    expect(duel.scores).toEqual(before);
+    expect(duel.timeouts[seat]).toBe(1);
+  });
+
+  it('disconnect grace allows reconnect before forfeit', () => {
+    const duel = state();
+    applyReady(duel, 'A', 1_001);
+    applyReady(duel, 'B', 1_002);
+    markConnected(duel, 'A', 1_003);
+    markDisconnected(duel, 'A', 1_004);
+    expect(duel.playerA.disconnectDeadline).toBeGreaterThan(1_004);
+
+    markConnected(duel, 'A', 2_000);
+    applyDueDeadlines(duel, 50_000);
+
+    expect(duel.status).toBe('active');
+    expect(duel.playerA.disconnectDeadline).toBeNull();
+  });
+
+  it('disconnect grace expiry forfeits to the opponent', () => {
+    const duel = state();
+    applyReady(duel, 'A', 1_001);
+    applyReady(duel, 'B', 1_002);
+    markDisconnected(duel, 'A', 1_003);
+
+    applyDueDeadlines(duel, 50_000);
+
+    expect(duel.status).toBe('forfeited');
+    expect(duel.winnerSeat).toBe('B');
+    expect(duel.finishReason).toBe('disconnect_forfeit');
+  });
+
+  it('uses a backend-only puzzle bank with valid clue ranges', () => {
+    const duel = state();
+    const clues = duel.puzzle.filter((value) => value !== 0).length;
+
+    expect(duel.puzzleId).toContain('medium-');
+    expect(clues).toBeGreaterThanOrEqual(32);
+    expect(clues).toBeLessThanOrEqual(35);
+    expect(snapshot(duel, 'A', 1_000)).not.toHaveProperty('solution');
   });
 
   it('calculates Elo deltas and clamps rating bounds', () => {
