@@ -103,7 +103,7 @@ export default {
         return reply(env, {
           service: 'sudoku-duel-social',
           protocolVersion: 1,
-          schemaVersion: 2,
+          schemaVersion: 3,
           buildCommit: env.BUILD_COMMIT || 'local',
           environment: env.ENVIRONMENT || 'local',
         });
