@@ -7,13 +7,14 @@
 - Work branch: `codex-authoritative-online-duel`
 - End commit: this report's PR head commit
 - Base PR: #21, not merged during this work
-- Decision: `NOT READY FOR TWO-DEVICE STAGING TEST`
+- Decision: `READY FOR TWO-DEVICE STAGING TEST`
 
-The branch adds a server-authoritative online duel vertical slice, but it has
-not passed a deployed two-socket/two-device staging test with real Firebase ID
-tokens. Production-ready is also false until Cloudflare deployment, App Check
-verification, abuse testing, policy updates, and physical-device validation are
-complete.
+The branch now has the code-side gates needed to start a two-device staging
+test: full smoke scripts, local/mock two-client protocol tests, App Check
+verifier tests, verified backend-only puzzle bank, settlement retry tests,
+Flutter transport tests, staging build tooling, and passing typecheck/analyze
+test commands. This does not mean Cloudflare staging was deployed or production
+is ready.
 
 ## Changed Areas
 
@@ -24,6 +25,8 @@ complete.
 - Localization across Dart, Android, and iOS catalog
 - Backend and Flutter automated tests
 - Cloudflare example config and documentation
+- Production-grade App Check verifier and staging preflight tools
+- Backend-only ranked puzzle bank: 100 verified puzzles
 
 ## Backend Endpoints
 
@@ -48,11 +51,10 @@ Server events: `connected`, `snapshot`, `player_presence`, `player_ready`,
 
 ## Puzzle System
 
-Ranked puzzle generation is backend-only and the solution remains inside the
-Durable Object state. The Flutter model has no solution field. The current
-puzzle generator is deterministic from server randomness and clue count; a
-larger curated static puzzle bank with offline uniqueness-generation reporting
-is still recommended before production.
+Ranked puzzle selection is backend-only from `src/ranked_puzzles/*.json`.
+There are 20 verified puzzles for each difficulty, 100 total. The solution
+remains inside the Worker bundle and Durable Object state. Public snapshots and
+Flutter models do not include solution.
 
 ## Timer and Reconnect
 
@@ -63,8 +65,10 @@ Client UI displays server snapshots only. Disconnect grace is bounded per seat.
 
 Settlement is server-triggered for completed, forfeited, or cancelled matches.
 Ranked matches update global and difficulty rating scopes with Elo. Friendly
-matches do not change rating. Settlement has an idempotency marker, but remote
-retry/failure-mode testing is still required before production.
+matches do not change rating. The DO now checks `match_settlements` before
+applying changes, and local failure-mode tests cover retry after each modeled
+settlement step. Remote failure-mode testing is still required before
+production.
 
 ## Flutter UI
 
@@ -74,25 +78,28 @@ retry/failure-mode testing is still required before production.
 - Challenge accept opens `OnlineDuelScreen`
 - Leaderboards screen with Global and difficulty tabs
 - App Check token header is sent when available
+- Header unit tests verify Firebase Auth and App Check tokens are not mixed
 
 ## Validation Results
 
 - `npm install`: passed, 0 vulnerabilities
 - `npm run typecheck`: passed
-- `npm test`: passed, 7 backend tests
+- `npm test`: passed, 31 backend tests
+- `npm run puzzles:verify`: passed, 100 puzzles
 - `npm run db:local`: passed with `wrangler.example.toml`
-- `dart format lib test`: passed
+- `dart format --set-exit-if-changed lib test`: passed
 - `python tool/validate_localizations.py`: passed, 139 keys
+- `python tool/validate_translation_quality.py`: passed, 22 online keys
 - `flutter analyze`: passed
-- `flutter test --concurrency=1 --timeout 90s -r expanded`: passed, 22 tests
+- `flutter test --concurrency=1 --timeout 120s -r expanded`: passed, 24 tests
 - `flutter build apk --debug`: passed
-- `flutter build appbundle --release`: passed
+- `powershell -ExecutionPolicy Bypass -File ./tool/build_online_staging.ps1 -BackendUrl "https://example.invalid"`: passed as script validation build only
 
 ## AAB
 
 - Path: `build/app/outputs/bundle/release/app-release.aab`
-- Size: `69267568`
-- File SHA-256: `D19C0880A14E41DB84AFA9808D5BD4C9F2C6C8BFABA835E2C44E9E693015979D`
+- Size: `69267934`
+- File SHA-256: `DB511A9D8D824EC87DEAF903AF5FE36DC627673F77FFD99CE091E565EF4A445C`
 - Signing SHA-1: `D4:EA:36:D4:6C:F9:58:07:45:6B:A3:6D:28:1D:6A:DC:6D:2C:E9:48`
 - Signing SHA-256: `4D:F5:C2:09:68:EE:BD:F9:A2:09:EA:B5:D9:D4:34:40:46:59:AE:81:35:C2:A4:87:85:97:49:EB:F7:66:ED:81`
 - Version: `0.1.0+4`
@@ -103,13 +110,12 @@ retry/failure-mode testing is still required before production.
   or APNs key was added.
 - Public snapshots exclude solution and private identifiers.
 - Offline/local Sudoku remains independent from online services.
-- App Check enforcement remains disabled by default.
+- App Check enforcement remains disabled by default until staging metrics pass.
+- App Check verifier validates RS256, issuer, audience, expiry, and allowed app IDs.
 
 ## Unresolved Issues
 
-- No deployed Cloudflare staging validation.
-- No real two Firebase ID token WebSocket smoke test.
-- App Check backend verification is not production-proven.
-- Puzzle bank should be expanded into a curated verified data set before launch.
-- Settlement retry needs remote failure-mode validation.
+- No deployed Cloudflare staging validation was performed.
+- Real `npm run smoke:two-player` and `npm run smoke:ranked` were not executed because staging URL and real Firebase/App Check tokens were not provided.
+- Production-ready remains blocked by Cloudflare deployment, remote D1 migration, physical-device testing, App Check metrics/enforcement, abuse tests, monitoring, and policy updates.
 

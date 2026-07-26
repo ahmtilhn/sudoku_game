@@ -1182,127 +1182,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Bağlandı"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Verbunden"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Connecté"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Conectado"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Conectado"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Connesso"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Verbonden"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Połączono"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Подключено"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Підключено"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "متصل"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "कनेक्टेड"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Terhubung"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "接続済み"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "연결됨"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "已连接"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "已連線"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "เชื่อมต่อแล้ว"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "Đã kết nối"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "সংযুক্ত"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected"
+            "value": "منسلک"
           }
         }
       }
@@ -1318,127 +1318,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Teslim ol ve ayrıl"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Aufgeben und verlassen"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Abandonner et quitter"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Rendirse y salir"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Desistir e sair"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Arrenditi ed esci"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Opgeven en verlaten"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Poddaj i wyjdź"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Сдаться и выйти"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Здатися й вийти"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "استسلم وغادر"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "हार मानें और छोड़ें"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Menyerah dan keluar"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "投了して退出"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "기권하고 나가기"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "认输并离开"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "認輸並離開"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "ยอมแพ้และออก"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "Đầu hàng và rời đi"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "হার মেনে বের হন"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit and leave"
+            "value": "ہار مان کر نکلیں"
           }
         }
       }
@@ -1454,7 +1454,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "Genel"
           }
         },
         "de": {
@@ -1484,43 +1484,43 @@
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "Globale"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "Globaal"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "Globalny"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "Общий"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "Загальний"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "عام"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "वैश्विक"
           }
         },
         "id": {
@@ -1532,49 +1532,49 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "全体"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "전체"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "全局"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "全域"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "รวม"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "Toàn cầu"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "গ্লোবাল"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global"
+            "value": "عالمی"
           }
         }
       }
@@ -1590,127 +1590,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Henüz liderlik kaydı yok."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Noch keine Einträge in der Bestenliste."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Aucune entrée de classement pour le moment."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Aún no hay entradas en la clasificación."
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Ainda não há entradas no placar."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Non ci sono ancora voci in classifica."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Nog geen vermeldingen in het klassement."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Brak wpisów w rankingu."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Записей в таблице лидеров пока нет."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "У таблиці лідерів ще немає записів."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "لا توجد إدخالات في لوحة الصدارة بعد."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "अभी कोई लीडरबोर्ड प्रविष्टि नहीं है।"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Belum ada entri papan peringkat."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "ランキング項目はまだありません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "아직 순위표 항목이 없습니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "暂无排行榜记录。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "尚無排行榜紀錄。"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "ยังไม่มีรายการบนกระดานผู้นำ"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "Chưa có mục nào trên bảng xếp hạng."
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "এখনও কোনো লিডারবোর্ড এন্ট্রি নেই।"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "No leaderboard entries yet."
+            "value": "ابھی کوئی لیڈر بورڈ اندراج نہیں ہے۔"
           }
         }
       }
@@ -1726,127 +1726,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d maç · %2d%% kazanma oranı"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d Spiele · %2d%% Siegquote"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d parties · %2d%% de victoires"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d partidas · %2d%% de victorias"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d jogos · %2d%% de vitórias"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d partite · %2d%% vittorie"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d spellen · %2d%% winst"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d gier · %2d%% wygranych"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d игр · %2d%% побед"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d ігор · %2d%% перемог"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d مباريات · نسبة فوز %2d%%"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d खेल · %2d%% जीत दर"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d game · %2d%% menang"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d試合 · 勝率%2d%%"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d게임 · 승률 %2d%%"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d 场 · %2d%% 胜率"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d 場 · %2d%% 勝率"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d เกม · ชนะ %2d%%"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d trận · thắng %2d%%"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d ম্যাচ · %2d%% জয়"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d میچ · %2d%% جیت"
           }
         }
       }
@@ -1862,127 +1862,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Liderlik tabloları"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Bestenlisten"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Classements"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Clasificaciones"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Placares"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Classifiche"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Klassementen"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Rankingi"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Таблицы лидеров"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Таблиці лідерів"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "لوحات الصدارة"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "लीडरबोर्ड"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Papan peringkat"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "ランキング"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "순위표"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "排行榜"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "排行榜"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "กระดานผู้นำ"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "Bảng xếp hạng"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "লিডারবোর্ড"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboards"
+            "value": "لیڈر بورڈز"
           }
         }
       }
@@ -1998,127 +1998,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Online düello bağlantısı başarısız: %1s"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Online-Duell-Verbindung fehlgeschlagen: %1s"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Échec de connexion au duel en ligne : %1s"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Falló la conexión del duelo en línea: %1s"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Falha na conexão do duelo online: %1s"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Connessione al duello online non riuscita: %1s"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Online duelverbinding mislukt: %1s"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Połączenie pojedynku online nie powiodło się: %1s"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Ошибка подключения к онлайн-дуэли: %1s"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Помилка підключення до онлайн-дуелі: %1s"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "فشل اتصال النزال عبر الإنترنت: %1s"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "ऑनलाइन मुकाबला कनेक्शन विफल: %1s"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Koneksi duel online gagal: %1s"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "オンライン対戦への接続に失敗しました: %1s"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "온라인 대전 연결 실패: %1s"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "在线对局连接失败：%1s"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "線上對局連線失敗：%1s"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "การเชื่อมต่อดวลออนไลน์ล้มเหลว: %1s"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "Kết nối đấu trực tuyến thất bại: %1s"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "অনলাইন ডুয়েল সংযোগ ব্যর্থ: %1s"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel connection failed: %1s"
+            "value": "آن لائن مقابلہ کنکشن ناکام: %1s"
           }
         }
       }
@@ -2134,127 +2134,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Final skor: %1d - %2d"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Endstand: %1d - %2d"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Score final : %1d - %2d"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Puntuación final: %1d - %2d"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Placar final: %1d - %2d"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Punteggio finale: %1d - %2d"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Eindscore: %1d - %2d"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Wynik końcowy: %1d - %2d"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Итоговый счет: %1d - %2d"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Фінальний рахунок: %1d - %2d"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "النتيجة النهائية: %1d - %2d"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "अंतिम स्कोर: %1d - %2d"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Skor akhir: %1d - %2d"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "最終スコア: %1d - %2d"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "최종 점수: %1d - %2d"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "最终比分：%1d - %2d"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "最終比分：%1d - %2d"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "คะแนนสุดท้าย: %1d - %2d"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "Điểm cuối: %1d - %2d"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "চূড়ান্ত স্কোর: %1d - %2d"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score: %1d — %2d"
+            "value": "حتمی اسکور: %1d - %2d"
           }
         }
       }
@@ -2270,127 +2270,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Aktif bir online düellodan ayrılmak maçı rakibine kazandırır."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Wenn du ein aktives Online-Duell verlässt, gewinnt dein Gegner."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Quitter un duel en ligne actif donne la victoire à votre adversaire."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Salir de un duelo en línea activo da la victoria a tu rival."
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Sair de um duelo online ativo dá a vitória ao oponente."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Uscire da un duello online attivo assegna la vittoria all’avversario."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Als je een actief online duel verlaat, wint je tegenstander."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Opuszczenie aktywnego pojedynku online daje zwycięstwo przeciwnikowi."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Выход из активной онлайн-дуэли отдаст победу сопернику."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Вихід з активної онлайн-дуелі віддасть перемогу супернику."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "مغادرة نزال نشط عبر الإنترنت تمنح الفوز لخصمك."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "सक्रिय ऑनलाइन मुकाबला छोड़ने पर जीत प्रतिद्वंद्वी को मिलेगी।"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Keluar dari duel online aktif memberikan kemenangan kepada lawan."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "進行中のオンライン対戦を離れると相手の勝利になります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "진행 중인 온라인 대전을 나가면 상대가 승리합니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "离开进行中的在线对局会让对手获胜。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "離開進行中的線上對局會讓對手獲勝。"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "การออกจากดวลออนไลน์ที่กำลังเล่นอยู่จะให้คู่แข่งชนะ"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "Rời trận đấu trực tuyến đang diễn ra sẽ trao chiến thắng cho đối thủ."
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "চলমান অনলাইন ডুয়েল ছাড়লে প্রতিপক্ষ জিতে যাবে।"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaving an active online duel forfeits the match to your opponent."
+            "value": "فعال آن لائن مقابلہ چھوڑنے سے حریف جیت جائے گا۔"
           }
         }
       }
@@ -2406,127 +2406,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Maçtan çekilmek istiyor musun?"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Match aufgeben?"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Abandonner la partie ?"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "¿Rendirse en la partida?"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Desistir da partida?"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Vuoi arrenderti?"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Match opgeven?"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Poddasz mecz?"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Сдаться в матче?"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Здатися в матчі?"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "هل تريد الانسحاب من المباراة؟"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "मैच छोड़ना है?"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Menyerah dari pertandingan?"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "対戦を投了しますか？"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "매치를 기권할까요?"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "要认输本局吗？"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "要認輸本局嗎？"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "ยอมแพ้แมตช์หรือไม่"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "Đầu hàng trận này?"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "ম্যাচে হার মানবেন?"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forfeit match?"
+            "value": "میچ چھوڑنا چاہتے ہیں؟"
           }
         }
       }
@@ -2542,127 +2542,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Tur %1d"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Zug %1d"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Tour %1d"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Turno %1d"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Turno %1d"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Turno %1d"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Beurt %1d"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Tura %1d"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Ход %1d"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Хід %1d"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "الدور %1d"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "चाल %1d"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Giliran %1d"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "ターン%1d"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "턴 %1d"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "第 %1d 回合"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "第 %1d 回合"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "ตาที่ %1d"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Lượt %1d"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "টার্ন %1d"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "باری %1d"
           }
         }
       }
@@ -2678,127 +2678,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Sunucu anlık durumu bekleniyor…"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Warte auf Server-Snapshot…"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "En attente de l’instantané du serveur…"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Esperando el estado del servidor…"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Aguardando o estado do servidor…"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "In attesa dello snapshot del server…"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Wachten op servermomentopname…"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Oczekiwanie na migawkę serwera…"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Ожидание снимка состояния сервера…"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Очікування знімка стану сервера…"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "بانتظار لقطة حالة الخادم…"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "सर्वर स्नैपशॉट की प्रतीक्षा…"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Menunggu snapshot server…"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "サーバー状態を待機中…"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "서버 스냅샷 대기 중…"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "正在等待服务器快照…"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "正在等待伺服器快照…"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "กำลังรอสแนปชอตจากเซิร์ฟเวอร์…"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "Đang chờ ảnh trạng thái máy chủ…"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "সার্ভার স্ন্যাপশটের অপেক্ষা…"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the server snapshot…"
+            "value": "سرور اسنیپ شاٹ کا انتظار…"
           }
         }
       }
@@ -2814,127 +2814,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Genel rating: %1d -> %2d (%3d)"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Gesamtwertung: %1d -> %2d (%3d)"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Classement global : %1d -> %2d (%3d)"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Rating global: %1d -> %2d (%3d)"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Rating global: %1d -> %2d (%3d)"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Valutazione globale: %1d -> %2d (%3d)"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Globale rating: %1d -> %2d (%3d)"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Ocena globalna: %1d -> %2d (%3d)"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Общий рейтинг: %1d -> %2d (%3d)"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Загальний рейтинг: %1d -> %2d (%3d)"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "التقييم العام: %1d -> %2d (%3d)"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "वैश्विक रेटिंग: %1d -> %2d (%3d)"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Rating global: %1d -> %2d (%3d)"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "全体レート: %1d -> %2d (%3d)"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "전체 레이팅: %1d -> %2d (%3d)"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "全局评分：%1d -> %2d (%3d)"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "全域評分：%1d -> %2d (%3d)"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "เรตติ้งรวม: %1d -> %2d (%3d)"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "Xếp hạng toàn cầu: %1d -> %2d (%3d)"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "গ্লোবাল রেটিং: %1d -> %2d (%3d)"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global rating: %1d → %2d (%3d)"
+            "value": "عالمی ریٹنگ: %1d -> %2d (%3d)"
           }
         }
       }
@@ -2950,127 +2950,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Hazır"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Bereit"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Prêt"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Listo"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Pronto"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Pronto"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Klaar"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Gotowe"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Готов"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Готово"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "جاهز"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "तैयार"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Siap"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "準備完了"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "준비"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "准备好"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "準備好"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "พร้อม"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "Sẵn sàng"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "প্রস্তুত"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready"
+            "value": "تیار"
           }
         }
       }
@@ -3086,127 +3086,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Yeniden bağlanıyor"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Verbindet erneut"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Reconnexion"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Reconectando"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Reconectando"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Riconnessione"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Opnieuw verbinden"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Ponowne łączenie"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Повторное подключение"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Повторне підключення"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "إعادة الاتصال"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "फिर से कनेक्ट हो रहा है"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Menghubungkan ulang"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "再接続中"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "재연결 중"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "正在重新连接"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "正在重新連線"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "กำลังเชื่อมต่อใหม่"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "Đang kết nối lại"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "পুনরায় সংযোগ হচ্ছে"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reconnecting"
+            "value": "دوبارہ جڑ رہا ہے"
           }
         }
       }
@@ -3222,127 +3222,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Yenile"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Aktualisieren"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Actualiser"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Actualizar"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Atualizar"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Aggiorna"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Vernieuwen"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Odśwież"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Обновить"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Оновити"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "تحديث"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "ताज़ा करें"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Segarkan"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "更新"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "새로고침"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "刷新"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "重新整理"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "รีเฟรช"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "Làm mới"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "রিফ্রেশ"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refresh"
+            "value": "تازہ کریں"
           }
         }
       }
@@ -3358,127 +3358,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Kal"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Bleiben"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Rester"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Quedarse"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Ficar"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Resta"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Blijven"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Zostań"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Остаться"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Залишитися"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "البقاء"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "रुकें"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Tetap"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "残る"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "머무르기"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "留下"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "留下"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "อยู่ต่อ"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "Ở lại"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "থাকুন"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stay"
+            "value": "رکیں"
           }
         }
       }
@@ -3494,127 +3494,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Ranked kuyruğundasın. Uygulama birkaç saniyede bir eşleşme kontrol eder."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Du bist in der Ranglisten-Warteschlange. Die App prüft alle paar Sekunden auf ein Match."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Vous êtes dans la file classée. L’app vérifie une partie toutes les quelques secondes."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Estás en la cola clasificatoria. La app busca partida cada pocos segundos."
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Você está na fila ranqueada. O app verifica uma partida a cada poucos segundos."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Sei nella coda classificata. L’app controlla una partita ogni pochi secondi."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Je staat in de ranked wachtrij. De app controleert elke paar seconden op een match."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Jesteś w kolejce rankingowej. Aplikacja co kilka sekund sprawdza dopasowanie."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Вы в рейтинговой очереди. Приложение проверяет матч каждые несколько секунд."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Ви в рейтинговій черзі. Застосунок перевіряє матч кожні кілька секунд."
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "أنت في قائمة الانتظار المصنفة. يتحقق التطبيق من وجود مباراة كل بضع ثوان."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "आप रैंक्ड कतार में हैं। ऐप हर कुछ सेकंड में मैच जांचता है।"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Anda berada di antrean peringkat. Aplikasi memeriksa pertandingan setiap beberapa detik."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "ランク戦の待機列にいます。数秒ごとに対戦を確認します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "랭크 대기열에 있습니다. 앱이 몇 초마다 매치를 확인합니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "你已进入排位队列。应用每隔几秒检查一次匹配。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "你已進入排名佇列。應用程式每隔幾秒檢查一次配對。"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "คุณอยู่ในคิวจัดอันดับ แอปจะตรวจหาคู่แข่งทุกไม่กี่วินาที"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "Bạn đang ở hàng chờ xếp hạng. Ứng dụng kiểm tra trận sau vài giây."
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "আপনি র‍্যাঙ্কড সারিতে আছেন। অ্যাপ কয়েক সেকেন্ড পরপর ম্যাচ খোঁজে।"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are in the ranked queue. The app checks for a match every few seconds."
+            "value": "آپ رینکڈ قطار میں ہیں۔ ایپ ہر چند سیکنڈ بعد میچ چیک کرتی ہے۔"
           }
         }
       }
@@ -3630,127 +3630,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Kaybettin"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Du hast verloren"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Vous avez perdu"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Perdiste"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Você perdeu"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Hai perso"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Je hebt verloren"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Przegrałeś"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Вы проиграли"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Ви програли"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "لقد خسرت"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "आप हार गए"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Anda kalah"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "敗北しました"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "패배했습니다"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "你输了"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "你輸了"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "คุณแพ้"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "Bạn đã thua"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "আপনি হেরেছেন"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "You lost"
+            "value": "آپ ہار گئے"
           }
         }
       }
@@ -3766,127 +3766,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Kazandın!"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Du hast gewonnen!"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Vous avez gagné !"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "¡Ganaste!"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Você venceu!"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Hai vinto!"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Je hebt gewonnen!"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Wygrałeś!"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Вы выиграли!"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Ви перемогли!"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "لقد فزت!"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "आप जीत गए!"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Anda menang!"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "勝利しました！"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "승리했습니다!"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "你赢了！"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "你贏了！"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "คุณชนะ!"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "Bạn đã thắng!"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "আপনি জিতেছেন!"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "You won!"
+            "value": "آپ جیت گئے!"
           }
         }
       }
@@ -3902,127 +3902,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Sıra sende"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Du bist am Zug"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "À vous de jouer"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Tu turno"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Sua vez"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Tocca a te"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Jouw beurt"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Twoja tura"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Ваш ход"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Ваш хід"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "دورك"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "आपकी बारी"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Giliran Anda"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "あなたの番"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "내 차례"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "轮到你了"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "輪到你了"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "ตาคุณ"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "Đến lượt bạn"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "আপনার পালা"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your turn"
+            "value": "آپ کی باری"
           }
         }
       }
@@ -4038,127 +4038,127 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Rakibin sırası"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Gegner ist am Zug"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Tour de l’adversaire"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Turno del rival"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Vez do oponente"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Tocca all’avversario"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Beurt van tegenstander"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Tura przeciwnika"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Ход соперника"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Хід суперника"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "دور الخصم"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "प्रतिद्वंद्वी की बारी"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Giliran lawan"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "相手の番"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "상대 차례"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "对手回合"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "對手回合"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "ตาคู่แข่ง"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "Lượt của đối thủ"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "প্রতিপক্ষের পালা"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent's turn"
+            "value": "حریف کی باری"
           }
         }
       }

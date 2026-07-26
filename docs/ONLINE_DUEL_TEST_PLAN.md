@@ -4,12 +4,25 @@
 
 - `npm run typecheck`
 - `npm test`
+- `npm run puzzles:verify`
 - `npm run db:local`
+- `npm run smoke:two-player` with real staging tokens
+- `npm run smoke:ranked` with real staging tokens
 - `python tool/validate_localizations.py`
+- `python tool/validate_translation_quality.py`
 - `flutter analyze`
 - `flutter test --concurrency=1 --timeout 90s -r expanded`
 - `flutter build apk --debug`
-- `flutter build appbundle --release`
+- `tool/build_online_staging.ps1 -BackendUrl "https://REAL-STAGING-WORKER"`
+
+Current local results:
+
+- Backend tests: 31 passed.
+- Flutter tests: 24 passed.
+- Puzzle bank: 100 backend-only ranked puzzles verified.
+- Translation quality: 22 online keys verified across supported locales.
+- Staging build script: passed with `https://example.invalid` as script
+  validation only, not as a real staging AAB.
 
 ## Staging Tests Required
 
@@ -21,6 +34,9 @@
 6. Verify challenge accept, WebSocket connect, ready, correct move, wrong move,
    duplicate request, stale revision, reconnect, explicit forfeit, settlement,
    history, ratings, and leaderboards.
+7. Run `npm run smoke:two-player`.
+8. Run `npm run smoke:ranked`.
+9. Run `tool/verify_online_aab.ps1` on the staging AAB.
 
 ## Abuse Tests
 

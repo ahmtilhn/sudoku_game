@@ -93,6 +93,61 @@ Doğrulama:
 Yapılmazsa:
 Online UI hata gösterir, offline oyun devam eder.
 
+## Staging preflight araçları
+
+Neden gerekli:
+İki cihaz testine başlamadan önce local kod, config, health/version endpointleri,
+puzzle bankası ve çeviriler aynı kapıdan doğrulanmalıdır.
+
+Nerede:
+`tool/online_duel_staging_preflight.ps1`
+
+Adımlar:
+1. Gerçek HTTPS staging Worker URL'sini hazırla.
+2. `powershell -ExecutionPolicy Bypass -File .\tool\online_duel_staging_preflight.ps1 -BackendUrl "https://..."` çalıştır.
+3. Placeholder uyarılarını gider.
+4. `/health` ve `/version` sonuçlarını doğrula.
+
+Beklenen sonuç:
+Preflight secret değeri yazdırmadan tamamlanır.
+
+Doğrulama:
+Script backend tests, puzzle verify, localization quality, Flutter analyze/test
+ve endpoint kontrollerini raporlar.
+
+Yapılmazsa:
+İki cihaz testine eksik config ile başlanabilir.
+
+## Otomatik iki oyunculu smoke test
+
+Neden gerekli:
+REST + WebSocket + settlement + leaderboard akışını gerçek staging backend'de
+iki Firebase hesabıyla kanıtlar.
+
+Nerede:
+`backend/social_worker/scripts/two_player_duel_smoke.ts` ve
+`backend/social_worker/scripts/ranked_duel_smoke.ts`
+
+Adımlar:
+1. `SOCIAL_BACKEND_URL` değerini staging Worker URL'si yap.
+2. `PLAYER_A_ID_TOKEN` ve `PLAYER_B_ID_TOKEN` değerlerini güvenli shell
+   environment olarak ver.
+3. Varsa `PLAYER_A_APP_CHECK_TOKEN` ve `PLAYER_B_APP_CHECK_TOKEN` ekle.
+4. Token değerlerini loglama.
+5. `npm run smoke:two-player` çalıştır.
+6. `npm run smoke:ranked` çalıştır.
+
+Beklenen sonuç:
+İki script de `PASS` ile biter; yalnız kısaltılmış match hash, revision ve
+result yazar.
+
+Doğrulama:
+Exit code `0`, Worker logs ve D1 match/history/rating kayıtları tutarlı.
+
+Yapılmazsa:
+`READY FOR TWO-DEVICE STAGING TEST` kod kapısı geçilmiş olsa da staging ortamı
+kanıtlanmış sayılmaz.
+
 ## App Check
 
 Neden gerekli:
@@ -170,6 +225,8 @@ Staging-ready sayılmaz.
 |---|---|---:|---:|---|
 | P0 | Remote D1 migration | Evet | 30 dk | İki cihaz test |
 | P0 | Staging Worker deploy | Evet | 45 dk | İki cihaz test |
+| P0 | Staging preflight | Evet | 30 dk | İki cihaz test |
+| P0 | Two-player smoke scripts | Evet | 30 dk | İki cihaz test |
 | P0 | Staging URL ile AAB/internal test | Evet | 60 dk | İki cihaz test |
 | P0 | İki cihaz challenge/ranked smoke | Evet | 90 dk | Staging-ready |
 | P1 | App Check enforcement doğrulama | Evet | 60 dk | Production |
