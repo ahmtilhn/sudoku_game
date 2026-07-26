@@ -4,6 +4,7 @@ import {
   importPKCS8,
   jwtVerify,
 } from 'jose';
+import { AppCheckError, verifyAppCheckRequest } from './app_check';
 import {
   type ClientEnvelope,
   type DuelDifficulty,
@@ -33,7 +34,11 @@ export interface Env {
   FCM_CLIENT_EMAIL: string;
   FCM_PRIVATE_KEY: string;
   ALLOWED_ORIGIN: string;
+  FIREBASE_PROJECT_NUMBER?: string;
+  ALLOWED_APP_CHECK_APP_IDS?: string;
   REQUIRE_APP_CHECK?: string;
+  BUILD_COMMIT?: string;
+  ENVIRONMENT?: string;
 }
 
 type PlayerRow = {
@@ -93,7 +98,17 @@ export default {
       if (url.pathname === '/health') {
         return reply(env, { ok: true, service: 'sudoku-duel-social' });
       }
+      if (url.pathname === '/version') {
+        return reply(env, {
+          service: 'sudoku-duel-social',
+          protocolVersion: 1,
+          schemaVersion: 2,
+          buildCommit: env.BUILD_COMMIT || 'local',
+          environment: env.ENVIRONMENT || 'local',
+        });
+      }
 
+      await verifyAppCheckRequest(request, env);
       const uid = await authenticateFirebase(request, env);
       const player = await ensurePlayer(env, uid, null);
 
@@ -192,6 +207,9 @@ export default {
       }
       return corsResponse(env, response);
     } catch (error) {
+      if (error instanceof AppCheckError) {
+        return corsResponse(env, errorReply(env, 403, error.code));
+      }
       if (error instanceof HttpError) {
         return corsResponse(env, errorReply(env, error.status, error.message));
       }
@@ -1473,6 +1491,16 @@ export class GameRoom {
 
   private async settleIfNeeded(duel: DuelState): Promise<void> {
     if (duel.settled) return;
+    const existingSettlement = await this.env.DB.prepare(
+      'SELECT 1 FROM match_settlements WHERE match_id = ? LIMIT 1',
+    )
+      .bind(duel.matchId)
+      .first();
+    if (existingSettlement) {
+      duel.settled = true;
+      await this.persist();
+      return;
+    }
     duel.settlementAttempts++;
     const now = new Date().toISOString();
     const winnerId =

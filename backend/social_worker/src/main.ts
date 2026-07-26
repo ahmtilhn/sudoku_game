@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
+import { AppCheckError, verifyAppCheckRequest } from './app_check';
 import worker, { Env, GameRoom, MatchmakingQueue } from './index';
 
 export { GameRoom };
@@ -31,6 +32,7 @@ export default {
       request.method === 'GET'
     ) {
       try {
+        await verifyAppCheckRequest(request, env);
         const uid = await authenticateFirebase(request, env);
         const current = await env.DB.prepare(
           'SELECT id FROM players WHERE firebase_uid = ? LIMIT 1',
@@ -68,6 +70,9 @@ export default {
           })),
         });
       } catch (error) {
+        if (error instanceof AppCheckError) {
+          return json(env, 403, { error: error.code });
+        }
         return json(env, 401, {
           error: error instanceof Error ? error.message : 'Unauthorized.',
         });
@@ -88,6 +93,7 @@ async function connectRoomWithoutResponseWrapping(
   }
 
   try {
+    await verifyAppCheckRequest(request, env);
     const uid = await authenticateFirebase(request, env);
     const player = await env.DB.prepare(
       'SELECT id FROM players WHERE firebase_uid = ? LIMIT 1',
@@ -123,6 +129,9 @@ async function connectRoomWithoutResponseWrapping(
     // response would drop the Cloudflare WebSocket attachment.
     return stub.fetch(new Request(request.url, { method: 'GET', headers }));
   } catch (error) {
+    if (error instanceof AppCheckError) {
+      return json(env, 403, { error: error.code });
+    }
     return json(env, 401, {
       error: error instanceof Error ? error.message : 'Unauthorized.',
     });

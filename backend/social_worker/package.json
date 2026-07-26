@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke:two-player": "tsx scripts/two_player_duel_smoke.ts",
+    "smoke:ranked": "tsx scripts/ranked_duel_smoke.ts",
+    "puzzles:verify": "tsx scripts/verify_ranked_puzzles.ts",
     "db:local": "wrangler d1 migrations apply sudoku-duel-social --local --config wrangler.example.toml",
     "db:remote": "wrangler d1 migrations apply sudoku-duel-social --remote --config wrangler.toml"
   },
@@ -17,9 +19,11 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "latest",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10",
-    "wrangler": "^4.63.0"
+    "wrangler": "^4.63.0",
+    "ws": "^8.21.1"
   }
 }
