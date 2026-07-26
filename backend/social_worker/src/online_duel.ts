@@ -1,3 +1,5 @@
+import { selectRankedPuzzle } from './ranked_puzzle_bank';
+
 export type DuelDifficulty = 'beginner' | 'easy' | 'medium' | 'hard' | 'expert';
 export type DuelMode = 'friendly' | 'ranked';
 export type Seat = 'A' | 'B';
@@ -481,38 +483,11 @@ function rankedPuzzle(difficulty: DuelDifficulty, randomBytes: Uint8Array): {
   puzzle: number[];
   solution: number[];
 } {
-  const seed = randomBytes.reduce((acc, value, index) => acc + value * (index + 1), 0);
-  const solution = transformSolution(seed);
-  const clueCount = { beginner: 42, easy: 38, medium: 34, hard: 30, expert: 26 }[difficulty];
-  const puzzle = [...solution];
-  const order = shuffledIndexes(seed);
-  for (const index of order.slice(0, 81 - clueCount)) puzzle[index] = 0;
-  const id = `${difficulty}-${seed}`;
+  const selected = selectRankedPuzzle(difficulty, randomBytes);
   return {
-    id,
-    fingerprint: `${id}-${puzzle.join('').slice(0, 16)}`,
-    puzzle,
-    solution,
+    id: selected.id,
+    fingerprint: selected.fingerprint,
+    puzzle: selected.puzzle,
+    solution: selected.solution,
   };
-}
-
-function transformSolution(seed: number): number[] {
-  const base = Array.from({ length: 81 }, (_, index) => {
-    const row = Math.floor(index / 9);
-    const column = index % 9;
-    return ((row * 3 + Math.floor(row / 3) + column) % 9) + 1;
-  });
-  const digits = shuffledIndexes(seed + 17).slice(0, 9).map((value) => (value % 9) + 1);
-  return base.map((value) => digits[value - 1]);
-}
-
-function shuffledIndexes(seed: number): number[] {
-  const values = Array.from({ length: 81 }, (_, index) => index);
-  let state = seed || 1;
-  for (let index = values.length - 1; index > 0; index--) {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    const swap = state % (index + 1);
-    [values[index], values[swap]] = [values[swap], values[index]];
-  }
-  return values;
 }
