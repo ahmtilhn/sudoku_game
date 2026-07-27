@@ -1,0 +1,64 @@
+PODS:
+  - FBAudienceNetwork (6.21.1)
+  - Flutter (1.0.0)
+  - gma_mediation_meta (1.5.3):
+    - Flutter
+    - GoogleMobileAdsMediationFacebook (~> 6.21.1.1)
+  - gma_mediation_unity (1.9.0):
+    - Flutter
+    - GoogleMobileAdsMediationUnity (~> 4.19.0.0)
+  - Google-Mobile-Ads-SDK (13.6.0):
+    - GoogleUserMessagingPlatform (>= 1.1)
+  - GoogleMobileAdsMediationFacebook (6.21.1.1.1):
+    - FBAudienceNetwork (= 6.21.1)
+    - Google-Mobile-Ads-SDK (~> 13.4)
+  - GoogleMobileAdsMediationUnity (4.19.0.0):
+    - Google-Mobile-Ads-SDK (~> 13.3)
+    - UnityAds (= 4.19.0)
+  - GoogleUserMessagingPlatform (3.1.0)
+  - IronSourceAdQualitySDK (9.8.0)
+  - UnityAds (4.19.0):
+    - IronSourceAdQualitySDK (< 10.0.0)
+    - UnityCoherenceLib (= 0.1.0)
+  - UnityCoherenceLib (0.1.0)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - gma_mediation_meta (from `.symlinks/plugins/gma_mediation_meta/ios`)
+  - gma_mediation_unity (from `.symlinks/plugins/gma_mediation_unity/ios`)
+
+SPEC REPOS:
+  trunk:
+    - FBAudienceNetwork
+    - Google-Mobile-Ads-SDK
+    - GoogleMobileAdsMediationFacebook
+    - GoogleMobileAdsMediationUnity
+    - GoogleUserMessagingPlatform
+    - IronSourceAdQualitySDK
+    - UnityAds
+    - UnityCoherenceLib
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  gma_mediation_meta:
+    :path: ".symlinks/plugins/gma_mediation_meta/ios"
+  gma_mediation_unity:
+    :path: ".symlinks/plugins/gma_mediation_unity/ios"
+
+SPEC CHECKSUMS:
+  FBAudienceNetwork: 85d18a65c9e35bc426bd4664cf3ae2a1172d7b60
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  gma_mediation_meta: 4f3e70e89dfa1224f19bb7d27c0f5edd0d989e9a
+  gma_mediation_unity: fb9b4ecb5e6f75becd959a4ad1cdcc5fa45d4b09
+  Google-Mobile-Ads-SDK: 6e501ace4af8d63e967bd45497c8b2b05821163d
+  GoogleMobileAdsMediationFacebook: 4420c648e278f6821001048d1f152dd74245f759
+  GoogleMobileAdsMediationUnity: 404030848c15aa5b7a2add413275c087d06bdf2b
+  GoogleUserMessagingPlatform: befe603da6501006420c206222acd449bba45a9c
+  IronSourceAdQualitySDK: 4a35860414765500aafbddb7635ef50862052acf
+  UnityAds: 40804188247edc15e4e173450a749dbb2fbc61c5
+  UnityCoherenceLib: d9be08c5b9c2880cb220c7ecd643f97ebda422b7
+
+PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+
+COCOAPODS: 1.16.2
