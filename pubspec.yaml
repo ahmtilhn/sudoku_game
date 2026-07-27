@@ -26,6 +26,7 @@ dependencies:
   google_mobile_ads: ^9.0.0
   http: ^1.6.0
   in_app_purchase: ^3.3.0
+  in_app_purchase_android: ^0.5.2
   intl: any
   shared_preferences: ^2.5.3
   timezone: ^0.11.1
