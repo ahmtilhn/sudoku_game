@@ -1,5 +1,5 @@
 name = "sudoku-duel-social"
-main = "src/main.ts"
+main = "src/profile_wrapper.ts"
 compatibility_date = "2026-07-24"
 
 [vars]
@@ -11,6 +11,7 @@ ALLOWED_APP_CHECK_APP_IDS = "REPLACE_WITH_ANDROID_APP_ID,REPLACE_WITH_IOS_APP_ID
 REQUIRE_APP_CHECK = "false"
 BUILD_COMMIT = "local"
 ENVIRONMENT = "local"
+ALLOW_TEST_PURCHASE_GRANTS = "false"
 
 [[d1_databases]]
 binding = "DB"
