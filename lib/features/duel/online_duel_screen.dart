@@ -31,6 +31,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   bool _loading = true;
   bool _screenLoadedSent = false;
   Timer? _ticker;
+  Timer? _feedbackTimer;
   String? _shownResultFor;
 
   @override
@@ -48,6 +49,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     unawaited(_feedbackSubscription?.cancel());
     unawaited(_controller?.dispose());
     _ticker?.cancel();
+    _feedbackTimer?.cancel();
     super.dispose();
   }
 
@@ -71,16 +73,33 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       });
       final feedbackSubscription = controller.feedback.listen((feedback) {
         if (!mounted) return;
+
+        _feedbackTimer?.cancel();
         setState(() {
-          _feedbackCell = feedback.cellIndex;
-          if (feedback.accepted) _selectedIndex = null;
+          if (feedback.accepted) {
+            _selectedIndex = null;
+            _feedbackCell = null;
+          } else {
+            _feedbackCell = feedback.cellIndex;
+          }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(feedback.message),
-            duration: const Duration(seconds: 1),
-          ),
-        );
+
+        if (!feedback.accepted) {
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.clearSnackBars();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(feedback.message),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+
+        if (_feedbackCell != null) {
+          _feedbackTimer = Timer(const Duration(milliseconds: 650), () {
+            if (mounted) setState(() => _feedbackCell = null);
+          });
+        }
       });
       setState(() {
         _controller = controller;
@@ -191,7 +210,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: Text(context.tr('online_duel'))),
+        appBar: AppBar(
+          toolbarHeight: 48,
+          titleSpacing: 16,
+          title: Text(context.tr('online_duel')),
+        ),
         bottomNavigationBar: _snapshot == null
             ? null
             : NumberPadDock(
@@ -240,13 +263,14 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     );
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxHeight < 560;
+        final compact =
+            constraints.maxHeight < 520 || constraints.maxWidth < 380;
         return Padding(
           padding: EdgeInsets.fromLTRB(
-            12,
-            compact ? 4 : 8,
-            12,
-            compact ? 6 : 10,
+            compact ? 8 : 12,
+            compact ? 3 : 8,
+            compact ? 8 : 12,
+            compact ? 3 : 10,
           ),
           child: Column(
             children: [
@@ -256,6 +280,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                 snapshot: snapshot,
                 readySeconds: _secondsUntil(snapshot.readyDeadline),
                 turnSeconds: _secondsUntil(snapshot.turnDeadline),
+                compact: compact,
               ),
               if (snapshot.status == OnlineDuelStatus.readyWindow ||
                   snapshot.status == OnlineDuelStatus.waiting)
@@ -265,6 +290,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                     snapshot: snapshot,
                     seconds: _secondsUntil(snapshot.readyDeadline),
                     onReady: _controller?.ready,
+                    compact: compact,
                   ),
                 ),
               SizedBox(height: compact ? 4 : 8),
@@ -283,21 +309,23 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: compact ? 4 : 8),
-              SizedBox(
-                height: compact ? 20 : 24,
-                child: Center(
-                  child: Text(
-                    _controller?.pendingMove == true
-                        ? 'Hamle gönderiliyor'
-                        : snapshot.isLocalTurn
-                        ? 'Boş hücre seç ve rakam gir'
-                        : 'Rakibin hamlesi bekleniyor',
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
+              if (!compact) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 24,
+                  child: Center(
+                    child: Text(
+                      _controller?.pendingMove == true
+                          ? 'Hamle gönderiliyor'
+                          : snapshot.isLocalTurn
+                          ? 'Boş hücre seç ve rakam gir'
+                          : 'Rakibin hamlesi bekleniyor',
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         );
@@ -352,7 +380,7 @@ class _ScoreHeader extends StatelessWidget {
             compact: compact,
           ),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: compact ? 6 : 10),
         Expanded(
           child: _PlayerCard(
             snapshot: snapshot,
@@ -380,25 +408,69 @@ class _PlayerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final player = snapshot.players[seat]!;
     final active = snapshot.currentTurnSeat == seat;
+    final isLocalPlayer = snapshot.youSeat == seat;
     final scheme = Theme.of(context).colorScheme;
+    final displayName = isLocalPlayer ? 'Sen' : player.displayName;
+
+    if (compact) {
+      return Card(
+        margin: EdgeInsets.zero,
+        color: active ? scheme.primaryContainer : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            children: [
+              if (active) ...[
+                Icon(Icons.circle, size: 8, color: scheme.primary),
+                const SizedBox(width: 5),
+              ],
+              Expanded(
+                child: Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '${snapshot.scores[seat] ?? 0}',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              if (!player.connected) ...[
+                const SizedBox(width: 4),
+                const Icon(Icons.wifi_off_rounded, size: 15),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
     return Card(
       color: active ? scheme.primaryContainer : null,
       child: Padding(
-        padding: EdgeInsets.all(compact ? 6 : 10),
+        padding: const EdgeInsets.all(10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              player.displayName,
+              displayName,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
-            SizedBox(height: compact ? 2 : 4),
-            Text('${snapshot.scores[seat] ?? 0}'),
+            const SizedBox(height: 4),
+            Text(
+              '${snapshot.scores[seat] ?? 0}',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
             Text(
               player.connected
                   ? context.tr('connected')
                   : context.tr('reconnecting'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -413,11 +485,13 @@ class _TurnBanner extends StatelessWidget {
     required this.snapshot,
     required this.readySeconds,
     required this.turnSeconds,
+    required this.compact,
   });
 
   final OnlineDuelSnapshot snapshot;
   final int? readySeconds;
   final int? turnSeconds;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -425,14 +499,21 @@ class _TurnBanner extends StatelessWidget {
         ? context.tr('your_turn')
         : context.tr('opponents_turn');
     final subtitle = snapshot.status == OnlineDuelStatus.active
-        ? 'Hamle süresi: ${turnSeconds ?? 0}'
+        ? compact
+              ? '${turnSeconds ?? 0} sn'
+              : 'Hamle süresi: ${turnSeconds ?? 0}'
         : snapshot.status == OnlineDuelStatus.readyWindow
-        ? 'Otomatik başlangıç: ${readySeconds ?? 0}'
+        ? compact
+              ? '${readySeconds ?? 0} sn'
+              : 'Otomatik başlangıç: ${readySeconds ?? 0}'
         : context.tr('online_turn_number', <Object>[snapshot.turnNumber]);
     return Semantics(
       liveRegion: true,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 12,
+          vertical: compact ? 6 : 8,
+        ),
         decoration: BoxDecoration(
           color: snapshot.isLocalTurn
               ? Theme.of(context).colorScheme.primaryContainer
@@ -441,8 +522,8 @@ class _TurnBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.timer_outlined),
-            const SizedBox(width: 8),
+            Icon(Icons.timer_outlined, size: compact ? 18 : 24),
+            SizedBox(width: compact ? 5 : 8),
             Expanded(
               child: Text(
                 text,
@@ -469,11 +550,13 @@ class _ReadyPanel extends StatelessWidget {
     required this.snapshot,
     required this.seconds,
     required this.onReady,
+    required this.compact,
   });
 
   final OnlineDuelSnapshot snapshot;
   final int? seconds;
   final VoidCallback? onReady;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -482,23 +565,55 @@ class _ReadyPanel extends StatelessWidget {
         ? OnlineDuelSeat.b
         : OnlineDuelSeat.a;
     final opponent = snapshot.players[opponentSeat]!;
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Rakip: ${opponent.connected ? 'bağlandı' : 'bekleniyor'} | ekran: ${opponent.screenLoaded ? 'hazır' : 'bekleniyor'} | başlangıç: ${seconds ?? '-'}',
-            overflow: TextOverflow.ellipsis,
+    final opponentStatus = !opponent.connected
+        ? 'Rakip bağlanıyor'
+        : !opponent.screenLoaded
+        ? 'Rakip oyunu açıyor'
+        : 'Rakip hazır';
+    final countdownText = seconds == null ? '' : ' • $seconds sn';
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: compact ? 5 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '$opponentStatus$countdownText',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: compact
+                  ? Theme.of(context).textTheme.bodySmall
+                  : Theme.of(context).textTheme.bodyMedium,
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        FilledButton.icon(
-          onPressed: you.ready ? null : onReady,
-          icon: Icon(
-            you.ready ? Icons.check_circle : Icons.check_circle_outline,
+          SizedBox(width: compact ? 5 : 8),
+          FilledButton.icon(
+            onPressed: you.ready ? null : onReady,
+            style: compact
+                ? FilledButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 7,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  )
+                : null,
+            icon: Icon(
+              you.ready ? Icons.check_circle : Icons.check_circle_outline,
+              size: compact ? 17 : 24,
+            ),
+            label: Text(you.ready ? 'Hazırsın' : 'Ben hazırım'),
           ),
-          label: Text(you.ready ? 'Hazırsın' : 'Ben hazırım'),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

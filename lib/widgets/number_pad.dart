@@ -110,8 +110,7 @@ class NumberPad extends StatelessWidget {
                           style: FilledButton.styleFrom(
                             padding: EdgeInsets.zero,
                             minimumSize: Size.zero,
-                            tapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             backgroundColor: scheme.secondaryContainer,
                             foregroundColor: scheme.onSecondaryContainer,
                           ),
@@ -177,7 +176,6 @@ class NumberPad extends StatelessWidget {
         );
       },
     );
-
   }
 }
 

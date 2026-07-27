@@ -1726,8 +1726,7 @@ export class GameRoom {
     if (events.length === 0) return;
     for (const socket of this.state.getWebSockets()) {
       for (const payload of events) {
-        const personalized = this.eventForSocket(socket, payload);
-        if (personalized) this.send(socket, personalized);
+        this.send(socket, this.eventForSocket(socket, payload));
       }
     }
   }
@@ -1735,34 +1734,45 @@ export class GameRoom {
   private eventForSocket(
     socket: WebSocket,
     payload: PublicEvent,
-  ): PublicEvent | null {
+  ): PublicEvent {
     const duel = this.roomState;
     if (!duel) return payload;
+
     const [playerId] = this.state.getTags(socket);
     const seat = this.seatForPlayer(duel, playerId);
     if (!seat) return payload;
 
+    if (
+      payload.type === 'match_started' ||
+      payload.type === 'game_started' ||
+      payload.type === 'snapshot'
+    ) {
+      return {
+        ...payload,
+        payload: snapshot(duel, seat, payload.serverTime),
+      };
+    }
+
     const actorSeat = payload.payload.seat;
     if (
-      payload.type === 'move_rejected' &&
-      (actorSeat === 'A' || actorSeat === 'B') &&
-      actorSeat !== seat
+      (payload.type === 'move_accepted' ||
+        payload.type === 'move_rejected') &&
+      (actorSeat === 'A' || actorSeat === 'B')
     ) {
-      return null;
+      const recovery = payload.payload.snapshot;
+      return {
+        ...payload,
+        payload: {
+          ...payload.payload,
+          forYou: actorSeat === seat,
+          ...(recovery && typeof recovery === 'object'
+            ? { snapshot: snapshot(duel, seat, payload.serverTime) }
+            : {}),
+        },
+      };
     }
 
-    if (
-      payload.type !== 'match_started' &&
-      payload.type !== 'game_started' &&
-      payload.type !== 'snapshot'
-    ) {
-      return payload;
-    }
-
-    return {
-      ...payload,
-      payload: snapshot(duel, seat, payload.serverTime),
-    };
+    return payload;
   }
 
   private send(socket: WebSocket, payload: PublicEvent): void {

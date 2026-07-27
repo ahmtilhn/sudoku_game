@@ -70,8 +70,7 @@ class OnlineDuelController {
     if (event.type == 'move_accepted') {
       final snapshot = _snapshot;
       final actorSeat = _seat(event.payload['seat']?.toString());
-      final isLocalAction =
-          snapshot != null && actorSeat == snapshot.youSeat;
+      final isLocalAction = snapshot != null && actorSeat == snapshot.youSeat;
 
       if (isLocalAction) _pendingMove = false;
 
@@ -102,19 +101,21 @@ class OnlineDuelController {
       final snapshot = _snapshot;
       final actorSeat = _seat(event.payload['seat']?.toString());
 
-      if (event.type == 'move_rejected' &&
-          actorSeat != null &&
-          snapshot != null &&
-          actorSeat != snapshot.youSeat) {
-        return;
+      final isLocalRejection =
+          event.type == 'protocol_error' ||
+          actorSeat == null ||
+          snapshot == null ||
+          actorSeat == snapshot.youSeat;
+
+      if (isLocalRejection) {
+        _pendingMove = false;
+        final reason =
+            event.payload['reason']?.toString() ??
+            event.payload['code']?.toString() ??
+            'network';
+        _feedback.add(OnlineDuelFeedback.rejected(reason: reason));
       }
 
-      _pendingMove = false;
-      final reason =
-          event.payload['reason']?.toString() ??
-          event.payload['code']?.toString() ??
-          'network';
-      _feedback.add(OnlineDuelFeedback.rejected(reason: reason));
       final recovery = event.payload['snapshot'];
       if (recovery is Map) {
         _applySnapshot(recovery.cast<String, dynamic>());
