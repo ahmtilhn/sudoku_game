@@ -56,6 +56,8 @@ void main() {
     controller.move(2, 3);
     transport.emit(
       _event('move_accepted', {
+        'seat': 'A',
+        'forYou': true,
         'cellIndex': 2,
         'value': 3,
         'scores': {'A': 10, 'B': 0},
@@ -65,6 +67,7 @@ void main() {
 
     expect(controller.current?.board[2], 3);
     expect(controller.current?.scores[OnlineDuelSeat.a], 10);
+    expect(controller.pendingMove, isFalse);
     await controller.dispose();
   });
 
@@ -137,6 +140,45 @@ void main() {
     expect(transport.sent.last['type'], 'request_snapshot');
     await controller.dispose();
   });
+
+  test(
+    'opponent rejected move does not emit local feedback or change local seat',
+    () async {
+      final transport = FakeOnlineDuelTransport();
+      final controller = OnlineDuelController(transport)..start();
+      final receivedFeedback = <OnlineDuelFeedback>[];
+      final feedbackSubscription = controller.feedback.listen(
+        receivedFeedback.add,
+      );
+
+      transport.emit(
+        _event('snapshot', _snapshot(youSeat: 'A', currentTurnSeat: 'B')),
+      );
+      await pumpEventQueue();
+
+      transport.emit(
+        _event('move_rejected', {
+          'seat': 'B',
+          'forYou': false,
+          'reason': 'incorrect_value',
+          'snapshot': _snapshot(
+            youSeat: 'A',
+            currentTurnSeat: 'A',
+            revision: 7,
+          ),
+        }, revision: 7),
+      );
+      await pumpEventQueue();
+
+      expect(receivedFeedback, isEmpty);
+      expect(controller.current?.youSeat, OnlineDuelSeat.a);
+      expect(controller.current?.isLocalTurn, isTrue);
+      expect(controller.current?.revision, 7);
+
+      await feedbackSubscription.cancel();
+      await controller.dispose();
+    },
+  );
 
   test(
     'stale revision recovery requests a fresh snapshot if none is included',

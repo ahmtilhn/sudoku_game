@@ -70,7 +70,12 @@ class OnlineDuelController {
     if (event.type == 'move_accepted') {
       final snapshot = _snapshot;
       final actorSeat = _seat(event.payload['seat']?.toString());
-      final isLocalAction = snapshot != null && actorSeat == snapshot.youSeat;
+      final forYou = event.payload['forYou'];
+      final isLocalAction = forYou is bool
+          ? forYou
+          : actorSeat != null && snapshot != null
+          ? actorSeat == snapshot.youSeat
+          : _pendingMove;
 
       if (isLocalAction) _pendingMove = false;
 
@@ -101,11 +106,14 @@ class OnlineDuelController {
       final snapshot = _snapshot;
       final actorSeat = _seat(event.payload['seat']?.toString());
 
+      final forYou = event.payload['forYou'];
       final isLocalRejection =
           event.type == 'protocol_error' ||
-          actorSeat == null ||
-          snapshot == null ||
-          actorSeat == snapshot.youSeat;
+          (forYou is bool
+              ? forYou
+              : actorSeat != null && snapshot != null
+              ? actorSeat == snapshot.youSeat
+              : _pendingMove);
 
       if (isLocalRejection) {
         _pendingMove = false;
