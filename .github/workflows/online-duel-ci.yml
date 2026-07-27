@@ -1,0 +1,69 @@
+name: Online Duel CI
+
+on:
+  push:
+    branches:
+      - codex-authoritative-online-duel
+  pull_request:
+    paths:
+      - 'lib/features/duel/**'
+      - 'lib/services/social_api_client.dart'
+      - 'lib/services/online_duel_*.dart'
+      - 'backend/social_worker/**'
+      - 'test/**'
+      - '.github/workflows/online-duel-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flutter:
+    name: Flutter analyze and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test --concurrency=1 --timeout 120s
+
+  worker:
+    name: Worker typecheck and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend/social_worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/social_worker/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
