@@ -19,11 +19,14 @@ class MatchmakingScreen extends StatefulWidget {
 }
 
 class _MatchmakingScreenState extends State<MatchmakingScreen> {
+  static const Duration _queueRefreshInterval = Duration(seconds: 45);
+
   SudokuDifficulty _difficulty = SudokuDifficulty.easy;
   bool _searching = false;
   bool _polling = false;
   String? _error;
   Timer? _pollTimer;
+  DateTime? _lastQueueRefresh;
 
   String get _queueKey => 'duel_${_difficulty.name}';
 
@@ -202,6 +205,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     setState(() {
       _searching = true;
       _error = null;
+      _lastQueueRefresh = null;
     });
 
     try {
@@ -222,6 +226,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           'The matchmaking server returned an unexpected response.',
         );
       }
+      _lastQueueRefresh = DateTime.now();
       _startPollingForMatch();
     } on SocialApiException catch (error) {
       _stopSearchWithError(error.message);
@@ -240,6 +245,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         _searching = false;
         _polling = false;
         _error = null;
+        _lastQueueRefresh = null;
       });
     }
 
@@ -258,6 +264,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         _searching = false;
         _polling = false;
         _error = null;
+        _lastQueueRefresh = null;
       });
     }
     Navigator.of(
@@ -278,6 +285,23 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     if (!_searching || _polling) return;
     _polling = true;
     try {
+      final now = DateTime.now();
+      final refreshDue =
+          _lastQueueRefresh == null ||
+          now.difference(_lastQueueRefresh!) >= _queueRefreshInterval;
+      if (refreshDue) {
+        final refreshed = await SocialApiClient.instance.joinRankedQueue(
+          difficulty: _difficulty.name,
+        );
+        _lastQueueRefresh = now;
+        final refreshedRoomId = refreshed.roomId;
+        if (!mounted) return;
+        if (refreshedRoomId != null && refreshedRoomId.isNotEmpty) {
+          _openOnlineRoom(refreshedRoomId);
+          return;
+        }
+      }
+
       final match = await SocialApiClient.instance.activeMatch();
       final roomId = match?['roomId']?.toString();
       if (!mounted || roomId == null || roomId.isEmpty) return;
@@ -292,6 +316,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         setState(() {
           _searching = false;
           _error = error.message;
+          _lastQueueRefresh = null;
         });
       } else {
         setState(() => _error = error.message);
@@ -315,6 +340,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       _searching = false;
       _polling = false;
       _error = message;
+      _lastQueueRefresh = null;
     });
   }
 }
