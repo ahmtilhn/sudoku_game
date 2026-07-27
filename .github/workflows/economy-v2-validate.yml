@@ -1,0 +1,60 @@
+name: Economy V2 Validation
+
+on:
+  push:
+    branches:
+      - codex-authoritative-online-duel
+  pull_request:
+    branches:
+      - agent-integrate-codex-firebase
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: economy-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    name: Flutter analyze and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve packages
+        run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
+
+  worker:
+    name: Worker typecheck tests and migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend/social_worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/social_worker/package-lock.json
+      - name: Install packages
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+      - name: Apply all migrations to a clean local D1 database
+        run: npx wrangler d1 migrations apply sudoku-duel-social-staging --local --config wrangler.staging.toml
