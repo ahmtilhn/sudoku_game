@@ -68,8 +68,13 @@ class OnlineDuelController {
       return;
     }
     if (event.type == 'move_accepted') {
-      _pendingMove = false;
       final snapshot = _snapshot;
+      final actorSeat = _seat(event.payload['seat']?.toString());
+      final isLocalAction =
+          snapshot != null && actorSeat == snapshot.youSeat;
+
+      if (isLocalAction) _pendingMove = false;
+
       final cellIndex = (event.payload['cellIndex'] as num?)?.toInt();
       final value = (event.payload['value'] as num?)?.toInt();
       if (snapshot != null && cellIndex != null && value != null) {
@@ -82,15 +87,28 @@ class OnlineDuelController {
         );
         _snapshots.add(_snapshot!);
       }
-      _feedback.add(
-        OnlineDuelFeedback.accepted(
-          cellIndex: cellIndex,
-          message: 'Hamle kabul edildi',
-        ),
-      );
+
+      if (isLocalAction) {
+        _feedback.add(
+          OnlineDuelFeedback.accepted(
+            cellIndex: cellIndex,
+            message: 'Hamle kabul edildi',
+          ),
+        );
+      }
       return;
     }
     if (event.type == 'move_rejected' || event.type == 'protocol_error') {
+      final snapshot = _snapshot;
+      final actorSeat = _seat(event.payload['seat']?.toString());
+
+      if (event.type == 'move_rejected' &&
+          actorSeat != null &&
+          snapshot != null &&
+          actorSeat != snapshot.youSeat) {
+        return;
+      }
+
       _pendingMove = false;
       final reason =
           event.payload['reason']?.toString() ??
