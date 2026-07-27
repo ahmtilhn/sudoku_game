@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 import 'economy_api_client.dart';
 import 'economy_service.dart';
@@ -103,7 +104,9 @@ class CoinStoreService extends ChangeNotifier {
     try {
       final started = await _store.buyConsumable(
         purchaseParam: PurchaseParam(productDetails: details),
-        autoConsume: false,
+        // StoreKit requires auto-consumption for consumables. Google Play stays
+        // manual so the token is consumed only after the backend grants Coins.
+        autoConsume: Platform.isIOS,
       );
       if (!started) {
         pendingProductId = null;
@@ -167,11 +170,18 @@ class CoinStoreService extends ChangeNotifier {
             transactionId: transactionId,
             verificationData: verificationData,
           );
-          await EconomyService.instance.applyPurchaseWallet(snapshot);
-          error = null;
+
+          if (Platform.isAndroid) {
+            final androidAddition = _store
+                .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+            await androidAddition.consumePurchase(purchase);
+          }
           if (purchase.pendingCompletePurchase) {
             await _store.completePurchase(purchase);
           }
+
+          await EconomyService.instance.applyPurchaseWallet(snapshot);
+          error = null;
         } on EconomyApiException catch (exception) {
           error = exception.message;
           EconomyService.instance.reportError(exception.message);
