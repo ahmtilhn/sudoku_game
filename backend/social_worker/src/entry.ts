@@ -21,6 +21,10 @@ export default {
     }
 
     const response = await app.fetch(request, env, ctx);
+    if (response.status === 101 || response.webSocket != null) {
+      return response;
+    }
+
     const headers = new Headers(response.headers);
     for (const [key, value] of Object.entries(corsHeaders(env))) {
       if (!headers.has(key)) headers.set(key, value);
@@ -29,7 +33,6 @@ export default {
       status: response.status,
       statusText: response.statusText,
       headers,
-      webSocket: response.webSocket,
     });
   },
 };
