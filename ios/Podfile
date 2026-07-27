@@ -23,6 +23,7 @@ def flutter_root
 end
 
 require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+require 'xcodeproj'
 
 flutter_ios_podfile_setup
 
@@ -42,4 +43,23 @@ post_install do |installer|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
     end
   end
+
+  # Keep the checked-in legacy Xcode project aligned with Firebase, Game Center,
+  # StoreKit products and App Store Connect. Flutter/CocoaPods runs this before
+  # the iOS build, so all Runner configurations use the production bundle ID.
+  runner_project_path = File.join(__dir__, 'Runner.xcodeproj')
+  runner_project = Xcodeproj::Project.open(runner_project_path)
+  runner_project.targets.each do |target|
+    next unless ['Runner', 'RunnerTests'].include?(target.name)
+
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = if target.name == 'Runner'
+        'com.devoviastudio.sudoku'
+      else
+        'com.devoviastudio.sudoku.RunnerTests'
+      end
+    end
+  end
+  runner_project.save
 end
