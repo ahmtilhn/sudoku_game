@@ -22,7 +22,8 @@ export default {
     }
 
     const url = new URL(request.url);
-    const response = await app.fetch(request, env, ctx);
+    const routedRequest = await protectProfileDisplayName(request, url);
+    const response = await app.fetch(routedRequest, env, ctx);
     if (response.status === 101) return response;
 
     if (
@@ -44,6 +45,28 @@ export default {
     });
   },
 };
+
+async function protectProfileDisplayName(
+  request: Request,
+  url: URL,
+): Promise<Request> {
+  if (request.method !== 'POST' || url.pathname !== '/v1/me') return request;
+  try {
+    const body = (await request.clone().json()) as Record<string, unknown>;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return request;
+    const sanitized = { ...body };
+    delete sanitized.displayName;
+    const headers = new Headers(request.headers);
+    headers.set('content-type', 'application/json');
+    return new Request(request.url, {
+      method: request.method,
+      headers,
+      body: JSON.stringify(sanitized),
+    });
+  } catch {
+    return request;
+  }
+}
 
 async function notifyRematchRecipient(
   env: RuntimeEnv,
