@@ -1,14 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../services/economy_api_client.dart';
+import '../../services/economy_service.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
+import '../../services/social_api_client.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
+import '../economy/coin_store_screen.dart';
 
 class OnlineDuelScreen extends StatefulWidget {
   const OnlineDuelScreen({super.key, required this.roomId, this.controller});
@@ -21,6 +26,13 @@ class OnlineDuelScreen extends StatefulWidget {
 }
 
 class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
+  static const List<double> _grayscaleMatrix = <double>[
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
+
   OnlineDuelController? _controller;
   StreamSubscription<OnlineDuelSnapshot>? _subscription;
   StreamSubscription<OnlineDuelFeedback>? _feedbackSubscription;
@@ -63,11 +75,16 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       controller.start();
       final subscription = controller.snapshots.listen((snapshot) {
         if (!mounted) return;
+        final previousLocalTurn = _snapshot?.isLocalTurn ?? false;
         setState(() {
           _snapshot = snapshot;
           _loading = false;
           _error = null;
+          if (!snapshot.isLocalTurn) _selectedIndex = null;
         });
+        if (!previousLocalTurn && snapshot.isLocalTurn) {
+          unawaited(HapticFeedback.mediumImpact());
+        }
         _sendScreenLoadedAfterRender(snapshot);
         _showResultOnce(snapshot);
       });
@@ -142,14 +159,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
 
   void _selectCell(int index) {
     final snapshot = _snapshot;
-    if (snapshot == null || snapshot.isFinished) return;
-    if (!snapshot.isLocalTurn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sıra rakibinde'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+    if (snapshot == null || snapshot.isFinished || !snapshot.isLocalTurn) {
       return;
     }
     if (snapshot.puzzle[index] != 0 ||
@@ -161,8 +171,9 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   }
 
   void _enterNumber(int value) {
+    final snapshot = _snapshot;
     final index = _selectedIndex;
-    if (index == null) return;
+    if (snapshot == null || !snapshot.isLocalTurn || index == null) return;
     _controller?.move(index, value);
   }
 
@@ -182,28 +193,35 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   void _showResultOnce(OnlineDuelSnapshot snapshot) {
     if (!snapshot.isFinished || _shownResultFor == snapshot.matchId) return;
     _shownResultFor = snapshot.matchId;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      showDialog<void>(
+      await EconomyService.instance.refresh(showLoading: false);
+      if (!mounted) return;
+      final action = await showModalBottomSheet<String>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(_resultTitle(snapshot)),
-          content: Text(_coinText(snapshot)),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Tamam'),
-            ),
-          ],
-        ),
+        isDismissible: false,
+        enableDrag: false,
+        isScrollControlled: true,
+        useSafeArea: true,
+        constraints: const BoxConstraints(maxWidth: 560),
+        builder: (sheetContext) => _OnlineResultSheet(snapshot: snapshot),
       );
+      if (!mounted) return;
+      if (action == 'new_match' || action == 'menu') {
+        Navigator.of(context).pop(action);
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final snapshot = _snapshot;
+    final waitingForOpponent =
+        snapshot != null &&
+        snapshot.status == OnlineDuelStatus.active &&
+        !snapshot.isLocalTurn;
     return PopScope(
-      canPop: _snapshot?.isFinished ?? true,
+      canPop: snapshot?.isFinished ?? true,
       onPopInvokedWithResult: (didPop, _) async {
         if (!didPop && await _confirmLeave() && context.mounted) {
           Navigator.of(context).pop();
@@ -215,21 +233,43 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
           titleSpacing: 16,
           title: Text(context.tr('online_duel')),
         ),
-        bottomNavigationBar: _snapshot == null
+        bottomNavigationBar: snapshot == null
             ? null
-            : NumberPadDock(
-                child: NumberPad(
-                  maxValue: 9,
-                  completedValues: completedSudokuNumbers(
-                    board: _snapshot!.board,
-                    maxValue: 9,
+            : AnimatedOpacity(
+                duration: const Duration(milliseconds: 240),
+                opacity: waitingForOpponent ? 0.58 : 1,
+                child: ColorFiltered(
+                  colorFilter: ColorFilter.matrix(
+                    waitingForOpponent
+                        ? _grayscaleMatrix
+                        : const <double>[
+                            1, 0, 0, 0, 0,
+                            0, 1, 0, 0, 0,
+                            0, 0, 1, 0, 0,
+                            0, 0, 0, 1, 0,
+                          ],
                   ),
-                  enabled:
-                      _snapshot!.isLocalTurn &&
-                      _controller?.pendingMove != true &&
-                      !_snapshot!.isFinished,
-                  onNumber: _enterNumber,
-                  onErase: () => setState(() => _selectedIndex = null),
+                  child: IgnorePointer(
+                    ignoring:
+                        waitingForOpponent ||
+                        snapshot.isFinished ||
+                        _controller?.pendingMove == true,
+                    child: NumberPadDock(
+                      child: NumberPad(
+                        maxValue: 9,
+                        completedValues: completedSudokuNumbers(
+                          board: snapshot.board,
+                          maxValue: 9,
+                        ),
+                        enabled:
+                            snapshot.isLocalTurn &&
+                            _controller?.pendingMove != true &&
+                            !snapshot.isFinished,
+                        onNumber: _enterNumber,
+                        onErase: () => setState(() => _selectedIndex = null),
+                      ),
+                    ),
+                  ),
                 ),
               ),
         body: SafeArea(child: _buildBody(context)),
@@ -243,9 +283,28 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(
-            context.tr('online_connection_failed', <Object>[_error!]),
-            textAlign: TextAlign.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_outlined, size: 44),
+              const SizedBox(height: 12),
+              Text(
+                context.tr('online_connection_failed', <Object>[_error!]),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _error = null;
+                    _loading = true;
+                  });
+                  unawaited(_connect());
+                },
+                icon: const Icon(Icons.refresh),
+                label: Text(context.tr('refresh')),
+              ),
+            ],
           ),
         ),
       );
@@ -261,6 +320,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       puzzle: snapshot.puzzle,
       solution: List<int>.filled(81, 1),
     );
+    final waitingForOpponent =
+        snapshot.status == OnlineDuelStatus.active && !snapshot.isLocalTurn;
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact =
@@ -274,18 +335,17 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
           ),
           child: Column(
             children: [
-              _ScoreHeader(snapshot: snapshot, compact: compact),
-              SizedBox(height: compact ? 4 : 8),
               _TurnBanner(
                 snapshot: snapshot,
                 readySeconds: _secondsUntil(snapshot.readyDeadline),
                 turnSeconds: _secondsUntil(snapshot.turnDeadline),
                 compact: compact,
               ),
+              SizedBox(height: compact ? 4 : 8),
               if (snapshot.status == OnlineDuelStatus.readyWindow ||
                   snapshot.status == OnlineDuelStatus.waiting)
                 Padding(
-                  padding: EdgeInsets.only(top: compact ? 4 : 8),
+                  padding: EdgeInsets.only(bottom: compact ? 4 : 8),
                   child: _ReadyPanel(
                     snapshot: snapshot,
                     seconds: _secondsUntil(snapshot.readyDeadline),
@@ -293,39 +353,69 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                     compact: compact,
                   ),
                 ),
-              SizedBox(height: compact ? 4 : 8),
               Expanded(
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: SudokuBoard(
-                      puzzle: puzzle,
-                      board: snapshot.board,
-                      selectedIndex: _selectedIndex,
-                      errorIndex: _feedbackCell,
-                      enabled: !snapshot.isFinished,
-                      onCellTap: _selectCell,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOut,
+                  opacity: waitingForOpponent ? 0.58 : 1,
+                  child: ColorFiltered(
+                    colorFilter: ColorFilter.matrix(
+                      waitingForOpponent
+                          ? _grayscaleMatrix
+                          : const <double>[
+                              1, 0, 0, 0, 0,
+                              0, 1, 0, 0, 0,
+                              0, 0, 1, 0, 0,
+                              0, 0, 0, 1, 0,
+                            ],
+                    ),
+                    child: Column(
+                      children: [
+                        _ScoreHeader(snapshot: snapshot, compact: compact),
+                        SizedBox(height: compact ? 4 : 8),
+                        Expanded(
+                          child: Center(
+                            child: AspectRatio(
+                              aspectRatio: 1,
+                              child: IgnorePointer(
+                                ignoring:
+                                    waitingForOpponent || snapshot.isFinished,
+                                child: SudokuBoard(
+                                  puzzle: puzzle,
+                                  board: snapshot.board,
+                                  selectedIndex: _selectedIndex,
+                                  errorIndex: _feedbackCell,
+                                  enabled:
+                                      snapshot.isLocalTurn &&
+                                      !snapshot.isFinished,
+                                  onCellTap: _selectCell,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (!compact) ...[
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 24,
+                            child: Center(
+                              child: Text(
+                                _controller?.pendingMove == true
+                                    ? 'Sending move…'
+                                    : snapshot.isLocalTurn
+                                    ? 'Select an empty cell and enter a number'
+                                    : 'Waiting for the opponent’s move',
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
               ),
-              if (!compact) ...[
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 24,
-                  child: Center(
-                    child: Text(
-                      _controller?.pendingMove == true
-                          ? 'Hamle gönderiliyor'
-                          : snapshot.isLocalTurn
-                          ? 'Boş hücre seç ve rakam gir'
-                          : 'Rakibin hamlesi bekleniyor',
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         );
@@ -339,26 +429,428 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     return diff <= 0 ? 0 : (diff / 1000).ceil();
   }
 
-  String _resultTitle(OnlineDuelSnapshot snapshot) {
-    if (snapshot.winnerSeat == null) return context.tr('draw');
-    return snapshot.winnerSeat == snapshot.youSeat ? 'Kazandın!' : 'Kaybettin';
-  }
-
-  String _coinText(OnlineDuelSnapshot snapshot) {
-    final delta = snapshot.coinSettlement?.deltas[snapshot.youSeat];
-    if (delta == null || delta == 0) {
-      return context.tr('online_final_score', <Object>[
-        snapshot.scores[OnlineDuelSeat.a] ?? 0,
-        snapshot.scores[OnlineDuelSeat.b] ?? 0,
-      ]);
-    }
-    return 'Coin değişimi: ${delta > 0 ? '+' : ''}$delta Coin';
-  }
-
   SudokuDifficulty _difficulty(String value) {
     return SudokuDifficulty.values.firstWhere(
       (difficulty) => difficulty.name == value,
       orElse: () => SudokuDifficulty.easy,
+    );
+  }
+}
+
+class _OnlineResultSheet extends StatefulWidget {
+  const _OnlineResultSheet({required this.snapshot});
+
+  final OnlineDuelSnapshot snapshot;
+
+  @override
+  State<_OnlineResultSheet> createState() => _OnlineResultSheetState();
+}
+
+class _OnlineResultSheetState extends State<_OnlineResultSheet> {
+  final EconomyService _economy = EconomyService.instance;
+  Timer? _pollTimer;
+  Timer? _clockTimer;
+  RematchInvitation? _invitation;
+  bool _busy = false;
+  String? _statusMessage;
+
+  OnlineDuelSnapshot get snapshot => widget.snapshot;
+
+  OnlineDuelSeat get opponentSeat => snapshot.youSeat == OnlineDuelSeat.a
+      ? OnlineDuelSeat.b
+      : OnlineDuelSeat.a;
+
+  OnlineDuelPlayer get opponent => snapshot.players[opponentSeat]!;
+
+  @override
+  void initState() {
+    super.initState();
+    _economy.addListener(_onEconomyChanged);
+    _pollTimer = Timer.periodic(
+      const Duration(milliseconds: 700),
+      (_) => unawaited(_pollRematches()),
+    );
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+    unawaited(_pollRematches());
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _clockTimer?.cancel();
+    _economy.removeListener(_onEconomyChanged);
+    super.dispose();
+  }
+
+  void _onEconomyChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final localScore = snapshot.scores[snapshot.youSeat] ?? 0;
+    final opponentScore = snapshot.scores[opponentSeat] ?? 0;
+    final rating = snapshot.rating?[snapshot.youSeat];
+    final won = snapshot.winnerSeat == snapshot.youSeat;
+    final lost = snapshot.winnerSeat != null && !won;
+    final resultTitle = snapshot.winnerSeat == null
+        ? context.tr('draw')
+        : won
+        ? context.tr('you_won')
+        : context.tr('you_lost');
+    final balance = _economy.balance;
+    final canPlay = _economy.canEnterOnline;
+    final invite = _invitation;
+    final seconds = invite == null
+        ? 0
+        : invite.expiresAt.difference(DateTime.now()).inSeconds.clamp(0, 10);
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        4,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            won
+                ? Icons.emoji_events_rounded
+                : lost
+                ? Icons.sports_esports_outlined
+                : Icons.handshake_outlined,
+            size: 52,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            resultTitle,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'vs ${opponent.displayName}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 16),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                children: [
+                  _ResultLine(
+                    label: 'Final score',
+                    value: '$localScore – $opponentScore',
+                  ),
+                  const _ResultLine(label: 'Entry fee', value: '100 Coin'),
+                  _ResultLine(
+                    label: won
+                        ? 'Winner pot'
+                        : snapshot.winnerSeat == null
+                        ? 'Refund'
+                        : 'Match result',
+                    value: won
+                        ? '+200 Coin'
+                        : snapshot.winnerSeat == null
+                        ? '+100 Coin'
+                        : '0 Coin',
+                  ),
+                  _ResultLine(label: 'Current balance', value: '$balance Coin'),
+                  if (rating != null)
+                    _ResultLine(
+                      label: 'Rating',
+                      value:
+                          '${rating.beforeGlobal} → ${rating.afterGlobal} (${rating.deltaGlobal >= 0 ? '+' : ''}${rating.deltaGlobal})',
+                    ),
+                  if (snapshot.finishReason != null)
+                    _ResultLine(
+                      label: 'Finish reason',
+                      value: snapshot.finishReason!.replaceAll('_', ' '),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          if (_statusMessage != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _statusMessage!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
+          ],
+          if (invite != null && invite.status == 'pending') ...[
+            const SizedBox(height: 12),
+            Material(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: invite.isSender
+                    ? Row(
+                        children: [
+                          const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Waiting for ${opponent.displayName} · $seconds s',
+                              style: const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            '${invite.sender.displayName} wants a rematch · $seconds s',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: _busy
+                                      ? null
+                                      : () => _respond(invite, false),
+                                  child: const Text('Decline'),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: FilledButton(
+                                  onPressed: _busy || !canPlay
+                                      ? null
+                                      : () => _respond(invite, true),
+                                  child: const Text('Accept'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 430;
+              final actions = <Widget>[
+                FilledButton.icon(
+                  onPressed:
+                      _busy || !canPlay || invite?.status == 'pending'
+                      ? null
+                      : _createRematch,
+                  icon: const Icon(Icons.replay_rounded),
+                  label: const Text('Challenge again'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _busy || !canPlay
+                      ? null
+                      : () => Navigator.of(context).pop('new_match'),
+                  icon: const Icon(Icons.person_search_outlined),
+                  label: const Text('Find new match'),
+                ),
+              ];
+              if (wide) {
+                return Row(
+                  children: [
+                    Expanded(child: actions[0]),
+                    const SizedBox(width: 8),
+                    Expanded(child: actions[1]),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  actions[0],
+                  const SizedBox(height: 8),
+                  actions[1],
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 430;
+              final addFriend = OutlinedButton.icon(
+                onPressed: _busy ? null : _addFriend,
+                icon: const Icon(Icons.person_add_alt_1_outlined),
+                label: const Text('Add friend'),
+              );
+              final menu = TextButton.icon(
+                onPressed: _busy ? null : () => Navigator.of(context).pop('menu'),
+                icon: const Icon(Icons.home_outlined),
+                label: const Text('Main menu'),
+              );
+              if (wide) {
+                return Row(
+                  children: [
+                    Expanded(child: addFriend),
+                    const SizedBox(width: 8),
+                    Expanded(child: menu),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [addFriend, menu],
+              );
+            },
+          ),
+          if (!canPlay) ...[
+            const SizedBox(height: 8),
+            Text(
+              'You need at least 100 Coin to play another online match.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            const SizedBox(height: 6),
+            FilledButton.tonalIcon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
+              ),
+              icon: const Icon(Icons.storefront_outlined),
+              label: const Text('Open Coin Store'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createRematch() async {
+    setState(() {
+      _busy = true;
+      _statusMessage = null;
+    });
+    try {
+      final invitation = await _economy.createRematch(snapshot.matchId);
+      if (!mounted) return;
+      setState(() {
+        _invitation = invitation;
+        _statusMessage = 'Rematch invitation sent.';
+      });
+    } on EconomyApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _statusMessage = error.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _respond(RematchInvitation invitation, bool accept) async {
+    setState(() {
+      _busy = true;
+      _statusMessage = null;
+    });
+    try {
+      final updated = await _economy.respondRematch(
+        invitationId: invitation.id,
+        accept: accept,
+      );
+      if (!mounted) return;
+      setState(() => _invitation = updated);
+      if (accept && updated.roomId?.isNotEmpty == true) {
+        await _openAcceptedRoom(updated.roomId!);
+      } else {
+        setState(() => _statusMessage = 'Rematch declined.');
+      }
+    } on EconomyApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _statusMessage = error.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _pollRematches() async {
+    try {
+      final invitations = await _economy.loadRematches();
+      if (!mounted) return;
+      RematchInvitation? relevant;
+      for (final item in invitations) {
+        if (item.previousMatchId == snapshot.matchId) {
+          relevant = item;
+          break;
+        }
+      }
+      if (relevant == null) return;
+      final previousStatus = _invitation?.status;
+      setState(() => _invitation = relevant);
+      if (relevant.status == 'accepted' && relevant.roomId?.isNotEmpty == true) {
+        await _openAcceptedRoom(relevant.roomId!);
+      } else if (previousStatus == 'pending' && relevant.status == 'declined') {
+        setState(() => _statusMessage = 'Challenge declined.');
+      } else if (previousStatus == 'pending' && relevant.status == 'expired') {
+        setState(() => _statusMessage = 'Challenge timed out.');
+      } else if (relevant.status == 'insufficient_coins') {
+        setState(() => _statusMessage = 'A player no longer has enough Coin.');
+      }
+    } catch (_) {
+      // Result actions remain usable if a background poll temporarily fails.
+    }
+  }
+
+  Future<void> _openAcceptedRoom(String roomId) async {
+    _pollTimer?.cancel();
+    if (!mounted) return;
+    Navigator.of(context).pop();
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)),
+    );
+  }
+
+  Future<void> _addFriend() async {
+    setState(() {
+      _busy = true;
+      _statusMessage = null;
+    });
+    try {
+      await SocialApiClient.instance.sendFriendRequest(opponent.publicId);
+      if (!mounted) return;
+      setState(() => _statusMessage = 'Friend request sent.');
+    } on SocialApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _statusMessage = error.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+}
+
+class _ResultLine extends StatelessWidget {
+  const _ResultLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          const SizedBox(width: 12),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+        ],
+      ),
     );
   }
 }
@@ -410,7 +902,7 @@ class _PlayerCard extends StatelessWidget {
     final active = snapshot.currentTurnSeat == seat;
     final isLocalPlayer = snapshot.youSeat == seat;
     final scheme = Theme.of(context).colorScheme;
-    final displayName = isLocalPlayer ? 'Sen' : player.displayName;
+    final displayName = isLocalPlayer ? 'You' : player.displayName;
 
     if (compact) {
       return Card(
@@ -495,34 +987,50 @@ class _TurnBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = snapshot.isLocalTurn
-        ? context.tr('your_turn')
-        : context.tr('opponents_turn');
-    final subtitle = snapshot.status == OnlineDuelStatus.active
+    final active = snapshot.status == OnlineDuelStatus.active;
+    final text = active
+        ? snapshot.isLocalTurn
+              ? context.tr('your_turn')
+              : context.tr('opponents_turn')
+        : snapshot.status == OnlineDuelStatus.readyWindow
+        ? 'Get ready'
+        : 'Connecting players';
+    final subtitle = active
         ? compact
-              ? '${turnSeconds ?? 0} sn'
-              : 'Hamle süresi: ${turnSeconds ?? 0}'
+              ? '${turnSeconds ?? 0} s'
+              : 'Move time: ${turnSeconds ?? 0} s'
         : snapshot.status == OnlineDuelStatus.readyWindow
         ? compact
-              ? '${readySeconds ?? 0} sn'
-              : 'Otomatik başlangıç: ${readySeconds ?? 0}'
+              ? '${readySeconds ?? 0} s'
+              : 'Automatic start: ${readySeconds ?? 0} s'
         : context.tr('online_turn_number', <Object>[snapshot.turnNumber]);
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       liveRegion: true,
-      child: Container(
+      label: '$text, $subtitle',
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
         padding: EdgeInsets.symmetric(
           horizontal: compact ? 8 : 12,
           vertical: compact ? 6 : 8,
         ),
         decoration: BoxDecoration(
           color: snapshot.isLocalTurn
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+              ? scheme.primaryContainer
+              : scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
+          border: snapshot.isLocalTurn
+              ? Border.all(color: scheme.primary, width: 1.5)
+              : null,
         ),
         child: Row(
           children: [
-            Icon(Icons.timer_outlined, size: compact ? 18 : 24),
+            Icon(
+              snapshot.isLocalTurn
+                  ? Icons.touch_app_rounded
+                  : Icons.hourglass_top_rounded,
+              size: compact ? 18 : 24,
+            ),
             SizedBox(width: compact ? 5 : 8),
             Expanded(
               child: Text(
@@ -566,11 +1074,11 @@ class _ReadyPanel extends StatelessWidget {
         : OnlineDuelSeat.a;
     final opponent = snapshot.players[opponentSeat]!;
     final opponentStatus = !opponent.connected
-        ? 'Rakip bağlanıyor'
+        ? 'Opponent is connecting'
         : !opponent.screenLoaded
-        ? 'Rakip oyunu açıyor'
-        : 'Rakip hazır';
-    final countdownText = seconds == null ? '' : ' • $seconds sn';
+        ? 'Opponent is opening the game'
+        : 'Opponent is ready';
+    final countdownText = seconds == null ? '' : ' · $seconds s';
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -610,7 +1118,7 @@ class _ReadyPanel extends StatelessWidget {
               you.ready ? Icons.check_circle : Icons.check_circle_outline,
               size: compact ? 17 : 24,
             ),
-            label: Text(you.ready ? 'Hazırsın' : 'Ben hazırım'),
+            label: Text(you.ready ? 'Ready' : 'I am ready'),
           ),
         ],
       ),
