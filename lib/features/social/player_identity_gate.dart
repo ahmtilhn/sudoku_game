@@ -4,10 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/local_progress_store.dart';
+import '../../services/economy_api_client.dart';
+import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/player_profile_service.dart';
+import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../duel/online_duel_screen.dart';
 import '../home/home_screen.dart';
 
 class PlayerIdentityGate extends StatefulWidget {
@@ -21,17 +25,109 @@ class PlayerIdentityGate extends StatefulWidget {
 
 class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
   bool _promptScheduled = false;
+  bool _handlingRematch = false;
 
   @override
   void initState() {
     super.initState();
+    PushNotificationService.instance.openedRematchId.addListener(
+      _onOpenedRematch,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_checkIdentity());
+      unawaited(_handleOpenedRematch());
     });
   }
 
   @override
+  void dispose() {
+    PushNotificationService.instance.openedRematchId.removeListener(
+      _onOpenedRematch,
+    );
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => HomeScreen(store: widget.store);
+
+  void _onOpenedRematch() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_handleOpenedRematch());
+    });
+  }
+
+  Future<void> _handleOpenedRematch() async {
+    if (!mounted || _handlingRematch) return;
+    if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
+    final push = PushNotificationService.instance;
+    final invitationId = push.openedRematchId.value;
+    if (invitationId == null || invitationId.isEmpty) return;
+
+    _handlingRematch = true;
+    push.openedRematchId.value = null;
+    try {
+      final invitations = await EconomyService.instance.loadRematches();
+      if (!mounted) return;
+      RematchInvitation? invitation;
+      for (final item in invitations) {
+        if (item.id == invitationId) {
+          invitation = item;
+          break;
+        }
+      }
+      if (invitation == null ||
+          !invitation.isPending ||
+          invitation.isSender ||
+          invitation.expiresAt.isBefore(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This rematch invitation has expired.')),
+        );
+        return;
+      }
+
+      final response = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _RematchPushDialog(invitation: invitation!),
+      );
+      if (!mounted || response == null) return;
+      try {
+        final updated = await EconomyService.instance.respondRematch(
+          invitationId: invitation.id,
+          accept: response,
+        );
+        if (!mounted) return;
+        if (response && updated.roomId?.isNotEmpty == true) {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => OnlineDuelScreen(roomId: updated.roomId!),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                response ? 'Rematch could not be started.' : 'Rematch declined.',
+              ),
+            ),
+          );
+        }
+      } on EconomyApiException catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('The rematch invitation could not be loaded.')),
+        );
+      }
+    } finally {
+      _handlingRematch = false;
+    }
+  }
 
   Future<void> _checkIdentity() async {
     if (_promptScheduled || !SocialApiClient.instance.configured) return;
@@ -223,5 +319,79 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
         ? base.substring(0, maxBaseLength)
         : base;
     return '${trimmed}_$suffix';
+  }
+}
+
+class _RematchPushDialog extends StatefulWidget {
+  const _RematchPushDialog({required this.invitation});
+
+  final RematchInvitation invitation;
+
+  @override
+  State<_RematchPushDialog> createState() => _RematchPushDialogState();
+}
+
+class _RematchPushDialogState extends State<_RematchPushDialog> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (!mounted) return;
+      if (_remainingMilliseconds <= 0) {
+        Navigator.of(context).pop();
+      } else {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  int get _remainingMilliseconds => widget.invitation.expiresAt
+      .difference(DateTime.now())
+      .inMilliseconds;
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = (_remainingMilliseconds / 1000).ceil().clamp(0, 10);
+    return AlertDialog(
+      title: const Text('Rematch invitation'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${widget.invitation.sender.displayName} wants to play again.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            '$seconds s',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text('A new match requires 100 Coin from each player.'),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Decline'),
+        ),
+        FilledButton(
+          onPressed: EconomyService.instance.canEnterOnline
+              ? () => Navigator.of(context).pop(true)
+              : null,
+          child: const Text('Accept'),
+        ),
+      ],
+    );
   }
 }
