@@ -3,7 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/app_theme.dart';
 import 'data/local_progress_store.dart';
-import 'features/home/home_screen.dart';
+import 'features/social/player_identity_gate.dart';
 import 'localization/app_strings.dart';
 
 class SudokuApp extends StatelessWidget {
@@ -48,7 +48,7 @@ class SudokuApp extends StatelessWidget {
               }
               return const Locale('en');
             },
-            home: HomeScreen(store: store),
+            home: PlayerIdentityGate(store: store),
           ),
         );
       },
