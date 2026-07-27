@@ -21,8 +21,12 @@ Invoke-Step 'Flutter packages' {
     flutter pub get
 }
 
-Invoke-Step 'Dart format check' {
-    dart format --output=none --set-exit-if-changed lib test
+Invoke-Step 'Dart format' {
+    dart format lib test
+}
+
+Invoke-Step 'Whitespace validation' {
+    git diff --check
 }
 
 Invoke-Step 'Flutter static analysis' {
@@ -54,4 +58,5 @@ Invoke-Step 'Local D1 migrations' {
 }
 
 Write-Host "`nAll local validation steps passed." -ForegroundColor Green
+Write-Host 'The formatter may have changed tracked Dart files. Review and commit those formatting changes before deployment.' -ForegroundColor Yellow
 Write-Host 'Remote D1 migrations, staging deployment, store sandbox products and physical-device tests are still separate release gates.' -ForegroundColor Yellow
