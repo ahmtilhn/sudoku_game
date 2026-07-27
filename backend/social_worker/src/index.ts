@@ -1726,20 +1726,39 @@ export class GameRoom {
     if (events.length === 0) return;
     for (const socket of this.state.getWebSockets()) {
       for (const payload of events) {
-        this.send(socket, this.eventForSocket(socket, payload));
+        const personalized = this.eventForSocket(socket, payload);
+        if (personalized) this.send(socket, personalized);
       }
     }
   }
 
-  private eventForSocket(socket: WebSocket, payload: PublicEvent): PublicEvent {
-    if (payload.type !== 'match_started' && payload.type !== 'game_started' && payload.type !== 'snapshot') {
-      return payload;
-    }
+  private eventForSocket(
+    socket: WebSocket,
+    payload: PublicEvent,
+  ): PublicEvent | null {
     const duel = this.roomState;
     if (!duel) return payload;
     const [playerId] = this.state.getTags(socket);
     const seat = this.seatForPlayer(duel, playerId);
     if (!seat) return payload;
+
+    const actorSeat = payload.payload.seat;
+    if (
+      payload.type === 'move_rejected' &&
+      (actorSeat === 'A' || actorSeat === 'B') &&
+      actorSeat !== seat
+    ) {
+      return null;
+    }
+
+    if (
+      payload.type !== 'match_started' &&
+      payload.type !== 'game_started' &&
+      payload.type !== 'snapshot'
+    ) {
+      return payload;
+    }
+
     return {
       ...payload,
       payload: snapshot(duel, seat, payload.serverTime),
