@@ -29,6 +29,7 @@ Updated for branch `codex-authoritative-online-duel`.
 - Forfeit/disconnect winner settlement uses the same escrow payout.
 - Direct friend-challenge matches also require and fund the same escrow.
 - Guard triggers abort partial or negative entry-fee operations.
+- A database uniqueness guard blocks duplicate active rooms and duplicate rematch charges for the same player pair.
 
 ### Rematch and result flow
 
@@ -56,6 +57,7 @@ Updated for branch `codex-authoritative-online-duel`.
 - Purchase stream starts before product query.
 - Purchase is completed only after the backend grant succeeds.
 - Official Google test rewarded and rewarded-interstitial ad IDs are the default.
+- AdMob server-side verification options are applied before an ad is shown.
 - Career completion shows an explicit reward explanation and Skip action before the ad.
 
 ### Player identity and discoverability
@@ -78,7 +80,7 @@ Updated for branch `codex-authoritative-online-duel`.
 
 ## Not yet verified
 
-The implementation was committed through GitHub, but the following have not yet been run against the final combined branch:
+The implementation was committed through GitHub, but the following have not yet been run successfully against the final combined branch:
 
 - `flutter pub get`
 - Dart formatter on the final source set
@@ -87,11 +89,13 @@ The implementation was committed through GitHub, but the following have not yet 
 - Worker TypeScript typecheck
 - Worker test suite
 - local D1 migration application from a clean database
-- remote migrations `0005` through `0010`
+- remote migrations `0005` through `0013`
 - deployment of the new Worker entrypoint
 - physical Android/iOS cross-platform tests
 - Google Play internal-test purchases
 - App Store sandbox/TestFlight purchases
+
+A GitHub-hosted validation workflow was attempted, but both jobs failed before the first checkout step and produced no job logs. It was removed so an infrastructure-level red check would not be confused with a code validation result. Local validation remains mandatory.
 
 Do not promote this branch until those checks pass.
 
