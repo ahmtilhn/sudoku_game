@@ -6,6 +6,7 @@ import '../../data/puzzle_catalog.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
+import '../../services/economy_service.dart';
 import '../game/game_screen.dart';
 import '../game/hint_economy.dart';
 
@@ -20,6 +21,24 @@ class CareerScreen extends StatefulWidget {
 
 class _CareerScreenState extends State<CareerScreen> {
   SudokuDifficulty? _generatingDifficulty;
+  final EconomyService _economy = EconomyService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _economy.addListener(_onEconomyChanged);
+    _economy.initialize();
+  }
+
+  @override
+  void dispose() {
+    _economy.removeListener(_onEconomyChanged);
+    super.dispose();
+  }
+
+  void _onEconomyChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +62,11 @@ class _CareerScreenState extends State<CareerScreen> {
                       Icons.monetization_on_outlined,
                       size: 18,
                     ),
-                    label: Text('${widget.store.coins}'),
+                    label: Text(
+                      _economy.loading && _economy.wallet == null
+                          ? '…'
+                          : '${_economy.balance}',
+                    ),
                   ),
                 ],
               ),
@@ -51,36 +74,50 @@ class _CareerScreenState extends State<CareerScreen> {
           ),
         ],
       ),
-      body: AnimatedBuilder(
-        animation: widget.store,
-        builder: (context, _) => ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-          children: [
-            Text(
-              context.tr('career_random_intro'),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              context.tr('three_mistake_rule'),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth >= 840 ? 720.0 : 640.0;
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: AnimatedBuilder(
+                  animation: widget.store,
+                  builder: (context, _) => ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                    children: [
+                      Text(
+                        context.tr('career_random_intro'),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        context.tr('three_mistake_rule'),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      for (final difficulty in SudokuDifficulty.values) ...[
+                        _DifficultyCard(
+                          difficulty: difficulty,
+                          clueCount: PuzzleCatalog.targetClueCount(difficulty),
+                          progress: widget.store.progressFor(
+                            'career-${difficulty.name}',
+                          ),
+                          generating: _generatingDifficulty == difficulty,
+                          onTap: _generatingDifficulty == null
+                              ? () => _startRandomPuzzle(difficulty)
+                              : null,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 18),
-            for (final difficulty in SudokuDifficulty.values) ...[
-              _DifficultyCard(
-                difficulty: difficulty,
-                clueCount: PuzzleCatalog.targetClueCount(difficulty),
-                progress: widget.store.progressFor('career-${difficulty.name}'),
-                generating: _generatingDifficulty == difficulty,
-                onTap: _generatingDifficulty == null
-                    ? () => _startRandomPuzzle(difficulty)
-                    : null,
-              ),
-              const SizedBox(height: 12),
-            ],
-          ],
+            );
+          },
         ),
       ),
     );
@@ -94,13 +131,13 @@ class _CareerScreenState extends State<CareerScreen> {
     if (!mounted) return;
     setState(() => _generatingDifficulty = null);
 
-    await Navigator.of(context).push<bool>(
+    final completed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (gameContext) => GameScreen(
           puzzle: puzzle,
           mistakeLimit: 3,
           coinContinueCost: 25,
-          onCoinContinue: widget.store.spendCoins,
+          onCoinContinue: (_) => _economy.spendCareerContinue(),
           onRewardedContinue: AdsService.instance.showRewarded,
           onConsumeHint: () =>
               HintEconomy.consumeOrAcquire(gameContext, widget.store),
@@ -113,12 +150,96 @@ class _CareerScreenState extends State<CareerScreen> {
                   mistakes: mistakes,
                   hints: hints,
                 );
-                await widget.store.addCoins(10);
+                await _claimEligibleAchievements();
               },
         ),
       ),
     );
+    if (!mounted) return;
+    if (completed == true) {
+      await _showCareerRewardOffer();
+    }
     if (mounted) setState(() {});
+  }
+
+  Future<void> _claimEligibleAchievements() async {
+    const achievements = <String>[
+      'first_win',
+      'games_25',
+      'wins_10',
+      'wins_50',
+      'rating_1200',
+      'rating_1500',
+      'wins_250',
+    ];
+    for (final achievement in achievements) {
+      await _economy.claimAchievement(achievement);
+    }
+  }
+
+  Future<void> _showCareerRewardOffer() async {
+    final watch = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            4,
+            20,
+            20 + MediaQuery.viewPaddingOf(sheetContext).bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.ondemand_video_rounded, size: 42),
+              const SizedBox(height: 10),
+              Text(
+                'Earn 25 Coin',
+                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Watch an optional rewarded ad after this completed puzzle.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(sheetContext).pop(true),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Watch and earn +25 Coin'),
+                ),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(false),
+                  child: const Text('Skip'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (watch != true || !mounted) return;
+    final rewarded = await _economy.claimCareerRewardedInterstitial();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          rewarded
+              ? '25 Coin added to your wallet.'
+              : 'The reward ad is not available right now.',
+        ),
+      ),
+    );
   }
 }
 
