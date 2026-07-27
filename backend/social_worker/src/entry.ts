@@ -22,6 +22,14 @@ export default {
     }
 
     const url = new URL(request.url);
+    if (isUnsafeProductionRewardConfirmation(request, env, url)) {
+      return json(env, 503, {
+        error:
+          'AdMob server-side reward verification is required before production rewards can be granted.',
+        code: 'ad_ssv_required',
+      });
+    }
+
     const routedRequest = await protectProfileDisplayName(request, url);
     const response = await app.fetch(routedRequest, env, ctx);
     if (response.status === 101) return response;
@@ -45,6 +53,19 @@ export default {
     });
   },
 };
+
+function isUnsafeProductionRewardConfirmation(
+  request: Request,
+  env: RuntimeEnv,
+  url: URL,
+): boolean {
+  if ((env.ENVIRONMENT ?? '').toLowerCase() !== 'production') return false;
+  if (request.method !== 'POST') return false;
+  return (
+    url.pathname === '/v1/rewards/daily-ad/confirm' ||
+    url.pathname === '/v1/rewards/career-ad/confirm'
+  );
+}
 
 async function protectProfileDisplayName(
   request: Request,
@@ -108,6 +129,16 @@ function asObject(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function json(env: RuntimeEnv, status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      ...corsHeaders(env),
+    },
+  });
 }
 
 function corsHeaders(env: RuntimeEnv): Record<string, string> {
