@@ -1,12 +1,13 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
-import '../../services/firebase_runtime_config.dart';
+import '../../services/economy_service.dart';
+import '../../services/firebase_session_service.dart';
 import '../../services/social_api_client.dart';
+import '../economy/coin_store_screen.dart';
 import '../social/friend_requests_screen.dart';
 import '../social/platform_social_screen.dart';
 import 'duel_screen.dart';
@@ -14,7 +15,9 @@ import 'leaderboards_screen.dart';
 import 'online_duel_screen.dart';
 
 class MatchmakingScreen extends StatefulWidget {
-  const MatchmakingScreen({super.key});
+  const MatchmakingScreen({super.key, this.initialDifficulty});
+
+  final SudokuDifficulty? initialDifficulty;
 
   @override
   State<MatchmakingScreen> createState() => _MatchmakingScreenState();
@@ -23,7 +26,8 @@ class MatchmakingScreen extends StatefulWidget {
 class _MatchmakingScreenState extends State<MatchmakingScreen> {
   static const Duration _queueRefreshInterval = Duration(seconds: 45);
 
-  SudokuDifficulty _difficulty = SudokuDifficulty.easy;
+  final EconomyService _economy = EconomyService.instance;
+  late SudokuDifficulty _difficulty;
   bool _searching = false;
   bool _polling = false;
   String? _error;
@@ -33,9 +37,22 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   String get _queueKey => 'duel_${_difficulty.name}';
 
   @override
+  void initState() {
+    super.initState();
+    _difficulty = widget.initialDifficulty ?? SudokuDifficulty.easy;
+    _economy.addListener(_onEconomyChanged);
+    _economy.initialize();
+  }
+
+  @override
   void dispose() {
     _pollTimer?.cancel();
+    _economy.removeListener(_onEconomyChanged);
     super.dispose();
+  }
+
+  void _onEconomyChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -62,138 +79,120 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-        children: [
-          OutlinedButton.icon(
-            onPressed: _openPlatformFriends,
-            icon: const Icon(Icons.person_search_outlined),
-            label: const Text('Friends, profiles & challenges'),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            context.tr('choose_duel_difficulty'),
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.tr('same_difficulty_match'),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
-          ),
-          const SizedBox(height: 20),
-          for (final difficulty in SudokuDifficulty.values) ...[
-            _DifficultyCard(
-              difficulty: difficulty,
-              selected: _difficulty == difficulty,
-              enabled: !_searching,
-              onSelected: () => setState(() => _difficulty = difficulty),
-            ),
-            const SizedBox(height: 8),
-          ],
-          const SizedBox(height: 12),
-          if (_searching)
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: scheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(22),
-              ),
-              child: Column(
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(
-                    context.tr('searching_opponent'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth >= 840 ? 720.0 : 640.0;
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                  children: [
+                    _EntrySummary(economy: _economy),
+                    const SizedBox(height: 16),
+                    Text(
+                      context.tr('choose_duel_difficulty'),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    context.tr('queue_key', <Object>[_queueKey]),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    context.tr('waiting_for_ranked_opponent'),
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 14),
-                  OutlinedButton(
-                    onPressed: _cancelSearch,
-                    child: Text(context.tr('cancel_search')),
-                  ),
-                ],
-              ),
-            )
-          else ...[
-            FilledButton.icon(
-              onPressed: _findOpponent,
-              icon: const Icon(Icons.public),
-              label: Text(context.tr('find_opponent')),
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: _openLocalPractice,
-              icon: const Icon(Icons.people_outline),
-              label: Text(context.tr('local_practice')),
-            ),
-          ],
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
-              decoration: BoxDecoration(
-                color: scheme.errorContainer,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.error_outline, color: scheme.onErrorContainer),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _error!,
-                      style: TextStyle(color: scheme.onErrorContainer),
+                    const SizedBox(height: 6),
+                    Text(
+                      context.tr('same_difficulty_match'),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    tooltip: 'Dismiss',
-                    onPressed: () => setState(() => _error = null),
-                    icon: Icon(Icons.close, color: scheme.onErrorContainer),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    for (final difficulty in SudokuDifficulty.values) ...[
+                      _DifficultyCard(
+                        difficulty: difficulty,
+                        selected: _difficulty == difficulty,
+                        enabled: !_searching,
+                        onSelected: () =>
+                            setState(() => _difficulty = difficulty),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    const SizedBox(height: 8),
+                    if (_searching)
+                      _SearchingPanel(
+                        queueKey: _queueKey,
+                        onCancel: _cancelSearch,
+                      )
+                    else
+                      _StartActions(
+                        canEnterOnline: _economy.canEnterOnline,
+                        loading: _economy.loading,
+                        onFindOpponent: _findOpponent,
+                        onInsufficientCoins: _showInsufficientCoins,
+                        onLocalPractice: _openLocalPractice,
+                        onSocial: _openPlatformFriends,
+                      ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Material(
+                        color: scheme.errorContainer,
+                        borderRadius: BorderRadius.circular(14),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: scheme.onErrorContainer,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: TextStyle(
+                                    color: scheme.onErrorContainer,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                tooltip: 'Dismiss',
+                                onPressed: () => setState(() => _error = null),
+                                icon: Icon(
+                                  Icons.close,
+                                  color: scheme.onErrorContainer,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ],
+            );
+          },
+        ),
       ),
     );
   }
 
   void _openFriendRequests() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const FriendRequestsScreen()));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const FriendRequestsScreen()),
+    );
   }
 
   void _openPlatformFriends() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const PlatformSocialScreen()));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PlatformSocialScreen()),
+    );
   }
 
   void _openLeaderboards() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const LeaderboardsScreen()));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const LeaderboardsScreen()),
+    );
   }
 
   void _openLocalPractice() {
@@ -202,8 +201,104 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     );
   }
 
+  Future<void> _showInsufficientCoins() async {
+    await _economy.refresh();
+    if (!mounted) return;
+    if (_economy.canEnterOnline) {
+      await _findOpponent();
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline_rounded, size: 42),
+              const SizedBox(height: 10),
+              Text(
+                '100 Coin required',
+                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Each player contributes 100 Coin. The winner receives the 200 Coin pot.',
+                textAlign: TextAlign.center,
+                style: Theme.of(sheetContext).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const CoinStoreScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.storefront_outlined),
+                  label: const Text('Open Coin Store'),
+                ),
+              ),
+              if (_economy.wallet?.dailyLoginAvailable == true) ...[
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final claimed = await _economy.claimDailyLogin();
+                      if (sheetContext.mounted && claimed) {
+                        Navigator.of(sheetContext).pop();
+                      }
+                    },
+                    icon: const Icon(Icons.card_giftcard_outlined),
+                    label: Text(
+                      'Claim +${_economy.wallet!.dailyLoginAmount} daily Coin',
+                    ),
+                  ),
+                ),
+              ],
+              if (_economy.wallet?.dailyAdAvailable == true) ...[
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final claimed = await _economy.claimDailyRewardedAd();
+                      if (sheetContext.mounted && claimed) {
+                        Navigator.of(sheetContext).pop();
+                      }
+                    },
+                    icon: const Icon(Icons.ondemand_video_outlined),
+                    label: Text(
+                      'Watch ad for +${_economy.wallet!.dailyAdAmount} Coin',
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _findOpponent() async {
     if (_searching) return;
+    await _economy.refresh();
+    if (!mounted) return;
+    if (!_economy.canEnterOnline) {
+      await _showInsufficientCoins();
+      return;
+    }
+
     setState(() {
       _searching = true;
       _error = null;
@@ -211,7 +306,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     });
 
     try {
-      await _ensureAnonymousFirebaseSession();
+      await FirebaseSessionService.ensureAnonymousSession();
       final result = await SocialApiClient.instance.joinRankedQueue(
         difficulty: _difficulty.name,
       );
@@ -231,45 +326,16 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       }
       _lastQueueRefresh = DateTime.now();
       _startPollingForMatch();
+    } on FirebaseSessionException catch (error) {
+      _stopSearchWithError(error.message);
     } on SocialApiException catch (error) {
+      if (error.statusCode == 409) {
+        await _economy.refresh(showLoading: false);
+      }
       _stopSearchWithError(error.message);
     } catch (_) {
       _stopSearchWithError(
         'Unable to start opponent search. Please try again.',
-      );
-    }
-  }
-
-  Future<void> _ensureAnonymousFirebaseSession() async {
-    final configured = await FirebaseRuntimeConfig.initializeIfConfigured();
-    if (!configured) {
-      throw const SocialApiException(
-        0,
-        'Firebase is not configured for this device.',
-      );
-    }
-
-    if (FirebaseAuth.instance.currentUser != null) return;
-
-    try {
-      final credential = await FirebaseAuth.instance
-          .signInAnonymously()
-          .timeout(const Duration(seconds: 15));
-      if (credential.user == null && FirebaseAuth.instance.currentUser == null) {
-        throw const SocialApiException(
-          401,
-          'Unable to create a temporary player session.',
-        );
-      }
-    } on TimeoutException {
-      throw const SocialApiException(
-        0,
-        'Player session creation timed out. Please try again.',
-      );
-    } on FirebaseAuthException catch (error) {
-      throw SocialApiException(
-        401,
-        error.message ?? 'Unable to create a temporary player session.',
       );
     }
   }
@@ -289,7 +355,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     try {
       await SocialApiClient.instance.cancelRankedQueue();
     } catch (_) {
-      // Offline/local play must remain available even if queue cancel fails.
+      // Local play remains available if queue cancellation cannot reach server.
     }
   }
 
@@ -304,9 +370,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         _lastQueueRefresh = null;
       });
     }
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)));
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => OnlineDuelScreen(roomId: roomId),
+          ),
+        )
+        .then((_) => _economy.refresh(showLoading: false));
   }
 
   void _startPollingForMatch() {
@@ -345,8 +415,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       _openOnlineRoom(roomId);
     } on SocialApiException catch (error) {
       if (!mounted) return;
-      final terminalError =
-          error.statusCode >= 400 && error.statusCode < 500;
+      final terminalError = error.statusCode >= 400 && error.statusCode < 500;
       if (terminalError) {
         _pollTimer?.cancel();
         _pollTimer = null;
@@ -355,6 +424,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           _error = error.message;
           _lastQueueRefresh = null;
         });
+        await _economy.refresh(showLoading: false);
       } else {
         setState(() => _error = error.message);
       }
@@ -382,6 +452,148 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   }
 }
 
+class _EntrySummary extends StatelessWidget {
+  const _EntrySummary({required this.economy});
+
+  final EconomyService economy;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.primaryContainer,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(
+              Icons.monetization_on_rounded,
+              color: scheme.onPrimaryContainer,
+              size: 34,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Balance: ${economy.loading && economy.wallet == null ? '…' : economy.balance} Coin',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${economy.entryFee} entry · ${economy.winnerPot} winner pot',
+                    style: TextStyle(color: scheme.onPrimaryContainer),
+                  ),
+                ],
+              ),
+            ),
+            IconButton.filledTonal(
+              tooltip: 'Coin Store',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
+              ),
+              icon: const Icon(Icons.storefront_outlined),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StartActions extends StatelessWidget {
+  const _StartActions({
+    required this.canEnterOnline,
+    required this.loading,
+    required this.onFindOpponent,
+    required this.onInsufficientCoins,
+    required this.onLocalPractice,
+    required this.onSocial,
+  });
+
+  final bool canEnterOnline;
+  final bool loading;
+  final VoidCallback onFindOpponent;
+  final VoidCallback onInsufficientCoins;
+  final VoidCallback onLocalPractice;
+  final VoidCallback onSocial;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FilledButton.icon(
+          onPressed: loading
+              ? null
+              : canEnterOnline
+              ? onFindOpponent
+              : onInsufficientCoins,
+          icon: Icon(canEnterOnline ? Icons.public : Icons.lock_outline),
+          label: Text(
+            canEnterOnline ? context.tr('find_opponent') : 'Get more Coin',
+          ),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: onSocial,
+          icon: const Icon(Icons.people_alt_outlined),
+          label: const Text('Friends & challenges'),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: onLocalPractice,
+          icon: const Icon(Icons.people_outline),
+          label: Text(context.tr('local_practice')),
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchingPanel extends StatelessWidget {
+  const _SearchingPanel({required this.queueKey, required this.onCancel});
+
+  final String queueKey;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.secondaryContainer,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 14),
+            Text(
+              context.tr('searching_opponent'),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(context.tr('queue_key', <Object>[queueKey])),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: onCancel,
+              child: Text(context.tr('cancel_search')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DifficultyCard extends StatelessWidget {
   const _DifficultyCard({
     required this.difficulty,
@@ -399,6 +611,7 @@ class _DifficultyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
+      margin: EdgeInsets.zero,
       color: selected ? scheme.primaryContainer : null,
       clipBehavior: Clip.antiAlias,
       child: ListTile(
