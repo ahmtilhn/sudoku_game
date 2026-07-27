@@ -1,5 +1,5 @@
 name = "sudoku-duel-social-staging"
-main = "src/main.ts"
+main = "src/profile_wrapper.ts"
 compatibility_date = "2026-07-24"
 
 [vars]
@@ -9,7 +9,7 @@ FCM_PROJECT_ID = "focus-sweep-503417-d7"
 ALLOWED_ORIGIN = "*"
 ALLOWED_APP_CHECK_APP_IDS = "1:31445697560:android:ed951eabf51d75800b2f6d,1:31445697560:ios:1f72f9fe671c75340b2f6d"
 REQUIRE_APP_CHECK = "false"
-BUILD_COMMIT = "2dd32e827669019c78c74075460fd7966480bf3d"
+BUILD_COMMIT = "d6abd7a050eb39e8ef41613897c55354fff244ac"
 ENVIRONMENT = "staging"
 ALLOW_TEST_PURCHASE_GRANTS = "true"
 
