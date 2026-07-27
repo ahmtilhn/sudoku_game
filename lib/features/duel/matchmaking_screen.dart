@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../services/firebase_runtime_config.dart';
 import '../../services/social_api_client.dart';
 import '../social/friend_requests_screen.dart';
 import '../social/platform_social_screen.dart';
@@ -209,6 +211,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     });
 
     try {
+      await _ensureAnonymousFirebaseSession();
       final result = await SocialApiClient.instance.joinRankedQueue(
         difficulty: _difficulty.name,
       );
@@ -233,6 +236,40 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     } catch (_) {
       _stopSearchWithError(
         'Unable to start opponent search. Please try again.',
+      );
+    }
+  }
+
+  Future<void> _ensureAnonymousFirebaseSession() async {
+    final configured = await FirebaseRuntimeConfig.initializeIfConfigured();
+    if (!configured) {
+      throw const SocialApiException(
+        0,
+        'Firebase is not configured for this device.',
+      );
+    }
+
+    if (FirebaseAuth.instance.currentUser != null) return;
+
+    try {
+      final credential = await FirebaseAuth.instance
+          .signInAnonymously()
+          .timeout(const Duration(seconds: 15));
+      if (credential.user == null && FirebaseAuth.instance.currentUser == null) {
+        throw const SocialApiException(
+          401,
+          'Unable to create a temporary player session.',
+        );
+      }
+    } on TimeoutException {
+      throw const SocialApiException(
+        0,
+        'Player session creation timed out. Please try again.',
+      );
+    } on FirebaseAuthException catch (error) {
+      throw SocialApiException(
+        401,
+        error.message ?? 'Unable to create a temporary player session.',
       );
     }
   }
