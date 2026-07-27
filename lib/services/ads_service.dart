@@ -125,7 +125,7 @@ class AdsService {
     if (ad == null) return false;
 
     _rewardedAd = null;
-    _setServerSideOptions(ad, verificationToken);
+    await _setServerSideOptions(ad, verificationToken);
     final result = Completer<bool>();
     var earnedReward = false;
 
@@ -147,16 +147,23 @@ class AdsService {
       },
     );
 
-    ad.show(
-      onUserEarnedReward: (shownAd, reward) {
-        earnedReward = true;
-      },
-    );
+    try {
+      await ad.show(
+        onUserEarnedReward: (shownAd, reward) {
+          earnedReward = true;
+        },
+      );
+    } catch (error) {
+      debugPrint('Rewarded ad show threw: $error');
+      await ad.dispose();
+      unawaited(_loadRewardedAd());
+      return false;
+    }
 
     try {
       return await result.future.timeout(const Duration(minutes: 3));
     } on TimeoutException {
-      ad.dispose();
+      await ad.dispose();
       return false;
     }
   }
@@ -173,7 +180,7 @@ class AdsService {
     if (ad == null) return false;
 
     _rewardedInterstitialAd = null;
-    _setServerSideOptions(ad, verificationToken);
+    await _setServerSideOptions(ad, verificationToken);
     final result = Completer<bool>();
     var earnedReward = false;
 
@@ -196,16 +203,23 @@ class AdsService {
           },
         );
 
-    ad.show(
-      onUserEarnedReward: (shownAd, reward) {
-        earnedReward = true;
-      },
-    );
+    try {
+      await ad.show(
+        onUserEarnedReward: (shownAd, reward) {
+          earnedReward = true;
+        },
+      );
+    } catch (error) {
+      debugPrint('Rewarded interstitial show threw: $error');
+      await ad.dispose();
+      unawaited(_loadRewardedInterstitialAd());
+      return false;
+    }
 
     try {
       return await result.future.timeout(const Duration(minutes: 3));
     } on TimeoutException {
-      ad.dispose();
+      await ad.dispose();
       return false;
     }
   }
@@ -220,17 +234,17 @@ class AdsService {
     await _updatePrivacyOptionsRequirement();
   }
 
-  void _setServerSideOptions(
+  Future<void> _setServerSideOptions(
     Object ad,
     String? verificationToken,
-  ) {
+  ) async {
     final token = verificationToken?.trim();
     if (token == null || token.isEmpty) return;
     final options = ServerSideVerificationOptions(customData: token);
     if (ad is RewardedAd) {
-      ad.setServerSideOptions(options);
+      await ad.setServerSideOptions(options);
     } else if (ad is RewardedInterstitialAd) {
-      ad.setServerSideOptions(options);
+      await ad.setServerSideOptions(options);
     }
   }
 
@@ -247,7 +261,7 @@ class AdsService {
     final completer = Completer<void>();
     _rewardedLoadCompleter = completer;
 
-    RewardedAd.load(
+    await RewardedAd.load(
       adUnitId: _rewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
@@ -286,7 +300,7 @@ class AdsService {
     final completer = Completer<void>();
     _rewardedInterstitialLoadCompleter = completer;
 
-    RewardedInterstitialAd.load(
+    await RewardedInterstitialAd.load(
       adUnitId: _rewardedInterstitialAdUnitId,
       request: const AdRequest(),
       rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
