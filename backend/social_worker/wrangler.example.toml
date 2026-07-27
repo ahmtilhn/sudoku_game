@@ -1,5 +1,5 @@
 name = "sudoku-duel-social"
-main = "src/profile_wrapper.ts"
+main = "src/entry.ts"
 compatibility_date = "2026-07-24"
 
 [vars]
