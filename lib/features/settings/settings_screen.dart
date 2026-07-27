@@ -6,7 +6,7 @@ import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_services.dart';
-import '../../services/firebase_session_service.dart';
+import '../../services/player_profile_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/reminder_notification_service.dart';
 import '../../services/social_api_client.dart';
@@ -28,7 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _updatingAnalytics = false;
   bool _updatingCrashReports = false;
   bool _loadingProfile = false;
-  SocialPlayer? _profile;
+  PlayerProfilePreferences? _profile;
   String? _profileError;
 
   @override
@@ -77,11 +77,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         loading: _loadingProfile,
                         balance: _economy.balance,
                         onRetry: _loadProfile,
-                        onEditName: _editDisplayName,
+                        onEditProfile: _editProfile,
                         onCopyId: _copyPublicId,
                         onOpenStore: () => _open(const CoinStoreScreen()),
                         onOpenHistory: () =>
                             _open(const WalletHistoryScreen()),
+                        onDiscoverabilityChanged: _setDiscoverability,
                       ),
                       const SizedBox(height: 22),
                       _sectionTitle(context, context.tr('appearance')),
@@ -308,10 +309,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _profileError = null;
     });
     try {
-      await FirebaseSessionService.ensureAnonymousSession();
-      final profile = await SocialApiClient.instance.ensureProfile();
+      final profile = await PlayerProfileService.instance.load();
       if (!mounted) return;
       setState(() => _profile = profile);
+    } on PlayerProfileException catch (error) {
+      if (!mounted) return;
+      setState(() => _profileError = error.message);
     } catch (error) {
       if (!mounted) return;
       setState(() => _profileError = error.toString());
@@ -320,46 +323,126 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _editDisplayName() async {
-    final controller = TextEditingController(text: _profile?.displayName ?? '');
-    final value = await showDialog<String>(
+  Future<void> _editProfile() async {
+    final current = _profile;
+    if (current == null) return;
+    final usernameController = TextEditingController(text: current.username);
+    final displayController = TextEditingController(text: current.displayName);
+    final value = await showDialog<({String username, String displayName})>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Player name'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 24,
-          textInputAction: TextInputAction.done,
-          decoration: const InputDecoration(
-            labelText: 'Display name',
-            hintText: 'How other players see you',
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Player profile'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: displayController,
+                  autofocus: true,
+                  maxLength: 24,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Display name',
+                    hintText: 'Shown to other players',
+                  ),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+                TextField(
+                  controller: usernameController,
+                  maxLength: 20,
+                  textInputAction: TextInputAction.done,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  decoration: const InputDecoration(
+                    labelText: 'Unique username',
+                    helperText: '3–20 lowercase letters, numbers or underscore',
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9_]')),
+                  ],
+                  onChanged: (_) => setDialogState(() {}),
+                  onSubmitted: (_) {
+                    final username = usernameController.text.trim().toLowerCase();
+                    final displayName = displayController.text.trim();
+                    if (username.length >= 3 && displayName.length >= 2) {
+                      Navigator.of(dialogContext).pop((
+                        username: username,
+                        displayName: displayName,
+                      ));
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
-          onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(context.tr('cancel')),
+            ),
+            FilledButton(
+              onPressed:
+                  usernameController.text.trim().length < 3 ||
+                      displayController.text.trim().length < 2
+                  ? null
+                  : () => Navigator.of(dialogContext).pop((
+                      username: usernameController.text.trim().toLowerCase(),
+                      displayName: displayController.text.trim(),
+                    )),
+              child: const Text('Save'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(context.tr('cancel')),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
-    controller.dispose();
-    if (value == null || value.trim().length < 2) return;
-    setState(() => _loadingProfile = true);
+    usernameController.dispose();
+    displayController.dispose();
+    if (value == null) return;
+    await _updateProfile(
+      username: value.username,
+      displayName: value.displayName,
+      discoverable: current.discoverable,
+      nameSource: 'custom',
+    );
+  }
+
+  Future<void> _setDiscoverability(bool value) async {
+    final current = _profile;
+    if (current == null) return;
+    await _updateProfile(
+      username: current.username,
+      displayName: current.displayName,
+      discoverable: value,
+      nameSource: current.nameSource,
+    );
+  }
+
+  Future<void> _updateProfile({
+    required String username,
+    required String displayName,
+    required bool discoverable,
+    required String nameSource,
+  }) async {
+    setState(() {
+      _loadingProfile = true;
+      _profileError = null;
+    });
     try {
-      final updated = await SocialApiClient.instance.ensureProfile(
-        displayName: value.trim(),
+      final updated = await PlayerProfileService.instance.update(
+        username: username,
+        displayName: displayName,
+        discoverable: discoverable,
+        nameSource: nameSource,
       );
       if (mounted) setState(() => _profile = updated);
-    } catch (error) {
-      if (mounted) setState(() => _profileError = error.toString());
+    } on PlayerProfileException catch (error) {
+      if (!mounted) return;
+      setState(() => _profileError = error.message);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     } finally {
       if (mounted) setState(() => _loadingProfile = false);
     }
@@ -468,21 +551,23 @@ class _PlayerAccountCard extends StatelessWidget {
     required this.loading,
     required this.balance,
     required this.onRetry,
-    required this.onEditName,
+    required this.onEditProfile,
     required this.onCopyId,
     required this.onOpenStore,
     required this.onOpenHistory,
+    required this.onDiscoverabilityChanged,
   });
 
-  final SocialPlayer? profile;
+  final PlayerProfilePreferences? profile;
   final String? profileError;
   final bool loading;
   final int balance;
   final VoidCallback onRetry;
-  final VoidCallback onEditName;
+  final VoidCallback onEditProfile;
   final VoidCallback onCopyId;
   final VoidCallback onOpenStore;
   final VoidCallback onOpenHistory;
+  final ValueChanged<bool> onDiscoverabilityChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -519,8 +604,8 @@ class _PlayerAccountCard extends StatelessWidget {
             ),
             subtitle: Text('@${profile!.username}'),
             trailing: IconButton(
-              tooltip: 'Edit display name',
-              onPressed: loading ? null : onEditName,
+              tooltip: 'Edit player profile',
+              onPressed: loading ? null : onEditProfile,
               icon: const Icon(Icons.edit_outlined),
             ),
           ),
@@ -530,9 +615,19 @@ class _PlayerAccountCard extends StatelessWidget {
             title: const Text('Friend ID'),
             subtitle: Text(profile!.publicId),
             trailing: IconButton(
-              tooltip: 'Copy friend ID',
+              tooltip: 'Copy Friend ID',
               onPressed: onCopyId,
               icon: const Icon(Icons.copy_outlined),
+            ),
+          ),
+          const Divider(height: 1),
+          SwitchListTile.adaptive(
+            secondary: const Icon(Icons.manage_search_outlined),
+            value: profile!.discoverable,
+            onChanged: loading ? null : onDiscoverabilityChanged,
+            title: const Text('Discoverable by other players'),
+            subtitle: const Text(
+              'Allow username, display-name and exact Friend ID search. Existing friends remain connected when disabled.',
             ),
           ),
           const Divider(height: 1),
