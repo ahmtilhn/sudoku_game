@@ -21,6 +21,7 @@ class MatchmakingScreen extends StatefulWidget {
 class _MatchmakingScreenState extends State<MatchmakingScreen> {
   SudokuDifficulty _difficulty = SudokuDifficulty.easy;
   bool _searching = false;
+  bool _polling = false;
   String? _error;
   Timer? _pollTimer;
 
@@ -117,14 +118,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: scheme.error),
-                    ),
-                  ],
                   const SizedBox(height: 14),
                   OutlinedButton(
                     onPressed: _cancelSearch,
@@ -144,6 +137,35 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
               onPressed: _openLocalPractice,
               icon: const Icon(Icons.people_outline),
               label: Text(context.tr('local_practice')),
+            ),
+          ],
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+              decoration: BoxDecoration(
+                color: scheme.errorContainer,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.error_outline, color: scheme.onErrorContainer),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _error!,
+                      style: TextStyle(color: scheme.onErrorContainer),
+                    ),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Dismiss',
+                    onPressed: () => setState(() => _error = null),
+                    icon: Icon(Icons.close, color: scheme.onErrorContainer),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -176,43 +198,68 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   }
 
   Future<void> _findOpponent() async {
+    if (_searching) return;
     setState(() {
       _searching = true;
       _error = null;
     });
+
     try {
       final result = await SocialApiClient.instance.joinRankedQueue(
         difficulty: _difficulty.name,
       );
       if (!mounted) return;
-      if (result.roomId != null) {
-        setState(() => _searching = false);
-        _openOnlineRoom(result.roomId!);
-      } else {
-        _startPollingForMatch();
+
+      final roomId = result.roomId;
+      if (roomId != null && roomId.isNotEmpty) {
+        _openOnlineRoom(roomId);
+        return;
       }
+
+      if (result.status != 'queued') {
+        throw const SocialApiException(
+          0,
+          'The matchmaking server returned an unexpected response.',
+        );
+      }
+      _startPollingForMatch();
     } on SocialApiException catch (error) {
-      if (mounted) {
-        setState(() {
-          _searching = false;
-          _error = error.message;
-        });
-      }
+      _stopSearchWithError(error.message);
+    } catch (_) {
+      _stopSearchWithError(
+        'Unable to start opponent search. Please try again.',
+      );
     }
   }
 
   Future<void> _cancelSearch() async {
     _pollTimer?.cancel();
+    _pollTimer = null;
+    if (mounted) {
+      setState(() {
+        _searching = false;
+        _polling = false;
+        _error = null;
+      });
+    }
+
     try {
       await SocialApiClient.instance.cancelRankedQueue();
     } catch (_) {
       // Offline/local play must remain available even if queue cancel fails.
     }
-    if (mounted) setState(() => _searching = false);
   }
 
   void _openOnlineRoom(String roomId) {
     _pollTimer?.cancel();
+    _pollTimer = null;
+    if (mounted) {
+      setState(() {
+        _searching = false;
+        _polling = false;
+        _error = null;
+      });
+    }
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)));
@@ -220,16 +267,54 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   void _startPollingForMatch() {
     _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
-      try {
-        final match = await SocialApiClient.instance.activeMatch();
-        final roomId = match?['roomId']?.toString();
-        if (!mounted || roomId == null || roomId.isEmpty) return;
-        setState(() => _searching = false);
-        _openOnlineRoom(roomId);
-      } on SocialApiException catch (error) {
-        if (mounted) setState(() => _error = error.message);
+    unawaited(_pollForMatch());
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => unawaited(_pollForMatch()),
+    );
+  }
+
+  Future<void> _pollForMatch() async {
+    if (!_searching || _polling) return;
+    _polling = true;
+    try {
+      final match = await SocialApiClient.instance.activeMatch();
+      final roomId = match?['roomId']?.toString();
+      if (!mounted || roomId == null || roomId.isEmpty) return;
+      _openOnlineRoom(roomId);
+    } on SocialApiException catch (error) {
+      if (!mounted) return;
+      final terminalError =
+          error.statusCode >= 400 && error.statusCode < 500;
+      if (terminalError) {
+        _pollTimer?.cancel();
+        _pollTimer = null;
+        setState(() {
+          _searching = false;
+          _error = error.message;
+        });
+      } else {
+        setState(() => _error = error.message);
       }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = 'The connection was interrupted. Retrying…';
+        });
+      }
+    } finally {
+      _polling = false;
+    }
+  }
+
+  void _stopSearchWithError(String message) {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+    if (!mounted) return;
+    setState(() {
+      _searching = false;
+      _polling = false;
+      _error = message;
     });
   }
 }
