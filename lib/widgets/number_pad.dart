@@ -73,88 +73,111 @@ class NumberPad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = maxValue == 9 && constraints.maxWidth < 430;
+        final spacing = compact ? 4.0 : 8.0;
+        final availableWidth =
+            constraints.maxWidth - (spacing * (maxValue - 1));
+        final buttonWidth = compact
+            ? (availableWidth / maxValue).clamp(30.0, 44.0)
+            : maxValue == 9
+            ? 52.0
+            : 64.0;
+        final buttonHeight = compact ? 42.0 : 52.0;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            for (var value = 1; value <= maxValue; value++)
-              Builder(
-                builder: (context) {
-                  final isCompleted = completedValues.contains(value);
-                  return SizedBox(
-                    width: maxValue == 9 ? 52 : 64,
-                    height: 52,
-                    child: FilledButton.tonal(
-                      key: ValueKey<String>('number-$value'),
-                      onPressed: enabled && !isCompleted
-                          ? () => onNumber(value)
-                          : null,
-                      style: FilledButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        backgroundColor: scheme.secondaryContainer,
-                        foregroundColor: scheme.onSecondaryContainer,
-                      ),
-                      child: Text(
-                        '$value',
-                        style: TextStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                          decoration: isCompleted
-                              ? TextDecoration.lineThrough
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: spacing,
+              runSpacing: compact ? 4 : 8,
+              children: [
+                for (var value = 1; value <= maxValue; value++)
+                  Builder(
+                    builder: (context) {
+                      final isCompleted = completedValues.contains(value);
+                      return SizedBox(
+                        width: buttonWidth,
+                        height: buttonHeight,
+                        child: FilledButton.tonal(
+                          key: ValueKey<String>('number-$value'),
+                          onPressed: enabled && !isCompleted
+                              ? () => onNumber(value)
                               : null,
+                          style: FilledButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            backgroundColor: scheme.secondaryContainer,
+                            foregroundColor: scheme.onSecondaryContainer,
+                          ),
+                          child: Text(
+                            '$value',
+                            style: TextStyle(
+                              fontSize: compact ? 17 : 21,
+                              fontWeight: FontWeight.w800,
+                              decoration: isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 4,
-          children: [
-            _ActionButton(
-              buttonKey: const ValueKey<String>('action-erase'),
-              icon: Icons.backspace_outlined,
-              label: context.tr('erase'),
-              onPressed: enabled ? onErase : null,
+                      );
+                    },
+                  ),
+              ],
             ),
-            if (onToggleNotes != null)
-              _ActionButton(
-                buttonKey: const ValueKey<String>('action-notes'),
-                icon: notesEnabled ? Icons.edit_note : Icons.edit_note_outlined,
-                label: notesEnabled
-                    ? context.tr('notes_on')
-                    : context.tr('notes'),
-                selected: notesEnabled,
-                onPressed: enabled ? onToggleNotes : null,
-              ),
-            if (onUndo != null)
-              _ActionButton(
-                buttonKey: const ValueKey<String>('action-undo'),
-                icon: Icons.undo,
-                label: context.tr('undo'),
-                onPressed: enabled ? onUndo : null,
-              ),
-            if (onHint != null)
-              _ActionButton(
-                buttonKey: const ValueKey<String>('action-hint'),
-                icon: Icons.lightbulb_outline,
-                label: hintCount == null
-                    ? context.tr('hint')
-                    : '${context.tr('hint')} ($hintCount)',
-                onPressed: enabled ? onHint : null,
-              ),
+            SizedBox(height: compact ? 6 : 12),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                _ActionButton(
+                  buttonKey: const ValueKey<String>('action-erase'),
+                  icon: Icons.backspace_outlined,
+                  label: context.tr('erase'),
+                  onPressed: enabled ? onErase : null,
+                ),
+                if (onToggleNotes != null)
+                  _ActionButton(
+                    buttonKey: const ValueKey<String>('action-notes'),
+                    icon: notesEnabled
+                        ? Icons.edit_note
+                        : Icons.edit_note_outlined,
+                    label: notesEnabled
+                        ? context.tr('notes_on')
+                        : context.tr('notes'),
+                    selected: notesEnabled,
+                    onPressed: enabled ? onToggleNotes : null,
+                  ),
+                if (onUndo != null)
+                  _ActionButton(
+                    buttonKey: const ValueKey<String>('action-undo'),
+                    icon: Icons.undo,
+                    label: context.tr('undo'),
+                    onPressed: enabled ? onUndo : null,
+                  ),
+                if (onHint != null)
+                  _ActionButton(
+                    buttonKey: const ValueKey<String>('action-hint'),
+                    icon: Icons.lightbulb_outline,
+                    label: hintCount == null
+                        ? context.tr('hint')
+                        : '${context.tr('hint')} ($hintCount)',
+                    onPressed: enabled ? onHint : null,
+                  ),
+              ],
+            ),
           ],
-        ),
-      ],
+        );
+      },
     );
+
   }
 }
 
