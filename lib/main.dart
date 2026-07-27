@@ -6,6 +6,8 @@ import 'app.dart';
 import 'data/local_progress_store.dart';
 import 'localization/app_strings.dart';
 import 'services/ads_service.dart';
+import 'services/coin_store_service.dart';
+import 'services/economy_service.dart';
 import 'services/firebase_services.dart';
 import 'services/push_notification_service.dart';
 import 'services/reminder_notification_service.dart';
@@ -35,6 +37,20 @@ Future<void> main() async {
         'ads and consent',
         AdsService.instance.initialize,
         timeout: const Duration(seconds: 60),
+      ),
+    );
+    unawaited(
+      _initializeOptionalService(
+        'online Coin economy',
+        EconomyService.instance.initialize,
+        timeout: const Duration(seconds: 30),
+      ),
+    );
+    unawaited(
+      _initializeOptionalService(
+        'Coin Store',
+        CoinStoreService.instance.initialize,
+        timeout: const Duration(seconds: 45),
       ),
     );
   });
