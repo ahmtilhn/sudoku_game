@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -33,6 +33,9 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
     );
   }
 
+  static const Duration _connectTimeout = Duration(seconds: 15);
+  static const Duration _appCheckTimeout = Duration(seconds: 5);
+
   final WebSocketChannel _channel;
   final StreamController<OnlineDuelEvent> _events =
       StreamController<OnlineDuelEvent>.broadcast();
@@ -49,24 +52,53 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
     if (user == null) {
       throw const SocialApiException(401, 'A Firebase session is required.');
     }
-    final token = await user.getIdToken();
+
+    final String? token;
+    try {
+      token = await user.getIdToken().timeout(_connectTimeout);
+    } on TimeoutException {
+      throw const SocialApiException(
+        0,
+        'Firebase session refresh timed out. Please try again.',
+      );
+    } on FirebaseAuthException catch (error) {
+      throw SocialApiException(
+        401,
+        error.message ?? 'Unable to refresh the Firebase session.',
+      );
+    }
     if (token == null || token.isEmpty) {
       throw const SocialApiException(
         401,
         'Unable to obtain a Firebase ID token.',
       );
     }
+
     final uri = SocialApiClient.instance.websocketUri(
       '/v1/rooms/$roomId/connect',
     );
     final appCheckToken = await _appCheckToken();
-    final channel = IOWebSocketChannel.connect(
-      uri,
-      headers: onlineDuelHeadersForTest(
-        firebaseIdToken: token,
-        appCheckToken: appCheckToken,
-      ),
-    );
+    final IOWebSocketChannel channel;
+    try {
+      channel = IOWebSocketChannel.connect(
+        uri,
+        headers: onlineDuelHeadersForTest(
+          firebaseIdToken: token,
+          appCheckToken: appCheckToken,
+        ),
+      );
+      await channel.ready.timeout(_connectTimeout);
+    } on TimeoutException {
+      throw const SocialApiException(
+        0,
+        'The duel room connection timed out. Please try again.',
+      );
+    } on WebSocketChannelException catch (error) {
+      throw SocialApiException(
+        0,
+        error.message ?? 'Unable to connect to the duel room.',
+      );
+    }
     return WebSocketOnlineDuelTransport._(channel);
   }
 
@@ -82,7 +114,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
   Future<void> close() async {
     await _subscription.cancel();
     await _channel.sink.close();
-    await _events.close();
+    if (!_events.isClosed) await _events.close();
   }
 }
 
@@ -99,7 +131,9 @@ Map<String, String> onlineDuelHeadersForTest({
 
 Future<String?> _appCheckToken() async {
   try {
-    final token = await FirebaseAppCheck.instance.getToken(false);
+    final token = await FirebaseAppCheck.instance
+        .getToken(false)
+        .timeout(WebSocketOnlineDuelTransport._appCheckTimeout);
     return token == null || token.isEmpty ? null : token;
   } catch (_) {
     return null;
