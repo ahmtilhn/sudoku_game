@@ -25,7 +25,9 @@ class AdsService {
   final ValueNotifier<bool> privacyOptionsRequired = ValueNotifier<bool>(false);
 
   RewardedAd? _rewardedAd;
+  RewardedInterstitialAd? _rewardedInterstitialAd;
   Completer<void>? _rewardedLoadCompleter;
+  Completer<void>? _rewardedInterstitialLoadCompleter;
   bool _initializing = false;
   bool _mobileAdsInitialized = false;
 
@@ -41,6 +43,19 @@ class AdsService {
     return const String.fromEnvironment(
       'ADMOB_IOS_REWARDED_ID',
       defaultValue: 'ca-app-pub-3940256099942544/1712485313',
+    );
+  }
+
+  String get _rewardedInterstitialAdUnitId {
+    if (Platform.isAndroid) {
+      return const String.fromEnvironment(
+        'ADMOB_ANDROID_REWARDED_INTERSTITIAL_ID',
+        defaultValue: 'ca-app-pub-3940256099942544/5354046379',
+      );
+    }
+    return const String.fromEnvironment(
+      'ADMOB_IOS_REWARDED_INTERSTITIAL_ID',
+      defaultValue: 'ca-app-pub-3940256099942544/6978759866',
     );
   }
 
@@ -68,6 +83,7 @@ class AdsService {
       adsAvailable.value = true;
       await _configureMetaAppEvents();
       unawaited(_loadRewardedAd());
+      unawaited(_loadRewardedInterstitialAd());
       finish();
     }
 
@@ -99,7 +115,7 @@ class AdsService {
     }
   }
 
-  Future<bool> showRewarded() async {
+  Future<bool> showRewarded({String? verificationToken}) async {
     if (!_supported) return false;
     if (!_mobileAdsInitialized) await initialize();
     if (!adsAvailable.value) return false;
@@ -109,6 +125,7 @@ class AdsService {
     if (ad == null) return false;
 
     _rewardedAd = null;
+    _setServerSideOptions(ad, verificationToken);
     final result = Completer<bool>();
     var earnedReward = false;
 
@@ -144,6 +161,55 @@ class AdsService {
     }
   }
 
+  Future<bool> showRewardedInterstitial({String? verificationToken}) async {
+    if (!_supported) return false;
+    if (!_mobileAdsInitialized) await initialize();
+    if (!adsAvailable.value) return false;
+
+    if (_rewardedInterstitialAd == null) {
+      await _loadRewardedInterstitialAd();
+    }
+    final ad = _rewardedInterstitialAd;
+    if (ad == null) return false;
+
+    _rewardedInterstitialAd = null;
+    _setServerSideOptions(ad, verificationToken);
+    final result = Completer<bool>();
+    var earnedReward = false;
+
+    void complete(bool value) {
+      if (!result.isCompleted) result.complete(value);
+    }
+
+    ad.fullScreenContentCallback =
+        FullScreenContentCallback<RewardedInterstitialAd>(
+          onAdFailedToShowFullScreenContent: (failedAd, error) {
+            debugPrint('Rewarded interstitial failed to show: $error');
+            failedAd.dispose();
+            complete(false);
+            unawaited(_loadRewardedInterstitialAd());
+          },
+          onAdDismissedFullScreenContent: (dismissedAd) {
+            dismissedAd.dispose();
+            complete(earnedReward);
+            unawaited(_loadRewardedInterstitialAd());
+          },
+        );
+
+    ad.show(
+      onUserEarnedReward: (shownAd, reward) {
+        earnedReward = true;
+      },
+    );
+
+    try {
+      return await result.future.timeout(const Duration(minutes: 3));
+    } on TimeoutException {
+      ad.dispose();
+      return false;
+    }
+  }
+
   Future<void> showPrivacyOptions() async {
     if (!_supported) return;
     await ConsentForm.showPrivacyOptionsForm((error) {
@@ -152,6 +218,20 @@ class AdsService {
       }
     });
     await _updatePrivacyOptionsRequirement();
+  }
+
+  void _setServerSideOptions(
+    Object ad,
+    String? verificationToken,
+  ) {
+    final token = verificationToken?.trim();
+    if (token == null || token.isEmpty) return;
+    final options = ServerSideVerificationOptions(customData: token);
+    if (ad is RewardedAd) {
+      ad.setServerSideOptions(options);
+    } else if (ad is RewardedInterstitialAd) {
+      ad.setServerSideOptions(options);
+    }
   }
 
   Future<void> _loadRewardedAd() async {
@@ -189,6 +269,45 @@ class AdsService {
     } finally {
       if (identical(_rewardedLoadCompleter, completer)) {
         _rewardedLoadCompleter = null;
+      }
+    }
+  }
+
+  Future<void> _loadRewardedInterstitialAd() async {
+    if (!_supported || !_mobileAdsInitialized || !adsAvailable.value) return;
+    if (_rewardedInterstitialAd != null) return;
+
+    final existing = _rewardedInterstitialLoadCompleter;
+    if (existing != null) {
+      await existing.future;
+      return;
+    }
+
+    final completer = Completer<void>();
+    _rewardedInterstitialLoadCompleter = completer;
+
+    RewardedInterstitialAd.load(
+      adUnitId: _rewardedInterstitialAdUnitId,
+      request: const AdRequest(),
+      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _rewardedInterstitialAd = ad;
+          if (!completer.isCompleted) completer.complete();
+        },
+        onAdFailedToLoad: (error) {
+          debugPrint('Rewarded interstitial failed to load: $error');
+          if (!completer.isCompleted) completer.complete();
+        },
+      ),
+    );
+
+    try {
+      await completer.future.timeout(const Duration(seconds: 30));
+    } on TimeoutException {
+      debugPrint('Rewarded interstitial load timed out.');
+    } finally {
+      if (identical(_rewardedInterstitialLoadCompleter, completer)) {
+        _rewardedInterstitialLoadCompleter = null;
       }
     }
   }
