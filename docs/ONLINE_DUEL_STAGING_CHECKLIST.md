@@ -14,6 +14,20 @@ Decision target: `READY FOR TWO-DEVICE STAGING TEST`.
 - `flutter test --concurrency=1 --timeout 120s -r expanded`
 - `flutter build apk --debug`
 
+## Debug Backend Selection
+
+A plain debug `flutter run` now falls back to the checked staging Worker URL when
+`SOCIAL_BACKEND_URL` is not supplied. Android and iOS therefore use the same
+REST/WSS host during local device testing.
+
+Release and profile builds do not use that fallback. They must still be built
+with an explicit HTTPS value:
+
+```powershell
+flutter run --release `
+  --dart-define=SOCIAL_BACKEND_URL=https://YOUR-STAGING-WORKER.example
+```
+
 ## Staging Preflight
 
 Run:
@@ -26,6 +40,13 @@ powershell -ExecutionPolicy Bypass -File .\tool\online_duel_staging_preflight.ps
 The script reports placeholders, checks `/health` and `/version`, runs local
 backend/Flutter tests, verifies puzzle bank and translations, and lists required
 secret names without printing secret values.
+
+## Remote Database Gate
+
+Apply every pending migration, including
+`0004_ranked_queue_cleanup.sql`. Migration 0004 removes already matched queue
+rows and prunes abandoned queue tickets so later searches cannot select a ghost
+or already-busy opponent.
 
 ## Staging Build
 
@@ -57,8 +78,20 @@ npm run smoke:two-player
 npm run smoke:ranked
 ```
 
+## Cross-Platform Device Gate
+
+Use two different Firebase accounts and the same difficulty on:
+
+1. Android + Android
+2. Android + iOS
+
+For each pair verify queue start, match discovery, WebSocket room connection,
+ready state, correct and wrong moves, per-player notifications, turn ownership,
+reconnect, forfeit, result, rating and history.
+
 ## Production Gate
 
-Production remains blocked until two physical Android devices complete challenge
-and ranked flows through the deployed staging Worker, App Check metrics are
-validated, abuse tests pass, and Data Safety/privacy policy updates are done.
+Production remains blocked until physical Android and iOS devices complete
+challenge and ranked flows through the deployed staging Worker, App Check
+metrics are validated, abuse tests pass, and Data Safety/privacy policy updates
+are done.
