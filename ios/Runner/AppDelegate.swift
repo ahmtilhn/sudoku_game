@@ -317,7 +317,7 @@ import UIKit
           result(FlutterError(code: "player_not_found", message: nil, details: nil))
           return
         }
-        if #available(iOS 14.5, *) {
+        if #available(iOS 18.0, *) {
           let controller = GKGameCenterViewController(player: player)
           self.presentGameCenter(controller, result: result)
         } else {

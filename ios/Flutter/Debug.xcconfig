@@ -7,3 +7,4 @@ CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
 INFOPLIST_KEY_NSGKFriendListUsageDescription = Sudoku Duel uses your Game Center friends to help you find familiar players and send challenges.
 INFOPLIST_KEY_SudokuLeaderboardGlobalRating = REPLACE_WITH_LEADERBOARD_ID
 INFOPLIST_KEY_SudokuAchievementFirstWin = REPLACE_WITH_ACHIEVEMENT_ID
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = i386
