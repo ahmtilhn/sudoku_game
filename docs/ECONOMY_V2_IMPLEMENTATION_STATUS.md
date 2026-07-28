@@ -21,7 +21,7 @@ Updated for branch `codex-authoritative-online-duel`.
 - Production AdMob SSV callback verification, ad-unit allowlist, callback-age checks and transaction replay protection.
 - Purchase/ad verification audit columns added in migration `0014_production_verification.sql`.
 
-### Durable player account
+### Durable player account and deletion
 
 - Guest Firebase accounts can be linked to email/password without changing the Firebase UID, wallet, Friend ID, rating, friends or history.
 - Existing protected accounts can sign in on another installation/device.
@@ -30,6 +30,10 @@ Updated for branch `codex-authoritative-online-duel`.
 - Coin Store purchase buttons are disabled for anonymous players.
 - Backend purchase verification also rejects anonymous accounts and requires verified email for password accounts.
 - Paid balances therefore cannot be intentionally granted to an unrecoverable guest account.
+- In-app permanent account deletion reauthenticates protected users and rejects deletion during an active online match.
+- Server wallet, social and gameplay data are removed through the player cascade; Firebase Authentication deletion follows on the device.
+- A minimal deletion tombstone prevents the deleted Firebase UID from being recreated for starter-grant/reward abuse.
+- Account deletion schema is added in migration `0015_account_deletion.sql`.
 
 ### Online entry escrow
 
@@ -91,6 +95,7 @@ Updated for branch `codex-authoritative-online-duel`.
 - iOS entitlements and APS environment are wired during CocoaPods installation.
 - Validation and guarded staging-deployment PowerShell scripts were added.
 - Production Worker example lists all required Google Play, Apple IAP, AdMob SSV, Firebase/App Check and FCM variables/secrets without committing values.
+- Privacy/store disclosure and account-protection release checklists were added.
 
 ## Not yet verified
 
@@ -103,10 +108,10 @@ The implementation was committed through GitHub, but the following have not yet 
 - Worker TypeScript typecheck
 - Worker test suite
 - local D1 migration application from a clean database
-- remote migrations `0005` through `0014`
+- remote migrations `0005` through `0015`
 - deployment of the new Worker entrypoint
 - physical Android/iOS cross-platform tests
-- Firebase email/password account-linking test with the provider enabled
+- Firebase email/password account-linking and account-deletion tests with the provider enabled
 - Google Play internal-test purchases and consumption/replay tests
 - App Store sandbox/TestFlight purchases and replay/revocation tests
 - AdMob SSV signed callback tests with real production ad units
@@ -128,7 +133,7 @@ These are console/credential actions and cannot be completed by repository code 
 - Enable App Check enforcement after valid staging traffic is confirmed.
 - Configure/verify FCM service-account secrets and APNs credentials.
 - Finish localization of all newly introduced economy/rematch/profile/account strings across supported locales.
-- Update privacy policy, store data disclosures, purchase metadata and review notes.
+- Publish the privacy policy and complete store data disclosures, purchase metadata and review notes.
 
 ## First validation command
 
