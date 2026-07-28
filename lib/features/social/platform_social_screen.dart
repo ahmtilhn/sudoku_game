@@ -6,6 +6,7 @@ import '../../services/platform_game_services.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../duel/online_duel_screen.dart';
+import 'competitive_profile_card.dart';
 
 class PlatformSocialScreen extends StatefulWidget {
   const PlatformSocialScreen({super.key});
@@ -27,6 +28,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
   String? _error;
   PlatformPlayer? _platformPlayer;
   SocialPlayer? _socialPlayer;
+  CompetitiveProfile? _competitiveProfile;
   List<PlatformPlayer> _platformFriends = const <PlatformPlayer>[];
   List<SocialPlayer> _friends = const <SocialPlayer>[];
   List<SocialPlayer> _recentOpponents = const <SocialPlayer>[];
@@ -109,10 +111,12 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       final friends = await _social.loadFriends();
       final recentOpponents = await _social.loadRecentOpponents();
       final pendingChallenges = await _social.loadPendingChallenges();
+      final competitiveProfile = await _social.loadCompetitiveProfile();
 
       if (!mounted) return;
       setState(() {
         _socialPlayer = profile;
+        _competitiveProfile = competitiveProfile;
         _friends = friends;
         _recentOpponents = recentOpponents;
         _pendingChallenges = pendingChallenges;
@@ -223,7 +227,32 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
                   _buildPlatformStatus(),
                   if (_backendReady && _socialPlayer != null) ...[
                     const SizedBox(height: 20),
-                    _SocialProfileCard(player: _socialPlayer!),
+                    CompetitiveProfileCard(
+                      profile:
+                          _competitiveProfile ??
+                          CompetitiveProfile(
+                            publicId: _socialPlayer!.publicId,
+                            username: _socialPlayer!.username,
+                            displayName: _socialPlayer!.displayName,
+                            avatarKey: 'default',
+                            currentElo: _socialPlayer!.rating,
+                            rankName: 'Bronze',
+                            seasonPeak: _socialPlayer!.rating,
+                            wins: _socialPlayer!.wins,
+                            losses:
+                                _socialPlayer!.gamesPlayed -
+                                _socialPlayer!.wins,
+                            draws: 0,
+                            winRate: _socialPlayer!.winRate,
+                            winStreak: 0,
+                            tournamentEntries: 0,
+                            tournamentPodiums: 0,
+                            countryContributions: 0,
+                            achievementCount: _socialPlayer!.achievementCount,
+                            achievementShowcase: const <SocialAchievement>[],
+                            privateProfile: false,
+                          ),
+                    ),
                     const SizedBox(height: 12),
                     _buildNotificationCard(),
                     const SizedBox(height: 22),
@@ -567,75 +596,6 @@ class _PlatformProfileCard extends StatelessWidget {
         trailing: const Icon(Icons.verified_outlined),
       ),
     );
-  }
-}
-
-class _SocialProfileCard extends StatelessWidget {
-  const _SocialProfileCard({required this.player});
-
-  final SocialPlayer player;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const CircleAvatar(child: Icon(Icons.person_outline)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        player.displayName,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                      Text('@${player.username} · ${player.publicId}'),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.public),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 8,
-              children: [
-                _Stat(label: 'Rating', value: '${player.rating}'),
-                _Stat(label: 'Games', value: '${player.gamesPlayed}'),
-                _Stat(label: 'Wins', value: '${player.wins}'),
-                _Stat(
-                  label: 'Win rate',
-                  value: '${(player.winRate * 100).round()}%',
-                ),
-                _Stat(
-                  label: 'Achievements',
-                  value: '${player.achievementCount}',
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(label: Text('$label: $value'));
   }
 }
 

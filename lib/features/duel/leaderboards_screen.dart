@@ -16,7 +16,12 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen>
   late final TabController _tabController;
   final List<String> _scopes = <String>[
     'global',
-    for (final difficulty in SudokuDifficulty.values) difficulty.name,
+    'friends',
+    'country',
+    'current_season',
+    'daily_tournament',
+    'weekend_tournament',
+    'countries',
   ];
 
   @override
@@ -40,9 +45,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen>
           controller: _tabController,
           isScrollable: true,
           tabs: [
-            Tab(text: context.tr('global')),
-            for (final difficulty in SudokuDifficulty.values)
-              Tab(text: context.strings.difficultyLabel(difficulty)),
+            for (final scope in _scopes) Tab(text: _scopeLabel(context, scope)),
           ],
         ),
       ),
@@ -52,6 +55,26 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen>
       ),
     );
   }
+}
+
+String _scopeLabel(BuildContext context, String scope) {
+  return switch (scope) {
+    'global' => context.tr('global_elo'),
+    'friends' => context.tr('friends'),
+    'country' => context.tr('country'),
+    'current_season' => context.tr('current_season'),
+    'daily_tournament' => context.tr('daily_tournament'),
+    'weekend_tournament' => context.tr('weekend_tournament'),
+    'countries' => context.tr('countries'),
+    _ =>
+      SudokuDifficulty.values.any((difficulty) => difficulty.name == scope)
+          ? context.strings.difficultyLabel(
+              SudokuDifficulty.values.firstWhere(
+                (difficulty) => difficulty.name == scope,
+              ),
+            )
+          : scope,
+  };
 }
 
 class _LeaderboardTab extends StatefulWidget {
@@ -69,11 +92,17 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
   @override
   void initState() {
     super.initState();
-    _future = SocialApiClient.instance.loadLeaderboard(widget.scope);
+    _future = SocialApiClient.instance.loadCompetitiveLeaderboard(
+      widget.scope,
+      mode: widget.scope == 'friends' ? 'friends' : 'top',
+    );
   }
 
   Future<void> _refresh() async {
-    final future = SocialApiClient.instance.loadLeaderboard(widget.scope);
+    final future = SocialApiClient.instance.loadCompetitiveLeaderboard(
+      widget.scope,
+      mode: widget.scope == 'friends' ? 'friends' : 'top',
+    );
     setState(() => _future = future);
     await future;
   }
@@ -115,6 +144,7 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
               final games = (entry['gamesPlayed'] as num?)?.toInt() ?? 0;
               final winRate =
                   ((entry['winRate'] as num?)?.toDouble() ?? 0) * 100;
+              final country = entry['country']?.toString();
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(
@@ -122,10 +152,13 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
                   ),
                   title: Text(entry['displayName']?.toString() ?? 'Player'),
                   subtitle: Text(
-                    context.tr('leaderboard_row', <Object>[
-                      games,
-                      winRate.round(),
-                    ]),
+                    [
+                      context.tr('leaderboard_row', <Object>[
+                        games,
+                        winRate.round(),
+                      ]),
+                      if (country != null && country.isNotEmpty) country,
+                    ].join(' · '),
                   ),
                   trailing: Text(
                     '${entry['rating'] ?? 1000}',
@@ -138,5 +171,16 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
         );
       },
     );
+  }
+
+  @override
+  void didUpdateWidget(covariant _LeaderboardTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scope != widget.scope) {
+      _future = SocialApiClient.instance.loadCompetitiveLeaderboard(
+        widget.scope,
+        mode: widget.scope == 'friends' ? 'friends' : 'top',
+      );
+    }
   }
 }

@@ -1,1 +1,22 @@
-{}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "focus-sweep-503417-d7",
+          "appId": "1:31445697560:android:ed951eabf51d75800b2f6d",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "focus-sweep-503417-d7",
+          "configurations": {
+            "android": "1:31445697560:android:ed951eabf51d75800b2f6d",
+            "ios": "1:31445697560:ios:1f72f9fe671c75340b2f6d"
+          }
+        }
+      }
+    }
+  }
+}

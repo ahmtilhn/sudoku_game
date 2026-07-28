@@ -81,98 +81,102 @@ class NumberPad extends StatelessWidget {
         final availableWidth =
             constraints.maxWidth - (spacing * (maxValue - 1));
         final buttonWidth = compact
-            ? (availableWidth / maxValue).clamp(30.0, 44.0)
+            ? (availableWidth / maxValue).clamp(32.0, 46.0)
             : maxValue == 9
             ? 52.0
             : 64.0;
-        final buttonHeight = compact ? 42.0 : 52.0;
+        final buttonHeight = compact ? 44.0 : 54.0;
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: spacing,
-              runSpacing: compact ? 4 : 8,
-              children: [
-                for (var value = 1; value <= maxValue; value++)
-                  Builder(
-                    builder: (context) {
-                      final isCompleted = completedValues.contains(value);
-                      return SizedBox(
-                        width: buttonWidth,
-                        height: buttonHeight,
-                        child: FilledButton.tonal(
-                          key: ValueKey<String>('number-$value'),
-                          onPressed: enabled && !isCompleted
-                              ? () => onNumber(value)
-                              : null,
-                          style: FilledButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            backgroundColor: scheme.secondaryContainer,
-                            foregroundColor: scheme.onSecondaryContainer,
-                          ),
-                          child: Text(
-                            '$value',
-                            style: TextStyle(
-                              fontSize: compact ? 17 : 21,
-                              fontWeight: FontWeight.w800,
-                              decoration: isCompleted
-                                  ? TextDecoration.lineThrough
-                                  : null,
+        return AnimatedOpacity(
+          duration: const Duration(milliseconds: 180),
+          opacity: enabled ? 1 : 0.58,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: spacing,
+                runSpacing: compact ? 4 : 8,
+                children: [
+                  for (var value = 1; value <= maxValue; value++)
+                    Builder(
+                      builder: (context) {
+                        final isCompleted = completedValues.contains(value);
+                        return SizedBox(
+                          width: buttonWidth,
+                          height: buttonHeight,
+                          child: FilledButton.tonal(
+                            key: ValueKey<String>('number-$value'),
+                            onPressed: enabled && !isCompleted
+                                ? () => onNumber(value)
+                                : null,
+                            style: FilledButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              backgroundColor: scheme.secondaryContainer,
+                              foregroundColor: scheme.onSecondaryContainer,
+                            ),
+                            child: Text(
+                              '$value',
+                              style: TextStyle(
+                                fontSize: compact ? 17 : 21,
+                                fontWeight: FontWeight.w800,
+                                decoration: isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-              ],
-            ),
-            SizedBox(height: compact ? 6 : 12),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 4,
-              runSpacing: 4,
-              children: [
-                _ActionButton(
-                  buttonKey: const ValueKey<String>('action-erase'),
-                  icon: Icons.backspace_outlined,
-                  label: context.tr('erase'),
-                  onPressed: enabled ? onErase : null,
-                ),
-                if (onToggleNotes != null)
+                        );
+                      },
+                    ),
+                ],
+              ),
+              SizedBox(height: compact ? 6 : 12),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 4,
+                runSpacing: 4,
+                children: [
                   _ActionButton(
-                    buttonKey: const ValueKey<String>('action-notes'),
-                    icon: notesEnabled
-                        ? Icons.edit_note
-                        : Icons.edit_note_outlined,
-                    label: notesEnabled
-                        ? context.tr('notes_on')
-                        : context.tr('notes'),
-                    selected: notesEnabled,
-                    onPressed: enabled ? onToggleNotes : null,
+                    buttonKey: const ValueKey<String>('action-erase'),
+                    icon: Icons.backspace_outlined,
+                    label: context.tr('erase'),
+                    onPressed: enabled ? onErase : null,
                   ),
-                if (onUndo != null)
-                  _ActionButton(
-                    buttonKey: const ValueKey<String>('action-undo'),
-                    icon: Icons.undo,
-                    label: context.tr('undo'),
-                    onPressed: enabled ? onUndo : null,
-                  ),
-                if (onHint != null)
-                  _ActionButton(
-                    buttonKey: const ValueKey<String>('action-hint'),
-                    icon: Icons.lightbulb_outline,
-                    label: hintCount == null
-                        ? context.tr('hint')
-                        : '${context.tr('hint')} ($hintCount)',
-                    onPressed: enabled ? onHint : null,
-                  ),
-              ],
-            ),
-          ],
+                  if (onToggleNotes != null)
+                    _ActionButton(
+                      buttonKey: const ValueKey<String>('action-notes'),
+                      icon: notesEnabled
+                          ? Icons.edit_note
+                          : Icons.edit_note_outlined,
+                      label: notesEnabled
+                          ? context.tr('notes_on')
+                          : context.tr('notes'),
+                      selected: notesEnabled,
+                      onPressed: enabled ? onToggleNotes : null,
+                    ),
+                  if (onUndo != null)
+                    _ActionButton(
+                      buttonKey: const ValueKey<String>('action-undo'),
+                      icon: Icons.undo,
+                      label: context.tr('undo'),
+                      onPressed: enabled ? onUndo : null,
+                    ),
+                  if (onHint != null)
+                    _ActionButton(
+                      buttonKey: const ValueKey<String>('action-hint'),
+                      icon: Icons.lightbulb_outline,
+                      label: hintCount == null
+                          ? context.tr('hint')
+                          : '${context.tr('hint')} ($hintCount)',
+                      onPressed: enabled ? onHint : null,
+                    ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
@@ -196,16 +200,29 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
+    final scheme = Theme.of(context).colorScheme;
+    return TextButton(
       key: buttonKey,
       onPressed: onPressed,
       style: TextButton.styleFrom(
         backgroundColor: selected
-            ? Theme.of(context).colorScheme.primaryContainer
+            ? scheme.primaryContainer
             : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(44, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      icon: Icon(icon),
-      label: Text(label),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18),
+            const SizedBox(width: 5),
+            Text(label, maxLines: 1),
+          ],
+        ),
+      ),
     );
   }
 }

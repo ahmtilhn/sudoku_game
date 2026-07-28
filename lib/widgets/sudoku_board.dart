@@ -13,6 +13,8 @@ class SudokuBoard extends StatelessWidget {
     this.notes = const <int, Set<int>>{},
     this.errorIndex,
     this.hintedIndexes = const <int>{},
+    this.localMoveIndexes = const <int>{},
+    this.opponentMoveIndexes = const <int>{},
     this.enabled = true,
   });
 
@@ -23,6 +25,8 @@ class SudokuBoard extends StatelessWidget {
   final Map<int, Set<int>> notes;
   final int? errorIndex;
   final Set<int> hintedIndexes;
+  final Set<int> localMoveIndexes;
+  final Set<int> opponentMoveIndexes;
   final bool enabled;
 
   @override
@@ -58,6 +62,8 @@ class SudokuBoard extends StatelessWidget {
                 final column = index % puzzle.size;
                 final selected = selectedIndex == index;
                 final hinted = hintedIndexes.contains(index);
+                final localMove = localMoveIndexes.contains(index);
+                final opponentMove = opponentMoveIndexes.contains(index);
                 final fixed = puzzle.isFixed(index);
                 final locked = fixed || hinted;
                 final related =
@@ -71,6 +77,16 @@ class SudokuBoard extends StatelessWidget {
                     ? scheme.errorContainer
                     : selected
                     ? scheme.primaryContainer
+                    : localMove
+                    ? Color.alphaBlend(
+                        scheme.primary.withAlpha(45),
+                        scheme.surface,
+                      )
+                    : opponentMove
+                    ? Color.alphaBlend(
+                        scheme.tertiary.withAlpha(45),
+                        scheme.surface,
+                      )
                     : hinted
                     ? scheme.tertiaryContainer
                     : sameValue
@@ -90,49 +106,92 @@ class SudokuBoard extends StatelessWidget {
                   child: InkWell(
                     key: ValueKey<String>('sudoku-cell-$index'),
                     onTap: enabled ? () => onCellTap(index) : null,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: background,
-                        border: Border(
-                          right: BorderSide(
-                            color: scheme.outline,
-                            width:
-                                (column + 1) % puzzle.boxColumns == 0 &&
-                                    column != puzzle.size - 1
-                                ? 2
-                                : 0.4,
-                          ),
-                          bottom: BorderSide(
-                            color: scheme.outline,
-                            width:
-                                (row + 1) % puzzle.boxRows == 0 &&
-                                    row != puzzle.size - 1
-                                ? 2
-                                : 0.4,
-                          ),
-                        ),
-                      ),
-                      child: value == 0
-                          ? _NotesCell(
-                              values: notes[index] ?? const <int>{},
-                              size: puzzle.size,
-                            )
-                          : Center(
-                              child: Text(
-                                '$value',
-                                style: TextStyle(
-                                  fontSize: puzzle.size == 9 ? 25 : 34,
-                                  fontWeight: locked
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                  color: hinted
-                                      ? scheme.onTertiaryContainer
-                                      : fixed
-                                      ? scheme.onSurface
-                                      : scheme.primary,
-                                ),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: background,
+                            border: Border(
+                              top: selected || errorIndex == index
+                                  ? BorderSide(
+                                      color: errorIndex == index
+                                          ? scheme.error
+                                          : scheme.primary,
+                                      width: 1.4,
+                                    )
+                                  : BorderSide.none,
+                              left: selected || errorIndex == index
+                                  ? BorderSide(
+                                      color: errorIndex == index
+                                          ? scheme.error
+                                          : scheme.primary,
+                                      width: 1.4,
+                                    )
+                                  : BorderSide.none,
+                              right: BorderSide(
+                                color: scheme.outline,
+                                width:
+                                    (column + 1) % puzzle.boxColumns == 0 &&
+                                        column != puzzle.size - 1
+                                    ? 1.8
+                                    : 0.35,
+                              ),
+                              bottom: BorderSide(
+                                color: scheme.outline,
+                                width:
+                                    (row + 1) % puzzle.boxRows == 0 &&
+                                        row != puzzle.size - 1
+                                    ? 1.8
+                                    : 0.35,
                               ),
                             ),
+                          ),
+                          child: value == 0
+                              ? _NotesCell(
+                                  values: notes[index] ?? const <int>{},
+                                  size: puzzle.size,
+                                )
+                              : Center(
+                                  child: Text(
+                                    '$value',
+                                    style: TextStyle(
+                                      fontSize: puzzle.size == 9 ? 25 : 34,
+                                      fontWeight: locked
+                                          ? FontWeight.w800
+                                          : FontWeight.w600,
+                                      color: hinted
+                                          ? scheme.onTertiaryContainer
+                                          : fixed
+                                          ? scheme.onSurface
+                                          : scheme.primary,
+                                    ),
+                                  ),
+                                ),
+                        ),
+                        if (errorIndex == index)
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: Icon(
+                              Icons.error_rounded,
+                              size: puzzle.size == 9 ? 12 : 16,
+                              color: scheme.error,
+                            ),
+                          )
+                        else if (localMove || opponentMove)
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: Icon(
+                              localMove
+                                  ? Icons.check_circle_rounded
+                                  : Icons.north_east_rounded,
+                              size: puzzle.size == 9 ? 11 : 15,
+                              color: localMove
+                                  ? scheme.primary
+                                  : scheme.tertiary,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 );

@@ -63,12 +63,12 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         title: Text(context.tr('online_duel')),
         actions: [
           IconButton(
-            tooltip: 'Friend requests',
+            tooltip: context.tr('friend_requests'),
             onPressed: _openFriendRequests,
             icon: const Icon(Icons.person_add_alt_1_outlined),
           ),
           IconButton(
-            tooltip: 'Friends & challenges',
+            tooltip: context.tr('friends_challenges'),
             onPressed: _openPlatformFriends,
             icon: const Icon(Icons.people_alt_outlined),
           ),
@@ -154,7 +154,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                               ),
                               IconButton(
                                 visualDensity: VisualDensity.compact,
-                                tooltip: 'Dismiss',
+                                tooltip: context.tr('dismiss'),
                                 onPressed: () => setState(() => _error = null),
                                 icon: Icon(
                                   Icons.close,
@@ -219,14 +219,14 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
               const Icon(Icons.lock_outline_rounded, size: 42),
               const SizedBox(height: 10),
               Text(
-                '100 Coin required',
+                context.tr('coin_required_title'),
                 style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
-                'Each player contributes 100 Coin. The winner receives the 200 Coin pot.',
+                context.tr('coin_required_body'),
                 textAlign: TextAlign.center,
                 style: Theme.of(sheetContext).textTheme.bodyLarge,
               ),
@@ -243,7 +243,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                     );
                   },
                   icon: const Icon(Icons.storefront_outlined),
-                  label: const Text('Open Coin Store'),
+                  label: Text(context.tr('open_coin_store')),
                 ),
               ),
               if (_economy.wallet?.dailyLoginAvailable == true) ...[
@@ -259,7 +259,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                     },
                     icon: const Icon(Icons.card_giftcard_outlined),
                     label: Text(
-                      'Claim +${_economy.wallet!.dailyLoginAmount} daily Coin',
+                      context.tr('claim_daily_coin', <Object>[
+                        _economy.wallet!.dailyLoginAmount,
+                      ]),
                     ),
                   ),
                 ),
@@ -277,7 +279,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                     },
                     icon: const Icon(Icons.ondemand_video_outlined),
                     label: Text(
-                      'Watch ad for +${_economy.wallet!.dailyAdAmount} Coin',
+                      context.tr('watch_ad_for_coin', <Object>[
+                        _economy.wallet!.dailyAdAmount,
+                      ]),
                     ),
                   ),
                 ),
@@ -318,9 +322,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       }
 
       if (result.status != 'queued') {
-        throw const SocialApiException(
+        throw SocialApiException(
           0,
-          'The matchmaking server returned an unexpected response.',
+          context.tr('matchmaking_unexpected_response'),
         );
       }
       _lastQueueRefresh = DateTime.now();
@@ -333,9 +337,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       }
       _stopSearchWithError(error.message);
     } catch (_) {
-      _stopSearchWithError(
-        'Unable to start opponent search. Please try again.',
-      );
+      _stopSearchWithError(context.tr('matchmaking_start_failed'));
     }
   }
 
@@ -373,7 +375,15 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         .push(
           MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)),
         )
-        .then((_) => _economy.refresh(showLoading: false));
+        .then((action) {
+          unawaited(_economy.refresh(showLoading: false));
+          if (!mounted) return;
+          if (action == 'new_match') {
+            unawaited(_findOpponent());
+          } else if (action == 'menu') {
+            Navigator.of(context).pop();
+          }
+        });
   }
 
   void _startPollingForMatch() {
@@ -428,7 +438,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _error = 'The connection was interrupted. Retrying…';
+          _error = context.tr('connection_interrupted_retrying');
         });
       }
     } finally {

@@ -1,6 +1,15 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 import { AppCheckError, verifyAppCheckRequest } from './app_check';
+import {
+  CompetitiveError,
+  competitiveProfile,
+  leaderboardPage,
+  listAchievements,
+  markPlatformMirrorResult,
+  updateAchievementShowcase,
+  type CompetitivePlayer,
+} from './competitive';
 import app, { GameRoom, MatchmakingQueue } from './main';
 import type { Env } from './index';
 
@@ -49,6 +58,11 @@ type ProfileRow = {
   wins: number;
   losses: number;
   achievement_count: number;
+  country_code: string | null;
+  season_peak_rating: number;
+  tournament_entries: number;
+  tournament_podiums: number;
+  country_contributions: number;
   profile_confirmed: number;
   discoverable: number;
   name_source: string;
@@ -68,6 +82,22 @@ export default {
 
     if (url.pathname === '/v1/players/search' && request.method === 'GET') {
       return searchDiscoverablePlayers(request, env, ctx, url);
+    }
+
+    if (url.pathname.startsWith('/v1/competitive/')) {
+      return handleCompetitive(request, env, ctx, url);
+    }
+
+    if (url.pathname === '/v1/me/achievement-showcase') {
+      return handleAchievementShowcase(request, env, ctx);
+    }
+
+    if (url.pathname === '/v1/achievements' && request.method === 'GET') {
+      return handleAchievements(request, env, ctx);
+    }
+
+    if (url.pathname === '/v1/achievements/platform-mirror/result') {
+      return handlePlatformMirrorResult(request, env, ctx);
     }
 
     if (url.pathname === '/v1/me' && request.method === 'POST') {
@@ -92,6 +122,117 @@ export default {
     return app.fetch(request, env, ctx);
   },
 };
+
+async function handleCompetitive(
+  request: Request,
+  env: RuntimeEnv,
+  ctx: ExecutionContext,
+  url: URL,
+): Promise<Response> {
+  try {
+    const player = await authenticatedPlayer(request, env, ctx);
+    if (url.pathname === '/v1/competitive/profile' && request.method === 'GET') {
+      return json(env, 200, await competitiveProfile(env, asCompetitivePlayer(player)));
+    }
+    if (url.pathname === '/v1/competitive/leaderboards/hub' && request.method === 'GET') {
+      return json(env, 200, {
+        scopes: [
+          'global',
+          'friends',
+          'country',
+          'current_season',
+          'daily_tournament',
+          'weekend_tournament',
+          'countries',
+        ],
+        futureScopes: ['clan'],
+      });
+    }
+    if (/^\/v1\/competitive\/leaderboards\/[^/]+$/.test(url.pathname) && request.method === 'GET') {
+      const scope = decodeURIComponent(url.pathname.split('/')[3]);
+      if (!validLeaderboardScope(scope)) {
+        return json(env, 400, { error: 'Invalid leaderboard scope.', code: 'invalid_scope' });
+      }
+      const limit = clampLimit(url.searchParams.get('limit'), 50, 100);
+      const mode = normalizeLeaderboardMode(url.searchParams.get('mode'));
+      return json(
+        env,
+        200,
+        await leaderboardPage(env, {
+          scope: ratingScope(scope),
+          viewerId: player.id,
+          limit,
+          cursor: url.searchParams.get('cursor'),
+          mode: scope === 'friends' ? 'friends' : mode,
+        }),
+      );
+    }
+    return json(env, 404, { error: 'Route not found.' });
+  } catch (error) {
+    return routeError(env, error);
+  }
+}
+
+async function handleAchievements(
+  request: Request,
+  env: RuntimeEnv,
+  ctx: ExecutionContext,
+): Promise<Response> {
+  try {
+    const player = await authenticatedPlayer(request, env, ctx);
+    return json(env, 200, await listAchievements(env, player.id));
+  } catch (error) {
+    return routeError(env, error);
+  }
+}
+
+async function handleAchievementShowcase(
+  request: Request,
+  env: RuntimeEnv,
+  ctx: ExecutionContext,
+): Promise<Response> {
+  try {
+    const player = await authenticatedPlayer(request, env, ctx);
+    if (request.method !== 'PUT') {
+      return json(env, 405, { error: 'Method not allowed.', code: 'method_not_allowed' });
+    }
+    const body = await readJson(request);
+    const ids = Array.isArray(body.achievementIds)
+      ? body.achievementIds.map((value) => String(value))
+      : [];
+    return json(env, 200, await updateAchievementShowcase(env, player.id, ids));
+  } catch (error) {
+    return routeError(env, error);
+  }
+}
+
+async function handlePlatformMirrorResult(
+  request: Request,
+  env: RuntimeEnv,
+  ctx: ExecutionContext,
+): Promise<Response> {
+  try {
+    const player = await authenticatedPlayer(request, env, ctx);
+    if (request.method !== 'POST') {
+      return json(env, 405, { error: 'Method not allowed.', code: 'method_not_allowed' });
+    }
+    const body = await readJson(request);
+    const platform = String(body.platform ?? '');
+    if (platform !== 'google_play_games' && platform !== 'game_center') {
+      return json(env, 400, { error: 'Invalid platform.', code: 'invalid_platform' });
+    }
+    await markPlatformMirrorResult(env, {
+      playerId: player.id,
+      achievementId: String(body.achievementId ?? ''),
+      platform,
+      success: body.success === true,
+      error: typeof body.error === 'string' ? body.error : undefined,
+    });
+    return json(env, 200, { accepted: true });
+  } catch (error) {
+    return routeError(env, error);
+  }
+}
 
 async function handlePreferences(
   request: Request,
@@ -274,6 +415,33 @@ async function playerForUid(env: RuntimeEnv, uid: string): Promise<ProfileRow | 
     .first<ProfileRow>();
 }
 
+async function authenticatedPlayer(
+  request: Request,
+  env: RuntimeEnv,
+  ctx: ExecutionContext,
+): Promise<ProfileRow> {
+  await verifyAppCheckRequest(request, env);
+  const uid = await authenticateFirebase(request, env);
+  let player = await playerForUid(env, uid);
+  if (!player) {
+    const created = await app.fetch(
+      new Request(new URL('/v1/me', request.url), {
+        method: 'POST',
+        headers: request.headers,
+        body: '{}',
+      }),
+      env,
+      ctx,
+    );
+    if (!created.ok) {
+      throw new ProfileError(created.status, 'Unable to create player profile.');
+    }
+    player = await playerForUid(env, uid);
+  }
+  if (!player) throw new ProfileError(500, 'Unable to load player profile.');
+  return player;
+}
+
 async function authenticateFirebase(
   request: Request,
   env: RuntimeEnv,
@@ -307,11 +475,49 @@ function profileJson(row: ProfileRow): Record<string, unknown> {
     gamesPlayed: row.games_played,
     wins: row.wins,
     losses: row.losses,
+    country: row.country_code,
+    seasonPeak: row.season_peak_rating,
+    tournamentEntries: row.tournament_entries,
+    tournamentPodiums: row.tournament_podiums,
+    countryContributions: row.country_contributions,
     achievementCount: row.achievement_count,
     profileConfirmed: row.profile_confirmed === 1,
     discoverable: row.discoverable === 1,
     nameSource: row.name_source,
   };
+}
+
+function asCompetitivePlayer(row: ProfileRow): CompetitivePlayer {
+  return row;
+}
+
+function validLeaderboardScope(scope: string): boolean {
+  return (
+    scope === 'global' ||
+    scope === 'friends' ||
+    scope === 'country' ||
+    scope === 'current_season' ||
+    scope === 'daily_tournament' ||
+    scope === 'weekend_tournament' ||
+    scope === 'countries' ||
+    ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(scope)
+  );
+}
+
+function normalizeLeaderboardMode(value: string | null): 'top' | 'around_me' | 'friends' {
+  return value === 'around_me' || value === 'friends' ? value : 'top';
+}
+
+function ratingScope(scope: string): string {
+  return ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(scope)
+    ? scope
+    : 'global';
+}
+
+function clampLimit(value: string | null, fallback: number, max: number): number {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.min(max, Math.trunc(parsed)));
 }
 
 function sanitizeDisplayName(value: string): string {
@@ -371,6 +577,9 @@ function routeError(env: RuntimeEnv, error: unknown): Response {
   }
   if (error instanceof ProfileError) {
     return json(env, error.status, { error: error.message });
+  }
+  if (error instanceof CompetitiveError) {
+    return json(env, error.status, { error: error.message, code: error.code });
   }
   console.error('Profile route failed', error);
   return json(env, 500, { error: 'Profile request failed.' });

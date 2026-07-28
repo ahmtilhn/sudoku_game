@@ -4882,6 +4882,465 @@
           }
         }
       }
+    },
+    "you": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You"
+          }
+        }
+      }
+    },
+    "turn_timer_seconds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d s"
+          }
+        }
+      }
+    },
+    "match_timer_seconds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d s"
+          }
+        }
+      }
+    },
+    "match_header_semantics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online duel match header"
+          }
+        }
+      }
+    },
+    "player_avatar_semantics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s player avatar"
+          }
+        }
+      }
+    },
+    "winner_avatar_semantics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s winner avatar"
+          }
+        }
+      }
+    },
+    "winner_name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Winner: %1s"
+          }
+        }
+      }
+    },
+    "elo_value": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ELO %1d"
+          }
+        }
+      }
+    },
+    "turn_badge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn"
+          }
+        }
+      }
+    },
+    "match_type": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match"
+          }
+        }
+      }
+    },
+    "online_turns_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turns"
+          }
+        }
+      }
+    },
+    "correct_moves": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Correct moves"
+          }
+        }
+      }
+    },
+    "timeouts": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timeouts"
+          }
+        }
+      }
+    },
+    "not_available_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "N/A"
+          }
+        }
+      }
+    },
+    "friend_requests": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend requests"
+          }
+        }
+      }
+    },
+    "friends_challenges": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friends & challenges"
+          }
+        }
+      }
+    },
+    "dismiss": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss"
+          }
+        }
+      }
+    },
+    "coin_required_title": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "100 Coin required"
+          }
+        }
+      }
+    },
+    "coin_required_body": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each player contributes 100 Coin. The winner receives the 200 Coin pot."
+          }
+        }
+      }
+    },
+    "claim_daily_coin": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claim +%1d daily Coin"
+          }
+        }
+      }
+    },
+    "watch_ad_for_coin": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Watch ad for +%1d Coin"
+          }
+        }
+      }
+    },
+    "matchmaking_unexpected_response": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The matchmaking server returned an unexpected response."
+          }
+        }
+      }
+    },
+    "matchmaking_start_failed": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to start opponent search. Please try again."
+          }
+        }
+      }
+    },
+    "connection_interrupted_retrying": {
+      "comment": "Online duel UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The connection was interrupted. Retrying..."
+          }
+        }
+      }
+    },
+    "global_elo": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Global ELO"
+          }
+        }
+      }
+    },
+    "friends": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friends"
+          }
+        }
+      }
+    },
+    "country": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country"
+          }
+        }
+      }
+    },
+    "current_season": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current season"
+          }
+        }
+      }
+    },
+    "daily_tournament": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily tournament"
+          }
+        }
+      }
+    },
+    "weekend_tournament": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weekend tournament"
+          }
+        }
+      }
+    },
+    "countries": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Countries"
+          }
+        }
+      }
+    },
+    "current_elo": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current ELO"
+          }
+        }
+      }
+    },
+    "rank": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rank"
+          }
+        }
+      }
+    },
+    "season_peak": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Season peak"
+          }
+        }
+      }
+    },
+    "country_not_set": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No country"
+          }
+        }
+      }
+    },
+    "wins_losses_draws": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "W/L/D"
+          }
+        }
+      }
+    },
+    "win_rate": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Win rate"
+          }
+        }
+      }
+    },
+    "win_streak": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Win streak"
+          }
+        }
+      }
+    },
+    "tournament_entries": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tournament entries"
+          }
+        }
+      }
+    },
+    "tournament_podiums": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tournament podiums"
+          }
+        }
+      }
+    },
+    "country_contributions": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country contributions"
+          }
+        }
+      }
+    },
+    "achievement_showcase": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Achievement showcase"
+          }
+        }
+      }
+    },
+    "achievement_showcase_empty": {
+      "comment": "Competitive profile UI text.",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose up to three unlocked achievements."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

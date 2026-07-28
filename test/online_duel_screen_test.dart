@@ -25,40 +25,156 @@ void main() {
         .setMockMethodCallHandler(localizationChannel, null);
   });
 
-  testWidgets('online duel fits first viewport without page scroll or slider', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(360, 640);
-    tester.view.devicePixelRatio = 1;
+  testWidgets('online duel fits required compact viewports', (tester) async {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final strings = AppStrings.forTesting();
-    final transport = FakeOnlineDuelTransport();
-    final controller = OnlineDuelController(transport);
 
-    await tester.pumpWidget(
-      AppStringsScope(
-        strings: strings,
-        child: MaterialApp(
-          home: OnlineDuelScreen(roomId: 'room', controller: controller),
-        ),
-      ),
-    );
-    await tester.pump();
-    transport.emit(_event('snapshot', _snapshot(status: 'ready_window')));
-    await tester.pump();
-    await tester.pump();
+    for (final size in const <Size>[
+      Size(320, 568),
+      Size(360, 640),
+      Size(390, 844),
+    ]) {
+      await _pumpOnlineDuel(tester, size: size);
 
-    expect(find.byType(ListView), findsNothing);
-    expect(find.byType(SingleChildScrollView), findsNothing);
-    expect(find.byType(Slider), findsNothing);
-    expect(find.text('I am ready'), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('sudoku-cell-2')), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('number-1')), findsOneWidget);
+      expect(find.byType(ListView), findsNothing);
+      expect(find.byType(SingleChildScrollView), findsNothing);
+      expect(find.byType(Slider), findsNothing);
+      expect(find.text('I am ready'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('sudoku-cell-2')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey<String>('number-1')), findsOneWidget);
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
   });
+
+  testWidgets('online duel supports theme contrast text scale and RTL', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const variants = <_ViewportVariant>[
+      _ViewportVariant(
+        label: 'text scale 1.3 390x844',
+        size: Size(390, 844),
+        brightness: Brightness.dark,
+        textScale: 1.3,
+      ),
+      _ViewportVariant(
+        label: 'light 360x640',
+        size: Size(360, 640),
+        brightness: Brightness.light,
+      ),
+      _ViewportVariant(
+        label: 'dark 360x640',
+        size: Size(360, 640),
+        brightness: Brightness.dark,
+      ),
+      _ViewportVariant(
+        label: 'high contrast 390x844',
+        size: Size(390, 844),
+        brightness: Brightness.light,
+        highContrast: true,
+      ),
+      _ViewportVariant(
+        label: 'rtl 390x844',
+        size: Size(390, 844),
+        brightness: Brightness.light,
+        textDirection: TextDirection.rtl,
+      ),
+    ];
+
+    for (final variant in variants) {
+      await _pumpOnlineDuel(
+        tester,
+        size: variant.size,
+        brightness: variant.brightness,
+        highContrast: variant.highContrast,
+        textScale: variant.textScale,
+        textDirection: variant.textDirection,
+      );
+
+      expect(tester.takeException(), isNull, reason: variant.label);
+      expect(find.text('You'), findsWidgets);
+      expect(find.text('Bob'), findsWidgets);
+      expect(find.text('I am ready'), findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('number-9')), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
+  });
+}
+
+Future<void> _pumpOnlineDuel(
+  WidgetTester tester, {
+  required Size size,
+  Brightness brightness = Brightness.light,
+  bool highContrast = false,
+  double textScale = 1,
+  TextDirection textDirection = TextDirection.ltr,
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  final strings = AppStrings.forTesting();
+  final transport = FakeOnlineDuelTransport();
+  final controller = OnlineDuelController(transport);
+
+  await tester.pumpWidget(
+    AppStringsScope(
+      strings: strings,
+      child: MaterialApp(
+        theme: ThemeData(
+          useMaterial3: true,
+          brightness: brightness,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: highContrast ? Colors.blue : Colors.teal,
+            brightness: brightness,
+          ),
+        ),
+        builder: (context, child) {
+          final data = MediaQuery.of(context).copyWith(
+            highContrast: highContrast,
+            textScaler: TextScaler.linear(textScale),
+          );
+          return MediaQuery(
+            data: data,
+            child: Directionality(
+              textDirection: textDirection,
+              child: child ?? const SizedBox.shrink(),
+            ),
+          );
+        },
+        home: OnlineDuelScreen(roomId: 'room', controller: controller),
+      ),
+    ),
+  );
+  await tester.pump();
+  transport.emit(_event('snapshot', _snapshot(status: 'ready_window')));
+  await tester.pump();
+  await tester.pump();
+}
+
+class _ViewportVariant {
+  const _ViewportVariant({
+    required this.label,
+    required this.size,
+    required this.brightness,
+    this.highContrast = false,
+    this.textScale = 1,
+    this.textDirection = TextDirection.ltr,
+  });
+
+  final String label;
+  final Size size;
+  final Brightness brightness;
+  final bool highContrast;
+  final double textScale;
+  final TextDirection textDirection;
 }
 
 OnlineDuelEvent _event(String type, Map<String, dynamic> payload) {

@@ -1,3 +1,5 @@
+import { applyDailyRewardState, unlockAchievement } from './competitive';
+
 export const STARTER_COINS = 1000;
 export const MATCH_ENTRY_FEE = 100;
 export const MATCH_POT = 200;
@@ -211,9 +213,11 @@ export async function claimDailyLogin(
       new Date().toISOString(),
     )
     .run();
+  const dailyState = await applyDailyRewardState(env, playerId);
   return {
     granted,
     amount: granted ? DAILY_LOGIN_REWARD : 0,
+    dailyRewardState: dailyState,
     ...(await walletSnapshot(env, playerId)),
   };
 }
@@ -322,6 +326,7 @@ export async function claimAchievementReward(
 ): Promise<Record<string, unknown>> {
   const definition = achievementDefinition(achievementId);
   await verifyAchievement(env, playerId, definition.requirement);
+  await unlockAchievement(env, { playerId, achievementId });
   const idempotencyKey = `achievement:${playerId}:${achievementId}`;
   const granted = await grantCoinsOnce(env, {
     playerId,

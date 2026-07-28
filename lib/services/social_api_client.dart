@@ -47,6 +47,113 @@ class SocialPlayer {
   }
 }
 
+class SocialAchievement {
+  const SocialAchievement({
+    required this.id,
+    required this.category,
+    required this.title,
+    required this.tier,
+    required this.unlocked,
+  });
+
+  final String id;
+  final String category;
+  final String title;
+  final String tier;
+  final bool unlocked;
+
+  factory SocialAchievement.fromJson(Map<String, dynamic> json) {
+    return SocialAchievement(
+      id: json['id']?.toString() ?? '',
+      category: json['category']?.toString() ?? 'ranked',
+      title: json['title']?.toString() ?? '',
+      tier: json['tier']?.toString() ?? 'bronze',
+      unlocked: json['unlocked'] == true,
+    );
+  }
+}
+
+class CompetitiveProfile {
+  const CompetitiveProfile({
+    required this.publicId,
+    required this.username,
+    required this.displayName,
+    required this.avatarKey,
+    required this.currentElo,
+    required this.rankName,
+    required this.seasonPeak,
+    required this.wins,
+    required this.losses,
+    required this.draws,
+    required this.winRate,
+    required this.winStreak,
+    required this.tournamentEntries,
+    required this.tournamentPodiums,
+    required this.countryContributions,
+    required this.achievementCount,
+    required this.achievementShowcase,
+    required this.privateProfile,
+    this.country,
+    this.rank,
+  });
+
+  final String publicId;
+  final String username;
+  final String displayName;
+  final String avatarKey;
+  final String? country;
+  final int currentElo;
+  final int? rank;
+  final String rankName;
+  final int seasonPeak;
+  final int wins;
+  final int losses;
+  final int draws;
+  final double winRate;
+  final int winStreak;
+  final int tournamentEntries;
+  final int tournamentPodiums;
+  final int countryContributions;
+  final int achievementCount;
+  final List<SocialAchievement> achievementShowcase;
+  final bool privateProfile;
+
+  factory CompetitiveProfile.fromJson(Map<String, dynamic> json) {
+    final showcase = json['achievementShowcase'];
+    return CompetitiveProfile(
+      publicId: json['publicId']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
+      displayName: json['displayName']?.toString() ?? 'Player',
+      avatarKey: json['avatarKey']?.toString() ?? 'default',
+      country: json['country']?.toString(),
+      currentElo: (json['currentElo'] as num?)?.toInt() ?? 1000,
+      rank: (json['rank'] as num?)?.toInt(),
+      rankName: json['rankName']?.toString() ?? 'Bronze',
+      seasonPeak: (json['seasonPeak'] as num?)?.toInt() ?? 1000,
+      wins: (json['wins'] as num?)?.toInt() ?? 0,
+      losses: (json['losses'] as num?)?.toInt() ?? 0,
+      draws: (json['draws'] as num?)?.toInt() ?? 0,
+      winRate: (json['winRate'] as num?)?.toDouble() ?? 0,
+      winStreak: (json['winStreak'] as num?)?.toInt() ?? 0,
+      tournamentEntries: (json['tournamentEntries'] as num?)?.toInt() ?? 0,
+      tournamentPodiums: (json['tournamentPodiums'] as num?)?.toInt() ?? 0,
+      countryContributions:
+          (json['countryContributions'] as num?)?.toInt() ?? 0,
+      achievementCount: (json['achievementCount'] as num?)?.toInt() ?? 0,
+      achievementShowcase: showcase is List
+          ? showcase
+                .whereType<Map>()
+                .map(
+                  (value) =>
+                      SocialAchievement.fromJson(value.cast<String, dynamic>()),
+                )
+                .toList(growable: false)
+          : const <SocialAchievement>[],
+      privateProfile: json['privateProfile'] == true,
+    );
+  }
+}
+
 class SocialChallenge {
   const SocialChallenge({
     required this.id,
@@ -312,6 +419,22 @@ class SocialApiClient {
 
   Future<Map<String, dynamic>> loadLeaderboard(String scope) async {
     return _request('GET', '/v1/leaderboards/$scope');
+  }
+
+  Future<CompetitiveProfile> loadCompetitiveProfile() async {
+    final response = await _request('GET', '/v1/competitive/profile');
+    return CompetitiveProfile.fromJson(response);
+  }
+
+  Future<Map<String, dynamic>> loadCompetitiveLeaderboard(
+    String scope, {
+    String mode = 'top',
+    String? cursor,
+  }) async {
+    final query = <String, String>{'mode': mode};
+    if (cursor != null && cursor.isNotEmpty) query['cursor'] = cursor;
+    final suffix = Uri(queryParameters: query).query;
+    return _request('GET', '/v1/competitive/leaderboards/$scope?$suffix');
   }
 
   Future<Map<String, dynamic>> loadRatings() async {
