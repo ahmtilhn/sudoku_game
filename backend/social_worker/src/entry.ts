@@ -2,6 +2,11 @@ import app, { GameRoom, MatchmakingQueue } from './profile_wrapper';
 import type { Env } from './index';
 import { AppCheckError } from './app_check';
 import {
+  AccountDeletionError,
+  deletePlayerAccountData,
+  isAccountDeletionPath,
+} from './account_deletion';
+import {
   AccountProtectionError,
   assertProtectedPurchaseAccount,
   isPurchaseVerificationPath,
@@ -50,6 +55,10 @@ export default {
     try {
       if (isAdMobSsvPath(url.pathname)) {
         return withCors(await handleAdMobSsv(request, env), env);
+      }
+
+      if (isAccountDeletionPath(url.pathname)) {
+        return json(env, 200, await deletePlayerAccountData(request, env));
       }
 
       if (isPurchaseVerificationPath(url.pathname)) {
@@ -182,7 +191,8 @@ function verificationErrorResponse(
   if (
     error instanceof ProductionVerificationError ||
     error instanceof AdMobSsvError ||
-    error instanceof AccountProtectionError
+    error instanceof AccountProtectionError ||
+    error instanceof AccountDeletionError
   ) {
     return json(env, error.status, { error: error.message, code: error.code });
   }
