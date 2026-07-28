@@ -28,7 +28,7 @@ void main() {
   testWidgets(
     'a rapid double tap consumes one hint and the hinted cell stays locked',
     (tester) async {
-      final strings = await AppStrings.load();
+      final strings = AppStrings.forTesting();
       final completer = Completer<bool>();
       addTearDown(() {
         if (!completer.isCompleted) completer.complete(false);

@@ -93,9 +93,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                     const SizedBox(height: 16),
                     Text(
                       context.tr('choose_duel_difficulty'),
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -178,21 +177,21 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   }
 
   void _openFriendRequests() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const FriendRequestsScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const FriendRequestsScreen()));
   }
 
   void _openPlatformFriends() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const PlatformSocialScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const PlatformSocialScreen()));
   }
 
   void _openLeaderboards() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const LeaderboardsScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LeaderboardsScreen()));
   }
 
   void _openLocalPractice() {
@@ -372,9 +371,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     }
     Navigator.of(context)
         .push(
-          MaterialPageRoute(
-            builder: (_) => OnlineDuelScreen(roomId: roomId),
-          ),
+          MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)),
         )
         .then((_) => _economy.refresh(showLoading: false));
   }
@@ -576,9 +573,9 @@ class _SearchingPanel extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               context.tr('searching_opponent'),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
             Text(context.tr('queue_key', <Object>[queueKey])),

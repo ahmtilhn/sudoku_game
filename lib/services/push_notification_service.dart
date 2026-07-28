@@ -262,7 +262,8 @@ class PushNotificationService {
         type: 'rematch',
         id: rematchId,
         defaultTitle: 'Rematch invitation',
-        defaultBody: 'A player wants to play again. Open Sudoku Duel to respond.',
+        defaultBody:
+            'A player wants to play again. Open Sudoku Duel to respond.',
       );
     }
     final challengeId = data['challengeId']?.toString();

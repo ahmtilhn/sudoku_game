@@ -5,6 +5,7 @@ import {
   jwtVerify,
 } from 'jose';
 import { AppCheckError, verifyAppCheckRequest } from './app_check';
+import { MATCH_POT } from './economy';
 import {
   type ClientEnvelope,
   type DuelDifficulty,
@@ -1543,7 +1544,7 @@ export class GameRoom {
         deltaDifficulty: diffDeltaB,
       },
     };
-    const coinAmount = 100;
+    const coinAmount = MATCH_POT;
     const coinStatements: D1PreparedStatement[] = [];
     if (duel.winnerSeat !== null && duel.status !== 'cancelled') {
       const loserSeat = duel.winnerSeat === 'A' ? 'B' : 'A';
@@ -1563,15 +1564,6 @@ export class GameRoom {
                WHERE match_id = ? AND winner_id = ? AND applied_at = ?
              )`,
         ).bind(coinAmount, winnerId, duel.matchId, winnerId, now),
-        this.env.DB.prepare(
-          `UPDATE players
-           SET online_coins = online_coins - ?
-           WHERE id = ?
-             AND EXISTS (
-               SELECT 1 FROM match_coin_settlements
-               WHERE match_id = ? AND loser_id = ? AND applied_at = ?
-             )`,
-        ).bind(coinAmount, loserId, duel.matchId, loserId, now),
       );
     }
     const settlementHash = `${duel.matchId}:${duel.revision}:${duel.finishReason}:${winnerId ?? 'draw'}`;
@@ -1610,7 +1602,7 @@ export class GameRoom {
         } as Record<Seat, number>,
         deltas: {
           [duel.winnerSeat]: coinAmount,
-          [loserSeat]: -coinAmount,
+          [loserSeat]: 0,
         } as Record<Seat, number>,
       };
       await this.env.DB.prepare(

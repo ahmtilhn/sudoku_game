@@ -195,7 +195,9 @@ class CoinStoreService extends ChangeNotifier {
               // Production may already have consumed this token server-side.
               // Verification/grant is idempotent, so a duplicate consume error
               // must not hide the wallet update from the player.
-              debugPrint('Android consumable already handled or delayed: $consumeError');
+              debugPrint(
+                'Android consumable already handled or delayed: $consumeError',
+              );
             }
           }
           if (purchase.pendingCompletePurchase) {

@@ -32,7 +32,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final strings = await AppStrings.load();
+    final strings = AppStrings.forTesting();
     final transport = FakeOnlineDuelTransport();
     final controller = OnlineDuelController(transport);
 
@@ -52,7 +52,7 @@ void main() {
     expect(find.byType(ListView), findsNothing);
     expect(find.byType(SingleChildScrollView), findsNothing);
     expect(find.byType(Slider), findsNothing);
-    expect(find.text('Ben hazırım'), findsOneWidget);
+    expect(find.text('I am ready'), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('sudoku-cell-2')), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('number-1')), findsOneWidget);
 

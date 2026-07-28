@@ -185,12 +185,13 @@ async function verifyWithPem(
   callback: ParsedCallback,
 ): Promise<void> {
   const key = await importSPKI(pem, 'ES256');
-  const rawSignature = derEcdsaToRaw(callback.signature, 32);
+  const rawSignature = toArrayBufferView(derEcdsaToRaw(callback.signature, 32));
+  const signedContent = toArrayBufferView(callback.signedContent);
   const verified = await crypto.subtle.verify(
     { name: 'ECDSA', hash: 'SHA-256' },
     key as CryptoKey,
     rawSignature,
-    callback.signedContent,
+    signedContent,
   );
   if (!verified) {
     throw new AdMobSsvError(400, 'Invalid AdMob SSV signature.', 'ssv_signature_invalid');
@@ -373,6 +374,12 @@ async function admobKeys(): Promise<Map<number, string>> {
   }
   cachedKeys = { expiresAt: Date.now() + KEY_CACHE_MS, values };
   return values;
+}
+
+function toArrayBufferView(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy;
 }
 
 function derEcdsaToRaw(der: Uint8Array, size: number): Uint8Array {

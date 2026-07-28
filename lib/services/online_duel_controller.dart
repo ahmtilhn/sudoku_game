@@ -30,7 +30,7 @@ class OnlineDuelController {
 
   bool move(int cellIndex, int value) {
     final current = _snapshot;
-    if (current == null || !current.isLocalTurn || _pendingMove) return false;
+    if (current == null || _pendingMove) return false;
     if (cellIndex < 0 ||
         cellIndex >= current.board.length ||
         current.puzzle[cellIndex] != 0 ||

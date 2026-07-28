@@ -4162,6 +4162,726 @@
           }
         }
       }
+    },
+    "i_am_ready": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I am ready"
+          }
+        }
+      }
+    },
+    "get_ready": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get ready"
+          }
+        }
+      }
+    },
+    "connecting_players": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting players"
+          }
+        }
+      }
+    },
+    "move_time_seconds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move time: %1d s"
+          }
+        }
+      }
+    },
+    "automatic_start_seconds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic start: %1d s"
+          }
+        }
+      }
+    },
+    "opponent_connecting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opponent is connecting"
+          }
+        }
+      }
+    },
+    "opponent_opening_game": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opponent is opening the game"
+          }
+        }
+      }
+    },
+    "opponent_ready": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opponent is ready"
+          }
+        }
+      }
+    },
+    "sending_move": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending move…"
+          }
+        }
+      }
+    },
+    "select_empty_cell_enter_number": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select an empty cell and enter a number"
+          }
+        }
+      }
+    },
+    "waiting_opponent_move": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for the opponent’s move"
+          }
+        }
+      }
+    },
+    "final_score_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Final score"
+          }
+        }
+      }
+    },
+    "entry_fee": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entry fee"
+          }
+        }
+      }
+    },
+    "winner_pot": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Winner pot"
+          }
+        }
+      }
+    },
+    "refund": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refund"
+          }
+        }
+      }
+    },
+    "match_result": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match result"
+          }
+        }
+      }
+    },
+    "current_balance": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current balance"
+          }
+        }
+      }
+    },
+    "rating": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rating"
+          }
+        }
+      }
+    },
+    "finish_reason": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish reason"
+          }
+        }
+      }
+    },
+    "coin_amount": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d Coin"
+          }
+        }
+      }
+    },
+    "vs_opponent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vs %1s"
+          }
+        }
+      }
+    },
+    "waiting_for_player_seconds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for %1s · %2d s"
+          }
+        }
+      }
+    },
+    "wants_rematch_seconds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s wants a rematch · %2d s"
+          }
+        }
+      }
+    },
+    "decline": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decline"
+          }
+        }
+      }
+    },
+    "accept": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accept"
+          }
+        }
+      }
+    },
+    "challenge_again": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Challenge again"
+          }
+        }
+      }
+    },
+    "find_new_match": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find new match"
+          }
+        }
+      }
+    },
+    "add_friend": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add friend"
+          }
+        }
+      }
+    },
+    "open_coin_store": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Coin Store"
+          }
+        }
+      }
+    },
+    "not_enough_coins_online": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You need at least %1d Coin to play another online match."
+          }
+        }
+      }
+    },
+    "rematch_invitation_sent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rematch invitation sent."
+          }
+        }
+      }
+    },
+    "rematch_declined": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rematch declined."
+          }
+        }
+      }
+    },
+    "rematch_invitation_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rematch invitation"
+          }
+        }
+      }
+    },
+    "wants_to_play_again": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s wants to play again."
+          }
+        }
+      }
+    },
+    "challenge_declined": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Challenge declined."
+          }
+        }
+      }
+    },
+    "challenge_timed_out": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Challenge timed out."
+          }
+        }
+      }
+    },
+    "friend_request_sent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend request sent."
+          }
+        }
+      }
+    },
+    "player_not_enough_coin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A player no longer has enough Coin."
+          }
+        }
+      }
+    },
+    "player_account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Player account"
+          }
+        }
+      }
+    },
+    "player_account_protected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Player account protected"
+          }
+        }
+      }
+    },
+    "protect_player_account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect player account"
+          }
+        }
+      }
+    },
+    "protect_your_player_account": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect your player account"
+          }
+        }
+      }
+    },
+    "account_protection_banner_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link an email before buying Coins so your wallet, Friend ID and rating can be recovered after reinstall or device change."
+          }
+        }
+      }
+    },
+    "protect": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect"
+          }
+        }
+      }
+    },
+    "coin_store": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coin Store"
+          }
+        }
+      }
+    },
+    "coin_history": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coin history"
+          }
+        }
+      }
+    },
+    "protect_account_before_buying": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect your account before buying"
+          }
+        }
+      }
+    },
+    "paid_coins_protection_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paid Coins must be linked to a recoverable email account. Your current guest wallet and Friend ID are preserved when you protect this account."
+          }
+        }
+      }
+    },
+    "create_player_profile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create your player profile"
+          }
+        }
+      }
+    },
+    "create_player_profile_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your display name is shown in matches. Your unique username can be searched, while your permanent Friend ID never changes."
+          }
+        }
+      }
+    },
+    "use_platform_name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use your Google Play Games or Game Center name"
+          }
+        }
+      }
+    },
+    "use_custom_profile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a custom profile"
+          }
+        }
+      }
+    },
+    "display_name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display name"
+          }
+        }
+      }
+    },
+    "unique_username": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unique username"
+          }
+        }
+      }
+    },
+    "username_helper": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3–20 lowercase letters, numbers or underscore"
+          }
+        }
+      }
+    },
+    "friend_id_value": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend ID: %1s"
+          }
+        }
+      }
+    },
+    "player_profile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Player profile"
+          }
+        }
+      }
+    },
+    "shown_to_other_players": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shown to other players"
+          }
+        }
+      }
+    },
+    "save": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        }
+      }
+    },
+    "friend_id_copied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend ID copied."
+          }
+        }
+      }
+    },
+    "online_account_unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online account unavailable"
+          }
+        }
+      }
+    },
+    "try_again_when_connected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again when connected."
+          }
+        }
+      }
+    },
+    "retry": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry"
+          }
+        }
+      }
+    },
+    "edit_player_profile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit player profile"
+          }
+        }
+      }
+    },
+    "friend_id": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend ID"
+          }
+        }
+      }
+    },
+    "copy_friend_id": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Friend ID"
+          }
+        }
+      }
+    },
+    "discoverable_by_players": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discoverable by other players"
+          }
+        }
+      }
+    },
+    "discoverable_by_players_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow username, display-name and exact Friend ID search. Existing friends remain connected when disabled."
+          }
+        }
+      }
+    },
+    "server_wallet_history": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server wallet and purchase history"
+          }
+        }
+      }
+    },
+    "rematch_could_not_start": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rematch could not be started."
+          }
+        }
+      }
+    },
+    "rematch_invitation_load_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The rematch invitation could not be loaded."
+          }
+        }
+      }
+    },
+    "rematch_requires_coin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A new match requires %1d Coin from each player."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

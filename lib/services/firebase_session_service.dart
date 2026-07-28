@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_runtime_config.dart';
 
@@ -19,12 +20,15 @@ class FirebaseSessionService {
 
   static FirebaseAuth get _auth => FirebaseAuth.instance;
 
-  static User? get currentUser => _auth.currentUser;
+  static User? get currentUser =>
+      Firebase.apps.isEmpty ? null : _auth.currentUser;
 
-  static bool get isAnonymous => _auth.currentUser?.isAnonymous ?? true;
+  static bool get isAnonymous => currentUser?.isAnonymous ?? true;
 
-  static bool get isProtected =>
-      _auth.currentUser != null && !_auth.currentUser!.isAnonymous;
+  static bool get isProtected {
+    final user = currentUser;
+    return user != null && !user.isAnonymous;
+  }
 
   static Future<User> ensureAnonymousSession() async {
     final configured = await FirebaseRuntimeConfig.initializeIfConfigured();
@@ -39,9 +43,9 @@ class FirebaseSessionService {
     if (existing != null) return existing;
 
     try {
-      final credential = await _auth
-          .signInAnonymously()
-          .timeout(const Duration(seconds: 15));
+      final credential = await _auth.signInAnonymously().timeout(
+        const Duration(seconds: 15),
+      );
       final user = credential.user ?? _auth.currentUser;
       if (user == null) {
         throw const FirebaseSessionException(
@@ -234,8 +238,9 @@ class FirebaseSessionService {
         'This email already belongs to a protected Sudoku Duel account. Use Sign in instead.',
       'invalid-email' => 'Enter a valid email address.',
       'weak-password' => 'Use a stronger password with at least 8 characters.',
-      'invalid-credential' || 'wrong-password' || 'user-not-found' =>
-        'The email or password is incorrect.',
+      'invalid-credential' ||
+      'wrong-password' ||
+      'user-not-found' => 'The email or password is incorrect.',
       'too-many-requests' =>
         'Too many attempts were made. Wait a moment and try again.',
       'network-request-failed' =>

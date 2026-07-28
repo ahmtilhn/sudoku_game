@@ -49,9 +49,11 @@ class WalletSnapshot {
   final DateTime? nextDailyResetAt;
 
   factory WalletSnapshot.fromJson(Map<String, dynamic> json) {
-    final login = (json['dailyLogin'] as Map?)?.cast<String, dynamic>() ??
+    final login =
+        (json['dailyLogin'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
-    final ad = (json['dailyRewardedAd'] as Map?)?.cast<String, dynamic>() ??
+    final ad =
+        (json['dailyRewardedAd'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
     return WalletSnapshot(
       balance: (json['balance'] as num?)?.toInt() ?? 0,
@@ -223,9 +225,7 @@ class EconomyApiClient {
     if (entries is! List) return const <CoinLedgerEntry>[];
     return entries
         .whereType<Map>()
-        .map(
-          (entry) => CoinLedgerEntry.fromJson(entry.cast<String, dynamic>()),
-        )
+        .map((entry) => CoinLedgerEntry.fromJson(entry.cast<String, dynamic>()))
         .toList(growable: false);
   }
 
@@ -301,9 +301,7 @@ class EconomyApiClient {
     if (invitations is! List) return const <RematchInvitation>[];
     return invitations
         .whereType<Map>()
-        .map(
-          (item) => RematchInvitation.fromJson(item.cast<String, dynamic>()),
-        )
+        .map((item) => RematchInvitation.fromJson(item.cast<String, dynamic>()))
         .toList(growable: false);
   }
 
@@ -360,10 +358,7 @@ class EconomyApiClient {
     try {
       idToken = await user.getIdToken().timeout(_timeout);
     } on TimeoutException {
-      throw const EconomyApiException(
-        0,
-        'Firebase session refresh timed out.',
-      );
+      throw const EconomyApiException(0, 'Firebase session refresh timed out.');
     } on FirebaseAuthException catch (error) {
       throw EconomyApiException(
         401,

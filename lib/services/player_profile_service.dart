@@ -108,7 +108,10 @@ class PlayerProfileService {
     try {
       idToken = await user.getIdToken().timeout(_timeout);
     } on TimeoutException {
-      throw const PlayerProfileException(0, 'Player session refresh timed out.');
+      throw const PlayerProfileException(
+        0,
+        'Player session refresh timed out.',
+      );
     } on FirebaseAuthException catch (error) {
       throw PlayerProfileException(
         401,
@@ -116,7 +119,10 @@ class PlayerProfileService {
       );
     }
     if (idToken == null || idToken.isEmpty) {
-      throw const PlayerProfileException(401, 'Unable to obtain a player token.');
+      throw const PlayerProfileException(
+        401,
+        'Unable to obtain a player token.',
+      );
     }
 
     String? appCheckToken;

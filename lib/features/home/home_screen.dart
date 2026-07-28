@@ -69,22 +69,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             tooltip: protectedAccount
-                ? 'Player account protected'
-                : 'Protect player account',
+                ? context.tr('player_account_protected')
+                : context.tr('protect_player_account'),
             onPressed: () async {
               await _open(context, const AccountProtectionScreen());
               if (mounted) setState(() {});
             },
-            icon: Icon(
-              protectedAccount ? Icons.shield : Icons.shield_outlined,
-            ),
+            icon: Icon(protectedAccount ? Icons.shield : Icons.shield_outlined),
           ),
           IconButton(
             tooltip: context.tr('settings'),
-            onPressed: () => _open(
-              context,
-              SettingsScreen(store: widget.store),
-            ),
+            onPressed: () =>
+                _open(context, SettingsScreen(store: widget.store)),
             icon: const Icon(Icons.settings_outlined),
           ),
           const SizedBox(width: 6),
@@ -131,10 +127,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ]),
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
-                          onTap: () => _open(
-                            context,
-                            CareerScreen(store: widget.store),
-                          ),
+                          onTap: () =>
+                              _open(context, CareerScreen(store: widget.store)),
                         ),
                         const SizedBox(height: 12),
                         MenuCard(
@@ -145,20 +139,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           trailing: _economy.canEnterOnline
                               ? const Icon(Icons.chevron_right_rounded)
                               : const Icon(Icons.lock_outline_rounded),
-                          onTap: () => _open(
-                            context,
-                            const MatchmakingScreen(),
-                          ),
+                          onTap: () =>
+                              _open(context, const MatchmakingScreen()),
                         ),
                         const SizedBox(height: 12),
                         MenuCard(
                           icon: Icons.today_outlined,
                           title: context.tr('daily_sudoku'),
                           subtitle: context.tr('daily_subtitle'),
-                          onTap: () => _open(
-                            context,
-                            DailyScreen(store: widget.store),
-                          ),
+                          onTap: () =>
+                              _open(context, DailyScreen(store: widget.store)),
                         ),
                         const SizedBox(height: 12),
                         MenuCard(
@@ -185,9 +175,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _open(BuildContext context, Widget screen) {
-    return Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => screen),
-    );
+    return Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => screen));
   }
 }
 
@@ -214,22 +204,22 @@ class _AccountProtectionBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Protect your player account',
+                    context.tr('protect_your_player_account'),
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: scheme.onSecondaryContainer,
-                        ),
+                      fontWeight: FontWeight.w900,
+                      color: scheme.onSecondaryContainer,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Link an email before buying Coins so your wallet, Friend ID and rating can be recovered after reinstall or device change.',
+                    context.tr('account_protection_banner_body'),
                     style: TextStyle(color: scheme.onSecondaryContainer),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 6),
-            TextButton(onPressed: onOpen, child: const Text('Protect')),
+            TextButton(onPressed: onOpen, child: Text(context.tr('protect'))),
           ],
         ),
       ),
@@ -299,9 +289,7 @@ class _EconomyPanel extends StatelessWidget {
                 ),
                 TextButton.icon(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const CoinStoreScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
                   ),
                   icon: const Icon(Icons.storefront_outlined),
                   label: const Text('Store'),
@@ -435,9 +423,9 @@ class _WelcomePanel extends StatelessWidget {
             store.tutorialCompleted
                 ? context.tr('welcome_returning_body')
                 : context.tr('welcome_new_body'),
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: scheme.onPrimaryContainer,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: scheme.onPrimaryContainer),
           ),
         ],
       ),

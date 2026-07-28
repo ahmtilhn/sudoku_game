@@ -18,6 +18,7 @@ Updated for branch `codex-authoritative-online-duel`.
 - Staging purchase grants with transaction replay protection.
 - Production Google Play ProductPurchaseV2 verification, matching-product/state checks and server-side consumption attempt.
 - Production App Store Server API Get Transaction Info verification with transaction, product, bundle, ownership, type and revocation checks.
+- Release blocker: Apple `signedTransactionInfo` is decoded after the App Store API response, but the Worker does not yet perform independent JWS signature validation, certificate-chain validation or Apple root trust validation. Do not mark iOS purchase verification production-grade until this is implemented with an official compatible verifier or a separately validated verification service.
 - Production AdMob SSV callback verification, ad-unit allowlist, callback-age checks and transaction replay protection.
 - Purchase/ad verification audit columns added in migration `0014_production_verification.sql`.
 
@@ -40,7 +41,7 @@ Updated for branch `codex-authoritative-online-duel`.
 - A player needs at least 100 Coin to enter matchmaking.
 - Queue cancellation is free.
 - When a compatible pair is created, D1 deducts 100 Coin from each player and creates a 200 Coin escrow.
-- Winner receives the 200 Coin pot.
+- Winner receives the 200 Coin pot; the WebSocket settlement payload reports the 200 Coin pot delta instead of the legacy `+100/-100` post-match adjustment.
 - Draw/pre-start terminal states refund 100 Coin to each player.
 - Forfeit/disconnect winner settlement uses the same escrow payout.
 - Direct friend-challenge matches also require and fund the same escrow.

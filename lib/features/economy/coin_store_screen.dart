@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../localization/app_strings.dart';
 import '../../services/coin_store_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
@@ -44,23 +45,19 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
     final protectedAccount = FirebaseSessionService.isProtected;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Coin Store'),
+        title: Text(context.tr('coin_store')),
         actions: [
           IconButton(
             tooltip: protectedAccount
-                ? 'Player account protected'
-                : 'Protect player account',
+                ? context.tr('player_account_protected')
+                : context.tr('protect_player_account'),
             onPressed: _openAccountProtection,
-            icon: Icon(
-              protectedAccount ? Icons.shield : Icons.shield_outlined,
-            ),
+            icon: Icon(protectedAccount ? Icons.shield : Icons.shield_outlined),
           ),
           IconButton(
-            tooltip: 'Coin history',
+            tooltip: context.tr('coin_history'),
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const WalletHistoryScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const WalletHistoryScreen()),
             ),
             icon: const Icon(Icons.receipt_long_outlined),
           ),
@@ -128,7 +125,9 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Protect your account before buying',
+                                            context.tr(
+                                              'protect_account_before_buying',
+                                            ),
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .titleSmall
@@ -140,7 +139,9 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'Paid Coins must be linked to a recoverable email account. Your current guest wallet and Friend ID are preserved when you protect this account.',
+                                            context.tr(
+                                              'paid_coins_protection_body',
+                                            ),
                                             style: TextStyle(
                                               color:
                                                   scheme.onSecondaryContainer,
@@ -152,7 +153,7 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                     const SizedBox(width: 8),
                                     FilledButton.tonal(
                                       onPressed: _openAccountProtection,
-                                      child: const Text('Protect'),
+                                      child: Text(context.tr('protect')),
                                     ),
                                   ],
                                 ),
@@ -225,27 +226,27 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                             ? 2.35
                                             : 1.15,
                                       ),
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      final product = _store.products[index];
-                                      final pending =
-                                          _store.pendingProductId == product.id;
-                                      return _CoinPackageCard(
-                                        productId: product.id,
-                                        coins: _store.coinAmount(product.id),
-                                        title: product.title,
-                                        description: product.description,
-                                        price: product.price,
-                                        pending: pending,
-                                        enabled:
-                                            protectedAccount &&
-                                            _store.pendingProductId == null &&
-                                            !_economy.processingPurchase,
-                                        onBuy: () => _store.buy(product.id),
-                                      );
-                                    },
-                                    childCount: _store.products.length,
-                                  ),
+                                  delegate: SliverChildBuilderDelegate((
+                                    context,
+                                    index,
+                                  ) {
+                                    final product = _store.products[index];
+                                    final pending =
+                                        _store.pendingProductId == product.id;
+                                    return _CoinPackageCard(
+                                      productId: product.id,
+                                      coins: _store.coinAmount(product.id),
+                                      title: product.title,
+                                      description: product.description,
+                                      price: product.price,
+                                      pending: pending,
+                                      enabled:
+                                          protectedAccount &&
+                                          _store.pendingProductId == null &&
+                                          !_economy.processingPurchase,
+                                      onBuy: () => _store.buy(product.id),
+                                    );
+                                  }, childCount: _store.products.length),
                                 ),
                         );
                       },

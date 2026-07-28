@@ -19,7 +19,7 @@ void main() {
     await controller.dispose();
   });
 
-  test('out of turn board is disabled at controller level', () async {
+  test('out of turn moves are sent to the authoritative backend', () async {
     final transport = FakeOnlineDuelTransport();
     final controller = OnlineDuelController(transport)..start();
     transport.emit(
@@ -27,8 +27,9 @@ void main() {
     );
     await pumpEventQueue();
 
-    expect(controller.move(2, 3), isFalse);
-    expect(transport.sent, isEmpty);
+    expect(controller.move(2, 3), isTrue);
+    expect(controller.move(3, 4), isFalse);
+    expect(transport.sent.where((m) => m['type'] == 'move'), hasLength(1));
     await controller.dispose();
   });
 

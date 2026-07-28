@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/local_progress_store.dart';
+import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
@@ -107,7 +108,9 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                response ? 'Rematch could not be started.' : 'Rematch declined.',
+                response
+                    ? context.tr('rematch_could_not_start')
+                    : context.tr('rematch_declined'),
               ),
             ),
           );
@@ -121,7 +124,7 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('The rematch invitation could not be loaded.')),
+          SnackBar(content: Text(context.tr('rematch_invitation_load_failed'))),
         );
       }
     } finally {
@@ -180,118 +183,129 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
         ? _platformSource()
         : 'custom';
 
-    final result = await showDialog<
-      ({String username, String displayName, String nameSource})
-    >(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final valid = displayController.text.trim().length >= 2 &&
-              RegExp(
-                r'^[a-z0-9_]{3,20}$',
-              ).hasMatch(usernameController.text.trim().toLowerCase());
-          return AlertDialog(
-            title: const Text('Create your player profile'),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Your display name is shown in matches. Your unique username can be searched, while your permanent Friend ID never changes.',
-                    ),
-                    if (suggestedName?.isNotEmpty == true) ...[
-                      const SizedBox(height: 14),
-                      RadioListTile<String>(
-                        value: _platformSource(),
-                        groupValue: selectedSource,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(suggestedName!),
-                        subtitle: const Text(
-                          'Use your Google Play Games or Game Center name',
+    final result =
+        await showDialog<
+          ({String username, String displayName, String nameSource})
+        >(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setDialogState) {
+              final valid =
+                  displayController.text.trim().length >= 2 &&
+                  RegExp(
+                    r'^[a-z0-9_]{3,20}$',
+                  ).hasMatch(usernameController.text.trim().toLowerCase());
+              return AlertDialog(
+                title: Text(context.tr('create_player_profile')),
+                content: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(context.tr('create_player_profile_body')),
+                        RadioGroup<String>(
+                          groupValue: selectedSource,
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setDialogState(() {
+                              selectedSource = value;
+                              if (value == _platformSource() &&
+                                  suggestedName?.isNotEmpty == true) {
+                                displayController.text = suggestedName!;
+                                usernameController.text = _suggestUsername(
+                                  suggestedName,
+                                  profile.publicId,
+                                );
+                              }
+                            });
+                          },
+                          child: Column(
+                            children: [
+                              if (suggestedName?.isNotEmpty == true) ...[
+                                const SizedBox(height: 14),
+                                RadioListTile<String>(
+                                  value: _platformSource(),
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(suggestedName!),
+                                  subtitle: Text(
+                                    context.tr('use_platform_name'),
+                                  ),
+                                ),
+                              ],
+                              RadioListTile<String>(
+                                value: 'custom',
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(context.tr('use_custom_profile')),
+                              ),
+                            ],
+                          ),
                         ),
-                        onChanged: (value) {
-                          setDialogState(() => selectedSource = value!);
-                          displayController.text = suggestedName;
-                          usernameController.text = _suggestUsername(
-                            suggestedName,
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: displayController,
+                          autofocus: suggestedName?.isNotEmpty != true,
+                          maxLength: 24,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: context.tr('display_name'),
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (_) {
+                            selectedSource = 'custom';
+                            setDialogState(() {});
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: usernameController,
+                          maxLength: 20,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          textInputAction: TextInputAction.done,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp('[a-zA-Z0-9_]'),
+                            ),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: context.tr('unique_username'),
+                            helperText: context.tr('username_helper'),
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (_) => setDialogState(() {}),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          context.tr('friend_id_value', <Object>[
                             profile.publicId,
-                          );
-                        },
-                      ),
-                    ],
-                    RadioListTile<String>(
-                      value: 'custom',
-                      groupValue: selectedSource,
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Use a custom profile'),
-                      onChanged: (value) {
-                        setDialogState(() => selectedSource = value!);
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: displayController,
-                      autofocus: suggestedName?.isNotEmpty != true,
-                      maxLength: 24,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Display name',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (_) {
-                        selectedSource = 'custom';
-                        setDialogState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: usernameController,
-                      maxLength: 20,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      textInputAction: TextInputAction.done,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp('[a-zA-Z0-9_]'),
+                          ]),
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
-                      decoration: const InputDecoration(
-                        labelText: 'Unique username',
-                        helperText:
-                            '3–20 lowercase letters, numbers or underscore',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (_) => setDialogState(() {}),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Friend ID: ${profile.publicId}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            actions: [
-              FilledButton(
-                onPressed: !valid
-                    ? null
-                    : () => Navigator.of(dialogContext).pop((
-                        username: usernameController.text.trim().toLowerCase(),
-                        displayName: displayController.text.trim(),
-                        nameSource: selectedSource,
-                      )),
-                child: const Text('Continue'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+                actions: [
+                  FilledButton(
+                    onPressed: !valid
+                        ? null
+                        : () => Navigator.of(dialogContext).pop((
+                            username: usernameController.text
+                                .trim()
+                                .toLowerCase(),
+                            displayName: displayController.text.trim(),
+                            nameSource: selectedSource,
+                          )),
+                    child: Text(context.tr('continue_action')),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
     displayController.dispose();
     usernameController.dispose();
     return result;
@@ -353,43 +367,44 @@ class _RematchPushDialogState extends State<_RematchPushDialog> {
     super.dispose();
   }
 
-  int get _remainingMilliseconds => widget.invitation.expiresAt
-      .difference(DateTime.now())
-      .inMilliseconds;
+  int get _remainingMilliseconds =>
+      widget.invitation.expiresAt.difference(DateTime.now()).inMilliseconds;
 
   @override
   Widget build(BuildContext context) {
     final seconds = (_remainingMilliseconds / 1000).ceil().clamp(0, 10);
     return AlertDialog(
-      title: const Text('Rematch invitation'),
+      title: Text(context.tr('rematch_invitation_title')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '${widget.invitation.sender.displayName} wants to play again.',
+            context.tr('wants_to_play_again', <Object>[
+              widget.invitation.sender.displayName,
+            ]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 14),
           Text(
             '$seconds s',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 6),
-          const Text('A new match requires 100 Coin from each player.'),
+          Text(context.tr('rematch_requires_coin', const <Object>[100])),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Decline'),
+          child: Text(context.tr('decline')),
         ),
         FilledButton(
           onPressed: EconomyService.instance.canEnterOnline
               ? () => Navigator.of(context).pop(true)
               : null,
-          child: const Text('Accept'),
+          child: Text(context.tr('accept')),
         ),
       ],
     );

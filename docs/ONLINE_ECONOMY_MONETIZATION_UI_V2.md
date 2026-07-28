@@ -33,7 +33,7 @@ The online flow is presented as a fixed game entry fee, not gambling:
 
 - each accepted player contributes exactly 100 Coins;
 - the server places 200 Coins into match escrow;
-- winner receives the full 200 Coin pot;
+- winner receives the full 200 Coin pot, and the client displays balances refreshed from the wallet endpoint rather than trusting WebSocket payloads as the source of truth;
 - draw refunds 100 Coins to each player;
 - cancellation before an active game refunds both players;
 - a valid forfeit or disconnect loss after the game starts awards the pot to the winner;

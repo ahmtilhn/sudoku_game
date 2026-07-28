@@ -39,6 +39,8 @@ Explain that:
 
 - Email/Password provider enabled.
 - Verification/password-reset email links tested on Android and iOS.
+- Account protection screen tested before Firebase initialization and with provider-disabled Firebase errors.
+- Account deletion tested for anonymous and protected accounts, including push-token removal, active-match rejection, Firebase delete failure and reauthentication-required handling.
 - Privacy policy describes account email, Firebase UID, Friend ID, match history, purchases and rewarded-ad verification.
 - Google Play Data safety and App Store privacy disclosures updated.
 - Account deletion workflow and support contact defined before launch.

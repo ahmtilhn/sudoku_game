@@ -27,10 +27,26 @@ class OnlineDuelScreen extends StatefulWidget {
 
 class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   static const List<double> _grayscaleMatrix = <double>[
-    0.2126, 0.7152, 0.0722, 0, 0,
-    0.2126, 0.7152, 0.0722, 0, 0,
-    0.2126, 0.7152, 0.0722, 0, 0,
-    0, 0, 0, 1, 0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0.2126,
+    0.7152,
+    0.0722,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
   ];
 
   OnlineDuelController? _controller;
@@ -159,7 +175,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
 
   void _selectCell(int index) {
     final snapshot = _snapshot;
-    if (snapshot == null || snapshot.isFinished || !snapshot.isLocalTurn) {
+    if (snapshot == null || snapshot.isFinished) {
       return;
     }
     if (snapshot.puzzle[index] != 0 ||
@@ -173,7 +189,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   void _enterNumber(int value) {
     final snapshot = _snapshot;
     final index = _selectedIndex;
-    if (snapshot == null || !snapshot.isLocalTurn || index == null) return;
+    if (snapshot == null || index == null) return;
     _controller?.move(index, value);
   }
 
@@ -243,17 +259,31 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                     waitingForOpponent
                         ? _grayscaleMatrix
                         : const <double>[
-                            1, 0, 0, 0, 0,
-                            0, 1, 0, 0, 0,
-                            0, 0, 1, 0, 0,
-                            0, 0, 0, 1, 0,
+                            1,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
                           ],
                   ),
                   child: IgnorePointer(
                     ignoring:
-                        waitingForOpponent ||
-                        snapshot.isFinished ||
-                        _controller?.pendingMove == true,
+                        snapshot.isFinished || _controller?.pendingMove == true,
                     child: NumberPadDock(
                       child: NumberPad(
                         maxValue: 9,
@@ -262,7 +292,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                           maxValue: 9,
                         ),
                         enabled:
-                            snapshot.isLocalTurn &&
                             _controller?.pendingMove != true &&
                             !snapshot.isFinished,
                         onNumber: _enterNumber,
@@ -363,10 +392,26 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                       waitingForOpponent
                           ? _grayscaleMatrix
                           : const <double>[
-                              1, 0, 0, 0, 0,
-                              0, 1, 0, 0, 0,
-                              0, 0, 1, 0, 0,
-                              0, 0, 0, 1, 0,
+                              1,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              1,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              1,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              1,
+                              0,
                             ],
                     ),
                     child: Column(
@@ -378,16 +423,13 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                             child: AspectRatio(
                               aspectRatio: 1,
                               child: IgnorePointer(
-                                ignoring:
-                                    waitingForOpponent || snapshot.isFinished,
+                                ignoring: snapshot.isFinished,
                                 child: SudokuBoard(
                                   puzzle: puzzle,
                                   board: snapshot.board,
                                   selectedIndex: _selectedIndex,
                                   errorIndex: _feedbackCell,
-                                  enabled:
-                                      snapshot.isLocalTurn &&
-                                      !snapshot.isFinished,
+                                  enabled: !snapshot.isFinished,
                                   onCellTap: _selectCell,
                                 ),
                               ),
@@ -401,10 +443,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                             child: Center(
                               child: Text(
                                 _controller?.pendingMove == true
-                                    ? 'Sending move…'
+                                    ? context.tr('sending_move')
                                     : snapshot.isLocalTurn
-                                    ? 'Select an empty cell and enter a number'
-                                    : 'Waiting for the opponent’s move',
+                                    ? context.tr(
+                                        'select_empty_cell_enter_number',
+                                      )
+                                    : context.tr('waiting_opponent_move'),
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),
@@ -528,13 +572,13 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
           const SizedBox(height: 8),
           Text(
             resultTitle,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
           Text(
-            'vs ${opponent.displayName}',
+            context.tr('vs_opponent', <Object>[opponent.displayName]),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
@@ -545,32 +589,38 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
               child: Column(
                 children: [
                   _ResultLine(
-                    label: 'Final score',
+                    label: context.tr('final_score_label'),
                     value: '$localScore – $opponentScore',
                   ),
-                  const _ResultLine(label: 'Entry fee', value: '100 Coin'),
+                  _ResultLine(
+                    label: context.tr('entry_fee'),
+                    value: context.tr('coin_amount', const <Object>[100]),
+                  ),
                   _ResultLine(
                     label: won
-                        ? 'Winner pot'
+                        ? context.tr('winner_pot')
                         : snapshot.winnerSeat == null
-                        ? 'Refund'
-                        : 'Match result',
+                        ? context.tr('refund')
+                        : context.tr('match_result'),
                     value: won
-                        ? '+200 Coin'
+                        ? '+${context.tr('coin_amount', const <Object>[200])}'
                         : snapshot.winnerSeat == null
-                        ? '+100 Coin'
-                        : '0 Coin',
+                        ? '+${context.tr('coin_amount', const <Object>[100])}'
+                        : context.tr('coin_amount', const <Object>[0]),
                   ),
-                  _ResultLine(label: 'Current balance', value: '$balance Coin'),
+                  _ResultLine(
+                    label: context.tr('current_balance'),
+                    value: context.tr('coin_amount', <Object>[balance]),
+                  ),
                   if (rating != null)
                     _ResultLine(
-                      label: 'Rating',
+                      label: context.tr('rating'),
                       value:
                           '${rating.beforeGlobal} → ${rating.afterGlobal} (${rating.deltaGlobal >= 0 ? '+' : ''}${rating.deltaGlobal})',
                     ),
                   if (snapshot.finishReason != null)
                     _ResultLine(
-                      label: 'Finish reason',
+                      label: context.tr('finish_reason'),
                       value: snapshot.finishReason!.replaceAll('_', ' '),
                     ),
                 ],
@@ -603,8 +653,13 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Waiting for ${opponent.displayName} · $seconds s',
-                              style: const TextStyle(fontWeight: FontWeight.w700),
+                              context.tr('waiting_for_player_seconds', <Object>[
+                                opponent.displayName,
+                                seconds,
+                              ]),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
@@ -613,7 +668,10 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            '${invite.sender.displayName} wants a rematch · $seconds s',
+                            context.tr('wants_rematch_seconds', <Object>[
+                              invite.sender.displayName,
+                              seconds,
+                            ]),
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
@@ -625,7 +683,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                                   onPressed: _busy
                                       ? null
                                       : () => _respond(invite, false),
-                                  child: const Text('Decline'),
+                                  child: Text(context.tr('decline')),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -634,7 +692,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                                   onPressed: _busy || !canPlay
                                       ? null
                                       : () => _respond(invite, true),
-                                  child: const Text('Accept'),
+                                  child: Text(context.tr('accept')),
                                 ),
                               ),
                             ],
@@ -650,19 +708,18 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
               final wide = constraints.maxWidth >= 430;
               final actions = <Widget>[
                 FilledButton.icon(
-                  onPressed:
-                      _busy || !canPlay || invite?.status == 'pending'
+                  onPressed: _busy || !canPlay || invite?.status == 'pending'
                       ? null
                       : _createRematch,
                   icon: const Icon(Icons.replay_rounded),
-                  label: const Text('Challenge again'),
+                  label: Text(context.tr('challenge_again')),
                 ),
                 OutlinedButton.icon(
                   onPressed: _busy || !canPlay
                       ? null
                       : () => Navigator.of(context).pop('new_match'),
                   icon: const Icon(Icons.person_search_outlined),
-                  label: const Text('Find new match'),
+                  label: Text(context.tr('find_new_match')),
                 ),
               ];
               if (wide) {
@@ -676,11 +733,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
               }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  actions[0],
-                  const SizedBox(height: 8),
-                  actions[1],
-                ],
+                children: [actions[0], const SizedBox(height: 8), actions[1]],
               );
             },
           ),
@@ -691,12 +744,14 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
               final addFriend = OutlinedButton.icon(
                 onPressed: _busy ? null : _addFriend,
                 icon: const Icon(Icons.person_add_alt_1_outlined),
-                label: const Text('Add friend'),
+                label: Text(context.tr('add_friend')),
               );
               final menu = TextButton.icon(
-                onPressed: _busy ? null : () => Navigator.of(context).pop('menu'),
+                onPressed: _busy
+                    ? null
+                    : () => Navigator.of(context).pop('menu'),
                 icon: const Icon(Icons.home_outlined),
-                label: const Text('Main menu'),
+                label: Text(context.tr('main_menu')),
               );
               if (wide) {
                 return Row(
@@ -716,7 +771,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
           if (!canPlay) ...[
             const SizedBox(height: 8),
             Text(
-              'You need at least 100 Coin to play another online match.',
+              context.tr('not_enough_coins_online', const <Object>[100]),
               textAlign: TextAlign.center,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
@@ -726,7 +781,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                 MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
               ),
               icon: const Icon(Icons.storefront_outlined),
-              label: const Text('Open Coin Store'),
+              label: Text(context.tr('open_coin_store')),
             ),
           ],
         ],
@@ -744,7 +799,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       if (!mounted) return;
       setState(() {
         _invitation = invitation;
-        _statusMessage = 'Rematch invitation sent.';
+        _statusMessage = context.tr('rematch_invitation_sent');
       });
     } on EconomyApiException catch (error) {
       if (!mounted) return;
@@ -769,7 +824,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       if (accept && updated.roomId?.isNotEmpty == true) {
         await _openAcceptedRoom(updated.roomId!);
       } else {
-        setState(() => _statusMessage = 'Rematch declined.');
+        setState(() => _statusMessage = context.tr('rematch_declined'));
       }
     } on EconomyApiException catch (error) {
       if (!mounted) return;
@@ -793,14 +848,15 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       if (relevant == null) return;
       final previousStatus = _invitation?.status;
       setState(() => _invitation = relevant);
-      if (relevant.status == 'accepted' && relevant.roomId?.isNotEmpty == true) {
+      if (relevant.status == 'accepted' &&
+          relevant.roomId?.isNotEmpty == true) {
         await _openAcceptedRoom(relevant.roomId!);
       } else if (previousStatus == 'pending' && relevant.status == 'declined') {
-        setState(() => _statusMessage = 'Challenge declined.');
+        setState(() => _statusMessage = context.tr('challenge_declined'));
       } else if (previousStatus == 'pending' && relevant.status == 'expired') {
-        setState(() => _statusMessage = 'Challenge timed out.');
+        setState(() => _statusMessage = context.tr('challenge_timed_out'));
       } else if (relevant.status == 'insufficient_coins') {
-        setState(() => _statusMessage = 'A player no longer has enough Coin.');
+        setState(() => _statusMessage = context.tr('player_not_enough_coin'));
       }
     } catch (_) {
       // Result actions remain usable if a background poll temporarily fails.
@@ -824,7 +880,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     try {
       await SocialApiClient.instance.sendFriendRequest(opponent.publicId);
       if (!mounted) return;
-      setState(() => _statusMessage = 'Friend request sent.');
+      setState(() => _statusMessage = context.tr('friend_request_sent'));
     } on SocialApiException catch (error) {
       if (!mounted) return;
       setState(() => _statusMessage = error.message);
@@ -993,16 +1049,18 @@ class _TurnBanner extends StatelessWidget {
               ? context.tr('your_turn')
               : context.tr('opponents_turn')
         : snapshot.status == OnlineDuelStatus.readyWindow
-        ? 'Get ready'
-        : 'Connecting players';
+        ? context.tr('get_ready')
+        : context.tr('connecting_players');
     final subtitle = active
         ? compact
               ? '${turnSeconds ?? 0} s'
-              : 'Move time: ${turnSeconds ?? 0} s'
+              : context.tr('move_time_seconds', <Object>[turnSeconds ?? 0])
         : snapshot.status == OnlineDuelStatus.readyWindow
         ? compact
               ? '${readySeconds ?? 0} s'
-              : 'Automatic start: ${readySeconds ?? 0} s'
+              : context.tr('automatic_start_seconds', <Object>[
+                  readySeconds ?? 0,
+                ])
         : context.tr('online_turn_number', <Object>[snapshot.turnNumber]);
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
@@ -1074,10 +1132,10 @@ class _ReadyPanel extends StatelessWidget {
         : OnlineDuelSeat.a;
     final opponent = snapshot.players[opponentSeat]!;
     final opponentStatus = !opponent.connected
-        ? 'Opponent is connecting'
+        ? context.tr('opponent_connecting')
         : !opponent.screenLoaded
-        ? 'Opponent is opening the game'
-        : 'Opponent is ready';
+        ? context.tr('opponent_opening_game')
+        : context.tr('opponent_ready');
     final countdownText = seconds == null ? '' : ' · $seconds s';
 
     return Container(
@@ -1118,7 +1176,9 @@ class _ReadyPanel extends StatelessWidget {
               you.ready ? Icons.check_circle : Icons.check_circle_outline,
               size: compact ? 17 : 24,
             ),
-            label: Text(you.ready ? 'Ready' : 'I am ready'),
+            label: Text(
+              you.ready ? context.tr('ready') : context.tr('i_am_ready'),
+            ),
           ),
         ],
       ),

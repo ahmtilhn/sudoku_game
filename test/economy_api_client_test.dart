@@ -11,10 +11,7 @@ void main() {
       'winnerPot': 200,
       'starterGrant': 1000,
       'dailyLogin': <String, dynamic>{'amount': 50, 'available': true},
-      'dailyRewardedAd': <String, dynamic>{
-        'amount': 50,
-        'available': false,
-      },
+      'dailyRewardedAd': <String, dynamic>{'amount': 50, 'available': false},
       'nextDailyResetAt': '2026-07-28T00:00:00.000Z',
     });
 
@@ -35,10 +32,7 @@ void main() {
       'winnerPot': 200,
       'starterGrant': 1000,
       'dailyLogin': <String, dynamic>{'amount': 50, 'available': false},
-      'dailyRewardedAd': <String, dynamic>{
-        'amount': 50,
-        'available': false,
-      },
+      'dailyRewardedAd': <String, dynamic>{'amount': 50, 'available': false},
     });
 
     expect(wallet.balance, 100);

@@ -82,9 +82,9 @@ class AccountDeletionService {
 
     String? appCheck;
     try {
-      appCheck = await FirebaseAppCheck.instance
-          .getToken()
-          .timeout(const Duration(seconds: 5));
+      appCheck = await FirebaseAppCheck.instance.getToken().timeout(
+        const Duration(seconds: 5),
+      );
     } catch (_) {
       appCheck = null;
     }

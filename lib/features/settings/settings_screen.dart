@@ -69,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   builder: (context, _) => ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
                     children: [
-                      _sectionTitle(context, 'Player account'),
+                      _sectionTitle(context, context.tr('player_account')),
                       const SizedBox(height: 10),
                       _PlayerAccountCard(
                         profile: _profile,
@@ -80,8 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onEditProfile: _editProfile,
                         onCopyId: _copyPublicId,
                         onOpenStore: () => _open(const CoinStoreScreen()),
-                        onOpenHistory: () =>
-                            _open(const WalletHistoryScreen()),
+                        onOpenHistory: () => _open(const WalletHistoryScreen()),
                         onDiscoverabilityChanged: _setDiscoverability,
                       ),
                       const SizedBox(height: 22),
@@ -98,9 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ButtonSegment(
                                     value: ThemeMode.system,
                                     label: Text(context.tr('system')),
-                                    icon: const Icon(
-                                      Icons.settings_brightness,
-                                    ),
+                                    icon: const Icon(Icons.settings_brightness),
                                   ),
                                   ButtonSegment(
                                     value: ThemeMode.light,
@@ -142,13 +139,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Icons.notifications_active_outlined,
                             ),
                             value: enabled && !_updatingDailyReminders,
-                            title: Text(
-                              context.tr('daily_sudoku_challenges'),
-                            ),
+                            title: Text(context.tr('daily_sudoku_challenges')),
                             subtitle: Text(
-                              context.tr(
-                                'daily_sudoku_challenges_subtitle',
-                              ),
+                              context.tr('daily_sudoku_challenges_subtitle'),
                             ),
                             onChanged: _updatingDailyReminders
                                 ? null
@@ -182,8 +175,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         'online_challenge_notifications_unavailable',
                                       ),
                               ),
-                              onChanged:
-                                  !available || _updatingChallengePush
+                              onChanged: !available || _updatingChallengePush
                                   ? null
                                   : (value) =>
                                         _setChallengeNotifications(push, value),
@@ -208,8 +200,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 onChanged: _updatingAnalytics
                                     ? null
-                                    : (value) =>
-                                          _setAnalytics(firebase, value),
+                                    : (value) => _setAnalytics(firebase, value),
                               ),
                             ),
                             const Divider(height: 1),
@@ -224,9 +215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   context.tr('crash_reports_sharing'),
                                 ),
                                 subtitle: Text(
-                                  context.tr(
-                                    'crash_reports_sharing_subtitle',
-                                  ),
+                                  context.tr('crash_reports_sharing_subtitle'),
                                 ),
                                 onChanged: _updatingCrashReports
                                     ? null
@@ -252,13 +241,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   leading: const Icon(
                                     Icons.privacy_tip_outlined,
                                   ),
-                                  title: Text(
-                                    context.tr('ad_privacy_choices'),
-                                  ),
+                                  title: Text(context.tr('ad_privacy_choices')),
                                   subtitle: Text(
-                                    context.tr(
-                                      'ad_privacy_choices_subtitle',
-                                    ),
+                                    context.tr('ad_privacy_choices_subtitle'),
                                   ),
                                   trailing: const Icon(Icons.chevron_right),
                                   onTap: ads.showPrivacyOptions,
@@ -332,7 +317,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Player profile'),
+          title: Text(context.tr('player_profile')),
           content: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
@@ -343,9 +328,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   autofocus: true,
                   maxLength: 24,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Display name',
-                    hintText: 'Shown to other players',
+                  decoration: InputDecoration(
+                    labelText: context.tr('display_name'),
+                    hintText: context.tr('shown_to_other_players'),
                   ),
                   onChanged: (_) => setDialogState(() {}),
                 ),
@@ -355,22 +340,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   textInputAction: TextInputAction.done,
                   autocorrect: false,
                   enableSuggestions: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Unique username',
-                    helperText: '3–20 lowercase letters, numbers or underscore',
+                  decoration: InputDecoration(
+                    labelText: context.tr('unique_username'),
+                    helperText: context.tr('username_helper'),
                   ),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9_]')),
                   ],
                   onChanged: (_) => setDialogState(() {}),
                   onSubmitted: (_) {
-                    final username = usernameController.text.trim().toLowerCase();
+                    final username = usernameController.text
+                        .trim()
+                        .toLowerCase();
                     final displayName = displayController.text.trim();
                     if (username.length >= 3 && displayName.length >= 2) {
-                      Navigator.of(dialogContext).pop((
-                        username: username,
-                        displayName: displayName,
-                      ));
+                      Navigator.of(
+                        dialogContext,
+                      ).pop((username: username, displayName: displayName));
                     }
                   },
                 ),
@@ -391,7 +377,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       username: usernameController.text.trim().toLowerCase(),
                       displayName: displayController.text.trim(),
                     )),
-              child: const Text('Save'),
+              child: Text(context.tr('save')),
             ),
           ],
         ),
@@ -453,9 +439,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (id == null || id.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: id));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Friend ID copied.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.tr('friend_id_copied'))));
   }
 
   Future<void> _setDailyReminders(
@@ -517,9 +503,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showSnack(String key) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr(key))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.tr(key))));
   }
 
   Future<void> _confirmClear(BuildContext context) async {
@@ -583,10 +569,12 @@ class _PlayerAccountCard extends StatelessWidget {
       return Card(
         child: ListTile(
           leading: const Icon(Icons.cloud_off_outlined),
-          title: const Text('Online account unavailable'),
-          subtitle: Text(profileError ?? 'Try again when connected.'),
+          title: Text(context.tr('online_account_unavailable')),
+          subtitle: Text(
+            profileError ?? context.tr('try_again_when_connected'),
+          ),
           trailing: IconButton(
-            tooltip: 'Retry',
+            tooltip: context.tr('retry'),
             onPressed: onRetry,
             icon: const Icon(Icons.refresh),
           ),
@@ -604,7 +592,7 @@ class _PlayerAccountCard extends StatelessWidget {
             ),
             subtitle: Text('@${profile!.username}'),
             trailing: IconButton(
-              tooltip: 'Edit player profile',
+              tooltip: context.tr('edit_player_profile'),
               onPressed: loading ? null : onEditProfile,
               icon: const Icon(Icons.edit_outlined),
             ),
@@ -612,10 +600,10 @@ class _PlayerAccountCard extends StatelessWidget {
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.badge_outlined),
-            title: const Text('Friend ID'),
+            title: Text(context.tr('friend_id')),
             subtitle: Text(profile!.publicId),
             trailing: IconButton(
-              tooltip: 'Copy Friend ID',
+              tooltip: context.tr('copy_friend_id'),
               onPressed: onCopyId,
               icon: const Icon(Icons.copy_outlined),
             ),
@@ -625,26 +613,24 @@ class _PlayerAccountCard extends StatelessWidget {
             secondary: const Icon(Icons.manage_search_outlined),
             value: profile!.discoverable,
             onChanged: loading ? null : onDiscoverabilityChanged,
-            title: const Text('Discoverable by other players'),
-            subtitle: const Text(
-              'Allow username, display-name and exact Friend ID search. Existing friends remain connected when disabled.',
-            ),
+            title: Text(context.tr('discoverable_by_players')),
+            subtitle: Text(context.tr('discoverable_by_players_body')),
           ),
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.monetization_on_outlined),
-            title: Text('$balance Coin'),
-            subtitle: const Text('Server wallet and purchase history'),
+            title: Text(context.tr('coin_amount', <Object>[balance])),
+            subtitle: Text(context.tr('server_wallet_history')),
             trailing: Wrap(
               spacing: 2,
               children: [
                 IconButton(
-                  tooltip: 'Coin history',
+                  tooltip: context.tr('coin_history'),
                   onPressed: onOpenHistory,
                   icon: const Icon(Icons.receipt_long_outlined),
                 ),
                 IconButton.filledTonal(
-                  tooltip: 'Coin Store',
+                  tooltip: context.tr('coin_store'),
                   onPressed: onOpenStore,
                   icon: const Icon(Icons.storefront_outlined),
                 ),

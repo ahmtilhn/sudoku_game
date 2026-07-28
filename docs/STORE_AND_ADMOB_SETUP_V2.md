@@ -42,6 +42,8 @@ Production verification uses the ProductPurchaseV2 API, checks the purchase is `
 
 Production verification calls App Store Server API Get Transaction Info, checks transaction ID, product ID, bundle ID, ownership, product type and revocation state, and then grants once. The Worker tries production first and sandbox for test transactions.
 
+Current release blocker: the Worker decodes Apple `signedTransactionInfo` returned by the App Store Server API, but does not independently validate the JWS signature, Apple certificate chain, or Apple root trust. Keep iOS purchase verification blocked for production until an official Apple verifier compatible with the runtime is integrated, or move Apple verification behind a trusted server component that performs those checks.
+
 ## Purchase safety behavior
 
 - Staging plus `ALLOW_TEST_PURCHASE_GRANTS=true` permits sandbox-flow integration while store credentials are being configured.

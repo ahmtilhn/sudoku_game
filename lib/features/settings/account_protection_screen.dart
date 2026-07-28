@@ -93,10 +93,14 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   Card(
                     margin: EdgeInsets.zero,
                     child: ListTile(
-                      leading: Icon(Icons.delete_forever_outlined,
-                          color: scheme.error),
-                      title: Text('Delete player account',
-                          style: TextStyle(color: scheme.error)),
+                      leading: Icon(
+                        Icons.delete_forever_outlined,
+                        color: scheme.error,
+                      ),
+                      title: Text(
+                        'Delete player account',
+                        style: TextStyle(color: scheme.error),
+                      ),
                       subtitle: const Text(
                         'Permanently removes the server wallet, purchases, Friend ID, friends, ratings and match history.',
                       ),
@@ -114,8 +118,9 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
   }
 
   Widget _accountForm(BuildContext context) {
-    final validEmail = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-        .hasMatch(_email.text.trim());
+    final validEmail = RegExp(
+      r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+    ).hasMatch(_email.text.trim());
     final validPassword = _password.text.length >= 8;
     final matches = _signInMode || _password.text == _confirm.text;
     final canSubmit = validEmail && validPassword && matches && !_busy;
@@ -131,9 +136,9 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               _signInMode
                   ? 'Sign in to a protected account'
                   : 'Protect the current guest',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -159,11 +164,11 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               onSelectionChanged: _busy
                   ? null
                   : (values) => setState(() {
-                        _signInMode = values.first;
-                        _error = null;
-                        _notice = null;
-                        _confirm.clear();
-                      }),
+                      _signInMode = values.first;
+                      _error = null;
+                      _notice = null;
+                      _confirm.clear();
+                    }),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -188,8 +193,9 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               autofillHints: _signInMode
                   ? const [AutofillHints.password]
                   : const [AutofillHints.newPassword],
-              textInputAction:
-                  _signInMode ? TextInputAction.done : TextInputAction.next,
+              textInputAction: _signInMode
+                  ? TextInputAction.done
+                  : TextInputAction.next,
               decoration: InputDecoration(
                 labelText: 'Password',
                 helperText: 'At least 8 characters',
@@ -199,9 +205,11 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   tooltip: _hidePassword ? 'Show password' : 'Hide password',
                   onPressed: () =>
                       setState(() => _hidePassword = !_hidePassword),
-                  icon: Icon(_hidePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
+                  icon: Icon(
+                    _hidePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                  ),
                 ),
               ),
               onChanged: (_) => setState(() {}),
@@ -236,11 +244,13 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Icon(_signInMode ? Icons.login : Icons.shield),
-              label: Text(_busy
-                  ? 'Please wait…'
-                  : _signInMode
-                      ? 'Sign in'
-                      : 'Protect this player account'),
+              label: Text(
+                _busy
+                    ? 'Please wait…'
+                    : _signInMode
+                    ? 'Sign in'
+                    : 'Protect this player account',
+              ),
             ),
             if (_signInMode) ...[
               const SizedBox(height: 6),
@@ -269,24 +279,32 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Account protected',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    )),
+            Text(
+              'Account protected',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 6),
             Text(user.email ?? 'Protected account'),
             const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(user.emailVerified
-                  ? Icons.verified_user_outlined
-                  : Icons.mark_email_unread_outlined),
-              title: Text(user.emailVerified
-                  ? 'Email verified'
-                  : 'Email verification required'),
-              subtitle: Text(user.emailVerified
-                  ? 'Paid Coin purchases can be recovered on another device.'
-                  : 'Verify the email before buying Coins.'),
+              leading: Icon(
+                user.emailVerified
+                    ? Icons.verified_user_outlined
+                    : Icons.mark_email_unread_outlined,
+              ),
+              title: Text(
+                user.emailVerified
+                    ? 'Email verified'
+                    : 'Email verification required',
+              ),
+              subtitle: Text(
+                user.emailVerified
+                    ? 'Paid Coin purchases can be recovered on another device.'
+                    : 'Verify the email before buying Coins.',
+              ),
             ),
             if (!user.emailVerified) ...[
               OutlinedButton.icon(
@@ -347,21 +365,24 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
   }
 
   Future<void> _sendVerification() => _run(
-        FirebaseSessionService.sendVerificationEmail,
-        'Verification email sent.',
-      );
+    FirebaseSessionService.sendVerificationEmail,
+    'Verification email sent.',
+  );
 
-  Future<void> _refreshVerification() => _run(() async {
-        await FirebaseSessionService.reloadCurrentUser();
-        await _refreshServices();
-      }, FirebaseSessionService.currentUser?.emailVerified == true
-          ? 'Email verified.'
-          : 'Account refreshed.');
+  Future<void> _refreshVerification() => _run(
+    () async {
+      await FirebaseSessionService.reloadCurrentUser();
+      await _refreshServices();
+    },
+    FirebaseSessionService.currentUser?.emailVerified == true
+        ? 'Email verified.'
+        : 'Account refreshed.',
+  );
 
   Future<void> _sendPasswordReset() => _run(
-        () => FirebaseSessionService.sendPasswordReset(_email.text),
-        'Password reset email sent.',
-      );
+    () => FirebaseSessionService.sendPasswordReset(_email.text),
+    'Password reset email sent.',
+  );
 
   Future<void> _signOutToGuest() async {
     final approved = await showDialog<bool>(
@@ -402,7 +423,8 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final valid = confirmation.text.trim().toUpperCase() == 'DELETE' &&
+          final valid =
+              confirmation.text.trim().toUpperCase() == 'DELETE' &&
               (!_protected || password.text.length >= 8);
           return AlertDialog(
             title: const Text('Delete player account permanently?'),
@@ -438,9 +460,11 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                           suffixIcon: IconButton(
                             onPressed: () =>
                                 setDialogState(() => hidden = !hidden),
-                            icon: Icon(hidden
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined),
+                            icon: Icon(
+                              hidden
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
                           ),
                         ),
                         onChanged: (_) => setDialogState(() {}),
@@ -461,9 +485,9 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                 ),
                 onPressed: valid
                     ? () => Navigator.of(dialogContext).pop((
-                          confirmation: confirmation.text,
-                          password: password.text,
-                        ))
+                        confirmation: confirmation.text,
+                        password: password.text,
+                      ))
                     : null,
                 child: const Text('Delete permanently'),
               ),
@@ -485,7 +509,9 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Player account and server data deleted.')),
+        const SnackBar(
+          content: Text('Player account and server data deleted.'),
+        ),
       );
     } on AccountDeletionException catch (error) {
       _error = error.message;
@@ -545,10 +571,7 @@ class _StatusCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              protected ? Icons.shield : Icons.shield_outlined,
-              size: 38,
-            ),
+            Icon(protected ? Icons.shield : Icons.shield_outlined, size: 38),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -557,13 +580,15 @@ class _StatusCard extends StatelessWidget {
                   Text(
                     protected ? 'Recoverable account' : 'Guest account',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  Text(protected
-                      ? 'Online identity linked to ${user?.email ?? 'an email account'}.'
-                      : 'Deleting the app or changing devices can make this guest inaccessible. Protect it before buying Coins.'),
+                  Text(
+                    protected
+                        ? 'Online identity linked to ${user?.email ?? 'an email account'}.'
+                        : 'Deleting the app or changing devices can make this guest inaccessible. Protect it before buying Coins.',
+                  ),
                 ],
               ),
             ),
@@ -599,7 +624,9 @@ class _MessagePanel extends StatelessWidget {
           children: [
             Icon(icon, color: foreground),
             const SizedBox(width: 10),
-            Expanded(child: Text(text, style: TextStyle(color: foreground))),
+            Expanded(
+              child: Text(text, style: TextStyle(color: foreground)),
+            ),
           ],
         ),
       ),
