@@ -4,11 +4,13 @@ import 'package:intl/intl.dart';
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
+import '../../services/firebase_session_service.dart';
 import '../../widgets/menu_card.dart';
 import '../career/career_screen.dart';
 import '../daily/daily_screen.dart';
 import '../duel/matchmaking_screen.dart';
 import '../economy/coin_store_screen.dart';
+import '../settings/account_protection_screen.dart';
 import '../settings/settings_screen.dart';
 import '../tutorial/tutorial_screen.dart';
 
@@ -43,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final protectedAccount = FirebaseSessionService.isProtected;
     return Scaffold(
       appBar: AppBar(
         title: Text(context.tr('app_name')),
@@ -63,6 +66,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   : NumberFormat.compact().format(_economy.balance),
             ),
             onPressed: () => _open(context, const CoinStoreScreen()),
+          ),
+          IconButton(
+            tooltip: protectedAccount
+                ? 'Player account protected'
+                : 'Protect player account',
+            onPressed: () async {
+              await _open(context, const AccountProtectionScreen());
+              if (mounted) setState(() {});
+            },
+            icon: Icon(
+              protectedAccount ? Icons.shield : Icons.shield_outlined,
+            ),
           ),
           IconButton(
             tooltip: context.tr('settings'),
@@ -90,6 +105,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                       children: [
+                        if (!FirebaseSessionService.isProtected) ...[
+                          _AccountProtectionBanner(
+                            onOpen: () async {
+                              await _open(
+                                context,
+                                const AccountProtectionScreen(),
+                              );
+                              if (mounted) setState(() {});
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         _WelcomePanel(store: widget.store),
                         const SizedBox(height: 12),
                         _EconomyPanel(economy: _economy),
@@ -157,8 +184,56 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _open(BuildContext context, Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  Future<void> _open(BuildContext context, Widget screen) {
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => screen),
+    );
+  }
+}
+
+class _AccountProtectionBanner extends StatelessWidget {
+  const _AccountProtectionBanner({required this.onOpen});
+
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.secondaryContainer,
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.shield_outlined, color: scheme.onSecondaryContainer),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Protect your player account',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: scheme.onSecondaryContainer,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Link an email before buying Coins so your wallet, Friend ID and rating can be recovered after reinstall or device change.',
+                    style: TextStyle(color: scheme.onSecondaryContainer),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            TextButton(onPressed: onOpen, child: const Text('Protect')),
+          ],
+        ),
+      ),
+    );
   }
 }
 
