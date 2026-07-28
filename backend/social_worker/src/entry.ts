@@ -51,7 +51,7 @@ export default {
         (env.ENVIRONMENT ?? '').toLowerCase() === 'production' &&
         isProductionPurchasePath(url.pathname)
       ) {
-        await verifyAndGrantProductionPurchase(request, env);
+        const verification = await verifyAndGrantProductionPurchase(request, env);
         const walletRequest = new Request(
           new URL('/v1/me/wallet', request.url),
           {
@@ -59,7 +59,14 @@ export default {
             headers: request.headers,
           },
         );
-        return withCors(await app.fetch(walletRequest, env, ctx), env);
+        const walletResponse = await app.fetch(walletRequest, env, ctx);
+        if (!walletResponse.ok) return withCors(walletResponse, env);
+        const wallet = (await walletResponse.json()) as Record<string, unknown>;
+        return json(env, 200, {
+          ...wallet,
+          purchaseGranted: verification.granted,
+          androidConsumptionHandledByServer: verification.consumed === true,
+        });
       }
 
       if (isProductionRewardConfirmation(request, env, url)) {
