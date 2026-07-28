@@ -1,11 +1,31 @@
 import app, { GameRoom, MatchmakingQueue } from './profile_wrapper';
 import type { Env } from './index';
+import { AppCheckError } from './app_check';
+import {
+  AdMobSsvError,
+  assertProductionRewardConfirmedBySsv,
+  handleAdMobSsv,
+  isAdMobSsvPath,
+} from './admob_ssv';
+import {
+  ProductionVerificationError,
+  isProductionPurchasePath,
+  verifyAndGrantProductionPurchase,
+} from './production_purchase_verification';
 import { sendPlayerPush } from './push_notifications';
 
 export { GameRoom, MatchmakingQueue };
 
 type RuntimeEnv = Env & {
   ALLOW_TEST_PURCHASE_GRANTS?: string;
+  GOOGLE_PLAY_CLIENT_EMAIL?: string;
+  GOOGLE_PLAY_PRIVATE_KEY?: string;
+  GOOGLE_PLAY_PACKAGE_NAME?: string;
+  APPLE_IAP_ISSUER_ID?: string;
+  APPLE_IAP_KEY_ID?: string;
+  APPLE_IAP_PRIVATE_KEY?: string;
+  APPLE_BUNDLE_ID?: string;
+  ADMOB_REWARDED_AD_UNITS?: string;
 };
 
 export default {
@@ -22,12 +42,31 @@ export default {
     }
 
     const url = new URL(request.url);
-    if (isUnsafeProductionRewardConfirmation(request, env, url)) {
-      return json(env, 503, {
-        error:
-          'AdMob server-side reward verification is required before production rewards can be granted.',
-        code: 'ad_ssv_required',
-      });
+    try {
+      if (isAdMobSsvPath(url.pathname)) {
+        return withCors(await handleAdMobSsv(request, env), env);
+      }
+
+      if (
+        (env.ENVIRONMENT ?? '').toLowerCase() === 'production' &&
+        isProductionPurchasePath(url.pathname)
+      ) {
+        await verifyAndGrantProductionPurchase(request, env);
+        const walletRequest = new Request(
+          new URL('/v1/me/wallet', request.url),
+          {
+            method: 'GET',
+            headers: request.headers,
+          },
+        );
+        return withCors(await app.fetch(walletRequest, env, ctx), env);
+      }
+
+      if (isProductionRewardConfirmation(request, env, url)) {
+        await assertProductionRewardConfirmedBySsv(request, env);
+      }
+    } catch (error) {
+      return verificationErrorResponse(error, env);
     }
 
     const routedRequest = await protectProfileDisplayName(request, url);
@@ -42,19 +81,11 @@ export default {
       ctx.waitUntil(notifyRematchRecipient(env, response.clone()));
     }
 
-    const headers = new Headers(response.headers);
-    for (const [key, value] of Object.entries(corsHeaders(env))) {
-      if (!headers.has(key)) headers.set(key, value);
-    }
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
+    return withCors(response, env);
   },
 };
 
-function isUnsafeProductionRewardConfirmation(
+function isProductionRewardConfirmation(
   request: Request,
   env: RuntimeEnv,
   url: URL,
@@ -125,10 +156,40 @@ async function notifyRematchRecipient(
   }
 }
 
+function verificationErrorResponse(
+  error: unknown,
+  env: RuntimeEnv,
+): Response {
+  if (error instanceof AppCheckError) {
+    return json(env, 403, { error: error.code, code: error.code });
+  }
+  if (error instanceof ProductionVerificationError || error instanceof AdMobSsvError) {
+    return json(env, error.status, { error: error.message, code: error.code });
+  }
+  console.error('Production verification route failed', error);
+  return json(env, 500, {
+    error: 'Production verification failed.',
+    code: 'production_verification_failed',
+  });
+}
+
 function asObject(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function withCors(response: Response, env: RuntimeEnv): Response {
+  if (response.status === 101) return response;
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(corsHeaders(env))) {
+    if (!headers.has(key)) headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function json(env: RuntimeEnv, status: number, body: unknown): Response {
