@@ -7,6 +7,7 @@ import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 import 'economy_api_client.dart';
 import 'economy_service.dart';
+import 'firebase_session_service.dart';
 
 class CoinStoreService extends ChangeNotifier {
   CoinStoreService._();
@@ -90,6 +91,12 @@ class CoinStoreService extends ChangeNotifier {
 
   Future<bool> buy(String productId) async {
     if (pendingProductId != null) return false;
+    if (!FirebaseSessionService.isProtected) {
+      error =
+          'Protect or sign in to your player account before buying Coins. Paid Coins cannot be attached to an unrecoverable guest account.';
+      notifyListeners();
+      return false;
+    }
     final details = product(productId);
     if (details == null) {
       error = 'This Coin package is not available.';
@@ -105,7 +112,7 @@ class CoinStoreService extends ChangeNotifier {
       final started = await _store.buyConsumable(
         purchaseParam: PurchaseParam(productDetails: details),
         // StoreKit requires auto-consumption for consumables. Google Play stays
-        // manual so the token is consumed only after the backend grants Coins.
+        // manual so the token is consumed after the backend verifies/grants it.
         autoConsume: Platform.isIOS,
       );
       if (!started) {
@@ -136,6 +143,7 @@ class CoinStoreService extends ChangeNotifier {
       if (purchase.status == PurchaseStatus.error) {
         error = purchase.error?.message ?? 'The purchase failed.';
         pendingProductId = null;
+        EconomyService.instance.setPurchaseProcessing(false);
         EconomyService.instance.reportError(error!);
         if (purchase.pendingCompletePurchase) {
           await _store.completePurchase(purchase);
@@ -157,6 +165,13 @@ class CoinStoreService extends ChangeNotifier {
       if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
         try {
+          if (!FirebaseSessionService.isProtected) {
+            throw const EconomyApiException(
+              409,
+              'Sign in to the protected player account that made this purchase.',
+              code: 'account_protection_required',
+            );
+          }
           final verificationData =
               purchase.verificationData.serverVerificationData;
           final fallbackTransaction =
@@ -172,9 +187,16 @@ class CoinStoreService extends ChangeNotifier {
           );
 
           if (Platform.isAndroid) {
-            final androidAddition = _store
-                .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
-            await androidAddition.consumePurchase(purchase);
+            try {
+              final androidAddition = _store
+                  .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+              await androidAddition.consumePurchase(purchase);
+            } catch (consumeError) {
+              // Production may already have consumed this token server-side.
+              // Verification/grant is idempotent, so a duplicate consume error
+              // must not hide the wallet update from the player.
+              debugPrint('Android consumable already handled or delayed: $consumeError');
+            }
           }
           if (purchase.pendingCompletePurchase) {
             await _store.completePurchase(purchase);
@@ -192,6 +214,7 @@ class CoinStoreService extends ChangeNotifier {
           EconomyService.instance.reportError(error!);
         } finally {
           pendingProductId = null;
+          EconomyService.instance.setPurchaseProcessing(false);
           notifyListeners();
         }
       }
