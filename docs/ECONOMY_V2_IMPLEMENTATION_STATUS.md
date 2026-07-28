@@ -15,9 +15,21 @@ Updated for branch `codex-authoritative-online-duel`.
 - Career rewarded-interstitial preparation and confirmation: +25 Coin.
 - Career reward preparation cap: 20 per UTC day.
 - Achievement reward thresholds and automatic one-time grants.
-- Staging-only purchase grants with transaction replay protection.
-- Production purchase grants blocked until real store server verification is configured.
-- Production ad reward confirmation blocked until AdMob server-side verification is configured.
+- Staging purchase grants with transaction replay protection.
+- Production Google Play ProductPurchaseV2 verification, matching-product/state checks and server-side consumption attempt.
+- Production App Store Server API Get Transaction Info verification with transaction, product, bundle, ownership, type and revocation checks.
+- Production AdMob SSV callback verification, ad-unit allowlist, callback-age checks and transaction replay protection.
+- Purchase/ad verification audit columns added in migration `0014_production_verification.sql`.
+
+### Durable player account
+
+- Guest Firebase accounts can be linked to email/password without changing the Firebase UID, wallet, Friend ID, rating, friends or history.
+- Existing protected accounts can sign in on another installation/device.
+- Verification-email resend, account refresh, password reset and sign-out-to-guest flows.
+- Responsive account-protection screen and persistent Home/Coin Store entry points.
+- Coin Store purchase buttons are disabled for anonymous players.
+- Backend purchase verification also rejects anonymous accounts and requires verified email for password accounts.
+- Paid balances therefore cannot be intentionally granted to an unrecoverable guest account.
 
 ### Online entry escrow
 
@@ -47,7 +59,7 @@ Updated for branch `codex-authoritative-online-duel`.
 - Opponent-turn controls are non-interactive without repeated snackbars.
 - Local turn restores normal colors and gives haptic feedback.
 - Non-color text/icon cues remain visible.
-- Matchmaking, home, result, Coin Store, wallet history, settings and career reward surfaces use constraint-driven layouts.
+- Matchmaking, home, result, Coin Store, wallet history, settings, account protection and career reward surfaces use constraint-driven layouts.
 - Content width is bounded on tablets/expanded windows.
 
 ### Coin Store and ads
@@ -56,7 +68,8 @@ Updated for branch `codex-authoritative-online-duel`.
 - Localized price/title/description read from Google Play or App Store.
 - Purchase stream starts before product query.
 - Purchase is completed only after the backend grant succeeds.
-- Official Google test rewarded and rewarded-interstitial ad IDs are the default.
+- Android duplicate/server-side consumption is tolerated without hiding the verified wallet result.
+- Official Google test rewarded and rewarded-interstitial ad IDs are the default for development/staging.
 - AdMob server-side verification options are applied before an ad is shown.
 - Career completion shows an explicit reward explanation and Skip action before the ad.
 
@@ -77,6 +90,7 @@ Updated for branch `codex-authoritative-online-duel`.
 - iOS bundle ID aligned with Firebase/App Store configuration.
 - iOS entitlements and APS environment are wired during CocoaPods installation.
 - Validation and guarded staging-deployment PowerShell scripts were added.
+- Production Worker example lists all required Google Play, Apple IAP, AdMob SSV, Firebase/App Check and FCM variables/secrets without committing values.
 
 ## Not yet verified
 
@@ -89,27 +103,31 @@ The implementation was committed through GitHub, but the following have not yet 
 - Worker TypeScript typecheck
 - Worker test suite
 - local D1 migration application from a clean database
-- remote migrations `0005` through `0013`
+- remote migrations `0005` through `0014`
 - deployment of the new Worker entrypoint
 - physical Android/iOS cross-platform tests
-- Google Play internal-test purchases
-- App Store sandbox/TestFlight purchases
+- Firebase email/password account-linking test with the provider enabled
+- Google Play internal-test purchases and consumption/replay tests
+- App Store sandbox/TestFlight purchases and replay/revocation tests
+- AdMob SSV signed callback tests with real production ad units
 
 A GitHub-hosted validation workflow was attempted, but both jobs failed before the first checkout step and produced no job logs. It was removed so an infrastructure-level red check would not be confused with a code validation result. Local validation remains mandatory.
 
 Do not promote this branch until those checks pass.
 
-## External configuration still required before production
+## External console/configuration required before production
 
+These are console/credential actions and cannot be completed by repository code alone:
+
+- Enable Email/Password authentication in Firebase Authentication.
 - Create and activate all Coin products in Google Play Console and App Store Connect.
-- Configure Google Play Developer API purchase verification.
-- Configure App Store Server API/signed-transaction verification.
-- Configure AdMob Server-Side Verification for rewarded grants.
-- Supply real production AdMob unit IDs and keep test IDs out of release.
-- Enable App Check enforcement after monitoring valid traffic.
+- Give the Google Play verification service account API/app access and set Worker secrets.
+- Create an App Store Connect In-App Purchase key and set Worker secrets.
+- Configure the production AdMob SSV URL on every rewarded ad unit and supply the real ad-unit allowlist.
+- Replace Google's test App ID/unit IDs in the production build.
+- Enable App Check enforcement after valid staging traffic is confirmed.
 - Configure/verify FCM service-account secrets and APNs credentials.
-- Replace anonymous-only economy ownership with durable account linking before paid balances are enabled; reinstalling an anonymous app can otherwise create another backend player.
-- Finish localization of all newly introduced economy/rematch/profile strings across supported locales.
+- Finish localization of all newly introduced economy/rematch/profile/account strings across supported locales.
 - Update privacy policy, store data disclosures, purchase metadata and review notes.
 
 ## First validation command
