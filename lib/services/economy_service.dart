@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../debug/debug_economy.dart';
 import 'ads_service.dart';
 import 'economy_api_client.dart';
 
@@ -18,8 +19,11 @@ class EconomyService extends ChangeNotifier {
   String? error;
   Future<void>? _initialization;
 
-  int get balance => wallet?.balance ?? 0;
-  bool get canEnterOnline => wallet?.canEnterOnline ?? false;
+  int get balance => debugUnlimitedCoinsEnabled
+      ? debugUnlimitedCoinBalance
+      : wallet?.balance ?? 0;
+  bool get canEnterOnline =>
+      debugUnlimitedCoinsEnabled || (wallet?.canEnterOnline ?? false);
   int get entryFee => wallet?.entryFee ?? 100;
   int get winnerPot => wallet?.winnerPot ?? 200;
 
@@ -36,12 +40,22 @@ class EconomyService extends ChangeNotifier {
       notifyListeners();
     }
     try {
-      wallet = await EconomyApiClient.instance.loadWallet();
+      wallet = _debugWallet(await EconomyApiClient.instance.loadWallet());
       error = null;
     } on EconomyApiException catch (exception) {
-      error = exception.message;
+      if (debugUnlimitedCoinsEnabled) {
+        wallet = _debugWallet(wallet);
+        error = null;
+      } else {
+        error = exception.message;
+      }
     } catch (_) {
-      error = 'Unable to load your Coin balance.';
+      if (debugUnlimitedCoinsEnabled) {
+        wallet = _debugWallet(wallet);
+        error = null;
+      } else {
+        error = 'Unable to load your Coin balance.';
+      }
     } finally {
       if (showLoading) loading = false;
       notifyListeners();
@@ -116,6 +130,12 @@ class EconomyService extends ChangeNotifier {
   }
 
   Future<bool> spendCareerContinue() async {
+    if (debugUnlimitedCoinsEnabled) {
+      wallet = _debugWallet(wallet);
+      error = null;
+      notifyListeners();
+      return true;
+    }
     try {
       wallet = await EconomyApiClient.instance.spendCareerContinue(
         '${DateTime.now().microsecondsSinceEpoch}',
@@ -189,5 +209,36 @@ class EconomyService extends ChangeNotifier {
     if (error == null) return;
     error = null;
     notifyListeners();
+  }
+
+  WalletSnapshot _debugWallet(WalletSnapshot? source) {
+    if (!debugUnlimitedCoinsEnabled) {
+      return source ??
+          const WalletSnapshot(
+            balance: 0,
+            canEnterOnline: false,
+            minimumOnlineBalance: 100,
+            entryFee: 100,
+            winnerPot: 200,
+            starterGrant: 1000,
+            dailyLoginAmount: 50,
+            dailyLoginAvailable: false,
+            dailyAdAmount: 50,
+            dailyAdAvailable: false,
+          );
+    }
+    return WalletSnapshot(
+      balance: debugUnlimitedCoinBalance,
+      canEnterOnline: true,
+      minimumOnlineBalance: source?.minimumOnlineBalance ?? 100,
+      entryFee: source?.entryFee ?? 100,
+      winnerPot: source?.winnerPot ?? 200,
+      starterGrant: source?.starterGrant ?? 1000,
+      dailyLoginAmount: source?.dailyLoginAmount ?? 50,
+      dailyLoginAvailable: source?.dailyLoginAvailable ?? false,
+      dailyAdAmount: source?.dailyAdAmount ?? 50,
+      dailyAdAvailable: source?.dailyAdAvailable ?? false,
+      nextDailyResetAt: source?.nextDailyResetAt,
+    );
   }
 }

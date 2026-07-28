@@ -12,6 +12,7 @@ REQUIRE_APP_CHECK = "true"
 BUILD_COMMIT = "local"
 ENVIRONMENT = "production"
 ALLOW_TEST_PURCHASE_GRANTS = "false"
+DEBUG_UNLIMITED_COINS = "false"
 GOOGLE_PLAY_PACKAGE_NAME = "com.devoviastudio.sudoku"
 APPLE_BUNDLE_ID = "com.devoviastudio.sudoku"
 ADMOB_REWARDED_AD_UNITS = "REPLACE_WITH_ANDROID_REWARDED_UNIT,REPLACE_WITH_ANDROID_REWARDED_INTERSTITIAL_UNIT,REPLACE_WITH_IOS_REWARDED_UNIT,REPLACE_WITH_IOS_REWARDED_INTERSTITIAL_UNIT"
@@ -21,6 +22,9 @@ binding = "DB"
 database_name = "sudoku-duel-social"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 migrations_dir = "migrations"
+
+[triggers]
+crons = ["17 3 * * *"]
 
 [[durable_objects.bindings]]
 name = "GAME_ROOMS"

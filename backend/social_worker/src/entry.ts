@@ -11,6 +11,7 @@ import {
   assertProtectedPurchaseAccount,
   isPurchaseVerificationPath,
 } from './account_protection_gate';
+import { runRetentionCleanup } from './cost_retention';
 import {
   AdMobSsvError,
   assertProductionRewardConfirmedBySsv,
@@ -107,6 +108,23 @@ export default {
     }
 
     return withCors(response, env);
+  },
+
+  async scheduled(
+    event: ScheduledEvent,
+    env: RuntimeEnv,
+    ctx: ExecutionContext,
+  ): Promise<void> {
+    void event;
+    ctx.waitUntil(
+      runRetentionCleanup(env).then((results) => {
+        console.log('retention_cleanup_completed', { results });
+      }).catch((error: unknown) => {
+        console.error('retention_cleanup_failed', {
+          message: error instanceof Error ? error.message : 'unknown',
+        });
+      }),
+    );
   },
 };
 

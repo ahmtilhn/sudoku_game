@@ -5,6 +5,12 @@ import {
   jwtVerify,
 } from 'jose';
 import { AppCheckError, verifyAppCheckRequest } from './app_check';
+import {
+  nextAlarmAt,
+  shouldPersistClientMessage,
+  shouldUpdateAlarm,
+  terminalRoomCleanupDue,
+} from './cost_retention';
 import { MATCH_POT } from './economy';
 import {
   type ClientEnvelope,
@@ -1345,6 +1351,7 @@ export class GameRoom {
     }
     const now = Date.now();
     const requestId = requestIdOf(parsed);
+    const beforeRevision = duel.revision;
     let events: PublicEvent[];
     if (parsed.type === 'ready') {
       events = applyReady(duel, seat, now);
@@ -1388,7 +1395,15 @@ export class GameRoom {
     } else {
       events = [protocolError(duel, 'unsupported_message_type')];
     }
-    await this.persist();
+    if (
+      shouldPersistClientMessage({
+        type: parsed.type,
+        beforeRevision,
+        afterRevision: duel.revision,
+      })
+    ) {
+      await this.persist();
+    }
     this.broadcast(events);
     if (duel.status === 'completed' || duel.status === 'forfeited' || duel.status === 'cancelled') {
       await this.settleIfNeeded(duel);
@@ -1420,7 +1435,17 @@ export class GameRoom {
   async alarm(): Promise<void> {
     const duel = this.roomState;
     if (!duel) return;
-    const events = applyDueDeadlines(duel, Date.now());
+    const now = Date.now();
+    if (
+      terminalRoomCleanupDue(
+        { status: duel.status, settled: duel.settled, finishedAt: duel.finishedAt },
+        now,
+      )
+    ) {
+      await this.cleanupTerminalRoom();
+      return;
+    }
+    const events = applyDueDeadlines(duel, now);
     if (events.length > 0) {
       await this.persist();
       this.broadcast(events);
@@ -1480,16 +1505,24 @@ export class GameRoom {
   private async scheduleAlarm(): Promise<void> {
     const duel = this.roomState;
     if (!duel) return;
-    const deadlines = [
-      duel.status === 'ready_window' ? duel.readyDeadline : null,
-      duel.status === 'active' ? duel.turnDeadline : null,
-      duel.playerA.disconnectDeadline,
-      duel.playerB.disconnectDeadline,
-    ].filter((value): value is number => typeof value === 'number' && value > Date.now());
-    if (deadlines.length === 0) {
+    const desiredAlarmAt = nextAlarmAt(
+      {
+        status: duel.status,
+        readyDeadline: duel.readyDeadline,
+        turnDeadline: duel.turnDeadline,
+        playerADisconnectDeadline: duel.playerA.disconnectDeadline,
+        playerBDisconnectDeadline: duel.playerB.disconnectDeadline,
+        finishedAt: duel.finishedAt,
+        settled: duel.settled,
+      },
+      Date.now(),
+    );
+    const currentAlarmAt = await this.state.storage.getAlarm();
+    if (!shouldUpdateAlarm(currentAlarmAt, desiredAlarmAt)) return;
+    if (desiredAlarmAt === null) {
       await this.state.storage.deleteAlarm();
     } else {
-      await this.state.storage.setAlarm(Math.min(...deadlines));
+      await this.state.storage.setAlarm(desiredAlarmAt);
     }
   }
 
@@ -1623,6 +1656,19 @@ export class GameRoom {
         payload: { rating: duel.ratingResult, coinSettlement: duel.coinResult },
       },
     ]);
+  }
+
+  private async cleanupTerminalRoom(): Promise<void> {
+    for (const socket of this.state.getWebSockets()) {
+      try {
+        socket.close(1000, 'Match storage cleaned up.');
+      } catch {
+        // Closed sockets are ignored by the hibernation runtime.
+      }
+    }
+    this.roomState = null;
+    await this.state.storage.deleteAlarm();
+    await this.state.storage.deleteAll();
   }
 
   private async onlineCoinBalance(playerId: string): Promise<number> {

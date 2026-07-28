@@ -7,6 +7,7 @@ export const DAILY_LOGIN_REWARD = 50;
 export const DAILY_AD_REWARD = 50;
 export const CAREER_AD_REWARD = 25;
 export const REMATCH_WINDOW_MS = 10_000;
+export const DEBUG_UNLIMITED_COINS_BALANCE = 999999999;
 
 export const COIN_PRODUCTS: Readonly<Record<string, number>> = Object.freeze({
   coins_100: 100,
@@ -23,6 +24,7 @@ export interface EconomyEnv {
   MATCHMAKING_QUEUE?: DurableObjectNamespace;
   ENVIRONMENT?: string;
   ALLOW_TEST_PURCHASE_GRANTS?: string;
+  DEBUG_UNLIMITED_COINS?: string;
   FCM_PROJECT_ID?: string;
   FCM_CLIENT_EMAIL?: string;
   FCM_PRIVATE_KEY?: string;
@@ -105,6 +107,7 @@ export async function ensureStarterGrant(
       ]);
     }
   }
+  await applyDebugUnlimitedCoins(env, playerId);
   return coinBalance(env, playerId);
 }
 
@@ -698,11 +701,38 @@ export async function grantTestPurchase(
 }
 
 export async function coinBalance(env: EconomyEnv, playerId: string): Promise<number> {
+  await applyDebugUnlimitedCoins(env, playerId);
   const row = await env.DB.prepare('SELECT online_coins FROM players WHERE id = ? LIMIT 1')
     .bind(playerId)
     .first<{ online_coins: number }>();
   if (!row) throw new EconomyError(404, 'Player profile not found.');
   return Number(row.online_coins ?? 0);
+}
+
+async function applyDebugUnlimitedCoins(
+  env: EconomyEnv,
+  playerId: string,
+): Promise<void> {
+  if (!debugUnlimitedCoinsEnabled(env)) return;
+  await env.DB.prepare(
+    `UPDATE players
+     SET online_coins = ?, updated_at = ?
+     WHERE id = ? AND online_coins < ?`,
+  )
+    .bind(
+      DEBUG_UNLIMITED_COINS_BALANCE,
+      new Date().toISOString(),
+      playerId,
+      DEBUG_UNLIMITED_COINS_BALANCE,
+    )
+    .run();
+}
+
+function debugUnlimitedCoinsEnabled(env: EconomyEnv): boolean {
+  return (
+    env.DEBUG_UNLIMITED_COINS === 'true' &&
+    (env.ENVIRONMENT ?? '').toLowerCase() !== 'production'
+  );
 }
 
 async function grantCoinsOnce(

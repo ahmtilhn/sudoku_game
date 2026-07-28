@@ -32,6 +32,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   bool _polling = false;
   String? _error;
   Timer? _pollTimer;
+  int _pollAttempt = 0;
   DateTime? _lastQueueRefresh;
 
   String get _queueKey => 'duel_${_difficulty.name}';
@@ -350,6 +351,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         _polling = false;
         _error = null;
         _lastQueueRefresh = null;
+        _pollAttempt = 0;
       });
     }
 
@@ -369,6 +371,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         _polling = false;
         _error = null;
         _lastQueueRefresh = null;
+        _pollAttempt = 0;
       });
     }
     Navigator.of(context)
@@ -388,11 +391,16 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   void _startPollingForMatch() {
     _pollTimer?.cancel();
+    _pollAttempt = 0;
     unawaited(_pollForMatch());
-    _pollTimer = Timer.periodic(
-      const Duration(seconds: 3),
-      (_) => unawaited(_pollForMatch()),
-    );
+  }
+
+  void _scheduleNextPoll() {
+    _pollTimer?.cancel();
+    if (!_searching || !mounted) return;
+    final delay = matchmakingFallbackDelay(_pollAttempt);
+    _pollAttempt++;
+    _pollTimer = Timer(delay, () => unawaited(_pollForMatch()));
   }
 
   Future<void> _pollForMatch() async {
@@ -430,6 +438,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           _searching = false;
           _error = error.message;
           _lastQueueRefresh = null;
+          _pollAttempt = 0;
         });
         await _economy.refresh(showLoading: false);
       } else {
@@ -443,6 +452,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       }
     } finally {
       _polling = false;
+      _scheduleNextPoll();
     }
   }
 
@@ -455,8 +465,16 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       _polling = false;
       _error = message;
       _lastQueueRefresh = null;
+      _pollAttempt = 0;
     });
   }
+}
+
+@visibleForTesting
+Duration matchmakingFallbackDelay(int attempt) {
+  if (attempt <= 0) return const Duration(seconds: 3);
+  if (attempt <= 4) return const Duration(seconds: 5);
+  return const Duration(seconds: 10);
 }
 
 class _EntrySummary extends StatelessWidget {

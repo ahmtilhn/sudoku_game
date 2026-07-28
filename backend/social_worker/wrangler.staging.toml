@@ -12,12 +12,16 @@ REQUIRE_APP_CHECK = "false"
 BUILD_COMMIT = "791acbdfaee7fd46821fb5097e22dafdc40494e9"
 ENVIRONMENT = "staging"
 ALLOW_TEST_PURCHASE_GRANTS = "true"
+DEBUG_UNLIMITED_COINS = "true"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "sudoku-duel-social-staging"
 database_id = "5d5d765f-389b-4351-9b82-be04c5f4e31b"
 migrations_dir = "migrations"
+
+[triggers]
+crons = ["17 3 * * *"]
 
 [[durable_objects.bindings]]
 name = "GAME_ROOMS"

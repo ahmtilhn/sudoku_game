@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../debug/debug_economy.dart';
+
 abstract class PreferencesBackend {
   Future<int?> getInt(String key);
 
@@ -111,7 +113,7 @@ class LevelProgress {
 }
 
 class LocalProgressStore extends ChangeNotifier {
-  LocalProgressStore._(this._preferences);
+  LocalProgressStore._(this._preferences, {required this.unlimitedCoins});
 
   static const _progressKey = 'career_progress_v1';
   static const _themeKey = 'theme_mode_v1';
@@ -124,6 +126,7 @@ class LocalProgressStore extends ChangeNotifier {
   static const int initialHints = 3;
 
   final PreferencesBackend _preferences;
+  final bool unlimitedCoins;
   final Map<String, LevelProgress> _progress = <String, LevelProgress>{};
 
   ThemeMode themeMode = ThemeMode.system;
@@ -133,15 +136,22 @@ class LocalProgressStore extends ChangeNotifier {
   int hints = initialHints;
 
   static Future<LocalProgressStore> create() async {
-    final store = LocalProgressStore._(SharedPreferencesBackend());
+    final store = LocalProgressStore._(
+      SharedPreferencesBackend(),
+      unlimitedCoins: debugUnlimitedCoinsEnabled,
+    );
     await store._load();
     return store;
   }
 
   static Future<LocalProgressStore> createInMemory({
     Map<String, Object>? initialValues,
+    bool unlimitedCoins = false,
   }) async {
-    final store = LocalProgressStore._(MemoryPreferencesBackend(initialValues));
+    final store = LocalProgressStore._(
+      MemoryPreferencesBackend(initialValues),
+      unlimitedCoins: unlimitedCoins,
+    );
     await store._load();
     return store;
   }
@@ -179,6 +189,7 @@ class LocalProgressStore extends ChangeNotifier {
 
   Future<bool> spendCoins(int amount) async {
     if (amount <= 0 || coins < amount) return false;
+    if (unlimitedCoins) return true;
     coins -= amount;
     await _preferences.setInt(_coinsKey, coins);
     notifyListeners();
@@ -187,6 +198,7 @@ class LocalProgressStore extends ChangeNotifier {
 
   Future<void> addCoins(int amount) async {
     if (amount <= 0) return;
+    if (unlimitedCoins) return;
     coins += amount;
     await _preferences.setInt(_coinsKey, coins);
     notifyListeners();
@@ -209,6 +221,12 @@ class LocalProgressStore extends ChangeNotifier {
 
   Future<bool> purchaseHint({required int coinCost}) async {
     if (coinCost <= 0 || coins < coinCost) return false;
+    if (unlimitedCoins) {
+      hints++;
+      await _preferences.setInt(_hintsKey, hints);
+      notifyListeners();
+      return true;
+    }
     coins -= coinCost;
     hints++;
     await Future.wait<void>(<Future<void>>[
@@ -253,6 +271,7 @@ class LocalProgressStore extends ChangeNotifier {
     highContrast = await _preferences.getBool(_highContrastKey) ?? false;
     tutorialCompleted = await _preferences.getBool(_tutorialKey) ?? false;
     coins = await _preferences.getInt(_coinsKey) ?? initialCoins;
+    if (unlimitedCoins) coins = debugUnlimitedCoinBalance;
     hints = await _preferences.getInt(_hintsKey) ?? initialHints;
 
     final raw = await _preferences.getString(_progressKey);

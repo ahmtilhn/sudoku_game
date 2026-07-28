@@ -34,5 +34,19 @@ void main() {
       expect(store.hints, 0);
       expect(await store.purchaseHint(coinCost: 15), isFalse);
     });
+
+    test('debug unlimited coins buys hints without spending balance', () async {
+      final store = await LocalProgressStore.createInMemory(
+        initialValues: <String, Object>{
+          'career_coins_v1': 20,
+          'hint_inventory_v1': 0,
+        },
+        unlimitedCoins: true,
+      );
+
+      expect(await store.purchaseHint(coinCost: 15), isTrue);
+      expect(store.coins, 999999999);
+      expect(store.hints, 1);
+    });
   });
 }
