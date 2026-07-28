@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 
 import '../../services/coin_store_service.dart';
 import '../../services/economy_service.dart';
+import '../../services/firebase_session_service.dart';
+import '../settings/account_protection_screen.dart';
 import 'wallet_history_screen.dart';
 
 class CoinStoreScreen extends StatefulWidget {
@@ -39,10 +41,20 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final protectedAccount = FirebaseSessionService.isProtected;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Coin Store'),
         actions: [
+          IconButton(
+            tooltip: protectedAccount
+                ? 'Player account protected'
+                : 'Protect player account',
+            onPressed: _openAccountProtection,
+            icon: Icon(
+              protectedAccount ? Icons.shield : Icons.shield_outlined,
+            ),
+          ),
           IconButton(
             tooltip: 'Coin history',
             onPressed: () => Navigator.of(context).push(
@@ -90,6 +102,66 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                       ),
                     ),
                   ),
+                  if (!protectedAccount)
+                    SliverToBoxAdapter(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxWidth),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            child: Material(
+                              color: scheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(18),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(
+                                      Icons.shield_outlined,
+                                      color: scheme.onSecondaryContainer,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Protect your account before buying',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleSmall
+                                                ?.copyWith(
+                                                  color: scheme
+                                                      .onSecondaryContainer,
+                                                  fontWeight: FontWeight.w900,
+                                                ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Paid Coins must be linked to a recoverable email account. Your current guest wallet and Friend ID are preserved when you protect this account.',
+                                            style: TextStyle(
+                                              color:
+                                                  scheme.onSecondaryContainer,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    FilledButton.tonal(
+                                      onPressed: _openAccountProtection,
+                                      child: const Text('Protect'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   if (_store.error != null || _economy.error != null)
                     SliverToBoxAdapter(
                       child: Center(
@@ -166,6 +238,7 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                         price: product.price,
                                         pending: pending,
                                         enabled:
+                                            protectedAccount &&
                                             _store.pendingProductId == null &&
                                             !_economy.processingPurchase,
                                         onBuy: () => _store.buy(product.id),
@@ -185,6 +258,13 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _openAccountProtection() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const AccountProtectionScreen()),
+    );
+    if (mounted) setState(() {});
   }
 }
 
