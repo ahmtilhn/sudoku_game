@@ -2,6 +2,11 @@ import app, { GameRoom, MatchmakingQueue } from './profile_wrapper';
 import type { Env } from './index';
 import { AppCheckError } from './app_check';
 import {
+  AccountProtectionError,
+  assertProtectedPurchaseAccount,
+  isPurchaseVerificationPath,
+} from './account_protection_gate';
+import {
   AdMobSsvError,
   assertProductionRewardConfirmedBySsv,
   handleAdMobSsv,
@@ -45,6 +50,10 @@ export default {
     try {
       if (isAdMobSsvPath(url.pathname)) {
         return withCors(await handleAdMobSsv(request, env), env);
+      }
+
+      if (isPurchaseVerificationPath(url.pathname)) {
+        await assertProtectedPurchaseAccount(request, env);
       }
 
       if (
@@ -170,7 +179,11 @@ function verificationErrorResponse(
   if (error instanceof AppCheckError) {
     return json(env, 403, { error: error.code, code: error.code });
   }
-  if (error instanceof ProductionVerificationError || error instanceof AdMobSsvError) {
+  if (
+    error instanceof ProductionVerificationError ||
+    error instanceof AdMobSsvError ||
+    error instanceof AccountProtectionError
+  ) {
     return json(env, error.status, { error: error.message, code: error.code });
   }
   console.error('Production verification route failed', error);
