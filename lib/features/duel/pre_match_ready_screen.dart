@@ -19,7 +19,7 @@ class PreMatchReadyScreen extends StatefulWidget {
 }
 
 class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const Duration _minimumSearchStage = Duration(milliseconds: 2600);
 
   OnlineDuelController? _controller;
@@ -29,9 +29,12 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
   bool _minimumElapsed = false;
   bool _screenLoadedSent = false;
   bool _handedOff = false;
+  bool _localReadyPressed = false;
+  bool _openingMatch = false;
   Timer? _minimumTimer;
   Timer? _clockTimer;
   late final AnimationController _pulseController;
+  late final AnimationController _exitController;
 
   @override
   void initState() {
@@ -40,10 +43,18 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat();
+    _exitController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 620),
+    );
     _minimumTimer = Timer(_minimumSearchStage, () {
       if (!mounted) return;
       setState(() => _minimumElapsed = true);
       _sendScreenLoaded();
+      final controller = _controller;
+      if (controller != null && _snapshot?.status == OnlineDuelStatus.active) {
+        unawaited(_openGame(controller));
+      }
     });
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
@@ -56,6 +67,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
     _minimumTimer?.cancel();
     _clockTimer?.cancel();
     _pulseController.dispose();
+    _exitController.dispose();
     unawaited(_subscription?.cancel());
     if (!_handedOff) {
       unawaited(_controller?.dispose());
@@ -74,10 +86,13 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
           _controller = controller;
           _snapshot = snapshot;
           _error = null;
+          if (snapshot.players[snapshot.youSeat]?.ready == true) {
+            _localReadyPressed = true;
+          }
         });
         _sendScreenLoaded();
         if (snapshot.status == OnlineDuelStatus.active) {
-          _openGame(controller);
+          unawaited(_openGame(controller));
         }
       });
       setState(() {
@@ -100,30 +115,34 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
   void _ready() {
     final you = _you;
     if (you == null || you.ready) return;
+    setState(() => _localReadyPressed = true);
     _controller?.ready();
   }
 
-  void _openGame(OnlineDuelController controller) {
+  Future<void> _openGame(OnlineDuelController controller) async {
     if (_handedOff || !_minimumElapsed) return;
     _handedOff = true;
+    setState(() => _openingMatch = true);
+    await _exitController.forward();
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 520),
+        transitionDuration: const Duration(milliseconds: 680),
         reverseTransitionDuration: const Duration(milliseconds: 260),
         pageBuilder: (_, _, _) =>
             OnlineDuelScreen(roomId: widget.roomId, controller: controller),
         transitionsBuilder: (_, animation, _, child) {
           final curved = CurvedAnimation(
             parent: animation,
-            curve: Curves.easeOutCubic,
+            curve: Curves.easeOutBack,
           );
-          return FadeTransition(
-            opacity: curved,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, .035),
-                end: Offset.zero,
-              ).animate(curved),
+          return ScaleTransition(
+            scale: Tween<double>(begin: .86, end: 1).animate(curved),
+            child: FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: const Interval(.12, 1, curve: Curves.easeOut),
+              ),
               child: child,
             ),
           );
@@ -160,6 +179,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
         _minimumElapsed &&
         (_snapshot?.status == OnlineDuelStatus.readyWindow ||
             _snapshot?.status == OnlineDuelStatus.waiting);
+    final youReady = _you?.ready == true || _localReadyPressed;
+    final opponentReady = _opponent?.ready == true;
     return Scaffold(
       backgroundColor: const Color(0xFF061124),
       body: SafeArea(
@@ -203,39 +224,90 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final compact = constraints.maxHeight < 560;
+                        final cardWidth = compact ? 126.0 : 142.0;
+                        final side = constraints.maxWidth < 390 ? 6.0 : 8.0;
+                        final top = compact ? 18.0 : 28.0;
                         return Stack(
                           children: [
-                            Align(
-                              alignment: const Alignment(-.66, -.74),
+                            AnimatedBuilder(
+                              animation: _exitController,
+                              builder: (context, child) {
+                                final value = Curves.easeInOutCubic.transform(
+                                  _exitController.value,
+                                );
+                                return Positioned(
+                                  left:
+                                      side -
+                                      (constraints.maxWidth * .52 * value),
+                                  top: top,
+                                  width: cardWidth,
+                                  child: Opacity(
+                                    opacity: 1 - (.55 * value),
+                                    child: child,
+                                  ),
+                                );
+                              },
                               child: _PlayerReadyCard(
                                 player: _you,
                                 fallbackName: context.tr('you'),
-                                ready: _you?.ready == true,
+                                ready: youReady,
                                 highlighted: true,
                                 unknown: false,
                                 compact: compact,
                               ),
                             ),
-                            Align(
-                              alignment: const Alignment(.66, .42),
+                            AnimatedBuilder(
+                              animation: _exitController,
+                              builder: (context, child) {
+                                final value = Curves.easeInOutCubic.transform(
+                                  _exitController.value,
+                                );
+                                return Positioned(
+                                  right:
+                                      side -
+                                      (constraints.maxWidth * .52 * value),
+                                  bottom: top,
+                                  width: cardWidth,
+                                  child: Opacity(
+                                    opacity: 1 - (.55 * value),
+                                    child: child,
+                                  ),
+                                );
+                              },
                               child: _PlayerReadyCard(
                                 player: _opponent,
                                 fallbackName: readyStage
                                     ? context.tr('opponent')
                                     : context.tr('searching_opponent_short'),
-                                ready: _opponent?.ready == true,
+                                ready: opponentReady,
                                 highlighted: false,
                                 unknown: _opponent == null,
                                 compact: compact,
                               ),
                             ),
                             Center(
-                              child: _CenterBadge(
-                                readyStage: readyStage,
-                                bothReady:
-                                    _you?.ready == true &&
-                                    _opponent?.ready == true,
-                                animation: _pulseController,
+                              child: ScaleTransition(
+                                scale: Tween<double>(begin: 1, end: 1.28)
+                                    .animate(
+                                      CurvedAnimation(
+                                        parent: _exitController,
+                                        curve: Curves.easeOutCubic,
+                                      ),
+                                    ),
+                                child: FadeTransition(
+                                  opacity: Tween<double>(begin: 1, end: 0)
+                                      .animate(
+                                        CurvedAnimation(
+                                          parent: _exitController,
+                                          curve: Curves.easeIn,
+                                        ),
+                                      ),
+                                  child: _CenterBadge(
+                                    readyStage: readyStage,
+                                    bothReady: youReady && opponentReady,
+                                    animation: _pulseController,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -257,7 +329,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                           ? Icons.hourglass_top_rounded
                           : Icons.shield_outlined,
                       text: readyStage
-                          ? _readyStatusText(context)
+                          ? _readyStatusText(context, youReady, opponentReady)
                           : context.tr('elo_hint'),
                       trailing: readyStage ? '$_secondsRemaining' : null,
                     ),
@@ -267,14 +339,14 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: _you?.ready == true ? null : _ready,
+                        onPressed: youReady || _openingMatch ? null : _ready,
                         icon: Icon(
-                          _you?.ready == true
+                          youReady
                               ? Icons.check_circle
                               : Icons.check_circle_outline,
                         ),
                         label: Text(
-                          _you?.ready == true
+                          youReady
                               ? context.tr('ready')
                               : context.tr('i_am_ready'),
                         ),
@@ -297,9 +369,11 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
     );
   }
 
-  String _readyStatusText(BuildContext context) {
-    final youReady = _you?.ready == true;
-    final opponentReady = _opponent?.ready == true;
+  String _readyStatusText(
+    BuildContext context,
+    bool youReady,
+    bool opponentReady,
+  ) {
     if (youReady && opponentReady) return context.tr('everyone_ready_starting');
     if (youReady) return context.tr('you_ready_waiting_opponent');
     if (opponentReady) return context.tr('opponent_ready_waiting_you');
@@ -339,8 +413,8 @@ class _ArenaPainter extends CustomPainter {
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, bg);
 
-    final start = Offset(size.width * .62, size.height * .16);
-    final end = Offset(size.width * .38, size.height * .82);
+    final start = Offset(size.width * .64, size.height * .1);
+    final end = Offset(size.width * .36, size.height * .9);
     final line = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,

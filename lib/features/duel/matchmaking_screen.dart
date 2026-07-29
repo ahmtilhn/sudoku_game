@@ -589,24 +589,35 @@ class _FullScreenSearchingStage extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
                   Expanded(
-                    child: Stack(
-                      children: [
-                        Align(
-                          alignment: const Alignment(-.66, -.74),
-                          child: _SearchPreviewCard(
-                            title: context.tr('you'),
-                            known: true,
-                          ),
-                        ),
-                        Align(
-                          alignment: const Alignment(.66, .42),
-                          child: _SearchPreviewCard(
-                            title: context.tr('searching_opponent_short'),
-                            known: false,
-                          ),
-                        ),
-                        const Center(child: _SearchOrb()),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final side = constraints.maxWidth < 390 ? 6.0 : 8.0;
+                        final top = constraints.maxHeight < 560 ? 18.0 : 28.0;
+                        const cardWidth = 128.0;
+                        return Stack(
+                          children: [
+                            Positioned(
+                              left: side,
+                              top: top,
+                              width: cardWidth,
+                              child: _SearchPreviewCard(
+                                title: context.tr('you'),
+                                known: true,
+                              ),
+                            ),
+                            Positioned(
+                              right: side,
+                              bottom: top,
+                              width: cardWidth,
+                              child: _SearchPreviewCard(
+                                title: context.tr('searching_opponent_short'),
+                                known: false,
+                              ),
+                            ),
+                            const Center(child: _SearchOrb()),
+                          ],
+                        );
+                      },
                     ),
                   ),
                   _SearchInfoBar(
@@ -657,8 +668,8 @@ class _SearchBackgroundPainter extends CustomPainter {
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, bg);
 
-    final start = Offset(size.width * .62, size.height * .18);
-    final end = Offset(size.width * .38, size.height * .82);
+    final start = Offset(size.width * .64, size.height * .1);
+    final end = Offset(size.width * .36, size.height * .9);
     final line = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
