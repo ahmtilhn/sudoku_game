@@ -7,8 +7,14 @@ void main() {
       'balance': 1000,
       'canEnterOnline': true,
       'minimumOnlineBalance': 100,
-      'entryFee': 100,
-      'winnerPot': 200,
+      'entryFees': <String, dynamic>{
+        'beginner': 100,
+        'easy': 150,
+        'medium': 250,
+        'hard': 400,
+        'expert': 650,
+      },
+      'entitlements': <String, dynamic>{'noAds': true},
       'starterGrant': 1000,
       'dailyLogin': <String, dynamic>{'amount': 50, 'available': true},
       'dailyRewardedAd': <String, dynamic>{'amount': 50, 'available': false},
@@ -19,6 +25,9 @@ void main() {
     expect(wallet.canEnterOnline, isTrue);
     expect(wallet.entryFee, 100);
     expect(wallet.winnerPot, 200);
+    expect(wallet.entryFeeForDifficulty('expert'), 650);
+    expect(wallet.winnerPotForDifficulty('expert'), 1300);
+    expect(wallet.noAds, isTrue);
     expect(wallet.dailyLoginAvailable, isTrue);
     expect(wallet.dailyAdAvailable, isFalse);
   });
@@ -29,7 +38,6 @@ void main() {
       'canEnterOnline': true,
       'minimumOnlineBalance': 100,
       'entryFee': 100,
-      'winnerPot': 200,
       'starterGrant': 1000,
       'dailyLogin': <String, dynamic>{'amount': 50, 'available': false},
       'dailyRewardedAd': <String, dynamic>{'amount': 50, 'available': false},

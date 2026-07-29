@@ -178,6 +178,7 @@ class _CareerScreenState extends State<CareerScreen> {
   }
 
   Future<void> _showCareerRewardOffer() async {
+    if (_economy.noAds) return;
     final watch = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
@@ -196,14 +197,14 @@ class _CareerScreenState extends State<CareerScreen> {
               const Icon(Icons.ondemand_video_rounded, size: 42),
               const SizedBox(height: 10),
               Text(
-                'Earn 25 Coin',
+                context.tr('earn_career_ad_coin', const <Object>[25]),
                 style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Watch an optional rewarded ad after this completed puzzle.',
+              Text(
+                context.tr('career_ad_reward_body'),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 18),
@@ -212,7 +213,9 @@ class _CareerScreenState extends State<CareerScreen> {
                 child: FilledButton.icon(
                   onPressed: () => Navigator.of(sheetContext).pop(true),
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Watch and earn +25 Coin'),
+                  label: Text(
+                    context.tr('watch_and_earn_coin', const <Object>[25]),
+                  ),
                 ),
               ),
               const SizedBox(height: 6),
@@ -220,7 +223,7 @@ class _CareerScreenState extends State<CareerScreen> {
                 width: double.infinity,
                 child: TextButton(
                   onPressed: () => Navigator.of(sheetContext).pop(false),
-                  child: const Text('Skip'),
+                  child: Text(context.tr('skip')),
                 ),
               ),
             ],
@@ -235,8 +238,8 @@ class _CareerScreenState extends State<CareerScreen> {
       SnackBar(
         content: Text(
           rewarded
-              ? '25 Coin added to your wallet.'
-              : 'The reward ad is not available right now.',
+              ? context.tr('coin_added_wallet', const <Object>[25])
+              : context.tr('rewarded_ad_unavailable'),
         ),
       ),
     );

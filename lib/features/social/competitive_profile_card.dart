@@ -12,9 +12,6 @@ class CompetitiveProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final country = profile.country == null || profile.country!.isEmpty
-        ? context.tr('country_not_set')
-        : profile.country!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -84,11 +81,6 @@ class CompetitiveProfileCard extends StatelessWidget {
                   value: profile.rank == null ? '-' : '#${profile.rank}',
                 ),
                 _ProfileStat(
-                  label: context.tr('season_peak'),
-                  value: '${profile.seasonPeak}',
-                ),
-                _ProfileStat(label: context.tr('country'), value: country),
-                _ProfileStat(
                   label: context.tr('wins_losses_draws'),
                   value: '${profile.wins}/${profile.losses}/${profile.draws}',
                 ),
@@ -99,18 +91,6 @@ class CompetitiveProfileCard extends StatelessWidget {
                 _ProfileStat(
                   label: context.tr('win_streak'),
                   value: '${profile.winStreak}',
-                ),
-                _ProfileStat(
-                  label: context.tr('tournament_entries'),
-                  value: '${profile.tournamentEntries}',
-                ),
-                _ProfileStat(
-                  label: context.tr('tournament_podiums'),
-                  value: '${profile.tournamentPodiums}',
-                ),
-                _ProfileStat(
-                  label: context.tr('country_contributions'),
-                  value: '${profile.countryContributions}',
                 ),
               ],
             ),

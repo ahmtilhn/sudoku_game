@@ -7,14 +7,15 @@ import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 import 'economy_api_client.dart';
 import 'economy_service.dart';
-import 'firebase_session_service.dart';
 
 class CoinStoreService extends ChangeNotifier {
   CoinStoreService._();
 
   static final CoinStoreService instance = CoinStoreService._();
 
-  static const Set<String> productIds = <String>{
+  static const String noAdsProductId = 'no_ads';
+
+  static const Set<String> coinProductIds = <String>{
     'coins_100',
     'coins_500',
     'coins_1000',
@@ -22,6 +23,11 @@ class CoinStoreService extends ChangeNotifier {
     'coins_10000',
     'coins_50000',
     'coins_100000',
+  };
+  static const Set<String> entitlementProductIds = <String>{noAdsProductId};
+  static const Set<String> productIds = <String>{
+    ...coinProductIds,
+    ...entitlementProductIds,
   };
 
   final InAppPurchase _store = InAppPurchase.instance;
@@ -39,6 +45,11 @@ class CoinStoreService extends ChangeNotifier {
     }
     return null;
   }
+
+  ProductDetails? get noAdsProduct => product(noAdsProductId);
+  List<ProductDetails> get coinProducts => products
+      .where((product) => coinProductIds.contains(product.id))
+      .toList(growable: false);
 
   Future<void> initialize() async {
     if (_initialized) {
@@ -71,7 +82,11 @@ class CoinStoreService extends ChangeNotifier {
       }
       final response = await _store.queryProductDetails(productIds);
       products = response.productDetails.toList(growable: false)
-        ..sort((a, b) => coinAmount(a.id).compareTo(coinAmount(b.id)));
+        ..sort((a, b) {
+          if (a.id == noAdsProductId) return -1;
+          if (b.id == noAdsProductId) return 1;
+          return coinAmount(a.id).compareTo(coinAmount(b.id));
+        });
       if (response.error != null) {
         error = response.error!.message;
       } else if (products.isEmpty) {
@@ -90,13 +105,12 @@ class CoinStoreService extends ChangeNotifier {
   }
 
   Future<bool> buy(String productId) async {
+    return buyConsumable(productId);
+  }
+
+  Future<bool> buyConsumable(String productId) async {
     if (pendingProductId != null) return false;
-    if (!FirebaseSessionService.isProtected) {
-      error =
-          'Protect or sign in to your player account before buying Coins. Paid Coins cannot be attached to an unrecoverable guest account.';
-      notifyListeners();
-      return false;
-    }
+    if (!coinProductIds.contains(productId)) return false;
     final details = product(productId);
     if (details == null) {
       error = 'This Coin package is not available.';
@@ -130,9 +144,52 @@ class CoinStoreService extends ChangeNotifier {
     }
   }
 
+  Future<bool> buyNonConsumable(String productId) async {
+    if (pendingProductId != null) return false;
+    if (!entitlementProductIds.contains(productId)) return false;
+    final details = product(productId);
+    if (details == null) {
+      error = 'This entitlement is not available.';
+      notifyListeners();
+      return false;
+    }
+
+    pendingProductId = productId;
+    error = null;
+    EconomyService.instance.setPurchaseProcessing(true);
+    notifyListeners();
+    try {
+      final started = await _store.buyNonConsumable(
+        purchaseParam: PurchaseParam(productDetails: details),
+      );
+      if (!started) {
+        pendingProductId = null;
+        EconomyService.instance.setPurchaseProcessing(false);
+        notifyListeners();
+      }
+      return started;
+    } catch (_) {
+      pendingProductId = null;
+      error = 'The purchase could not be started.';
+      EconomyService.instance.setPurchaseProcessing(false);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> restorePurchases() async {
+    try {
+      await _store.restorePurchases();
+    } catch (_) {
+      error = 'Purchases could not be restored.';
+      notifyListeners();
+    }
+  }
+
   Future<void> _handlePurchases(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
       if (!productIds.contains(purchase.productID)) continue;
+      final isNoAds = purchase.productID == noAdsProductId;
       if (purchase.status == PurchaseStatus.pending) {
         pendingProductId = purchase.productID;
         EconomyService.instance.setPurchaseProcessing(true);
@@ -165,13 +222,6 @@ class CoinStoreService extends ChangeNotifier {
       if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
         try {
-          if (!FirebaseSessionService.isProtected) {
-            throw const EconomyApiException(
-              409,
-              'Sign in to the protected player account that made this purchase.',
-              code: 'account_protection_required',
-            );
-          }
           final verificationData =
               purchase.verificationData.serverVerificationData;
           final fallbackTransaction =
@@ -186,7 +236,7 @@ class CoinStoreService extends ChangeNotifier {
             verificationData: verificationData,
           );
 
-          if (Platform.isAndroid) {
+          if (Platform.isAndroid && !isNoAds) {
             try {
               final androidAddition = _store
                   .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();

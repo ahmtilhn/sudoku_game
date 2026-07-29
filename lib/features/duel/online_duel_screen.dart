@@ -498,13 +498,15 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     final opponentScore = snapshot.scores[opponentSeat] ?? 0;
     final rating = snapshot.rating?[snapshot.youSeat];
     final won = snapshot.winnerSeat == snapshot.youSeat;
+    final entryFee = _economy.entryFeeForDifficulty(snapshot.difficulty);
+    final winnerPot = _economy.winnerPotForDifficulty(snapshot.difficulty);
     final resultTitle = snapshot.winnerSeat == null
         ? context.tr('draw')
         : won
         ? context.tr('you_won')
         : context.tr('you_lost');
     final balance = _economy.balance;
-    final canPlay = _economy.canEnterOnline;
+    final canPlay = _economy.balance >= entryFee;
     final invite = _invitation;
     final seconds = invite == null
         ? 0
@@ -512,9 +514,9 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     final coinDelta = snapshot.coinSettlement?.deltas[snapshot.youSeat];
     final coinValue = coinDelta == null
         ? (won
-              ? '+${context.tr('coin_amount', const <Object>[200])}'
+              ? '+${context.tr('coin_amount', <Object>[winnerPot])}'
               : snapshot.winnerSeat == null
-              ? '+${context.tr('coin_amount', const <Object>[100])}'
+              ? '+${context.tr('coin_amount', <Object>[entryFee])}'
               : context.tr('coin_amount', const <Object>[0]))
         : '${coinDelta >= 0 ? '+' : ''}${context.tr('coin_amount', <Object>[coinDelta])}';
 
@@ -572,7 +574,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                   ),
                   _ResultLine(
                     label: context.tr('entry_fee'),
-                    value: context.tr('coin_amount', const <Object>[100]),
+                    value: context.tr('coin_amount', <Object>[entryFee]),
                   ),
                   _ResultLine(
                     label: won
@@ -761,7 +763,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
           if (!canPlay) ...[
             const SizedBox(height: 8),
             Text(
-              context.tr('not_enough_coins_online', const <Object>[100]),
+              context.tr('not_enough_coins_online', <Object>[entryFee]),
               textAlign: TextAlign.center,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),

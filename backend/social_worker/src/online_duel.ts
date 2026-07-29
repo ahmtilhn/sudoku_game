@@ -50,8 +50,8 @@ export type RatingChange = {
 
 export type CoinSettlementResult = {
   amount: number;
-  winnerSeat: Seat;
-  loserSeat: Seat;
+  winnerSeat: Seat | null;
+  loserSeat: Seat | null;
   balances: Record<Seat, number>;
   deltas: Record<Seat, number>;
 };

@@ -17,6 +17,7 @@ const COIN_PRODUCTS: Readonly<Record<string, number>> = Object.freeze({
   coins_50000: 50000,
   coins_100000: 100000,
 });
+const NO_ADS_PRODUCT_ID = 'no_ads';
 
 const FIREBASE_JWKS = createRemoteJWKSet(
   new URL(
@@ -55,6 +56,7 @@ type VerifiedPurchase = {
   storeEnvironment: string | null;
   storeOrderId: string | null;
   verificationSource: string;
+  productType: 'consumable' | 'non_consumable';
   consume?: () => Promise<boolean>;
 };
 
@@ -198,8 +200,8 @@ async function readPurchaseInput(request: Request): Promise<PurchaseInput> {
     1,
     24_000,
   );
-  if (!COIN_PRODUCTS[productId]) {
-    throw new ProductionVerificationError(400, 'Unknown Coin product.', 'unknown_product');
+  if (!COIN_PRODUCTS[productId] && productId !== NO_ADS_PRODUCT_ID) {
+    throw new ProductionVerificationError(400, 'Unknown store product.', 'unknown_product');
   }
   return { productId, transactionId, verificationData };
 }
@@ -252,7 +254,7 @@ async function verifyGooglePlayPurchase(
   if (!matchedItem) {
     throw new ProductionVerificationError(
       409,
-      'The Google Play product does not match the requested Coin package.',
+      'The Google Play product does not match the requested product.',
       'product_mismatch',
     );
   }
@@ -271,8 +273,11 @@ async function verifyGooglePlayPurchase(
     storeEnvironment,
     storeOrderId: orderId,
     verificationSource: 'google_play_developer_api_v2',
-    consume: async () =>
-      consumeGooglePurchase(env, packageName, input.productId, purchaseToken),
+    productType: input.productId === NO_ADS_PRODUCT_ID ? 'non_consumable' : 'consumable',
+    consume:
+      input.productId === NO_ADS_PRODUCT_ID
+        ? undefined
+        : async () => consumeGooglePurchase(env, packageName, input.productId, purchaseToken),
   };
 }
 
@@ -466,7 +471,7 @@ async function verifyAppStorePurchase(
   if (productId !== input.productId) {
     throw new ProductionVerificationError(
       409,
-      'The App Store product does not match the requested Coin package.',
+      'The App Store product does not match the requested product.',
       'product_mismatch',
     );
   }
@@ -493,10 +498,11 @@ async function verifyAppStorePurchase(
     );
   }
   const productType = stringOrNull(payload.type);
-  if (productType && productType.toLowerCase() !== 'consumable') {
+  const expectedType = productId === NO_ADS_PRODUCT_ID ? 'non-consumable' : 'consumable';
+  if (productType && productType.toLowerCase() !== expectedType) {
     throw new ProductionVerificationError(
       409,
-      'The App Store product is not configured as a consumable.',
+      'The App Store product is not configured with the expected type.',
       'product_type_mismatch',
     );
   }
@@ -514,6 +520,7 @@ async function verifyAppStorePurchase(
       stringOrNull(payload.environment)?.toLowerCase() ?? storeEnvironment,
     storeOrderId: stringOrNull(payload.originalTransactionId),
     verificationSource: 'app_store_server_api_transaction_info',
+    productType: productId === NO_ADS_PRODUCT_ID ? 'non_consumable' : 'consumable',
   };
 }
 
@@ -549,6 +556,9 @@ async function grantVerifiedPurchase(
   playerId: string,
   purchase: VerifiedPurchase,
 ): Promise<boolean> {
+  if (purchase.productId === NO_ADS_PRODUCT_ID) {
+    return grantNoAdsEntitlement(env, playerId, purchase);
+  }
   const amount = COIN_PRODUCTS[purchase.productId];
   if (!amount) {
     throw new ProductionVerificationError(400, 'Unknown Coin product.', 'unknown_product');
@@ -624,6 +634,66 @@ async function grantVerifiedPurchase(
     ),
   ]);
   return true;
+}
+
+async function grantNoAdsEntitlement(
+  env: ProductionPurchaseEnv,
+  playerId: string,
+  purchase: VerifiedPurchase,
+): Promise<boolean> {
+  const verificationHash = await sha256Hex(
+    `${purchase.platform}:${purchase.transactionId}:${purchase.verificationData}`,
+  );
+  const existing = await env.DB.prepare(
+    `SELECT player_id FROM player_entitlements
+     WHERE entitlement_key = 'no_ads'
+       AND (source_transaction_id = ? OR verification_hash = ?)
+     LIMIT 1`,
+  )
+    .bind(purchase.transactionId, verificationHash)
+    .first<{ player_id: string }>();
+  if (existing) {
+    if (existing.player_id !== playerId) {
+      throw new ProductionVerificationError(
+        409,
+        'This store transaction has already been used by another player.',
+        'purchase_replayed',
+      );
+    }
+    return false;
+  }
+
+  const now = new Date().toISOString();
+  const inserted = await env.DB.prepare(
+    `INSERT INTO player_entitlements (
+       id, player_id, entitlement_key, source, source_transaction_id,
+       verification_hash, granted_at, updated_at, metadata_json
+     ) VALUES (?, ?, 'no_ads', ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(player_id, entitlement_key) DO UPDATE SET
+       source = excluded.source,
+       source_transaction_id = excluded.source_transaction_id,
+       verification_hash = excluded.verification_hash,
+       revoked_at = NULL,
+       updated_at = excluded.updated_at,
+       metadata_json = excluded.metadata_json`,
+  )
+    .bind(
+      crypto.randomUUID(),
+      playerId,
+      purchase.platform,
+      purchase.transactionId,
+      verificationHash,
+      now,
+      now,
+      JSON.stringify({
+        productId: purchase.productId,
+        platform: purchase.platform,
+        storeEnvironment: purchase.storeEnvironment,
+        verificationSource: purchase.verificationSource,
+      }),
+    )
+    .run();
+  return (inserted.meta.changes ?? 0) > 0;
 }
 
 function decodeStoreKitJws(

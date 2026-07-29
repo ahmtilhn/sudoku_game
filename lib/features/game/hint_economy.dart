@@ -29,12 +29,13 @@ class HintEconomy {
               context.tr('continue_with_coins', const <Object>[coinCost]),
             ),
           ),
-          TextButton.icon(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(_HintAction.rewardedAd),
-            icon: const Icon(Icons.ondemand_video_outlined),
-            label: Text(context.tr('watch_rewarded_ad')),
-          ),
+          if (!AdsService.instance.noAds)
+            TextButton.icon(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_HintAction.rewardedAd),
+              icon: const Icon(Icons.ondemand_video_outlined),
+              label: Text(context.tr('watch_rewarded_ad')),
+            ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(context.tr('cancel')),

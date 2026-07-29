@@ -8,11 +8,8 @@ import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/social_api_client.dart';
 import '../economy/coin_store_screen.dart';
-import '../social/friend_requests_screen.dart';
-import '../social/platform_social_screen.dart';
 import 'duel_screen.dart';
-import 'leaderboards_screen.dart';
-import 'online_duel_screen.dart';
+import 'pre_match_ready_screen.dart';
 
 class MatchmakingScreen extends StatefulWidget {
   const MatchmakingScreen({super.key, this.initialDifficulty});
@@ -34,8 +31,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   Timer? _pollTimer;
   int _pollAttempt = 0;
   DateTime? _lastQueueRefresh;
-
-  String get _queueKey => 'duel_${_difficulty.name}';
 
   @override
   void initState() {
@@ -59,27 +54,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final canEnterSelected =
+        _economy.balance >= _economy.entryFeeForDifficulty(_difficulty.name);
+    if (_searching) {
+      return _FullScreenSearchingStage(onCancel: _cancelSearch, error: _error);
+    }
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('online_duel')),
-        actions: [
-          IconButton(
-            tooltip: context.tr('friend_requests'),
-            onPressed: _openFriendRequests,
-            icon: const Icon(Icons.person_add_alt_1_outlined),
-          ),
-          IconButton(
-            tooltip: context.tr('friends_challenges'),
-            onPressed: _openPlatformFriends,
-            icon: const Icon(Icons.people_alt_outlined),
-          ),
-          IconButton(
-            tooltip: context.tr('leaderboards'),
-            onPressed: _openLeaderboards,
-            icon: const Icon(Icons.leaderboard_outlined),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(context.tr('online_duel'))),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -90,7 +71,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
                   children: [
-                    _EntrySummary(economy: _economy),
+                    _EntrySummary(economy: _economy, difficulty: _difficulty),
                     const SizedBox(height: 16),
                     Text(
                       context.tr('choose_duel_difficulty'),
@@ -116,20 +97,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       const SizedBox(height: 8),
                     ],
                     const SizedBox(height: 8),
-                    if (_searching)
-                      _SearchingPanel(
-                        queueKey: _queueKey,
-                        onCancel: _cancelSearch,
-                      )
-                    else
-                      _StartActions(
-                        canEnterOnline: _economy.canEnterOnline,
-                        loading: _economy.loading,
-                        onFindOpponent: _findOpponent,
-                        onInsufficientCoins: _showInsufficientCoins,
-                        onLocalPractice: _openLocalPractice,
-                        onSocial: _openPlatformFriends,
-                      ),
+                    _StartActions(
+                      canEnterOnline: canEnterSelected,
+                      loading: _economy.loading,
+                      onFindOpponent: _findOpponent,
+                      onInsufficientCoins: _showInsufficientCoins,
+                      onLocalPractice: _openLocalPractice,
+                    ),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
                       Material(
@@ -177,24 +151,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     );
   }
 
-  void _openFriendRequests() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const FriendRequestsScreen()));
-  }
-
-  void _openPlatformFriends() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const PlatformSocialScreen()));
-  }
-
-  void _openLeaderboards() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const LeaderboardsScreen()));
-  }
-
   void _openLocalPractice() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => DuelScreen(difficulty: _difficulty)),
@@ -220,14 +176,19 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
               const Icon(Icons.lock_outline_rounded, size: 42),
               const SizedBox(height: 10),
               Text(
-                context.tr('coin_required_title'),
+                context.tr('coin_required_title_dynamic', <Object>[
+                  _economy.entryFeeForDifficulty(_difficulty.name),
+                ]),
                 style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
-                context.tr('coin_required_body'),
+                context.tr('coin_required_body_dynamic', <Object>[
+                  _economy.entryFeeForDifficulty(_difficulty.name),
+                  _economy.winnerPotForDifficulty(_difficulty.name),
+                ]),
                 textAlign: TextAlign.center,
                 style: Theme.of(sheetContext).textTheme.bodyLarge,
               ),
@@ -267,7 +228,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                   ),
                 ),
               ],
-              if (_economy.wallet?.dailyAdAvailable == true) ...[
+              if (_economy.wallet?.dailyAdAvailable == true &&
+                  !_economy.noAds) ...[
                 const SizedBox(height: 6),
                 SizedBox(
                   width: double.infinity,
@@ -376,7 +338,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     }
     Navigator.of(context)
         .push(
-          MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)),
+          MaterialPageRoute(
+            builder: (_) => PreMatchReadyScreen(roomId: roomId),
+          ),
         )
         .then((action) {
           unawaited(_economy.refresh(showLoading: false));
@@ -478,9 +442,10 @@ Duration matchmakingFallbackDelay(int attempt) {
 }
 
 class _EntrySummary extends StatelessWidget {
-  const _EntrySummary({required this.economy});
+  const _EntrySummary({required this.economy, required this.difficulty});
 
   final EconomyService economy;
+  final SudokuDifficulty difficulty;
 
   @override
   Widget build(BuildContext context) {
@@ -503,7 +468,9 @@ class _EntrySummary extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Balance: ${economy.loading && economy.wallet == null ? '…' : economy.balance} Coin',
+                    economy.loading && economy.wallet == null
+                        ? context.tr('balance_loading')
+                        : context.tr('balance_coin', <Object>[economy.balance]),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: scheme.onPrimaryContainer,
                       fontWeight: FontWeight.w900,
@@ -511,7 +478,10 @@ class _EntrySummary extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${economy.entryFee} entry · ${economy.winnerPot} winner pot',
+                    context.tr('duel_fee_summary', <Object>[
+                      economy.entryFeeForDifficulty(difficulty.name),
+                      economy.winnerPotForDifficulty(difficulty.name),
+                    ]),
                     style: TextStyle(color: scheme.onPrimaryContainer),
                   ),
                 ],
@@ -538,7 +508,6 @@ class _StartActions extends StatelessWidget {
     required this.onFindOpponent,
     required this.onInsufficientCoins,
     required this.onLocalPractice,
-    required this.onSocial,
   });
 
   final bool canEnterOnline;
@@ -546,7 +515,6 @@ class _StartActions extends StatelessWidget {
   final VoidCallback onFindOpponent;
   final VoidCallback onInsufficientCoins;
   final VoidCallback onLocalPractice;
-  final VoidCallback onSocial;
 
   @override
   Widget build(BuildContext context) {
@@ -561,14 +529,10 @@ class _StartActions extends StatelessWidget {
               : onInsufficientCoins,
           icon: Icon(canEnterOnline ? Icons.public : Icons.lock_outline),
           label: Text(
-            canEnterOnline ? context.tr('find_opponent') : 'Get more Coin',
+            canEnterOnline
+                ? context.tr('find_opponent')
+                : context.tr('open_coin_store'),
           ),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: onSocial,
-          icon: const Icon(Icons.people_alt_outlined),
-          label: const Text('Friends & challenges'),
         ),
         const SizedBox(height: 8),
         TextButton.icon(
@@ -581,39 +545,271 @@ class _StartActions extends StatelessWidget {
   }
 }
 
-class _SearchingPanel extends StatelessWidget {
-  const _SearchingPanel({required this.queueKey, required this.onCancel});
+class _FullScreenSearchingStage extends StatelessWidget {
+  const _FullScreenSearchingStage({required this.onCancel, this.error});
 
-  final String queueKey;
   final VoidCallback onCancel;
+  final String? error;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.secondaryContainer,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
+    return Scaffold(
+      backgroundColor: const Color(0xFF061124),
+      body: SafeArea(
+        child: Stack(
           children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 14),
-            Text(
-              context.tr('searching_opponent'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            const _SearchBackground(),
+            Positioned(
+              left: 12,
+              top: 8,
+              child: IconButton.filledTonal(
+                tooltip: context.tr('cancel_search'),
+                onPressed: onCancel,
+                icon: const Icon(Icons.arrow_back),
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(context.tr('queue_key', <Object>[queueKey])),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: onCancel,
-              child: Text(context.tr('cancel_search')),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 42, 16, 16),
+              child: Column(
+                children: [
+                  Text(
+                    context.tr('finding_opponent_title'),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    context.tr('searching_similar_opponents'),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .62),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Align(
+                          alignment: const Alignment(-.78, -.82),
+                          child: _SearchPreviewCard(
+                            title: context.tr('you'),
+                            known: true,
+                          ),
+                        ),
+                        Align(
+                          alignment: const Alignment(.74, .3),
+                          child: _SearchPreviewCard(
+                            title: context.tr('searching_opponent_short'),
+                            known: false,
+                          ),
+                        ),
+                        const Center(child: _SearchOrb()),
+                      ],
+                    ),
+                  ),
+                  _SearchInfoBar(
+                    text: error ?? context.tr('elo_hint'),
+                    icon: error == null
+                        ? Icons.shield_outlined
+                        : Icons.cloud_off_outlined,
+                    error: error != null,
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: onCancel,
+                      child: Text(context.tr('cancel_search')),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SearchBackground extends StatelessWidget {
+  const _SearchBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _SearchBackgroundPainter(),
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
+class _SearchBackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bg = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF061124), Color(0xFF081A36), Color(0xFF120D32)],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, bg);
+
+    final line = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.transparent,
+          const Color(0xFF58A8FF).withValues(alpha: .85),
+          const Color(0xFFB64DFF).withValues(alpha: .55),
+          Colors.transparent,
+        ],
+      ).createShader(Offset.zero & size)
+      ..strokeWidth = 1.6;
+    canvas.drawLine(
+      Offset(size.width * .68, size.height * .18),
+      Offset(size.width * .38, size.height * .78),
+      line,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _SearchPreviewCard extends StatelessWidget {
+  const _SearchPreviewCard({required this.title, required this.known});
+
+  final String title;
+  final bool known;
+
+  @override
+  Widget build(BuildContext context) {
+    final border = known ? const Color(0xFF2E7BFF) : const Color(0xFF9B4DFF);
+    return Container(
+      width: 128,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E1B36).withValues(alpha: .86),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: border.withValues(alpha: .75)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 34,
+            backgroundColor: border.withValues(alpha: .2),
+            child: Icon(
+              known ? Icons.person : Icons.person_search,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.emoji_events_rounded,
+                color: Color(0xFFFFC547),
+                size: 18,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                known ? '1000' : '?',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            'ELO',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .48),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchOrb extends StatelessWidget {
+  const _SearchOrb();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF13274E),
+        border: Border.all(color: const Color(0xFF9B4DFF), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF9B4DFF).withValues(alpha: .35),
+            blurRadius: 24,
+          ),
+        ],
+      ),
+      child: const Icon(Icons.search, color: Colors.white, size: 30),
+    );
+  }
+}
+
+class _SearchInfoBar extends StatelessWidget {
+  const _SearchInfoBar({
+    required this.text,
+    required this.icon,
+    required this.error,
+  });
+
+  final String text;
+  final IconData icon;
+  final bool error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: (error ? Colors.red.shade900 : const Color(0xFF172344))
+            .withValues(alpha: .82),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: error ? Colors.red.shade100 : const Color(0xFF8B63FF),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: Colors.white.withValues(alpha: .78)),
+            ),
+          ),
+        ],
       ),
     );
   }

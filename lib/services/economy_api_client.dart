@@ -26,8 +26,8 @@ class WalletSnapshot {
     required this.balance,
     required this.canEnterOnline,
     required this.minimumOnlineBalance,
-    required this.entryFee,
-    required this.winnerPot,
+    required this.entryFees,
+    required this.noAds,
     required this.starterGrant,
     required this.dailyLoginAmount,
     required this.dailyLoginAvailable,
@@ -39,14 +39,27 @@ class WalletSnapshot {
   final int balance;
   final bool canEnterOnline;
   final int minimumOnlineBalance;
-  final int entryFee;
-  final int winnerPot;
+  final Map<String, int> entryFees;
+  final bool noAds;
   final int starterGrant;
   final int dailyLoginAmount;
   final bool dailyLoginAvailable;
   final int dailyAdAmount;
   final bool dailyAdAvailable;
   final DateTime? nextDailyResetAt;
+
+  int get entryFee => entryFeeForDifficulty('beginner');
+  int get winnerPot => winnerPotForDifficulty('beginner');
+
+  int entryFeeForDifficulty(String difficulty) {
+    return entryFees[difficulty.toLowerCase()] ??
+        entryFees['beginner'] ??
+        minimumOnlineBalance;
+  }
+
+  int winnerPotForDifficulty(String difficulty) {
+    return entryFeeForDifficulty(difficulty) * 2;
+  }
 
   factory WalletSnapshot.fromJson(Map<String, dynamic> json) {
     final login =
@@ -55,13 +68,30 @@ class WalletSnapshot {
     final ad =
         (json['dailyRewardedAd'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
+    final rawEntryFees = (json['entryFees'] as Map?)?.cast<String, dynamic>();
+    final entryFees = <String, int>{
+      if (rawEntryFees != null)
+        for (final item in rawEntryFees.entries)
+          item.key.toLowerCase(): (item.value as num?)?.toInt() ?? 0,
+    }..removeWhere((_, value) => value <= 0);
+    final legacyEntryFee = (json['entryFee'] as num?)?.toInt();
+    if (entryFees.isEmpty && legacyEntryFee != null && legacyEntryFee > 0) {
+      entryFees['beginner'] = legacyEntryFee;
+    }
+    entryFees.putIfAbsent(
+      'beginner',
+      () => (json['minimumOnlineBalance'] as num?)?.toInt() ?? 100,
+    );
+    final entitlements =
+        (json['entitlements'] as Map?)?.cast<String, dynamic>() ??
+        const <String, dynamic>{};
     return WalletSnapshot(
       balance: (json['balance'] as num?)?.toInt() ?? 0,
       canEnterOnline: json['canEnterOnline'] == true,
       minimumOnlineBalance:
           (json['minimumOnlineBalance'] as num?)?.toInt() ?? 100,
-      entryFee: (json['entryFee'] as num?)?.toInt() ?? 100,
-      winnerPot: (json['winnerPot'] as num?)?.toInt() ?? 200,
+      entryFees: Map<String, int>.unmodifiable(entryFees),
+      noAds: entitlements['noAds'] == true,
       starterGrant: (json['starterGrant'] as num?)?.toInt() ?? 1000,
       dailyLoginAmount: (login['amount'] as num?)?.toInt() ?? 50,
       dailyLoginAvailable: login['available'] == true,

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:intl/intl.dart';
 
 import '../../localization/app_strings.dart';
 import '../../services/coin_store_service.dart';
 import '../../services/economy_service.dart';
-import '../../services/firebase_session_service.dart';
-import '../settings/account_protection_screen.dart';
 import 'wallet_history_screen.dart';
 
 class CoinStoreScreen extends StatefulWidget {
@@ -42,18 +41,10 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final protectedAccount = FirebaseSessionService.isProtected;
     return Scaffold(
       appBar: AppBar(
         title: Text(context.tr('coin_store')),
         actions: [
-          IconButton(
-            tooltip: protectedAccount
-                ? context.tr('player_account_protected')
-                : context.tr('protect_player_account'),
-            onPressed: _openAccountProtection,
-            icon: Icon(protectedAccount ? Icons.shield : Icons.shield_outlined),
-          ),
           IconButton(
             tooltip: context.tr('coin_history'),
             onPressed: () => Navigator.of(context).push(
@@ -99,70 +90,30 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                       ),
                     ),
                   ),
-                  if (!protectedAccount)
-                    SliverToBoxAdapter(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: maxWidth),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                            child: Material(
-                              color: scheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(18),
-                              child: Padding(
-                                padding: const EdgeInsets.all(14),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(
-                                      Icons.shield_outlined,
-                                      color: scheme.onSecondaryContainer,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            context.tr(
-                                              'protect_account_before_buying',
-                                            ),
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleSmall
-                                                ?.copyWith(
-                                                  color: scheme
-                                                      .onSecondaryContainer,
-                                                  fontWeight: FontWeight.w900,
-                                                ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            context.tr(
-                                              'paid_coins_protection_body',
-                                            ),
-                                            style: TextStyle(
-                                              color:
-                                                  scheme.onSecondaryContainer,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    FilledButton.tonal(
-                                      onPressed: _openAccountProtection,
-                                      child: Text(context.tr('protect')),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                  SliverToBoxAdapter(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxWidth),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: _NoAdsCard(
+                            product: _store.noAdsProduct,
+                            owned: _economy.noAds,
+                            pending:
+                                _store.pendingProductId ==
+                                CoinStoreService.noAdsProductId,
+                            enabled:
+                                _store.pendingProductId == null &&
+                                !_economy.processingPurchase,
+                            onBuy: () => _store.buyNonConsumable(
+                              CoinStoreService.noAdsProductId,
                             ),
+                            onRestore: _store.restorePurchases,
                           ),
                         ),
                       ),
                     ),
+                  ),
                   if (_store.error != null || _economy.error != null)
                     SliverToBoxAdapter(
                       child: Center(
@@ -230,7 +181,7 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                     context,
                                     index,
                                   ) {
-                                    final product = _store.products[index];
+                                    final product = _store.coinProducts[index];
                                     final pending =
                                         _store.pendingProductId == product.id;
                                     return _CoinPackageCard(
@@ -241,12 +192,11 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                       price: product.price,
                                       pending: pending,
                                       enabled:
-                                          protectedAccount &&
                                           _store.pendingProductId == null &&
                                           !_economy.processingPurchase,
                                       onBuy: () => _store.buy(product.id),
                                     );
-                                  }, childCount: _store.products.length),
+                                  }, childCount: _store.coinProducts.length),
                                 ),
                         );
                       },
@@ -259,13 +209,6 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _openAccountProtection() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const AccountProtectionScreen()),
-    );
-    if (mounted) setState(() {});
   }
 }
 
@@ -297,7 +240,7 @@ class _BalanceHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Your balance',
+                    context.tr('your_balance'),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onPrimaryContainer,
                     ),
@@ -375,9 +318,9 @@ class _CoinPackageCard extends StatelessWidget {
                       color: scheme.secondaryContainer,
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: const Text(
-                      'Popular',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    child: Text(
+                      context.tr('popular'),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
               ],
@@ -423,6 +366,87 @@ class _CoinPackageCard extends StatelessWidget {
                     : Text(price),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoAdsCard extends StatelessWidget {
+  const _NoAdsCard({
+    required this.product,
+    required this.owned,
+    required this.pending,
+    required this.enabled,
+    required this.onBuy,
+    required this.onRestore,
+  });
+
+  final ProductDetails? product;
+  final bool owned;
+  final bool pending;
+  final bool enabled;
+  final VoidCallback onBuy;
+  final VoidCallback onRestore;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final price = product?.price ?? context.tr('not_available_short');
+    return Material(
+      color: scheme.secondaryContainer,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.block, color: scheme.onSecondaryContainer),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('no_ads_title'),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: scheme.onSecondaryContainer,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    owned
+                        ? context.tr('no_ads_owned')
+                        : context.tr('no_ads_body'),
+                    style: TextStyle(color: scheme.onSecondaryContainer),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            if (owned)
+              Icon(Icons.check_circle, color: scheme.onSecondaryContainer)
+            else
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FilledButton.tonal(
+                    onPressed: enabled && !pending ? onBuy : null,
+                    child: pending
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(price),
+                  ),
+                  TextButton(
+                    onPressed: enabled ? onRestore : null,
+                    child: Text(context.tr('restore_purchases')),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

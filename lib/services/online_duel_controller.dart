@@ -14,6 +14,7 @@ class OnlineDuelController {
   StreamSubscription<OnlineDuelEvent>? _subscription;
   OnlineDuelSnapshot? _snapshot;
   bool _pendingMove = false;
+  bool _started = false;
 
   Stream<OnlineDuelSnapshot> get snapshots => _snapshots.stream;
   Stream<OnlineDuelFeedback> get feedback => _feedback.stream;
@@ -21,6 +22,8 @@ class OnlineDuelController {
   bool get pendingMove => _pendingMove;
 
   void start() {
+    if (_started) return;
+    _started = true;
     _subscription = _transport.events.listen(_handleEvent);
   }
 

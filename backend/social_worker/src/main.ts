@@ -3,7 +3,6 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { AppCheckError, verifyAppCheckRequest } from './app_check';
 import {
   EconomyError,
-  MATCH_ENTRY_FEE,
   claimAchievementReward,
   claimDailyLogin,
   coinBalance,
@@ -11,6 +10,7 @@ import {
   createFundedMatch,
   createRematchInvitation,
   ensureStarterGrant,
+  entryFeeForDifficulty,
   grantTestPurchase,
   ledgerPage,
   markRematchStatus,
@@ -409,10 +409,11 @@ async function joinRankedQueueSerialized(
     const difficulty = requiredDifficulty(body.difficulty);
     const playerId = await ensurePlayerId(request, env, ctx, uid);
     const balance = await ensureStarterGrant(env, playerId);
-    if (balance < MATCH_ENTRY_FEE) {
+    const entryFee = entryFeeForDifficulty(difficulty);
+    if (balance < entryFee) {
       throw new EconomyError(
         409,
-        'You need at least 100 Coins to enter an online match.',
+        `You need at least ${entryFee} Coins to enter this online match.`,
         'insufficient_coins',
       );
     }
@@ -617,13 +618,14 @@ async function coordinateRankedMatch(
   }
 
   const ownBalance = await ensureStarterGrant(env, input.playerId);
-  if (ownBalance < MATCH_ENTRY_FEE) {
+  const entryFee = entryFeeForDifficulty(input.difficulty);
+  if (ownBalance < entryFee) {
     await env.DB.prepare('DELETE FROM ranked_queue WHERE player_id = ?')
       .bind(input.playerId)
       .run();
     throw new EconomyError(
       409,
-      'You need at least 100 Coins to enter an online match.',
+      `You need at least ${entryFee} Coins to enter this online match.`,
       'insufficient_coins',
     );
   }
@@ -674,7 +676,7 @@ async function coordinateRankedMatch(
 
     if (!opponent) break;
     const opponentBalance = await ensureStarterGrant(env, opponent.player_id);
-    if (opponentBalance >= MATCH_ENTRY_FEE) break;
+    if (opponentBalance >= entryFee) break;
     await env.DB.prepare('DELETE FROM ranked_queue WHERE player_id = ?')
       .bind(opponent.player_id)
       .run();

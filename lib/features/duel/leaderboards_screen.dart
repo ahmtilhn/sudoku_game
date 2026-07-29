@@ -17,11 +17,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen>
   final List<String> _scopes = <String>[
     'global',
     'friends',
-    'country',
-    'current_season',
-    'daily_tournament',
-    'weekend_tournament',
-    'countries',
+    for (final difficulty in SudokuDifficulty.values) difficulty.name,
   ];
 
   @override
@@ -61,11 +57,6 @@ String _scopeLabel(BuildContext context, String scope) {
   return switch (scope) {
     'global' => context.tr('global_elo'),
     'friends' => context.tr('friends'),
-    'country' => context.tr('country'),
-    'current_season' => context.tr('current_season'),
-    'daily_tournament' => context.tr('daily_tournament'),
-    'weekend_tournament' => context.tr('weekend_tournament'),
-    'countries' => context.tr('countries'),
     _ =>
       SudokuDifficulty.values.any((difficulty) => difficulty.name == scope)
           ? context.strings.difficultyLabel(
@@ -144,7 +135,6 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
               final games = (entry['gamesPlayed'] as num?)?.toInt() ?? 0;
               final winRate =
                   ((entry['winRate'] as num?)?.toDouble() ?? 0) * 100;
-              final country = entry['country']?.toString();
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(
@@ -152,13 +142,10 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
                   ),
                   title: Text(entry['displayName']?.toString() ?? 'Player'),
                   subtitle: Text(
-                    [
-                      context.tr('leaderboard_row', <Object>[
-                        games,
-                        winRate.round(),
-                      ]),
-                      if (country != null && country.isNotEmpty) country,
-                    ].join(' · '),
+                    context.tr('leaderboard_row', <Object>[
+                      games,
+                      winRate.round(),
+                    ]),
                   ),
                   trailing: Text(
                     '${entry['rating'] ?? 1000}',

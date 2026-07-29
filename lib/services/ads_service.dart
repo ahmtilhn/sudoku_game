@@ -30,8 +30,19 @@ class AdsService {
   Completer<void>? _rewardedInterstitialLoadCompleter;
   bool _initializing = false;
   bool _mobileAdsInitialized = false;
+  bool _noAds = false;
 
   bool get _supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  bool get noAds => _noAds;
+
+  void setNoAds(bool value) {
+    if (_noAds == value) return;
+    _noAds = value;
+    if (value) {
+      adsAvailable.value = false;
+      unawaited(_disposeLoadedAds());
+    }
+  }
 
   String get _rewardedAdUnitId {
     if (Platform.isAndroid) {
@@ -60,7 +71,7 @@ class AdsService {
   }
 
   Future<void> initialize() async {
-    if (!_supported || _initializing || _mobileAdsInitialized) return;
+    if (_noAds || !_supported || _initializing || _mobileAdsInitialized) return;
     _initializing = true;
     final completed = Completer<void>();
 
@@ -116,7 +127,7 @@ class AdsService {
   }
 
   Future<bool> showRewarded({String? verificationToken}) async {
-    if (!_supported) return false;
+    if (_noAds || !_supported) return false;
     if (!_mobileAdsInitialized) await initialize();
     if (!adsAvailable.value) return false;
 
@@ -169,7 +180,7 @@ class AdsService {
   }
 
   Future<bool> showRewardedInterstitial({String? verificationToken}) async {
-    if (!_supported) return false;
+    if (_noAds || !_supported) return false;
     if (!_mobileAdsInitialized) await initialize();
     if (!adsAvailable.value) return false;
 
@@ -225,7 +236,7 @@ class AdsService {
   }
 
   Future<void> showPrivacyOptions() async {
-    if (!_supported) return;
+    if (_noAds || !_supported) return;
     await ConsentForm.showPrivacyOptionsForm((error) {
       if (error != null) {
         debugPrint('UMP privacy options error: ${error.message}');
@@ -249,7 +260,12 @@ class AdsService {
   }
 
   Future<void> _loadRewardedAd() async {
-    if (!_supported || !_mobileAdsInitialized || !adsAvailable.value) return;
+    if (_noAds ||
+        !_supported ||
+        !_mobileAdsInitialized ||
+        !adsAvailable.value) {
+      return;
+    }
     if (_rewardedAd != null) return;
 
     final existing = _rewardedLoadCompleter;
@@ -266,6 +282,11 @@ class AdsService {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
+          if (_noAds) {
+            ad.dispose();
+            if (!completer.isCompleted) completer.complete();
+            return;
+          }
           _rewardedAd = ad;
           if (!completer.isCompleted) completer.complete();
         },
@@ -288,7 +309,12 @@ class AdsService {
   }
 
   Future<void> _loadRewardedInterstitialAd() async {
-    if (!_supported || !_mobileAdsInitialized || !adsAvailable.value) return;
+    if (_noAds ||
+        !_supported ||
+        !_mobileAdsInitialized ||
+        !adsAvailable.value) {
+      return;
+    }
     if (_rewardedInterstitialAd != null) return;
 
     final existing = _rewardedInterstitialLoadCompleter;
@@ -305,6 +331,11 @@ class AdsService {
       request: const AdRequest(),
       rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
         onAdLoaded: (ad) {
+          if (_noAds) {
+            ad.dispose();
+            if (!completer.isCompleted) completer.complete();
+            return;
+          }
           _rewardedInterstitialAd = ad;
           if (!completer.isCompleted) completer.complete();
         },
@@ -350,5 +381,14 @@ class AdsService {
       _metaAdvertiserTrackingEnabled,
     );
     await _facebookEvents.activateApp();
+  }
+
+  Future<void> _disposeLoadedAds() async {
+    final rewarded = _rewardedAd;
+    final interstitial = _rewardedInterstitialAd;
+    _rewardedAd = null;
+    _rewardedInterstitialAd = null;
+    await rewarded?.dispose();
+    await interstitial?.dispose();
   }
 }

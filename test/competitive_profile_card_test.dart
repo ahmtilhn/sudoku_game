@@ -12,8 +12,9 @@ void main() {
 
       expect(find.text('Ada'), findsOneWidget);
       expect(find.text('@ada · FRIEND1'), findsOneWidget);
-      expect(find.textContaining('No country'), findsOneWidget);
       expect(find.textContaining('1200'), findsWidgets);
+      expect(find.textContaining('No country'), findsNothing);
+      expect(find.textContaining('Tournament'), findsNothing);
     },
   );
 
@@ -38,7 +39,9 @@ void main() {
     );
 
     expect(find.byIcon(Icons.lock_outline), findsOneWidget);
-    expect(find.textContaining('TR'), findsOneWidget);
+    expect(find.textContaining('TR'), findsNothing);
+    expect(find.textContaining('Season'), findsNothing);
+    expect(find.textContaining('Tournament'), findsNothing);
     expect(find.text('First Duel Win'), findsOneWidget);
   });
 }

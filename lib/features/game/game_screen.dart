@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../core/formatters.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../services/ads_service.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 
@@ -262,7 +263,7 @@ class _GameScreenState extends State<GameScreen> {
                 ]),
               ),
             ),
-          if (widget.onRewardedContinue != null)
+          if (widget.onRewardedContinue != null && !AdsService.instance.noAds)
             TextButton.icon(
               onPressed: () =>
                   Navigator.of(dialogContext).pop(_LossAction.rewardedAd),

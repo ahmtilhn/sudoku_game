@@ -29,7 +29,7 @@ void main() {
         .setMockMethodCallHandler(localizationChannel, null);
   });
 
-  testWidgets('home shell exposes quick modes and profile settings', (
+  testWidgets('home focuses on Career and Online Duel without tab shell', (
     tester,
   ) async {
     final store = await LocalProgressStore.createInMemory();
@@ -38,27 +38,22 @@ void main() {
     await tester.pumpWidget(SudokuApp(store: store, strings: strings));
     await tester.pump();
 
-    expect(find.text('Quick Duel'), findsOneWidget);
-    expect(find.text('Quick modes'), findsOneWidget);
     expect(find.text('Career'), findsOneWidget);
-    expect(find.text('Daily Sudoku'), findsOneWidget);
-    expect(find.text('Ranked'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Practice'), 120);
-    await tester.pump();
-    expect(find.text('Practice'), findsOneWidget);
+    expect(find.text('Online Duel'), findsOneWidget);
+    expect(find.text('Daily Sudoku'), findsNothing);
+    expect(find.text('Ranked'), findsNothing);
+    expect(find.text('Practice'), findsNothing);
     expect(find.text('Protect your player account'), findsNothing);
     expect(find.byIcon(Icons.shield_outlined), findsNothing);
     expect(
       find.byWidgetPredicate(
         (widget) => widget is NavigationBar || widget is NavigationRail,
       ),
-      findsOneWidget,
+      findsNothing,
     );
 
-    await tester.tap(find.text('Profile'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Settings'), findsOneWidget);
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

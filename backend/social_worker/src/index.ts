@@ -11,7 +11,6 @@ import {
   shouldUpdateAlarm,
   terminalRoomCleanupDue,
 } from './cost_retention';
-import { MATCH_POT } from './economy';
 import {
   type ClientEnvelope,
   type DuelDifficulty,
@@ -1577,9 +1576,20 @@ export class GameRoom {
         deltaDifficulty: diffDeltaB,
       },
     };
-    const coinAmount = MATCH_POT;
+    const escrow = await this.env.DB.prepare(
+      `SELECT player_a_amount, player_b_amount, pot_amount
+       FROM match_coin_escrow
+       WHERE match_id = ? LIMIT 1`,
+    )
+      .bind(duel.matchId)
+      .first<{
+        player_a_amount: number;
+        player_b_amount: number;
+        pot_amount: number;
+      }>();
+    const coinAmount = Number(escrow?.pot_amount ?? 0);
     const coinStatements: D1PreparedStatement[] = [];
-    if (duel.winnerSeat !== null && duel.status !== 'cancelled') {
+    if (duel.winnerSeat !== null && duel.status !== 'cancelled' && coinAmount > 0) {
       const loserSeat = duel.winnerSeat === 'A' ? 'B' : 'A';
       const loserId = loserSeat === 'A' ? duel.playerA.player.id : duel.playerB.player.id;
       coinStatements.push(
@@ -1588,15 +1598,6 @@ export class GameRoom {
            VALUES (?, ?, ?, ?, ?)
            ON CONFLICT(match_id) DO NOTHING`,
         ).bind(duel.matchId, winnerId, loserId, coinAmount, now),
-        this.env.DB.prepare(
-          `UPDATE players
-           SET online_coins = online_coins + ?
-           WHERE id = ?
-             AND EXISTS (
-               SELECT 1 FROM match_coin_settlements
-               WHERE match_id = ? AND winner_id = ? AND applied_at = ?
-             )`,
-        ).bind(coinAmount, winnerId, duel.matchId, winnerId, now),
       );
     }
     const settlementHash = `${duel.matchId}:${duel.revision}:${duel.finishReason}:${winnerId ?? 'draw'}`;
@@ -1621,7 +1622,7 @@ export class GameRoom {
       ).bind(duel.status === 'cancelled' ? 'cancelled' : 'completed', duel.challengeId, 'accepted'),
       ...coinStatements,
     ]);
-    if (duel.winnerSeat !== null && duel.status !== 'cancelled') {
+    if (duel.winnerSeat !== null && duel.status !== 'cancelled' && coinAmount > 0) {
       const loserSeat = duel.winnerSeat === 'A' ? 'B' : 'A';
       const winnerBalance = await this.onlineCoinBalance(duel.winnerSeat === 'A' ? duel.playerA.player.id : duel.playerB.player.id);
       const loserBalance = await this.onlineCoinBalance(loserSeat === 'A' ? duel.playerA.player.id : duel.playerB.player.id);
@@ -1643,6 +1644,19 @@ export class GameRoom {
          SET winner_balance_after = ?, loser_balance_after = ?
          WHERE match_id = ?`,
       ).bind(winnerBalance, loserBalance, duel.matchId).run();
+    } else if (duel.winnerSeat === null && escrow) {
+      const balanceA = await this.onlineCoinBalance(duel.playerA.player.id);
+      const balanceB = await this.onlineCoinBalance(duel.playerB.player.id);
+      duel.coinResult = {
+        amount: 0,
+        winnerSeat: null,
+        loserSeat: null,
+        balances: { A: balanceA, B: balanceB },
+        deltas: {
+          A: Number(escrow.player_a_amount ?? 0),
+          B: Number(escrow.player_b_amount ?? 0),
+        },
+      };
     }
     duel.settled = true;
     await this.persist();

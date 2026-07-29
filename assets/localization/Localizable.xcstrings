@@ -5412,6 +5412,296 @@
         }
       }
     },
+    "online_duel_fee_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online entry starts at %1d Coin"
+          }
+        }
+      }
+    },
+    "finding_opponent_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finding Opponent"
+          }
+        }
+      }
+    },
+    "searching_similar_opponents": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching for opponents near your level..."
+          }
+        }
+      }
+    },
+    "searching_opponent_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching"
+          }
+        }
+      }
+    },
+    "ready_question": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Are You Ready?"
+          }
+        }
+      }
+    },
+    "ready_when_opponent_ready": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The game starts when both players are ready."
+          }
+        }
+      }
+    },
+    "waiting_opponent_ready": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for your opponent..."
+          }
+        }
+      }
+    },
+    "match_ready_prompt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap ready when you are set."
+          }
+        }
+      }
+    },
+    "elo_hint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your ELO rises when you win and falls when you lose."
+          }
+        }
+      }
+    },
+    "world": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "World"
+          }
+        }
+      }
+    },
+    "elo_unknown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ELO"
+          }
+        }
+      }
+    },
+    "opponent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opponent"
+          }
+        }
+      }
+    },
+    "home_progress_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d career levels · %2d Coin"
+          }
+        }
+      }
+    },
+    "coin_required_title_dynamic": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d Coin required"
+          }
+        }
+      }
+    },
+    "coin_required_body_dynamic": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each player contributes %1d Coin. The winner receives the %2d Coin pot."
+          }
+        }
+      }
+    },
+    "duel_fee_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d entry · %2d winner pot"
+          }
+        }
+      }
+    },
+    "balance_loading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Balance: ..."
+          }
+        }
+      }
+    },
+    "balance_coin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Balance: %1d Coin"
+          }
+        }
+      }
+    },
+    "skip": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip"
+          }
+        }
+      }
+    },
+    "earn_career_ad_coin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Earn %1d Coin"
+          }
+        }
+      }
+    },
+    "career_ad_reward_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Watch an optional rewarded ad after this completed puzzle."
+          }
+        }
+      }
+    },
+    "watch_and_earn_coin": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Watch and earn +%1d Coin"
+          }
+        }
+      }
+    },
+    "coin_added_wallet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d Coin added to your wallet."
+          }
+        }
+      }
+    },
+    "your_balance": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your balance"
+          }
+        }
+      }
+    },
+    "popular": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Popular"
+          }
+        }
+      }
+    },
+    "no_ads_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove ads"
+          }
+        }
+      }
+    },
+    "no_ads_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide rewarded ad offers on this player account."
+          }
+        }
+      }
+    },
+    "no_ads_owned": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ads are removed on this player account."
+          }
+        }
+      }
+    },
+    "restore_purchases": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore purchases"
+          }
+        }
+      }
+    },
     "ranked": {
       "localizations": {
         "en": {

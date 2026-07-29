@@ -222,8 +222,8 @@ class OnlineDuelCoinSettlement {
   });
 
   final int amount;
-  final OnlineDuelSeat winnerSeat;
-  final OnlineDuelSeat loserSeat;
+  final OnlineDuelSeat? winnerSeat;
+  final OnlineDuelSeat? loserSeat;
   final Map<OnlineDuelSeat, int> balances;
   final Map<OnlineDuelSeat, int> deltas;
 
@@ -232,8 +232,8 @@ class OnlineDuelCoinSettlement {
     if (json == null) return null;
     return OnlineDuelCoinSettlement(
       amount: (json['amount'] as num?)?.toInt() ?? 0,
-      winnerSeat: _seat(json['winnerSeat']?.toString()) ?? OnlineDuelSeat.a,
-      loserSeat: _seat(json['loserSeat']?.toString()) ?? OnlineDuelSeat.b,
+      winnerSeat: _seat(json['winnerSeat']?.toString()),
+      loserSeat: _seat(json['loserSeat']?.toString()),
       balances: _seatIntMap(json['balances']),
       deltas: _seatIntMap(json['deltas']),
     );

@@ -1,13 +1,24 @@
 import { applyDailyRewardState, unlockAchievement } from './competitive';
 
 export const STARTER_COINS = 1000;
-export const MATCH_ENTRY_FEE = 100;
-export const MATCH_POT = 200;
+export const ENTRY_FEES: Readonly<Record<DuelDifficultyKey, number>> = Object.freeze({
+  beginner: 100,
+  easy: 150,
+  medium: 250,
+  hard: 400,
+  expert: 650,
+});
+export const MINIMUM_ONLINE_BALANCE = ENTRY_FEES.beginner;
+export const MATCH_ENTRY_FEE = MINIMUM_ONLINE_BALANCE;
+export const MATCH_POT = MINIMUM_ONLINE_BALANCE * 2;
 export const DAILY_LOGIN_REWARD = 50;
 export const DAILY_AD_REWARD = 50;
 export const CAREER_AD_REWARD = 25;
 export const REMATCH_WINDOW_MS = 10_000;
 export const DEBUG_UNLIMITED_COINS_BALANCE = 999999999;
+export const NO_ADS_PRODUCT_ID = 'no_ads';
+
+export type DuelDifficultyKey = 'beginner' | 'easy' | 'medium' | 'hard' | 'expert';
 
 export const COIN_PRODUCTS: Readonly<Record<string, number>> = Object.freeze({
   coins_100: 100,
@@ -18,6 +29,16 @@ export const COIN_PRODUCTS: Readonly<Record<string, number>> = Object.freeze({
   coins_50000: 50000,
   coins_100000: 100000,
 });
+
+export function entryFeeForDifficulty(difficulty: string): number {
+  const fee = ENTRY_FEES[difficulty as DuelDifficultyKey];
+  if (!fee) throw new EconomyError(400, 'Invalid difficulty.', 'invalid_difficulty');
+  return fee;
+}
+
+export function potForDifficulty(difficulty: string): number {
+  return entryFeeForDifficulty(difficulty) * 2;
+}
 
 export interface EconomyEnv {
   DB: D1Database;
@@ -135,10 +156,10 @@ export async function walletSnapshot(
   nextReset.setUTCDate(nextReset.getUTCDate() + 1);
   return {
     balance,
-    canEnterOnline: balance >= MATCH_ENTRY_FEE,
-    minimumOnlineBalance: MATCH_ENTRY_FEE,
-    entryFee: MATCH_ENTRY_FEE,
-    winnerPot: MATCH_POT,
+    canEnterOnline: balance >= MINIMUM_ONLINE_BALANCE,
+    minimumOnlineBalance: MINIMUM_ONLINE_BALANCE,
+    entryFees: ENTRY_FEES,
+    entitlements: await entitlementSnapshot(env, playerId),
     starterGrant: STARTER_COINS,
     dailyLogin: {
       amount: DAILY_LOGIN_REWARD,
@@ -422,8 +443,14 @@ export async function createFundedMatch(
     coinBalance(env, input.playerAId),
     coinBalance(env, input.playerBId),
   ]);
-  if (aBalance < MATCH_ENTRY_FEE || bBalance < MATCH_ENTRY_FEE) {
-    throw new EconomyError(409, 'Both players need at least 100 Coins.', 'insufficient_coins');
+  const entryFee = entryFeeForDifficulty(input.difficulty);
+  const pot = entryFee * 2;
+  if (aBalance < entryFee || bBalance < entryFee) {
+    throw new EconomyError(
+      409,
+      `Both players need at least ${entryFee} Coins.`,
+      'insufficient_coins',
+    );
   }
 
   const aKey = `match_entry:${input.matchId}:${input.playerAId}`;
@@ -431,7 +458,7 @@ export async function createFundedMatch(
   await env.DB.batch([
     env.DB.prepare(
       'UPDATE players SET online_coins = online_coins - ?, updated_at = ? WHERE id = ? AND online_coins >= ?',
-    ).bind(MATCH_ENTRY_FEE, input.now, input.playerAId, MATCH_ENTRY_FEE),
+    ).bind(entryFee, input.now, input.playerAId, entryFee),
     env.DB.prepare(
       `INSERT INTO coin_ledger (
          id, player_id, amount, balance_after, reason,
@@ -441,16 +468,16 @@ export async function createFundedMatch(
     ).bind(
       crypto.randomUUID(),
       input.playerAId,
-      -MATCH_ENTRY_FEE,
+      -entryFee,
       input.playerAId,
       input.matchId,
       aKey,
-      JSON.stringify({ entryFee: MATCH_ENTRY_FEE, pot: MATCH_POT }),
+      JSON.stringify({ entryFee, pot }),
       input.now,
     ),
     env.DB.prepare(
       'UPDATE players SET online_coins = online_coins - ?, updated_at = ? WHERE id = ? AND online_coins >= ?',
-    ).bind(MATCH_ENTRY_FEE, input.now, input.playerBId, MATCH_ENTRY_FEE),
+    ).bind(entryFee, input.now, input.playerBId, entryFee),
     env.DB.prepare(
       `INSERT INTO coin_ledger (
          id, player_id, amount, balance_after, reason,
@@ -460,11 +487,11 @@ export async function createFundedMatch(
     ).bind(
       crypto.randomUUID(),
       input.playerBId,
-      -MATCH_ENTRY_FEE,
+      -entryFee,
       input.playerBId,
       input.matchId,
       bKey,
-      JSON.stringify({ entryFee: MATCH_ENTRY_FEE, pot: MATCH_POT }),
+      JSON.stringify({ entryFee, pot }),
       input.now,
     ),
     env.DB.prepare(
@@ -487,8 +514,8 @@ export async function createFundedMatch(
       `INSERT INTO match_coin_escrow (
          match_id, player_a_id, player_b_id, player_a_amount,
          player_b_amount, pot_amount, status, funded_at
-       ) VALUES (?, ?, ?, 100, 100, 200, 'funded', ?)`,
-    ).bind(input.matchId, input.playerAId, input.playerBId, input.now),
+       ) VALUES (?, ?, ?, ?, ?, ?, 'funded', ?)`,
+    ).bind(input.matchId, input.playerAId, input.playerBId, entryFee, entryFee, pot, input.now),
     env.DB.prepare(
       'DELETE FROM ranked_queue WHERE player_id IN (?, ?)',
     ).bind(input.playerAId, input.playerBId),
@@ -523,8 +550,13 @@ export async function createRematchInvitation(
       : null;
   if (!recipientId) throw new EconomyError(403, 'You are not a participant in this match.');
   const balance = await ensureStarterGrant(env, senderId);
-  if (balance < MATCH_ENTRY_FEE) {
-    throw new EconomyError(409, 'You need at least 100 Coins to request a rematch.', 'insufficient_coins');
+  const entryFee = entryFeeForDifficulty(match.difficulty);
+  if (balance < entryFee) {
+    throw new EconomyError(
+      409,
+      `You need at least ${entryFee} Coins to request a rematch.`,
+      'insufficient_coins',
+    );
   }
 
   const now = new Date();
@@ -645,8 +677,18 @@ export async function grantTestPurchase(
     verificationData: string;
   },
 ): Promise<Record<string, unknown>> {
+  if (input.productId === NO_ADS_PRODUCT_ID) {
+    const granted = await grantNoAdsEntitlement(env, {
+      playerId: input.playerId,
+      platform: input.platform,
+      productId: input.productId,
+      transactionId: input.transactionId,
+      verificationData: input.verificationData,
+    });
+    return { granted, amount: 0, ...(await walletSnapshot(env, input.playerId)) };
+  }
   const amount = COIN_PRODUCTS[input.productId];
-  if (!amount) throw new EconomyError(400, 'Unknown Coin product.');
+  if (!amount) throw new EconomyError(400, 'Unknown store product.');
   const isProduction = (env.ENVIRONMENT ?? '').toLowerCase() === 'production';
   const allowTest = (env.ALLOW_TEST_PURCHASE_GRANTS ?? '').toLowerCase() === 'true';
   if (isProduction || !allowTest) {
@@ -698,6 +740,74 @@ export async function grantTestPurchase(
     });
   }
   return { granted: !existing, amount: existing ? 0 : amount, ...(await walletSnapshot(env, input.playerId)) };
+}
+
+export async function entitlementSnapshot(
+  env: EconomyEnv,
+  playerId: string,
+): Promise<Record<string, boolean>> {
+  const row = await env.DB.prepare(
+    `SELECT 1 FROM player_entitlements
+     WHERE player_id = ? AND entitlement_key = 'no_ads' AND revoked_at IS NULL
+     LIMIT 1`,
+  )
+    .bind(playerId)
+    .first();
+  return { noAds: !!row };
+}
+
+export async function grantNoAdsEntitlement(
+  env: EconomyEnv,
+  input: {
+    playerId: string;
+    platform: 'android' | 'ios';
+    productId: string;
+    transactionId: string;
+    verificationData: string;
+  },
+): Promise<boolean> {
+  if (input.productId !== NO_ADS_PRODUCT_ID) {
+    throw new EconomyError(400, 'Unknown entitlement product.', 'unknown_product');
+  }
+  const verificationHash = await sha256Hex(
+    `${input.platform}:${input.productId}:${input.transactionId}:${input.verificationData}`,
+  );
+  const existingSource = await env.DB.prepare(
+    `SELECT player_id FROM player_entitlements
+     WHERE source_transaction_id = ? OR verification_hash = ?
+     LIMIT 1`,
+  )
+    .bind(input.transactionId, verificationHash)
+    .first<{ player_id: string }>();
+  if (existingSource && existingSource.player_id !== input.playerId) {
+    throw new EconomyError(409, 'This store transaction was already used.', 'purchase_replayed');
+  }
+  const now = new Date().toISOString();
+  const inserted = await env.DB.prepare(
+    `INSERT INTO player_entitlements (
+       id, player_id, entitlement_key, source_platform, source_product_id,
+       source_transaction_id, verification_hash, granted_at, updated_at
+     ) VALUES (?, ?, 'no_ads', ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(player_id, entitlement_key) DO UPDATE SET
+       source_platform = excluded.source_platform,
+       source_product_id = excluded.source_product_id,
+       source_transaction_id = excluded.source_transaction_id,
+       verification_hash = excluded.verification_hash,
+       revoked_at = NULL,
+       updated_at = excluded.updated_at`,
+  )
+    .bind(
+      crypto.randomUUID(),
+      input.playerId,
+      input.platform,
+      input.productId,
+      input.transactionId,
+      verificationHash,
+      now,
+      now,
+    )
+    .run();
+  return (inserted.meta.changes ?? 0) > 0 && !existingSource;
 }
 
 export async function coinBalance(env: EconomyEnv, playerId: string): Promise<number> {
