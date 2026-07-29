@@ -12,8 +12,16 @@ import '../../services/platform_game_services.dart';
 import '../../services/player_profile_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/adaptive_app_shell.dart';
+import '../career/career_screen.dart';
+import '../daily/daily_screen.dart';
+import '../duel/leaderboards_screen.dart';
+import '../duel/matchmaking_screen.dart';
 import '../duel/online_duel_screen.dart';
 import '../home/home_screen.dart';
+import 'platform_social_screen.dart';
+import '../settings/settings_screen.dart';
+import '../tutorial/tutorial_screen.dart';
 
 class PlayerIdentityGate extends StatefulWidget {
   const PlayerIdentityGate({super.key, required this.store});
@@ -49,7 +57,14 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
   }
 
   @override
-  Widget build(BuildContext context) => HomeScreen(store: widget.store);
+  Widget build(BuildContext context) {
+    return AdaptiveAppShell(
+      home: HomeScreen(store: widget.store),
+      play: _PlayHubScreen(store: widget.store),
+      compete: const _CompeteHubScreen(),
+      profile: _ProfileHubScreen(store: widget.store),
+    );
+  }
 
   void _onOpenedRematch() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -334,6 +349,122 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
         : base;
     return '${trimmed}_$suffix';
   }
+}
+
+class _PlayHubScreen extends StatelessWidget {
+  const _PlayHubScreen({required this.store});
+
+  final LocalProgressStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(context.tr('play'))),
+      body: AdaptivePageContainer(
+        child: ListView(
+          children: [
+            ModeTile(
+              icon: Icons.casino_outlined,
+              title: context.tr('career'),
+              subtitle: context.tr('career_random_subtitle'),
+              onTap: () => _open(context, CareerScreen(store: store)),
+            ),
+            const SizedBox(height: 10),
+            ModeTile(
+              icon: Icons.today_outlined,
+              title: context.tr('daily_sudoku'),
+              subtitle: context.tr('daily_subtitle'),
+              onTap: () => _open(context, DailyScreen(store: store)),
+            ),
+            const SizedBox(height: 10),
+            ModeTile(
+              icon: Icons.school_outlined,
+              title: context.tr('how_to_play'),
+              subtitle: store.tutorialCompleted
+                  ? context.tr('tutorial_repeat')
+                  : context.tr('tutorial_new'),
+              onTap: () => _open(context, TutorialScreen(store: store)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompeteHubScreen extends StatelessWidget {
+  const _CompeteHubScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(context.tr('compete'))),
+      body: AdaptivePageContainer(
+        child: ListView(
+          children: [
+            ModeTile(
+              icon: Icons.public,
+              title: context.tr('online_duel'),
+              subtitle: context.tr('online_duel_subtitle'),
+              onTap: () => _open(context, const MatchmakingScreen()),
+            ),
+            const SizedBox(height: 10),
+            ModeTile(
+              icon: Icons.leaderboard_outlined,
+              title: context.tr('leaderboards'),
+              subtitle: context.tr('global_elo'),
+              onTap: () => _open(context, const LeaderboardsScreen()),
+            ),
+            const SizedBox(height: 10),
+            ModeTile(
+              icon: Icons.people_alt_outlined,
+              title: context.tr('friends_challenges'),
+              subtitle: context.tr('friend_requests'),
+              onTap: () => _open(context, const PlatformSocialScreen()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileHubScreen extends StatelessWidget {
+  const _ProfileHubScreen({required this.store});
+
+  final LocalProgressStore store;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(context.tr('profile'))),
+      body: AdaptivePageContainer(
+        child: ListView(
+          children: [
+            ModeTile(
+              icon: Icons.person_outline,
+              title: context.tr('player_profile'),
+              subtitle: context.tr('shown_to_other_players'),
+              onTap: () => _open(context, const PlatformSocialScreen()),
+            ),
+            const SizedBox(height: 10),
+            ModeTile(
+              icon: Icons.settings_outlined,
+              title: context.tr('settings'),
+              subtitle: context.tr('appearance'),
+              onTap: () => _open(context, SettingsScreen(store: store)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _open(BuildContext context, Widget screen) {
+  return Navigator.of(
+    context,
+  ).push<void>(MaterialPageRoute(builder: (_) => screen));
 }
 
 class _RematchPushDialog extends StatefulWidget {

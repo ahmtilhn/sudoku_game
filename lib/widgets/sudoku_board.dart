@@ -44,11 +44,19 @@ class SudokuBoard extends StatelessWidget {
         aspectRatio: 1,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            border: Border.all(color: scheme.onSurface, width: 2),
-            borderRadius: BorderRadius.circular(10),
+            color: scheme.surfaceContainerLow,
+            border: Border.all(color: scheme.outline, width: 1.4),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.shadow.withAlpha(18),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(14),
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
               padding: EdgeInsets.zero,
@@ -160,6 +168,9 @@ class SudokuBoard extends StatelessWidget {
                                       fontWeight: locked
                                           ? FontWeight.w800
                                           : FontWeight.w600,
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures(),
+                                      ],
                                       color: hinted
                                           ? scheme.onTertiaryContainer
                                           : fixed

@@ -46,6 +46,10 @@ class AppStrings {
 
   static const Map<String, String> english = <String, String>{
     'app_name': 'Sudoku Duel',
+    'home': 'Home',
+    'play': 'Play',
+    'compete': 'Compete',
+    'profile': 'Profile',
     'settings': 'Settings',
     'career': 'Career',
     'career_subtitle': 'Progress from beginner to expert',
@@ -74,6 +78,11 @@ class AppStrings {
     'local_practice': 'Play local practice',
     'friend_requests': 'Friend requests',
     'friends_challenges': 'Friends & challenges',
+    'quick_modes': 'Quick modes',
+    'quick_duel': 'Quick Duel',
+    'quick_duel_body': 'Find a ranked opponent at your selected difficulty.',
+    'ranked': 'Ranked',
+    'practice': 'Practice',
     'dismiss': 'Dismiss',
     'coin_required_title': '100 Coin required',
     'coin_required_body':

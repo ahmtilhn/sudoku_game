@@ -78,14 +78,12 @@ class NumberPad extends StatelessWidget {
       builder: (context, constraints) {
         final compact = maxValue == 9 && constraints.maxWidth < 430;
         final spacing = compact ? 4.0 : 8.0;
-        final availableWidth =
-            constraints.maxWidth - (spacing * (maxValue - 1));
-        final buttonWidth = compact
-            ? (availableWidth / maxValue).clamp(32.0, 46.0)
-            : maxValue == 9
-            ? 52.0
-            : 64.0;
-        final buttonHeight = compact ? 44.0 : 54.0;
+        final oneRowWidth = constraints.maxWidth - (spacing * (maxValue - 1));
+        final oneRowButtonWidth = oneRowWidth / maxValue;
+        final buttonWidth = oneRowButtonWidth >= 48
+            ? oneRowButtonWidth.clamp(48.0, maxValue == 9 ? 58.0 : 72.0)
+            : 56.0;
+        final buttonHeight = compact ? 48.0 : 54.0;
 
         return AnimatedOpacity(
           duration: const Duration(milliseconds: 180),
@@ -112,8 +110,7 @@ class NumberPad extends StatelessWidget {
                                 : null,
                             style: FilledButton.styleFrom(
                               padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              minimumSize: const Size(48, 48),
                               backgroundColor: scheme.secondaryContainer,
                               foregroundColor: scheme.onSecondaryContainer,
                             ),

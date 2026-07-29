@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sudoku_game/core/app_theme.dart';
 import 'package:sudoku_game/features/duel/online_duel_screen.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
 import 'package:sudoku_game/services/online_duel_controller.dart';
@@ -99,14 +100,45 @@ void main() {
       );
 
       expect(tester.takeException(), isNull, reason: variant.label);
-      expect(find.text('You'), findsWidgets);
-      expect(find.text('Bob'), findsWidgets);
       expect(find.text('I am ready'), findsOneWidget);
       expect(find.byKey(const ValueKey<String>('number-9')), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     }
+  });
+
+  testWidgets('online active state has one timer no turn banner or ELO badge', (
+    tester,
+  ) async {
+    await _pumpOnlineDuel(tester, size: const Size(390, 844), status: 'active');
+
+    expect(find.text('Your turn'), findsNothing);
+    expect(find.text("Opponent's turn"), findsNothing);
+    expect(find.textContaining('Move time'), findsNothing);
+    expect(find.textContaining('ELO'), findsNothing);
+    expect(find.byIcon(Icons.military_tech_outlined), findsNothing);
+    expect(find.byType(ColorFiltered), findsNothing);
+    expect(find.byType(RepaintBoundary), findsWidgets);
+    expect(find.text('You'), findsWidgets);
+    expect(find.text('Bob'), findsWidgets);
+    expect(find.byIcon(Icons.timer_outlined), findsOneWidget);
+  });
+
+  testWidgets('opponent turn keeps board readable and disables number input', (
+    tester,
+  ) async {
+    await _pumpOnlineDuel(
+      tester,
+      size: const Size(390, 844),
+      currentTurnSeat: 'B',
+    );
+
+    expect(find.byType(ColorFiltered), findsNothing);
+    final numberButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('number-1')),
+    );
+    expect(numberButton.onPressed, isNull);
   });
 }
 
@@ -117,6 +149,8 @@ Future<void> _pumpOnlineDuel(
   bool highContrast = false,
   double textScale = 1,
   TextDirection textDirection = TextDirection.ltr,
+  String status = 'ready_window',
+  String currentTurnSeat = 'A',
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -128,14 +162,9 @@ Future<void> _pumpOnlineDuel(
     AppStringsScope(
       strings: strings,
       child: MaterialApp(
-        theme: ThemeData(
-          useMaterial3: true,
-          brightness: brightness,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: highContrast ? Colors.blue : Colors.teal,
-            brightness: brightness,
-          ),
-        ),
+        theme: brightness == Brightness.dark
+            ? AppTheme.dark(highContrast: highContrast)
+            : AppTheme.light(highContrast: highContrast),
         builder: (context, child) {
           final data = MediaQuery.of(context).copyWith(
             highContrast: highContrast,
@@ -154,7 +183,12 @@ Future<void> _pumpOnlineDuel(
     ),
   );
   await tester.pump();
-  transport.emit(_event('snapshot', _snapshot(status: 'ready_window')));
+  transport.emit(
+    _event(
+      'snapshot',
+      _snapshot(status: status, currentTurnSeat: currentTurnSeat),
+    ),
+  );
   await tester.pump();
   await tester.pump();
 }
@@ -186,7 +220,10 @@ OnlineDuelEvent _event(String type, Map<String, dynamic> payload) {
   );
 }
 
-Map<String, dynamic> _snapshot({String status = 'active'}) {
+Map<String, dynamic> _snapshot({
+  String status = 'active',
+  String currentTurnSeat = 'A',
+}) {
   final puzzle = List<int>.filled(81, 0)..[0] = 1;
   final now = DateTime.now();
   return {
@@ -222,7 +259,7 @@ Map<String, dynamic> _snapshot({String status = 'active'}) {
     'mistakes': {'A': 0, 'B': 0},
     'correctMoves': {'A': 0, 'B': 0},
     'timeouts': {'A': 0, 'B': 0},
-    'currentTurnSeat': 'A',
+    'currentTurnSeat': currentTurnSeat,
     'turnNumber': 1,
     'readyDeadline': now
         .add(const Duration(seconds: 10))

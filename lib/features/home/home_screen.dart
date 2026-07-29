@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
-import '../../services/firebase_session_service.dart';
-import '../../widgets/menu_card.dart';
+import '../../widgets/adaptive_app_shell.dart';
+import '../../widgets/player_avatar.dart';
 import '../career/career_screen.dart';
 import '../daily/daily_screen.dart';
 import '../duel/matchmaking_screen.dart';
 import '../economy/coin_store_screen.dart';
-import '../settings/account_protection_screen.dart';
-import '../settings/settings_screen.dart';
 import '../tutorial/tutorial_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -45,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final protectedAccount = FirebaseSessionService.isProtected;
     return Scaffold(
       appBar: AppBar(
         title: Text(context.tr('app_name')),
@@ -58,30 +54,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(width: 4),
-          ActionChip(
-            avatar: const Icon(Icons.monetization_on_outlined, size: 18),
-            label: Text(
-              _economy.loading && _economy.wallet == null
-                  ? '…'
-                  : NumberFormat.compact().format(_economy.balance),
-            ),
+          CoinPill(
+            balance: _economy.balance,
+            loading: _economy.loading && _economy.wallet == null,
             onPressed: () => _open(context, const CoinStoreScreen()),
-          ),
-          IconButton(
-            tooltip: protectedAccount
-                ? context.tr('player_account_protected')
-                : context.tr('protect_player_account'),
-            onPressed: () async {
-              await _open(context, const AccountProtectionScreen());
-              if (mounted) setState(() {});
-            },
-            icon: Icon(protectedAccount ? Icons.shield : Icons.shield_outlined),
-          ),
-          IconButton(
-            tooltip: context.tr('settings'),
-            onPressed: () =>
-                _open(context, SettingsScreen(store: widget.store)),
-            icon: const Icon(Icons.settings_outlined),
           ),
           const SizedBox(width: 6),
         ],
@@ -101,59 +77,43 @@ class _HomeScreenState extends State<HomeScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                       children: [
-                        if (!FirebaseSessionService.isProtected) ...[
-                          _AccountProtectionBanner(
-                            onOpen: () async {
-                              await _open(
-                                context,
-                                const AccountProtectionScreen(),
-                              );
-                              if (mounted) setState(() {});
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        _WelcomePanel(store: widget.store),
-                        const SizedBox(height: 12),
-                        _EconomyPanel(economy: _economy),
-                        const SizedBox(height: 18),
-                        MenuCard(
+                        _PlayerSummary(store: widget.store, economy: _economy),
+                        const SizedBox(height: 16),
+                        _PrimaryHomeAction(
+                          economy: _economy,
+                          onQuickDuel: () =>
+                              _open(context, const MatchmakingScreen()),
+                        ),
+                        const SizedBox(height: 24),
+                        SectionHeader(title: context.tr('quick_modes')),
+                        const SizedBox(height: 10),
+                        ModeTile(
                           icon: Icons.casino_outlined,
                           title: context.tr('career'),
                           subtitle: context.tr('career_random_subtitle'),
-                          trailing: Text(
-                            context.tr('completed_levels', <Object>[
-                              widget.store.completedLevelCount,
-                            ]),
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
                           onTap: () =>
                               _open(context, CareerScreen(store: widget.store)),
                         ),
-                        const SizedBox(height: 12),
-                        MenuCard(
-                          icon: Icons.public,
-                          title: context.tr('online_duel'),
-                          subtitle:
-                              '${context.tr('online_duel_subtitle')} · ${_economy.entryFee} Coin',
-                          trailing: _economy.canEnterOnline
-                              ? const Icon(Icons.chevron_right_rounded)
-                              : const Icon(Icons.lock_outline_rounded),
-                          onTap: () =>
-                              _open(context, const MatchmakingScreen()),
-                        ),
-                        const SizedBox(height: 12),
-                        MenuCard(
+                        const SizedBox(height: 10),
+                        ModeTile(
                           icon: Icons.today_outlined,
                           title: context.tr('daily_sudoku'),
                           subtitle: context.tr('daily_subtitle'),
                           onTap: () =>
                               _open(context, DailyScreen(store: widget.store)),
                         ),
-                        const SizedBox(height: 12),
-                        MenuCard(
+                        const SizedBox(height: 10),
+                        ModeTile(
+                          icon: Icons.emoji_events_outlined,
+                          title: context.tr('ranked'),
+                          subtitle: context.tr('online_duel_subtitle'),
+                          onTap: () =>
+                              _open(context, const MatchmakingScreen()),
+                        ),
+                        const SizedBox(height: 10),
+                        ModeTile(
                           icon: Icons.school_outlined,
-                          title: context.tr('how_to_play'),
+                          title: context.tr('practice'),
                           subtitle: widget.store.tutorialCompleted
                               ? context.tr('tutorial_repeat')
                               : context.tr('tutorial_new'),
@@ -181,253 +141,108 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _AccountProtectionBanner extends StatelessWidget {
-  const _AccountProtectionBanner({required this.onOpen});
+class _PlayerSummary extends StatelessWidget {
+  const _PlayerSummary({required this.store, required this.economy});
 
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: scheme.secondaryContainer,
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.shield_outlined, color: scheme.onSecondaryContainer),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.tr('protect_your_player_account'),
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: scheme.onSecondaryContainer,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    context.tr('account_protection_banner_body'),
-                    style: TextStyle(color: scheme.onSecondaryContainer),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 6),
-            TextButton(onPressed: onOpen, child: Text(context.tr('protect'))),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EconomyPanel extends StatelessWidget {
-  const _EconomyPanel({required this.economy});
-
+  final LocalProgressStore store;
   final EconomyService economy;
 
   @override
   Widget build(BuildContext context) {
-    final wallet = economy.wallet;
     final scheme = Theme.of(context).colorScheme;
-    if (wallet == null && economy.loading) {
-      return const SizedBox(
-        height: 76,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (wallet == null) {
-      return Material(
-        color: scheme.errorContainer,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
+    return Row(
+      children: [
+        PlayerAvatar(
+          displayName: context.tr('you'),
+          avatarKey: 'home-${store.completedLevelCount}',
+          radius: 24,
+          semanticLabel: context.tr('player_avatar_semantics', <Object>[
+            context.tr('you'),
+          ]),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.cloud_off_outlined, color: scheme.onErrorContainer),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  economy.error ?? 'Coin balance is temporarily unavailable.',
-                  style: TextStyle(color: scheme.onErrorContainer),
-                ),
+              Text(
+                context.tr('you'),
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-              IconButton(
-                tooltip: 'Retry',
-                onPressed: economy.refresh,
-                icon: Icon(Icons.refresh, color: scheme.onErrorContainer),
+              const SizedBox(height: 2),
+              Text(
+                context.tr('completed_levels', <Object>[
+                  store.completedLevelCount,
+                ]),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
           ),
         ),
-      );
-    }
+        CoinPill(
+          balance: economy.balance,
+          loading: economy.loading && economy.wallet == null,
+          onPressed: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const CoinStoreScreen())),
+        ),
+      ],
+    );
+  }
+}
 
-    return Card(
-      margin: EdgeInsets.zero,
+class _PrimaryHomeAction extends StatelessWidget {
+  const _PrimaryHomeAction({required this.economy, required this.onQuickDuel});
+
+  final EconomyService economy;
+  final VoidCallback onQuickDuel;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(18),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.card_giftcard_rounded, color: scheme.primary),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Daily rewards',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
-                  ),
-                  icon: const Icon(Icons.storefront_outlined),
-                  label: const Text('Store'),
-                ),
-              ],
+            Text(
+              context.tr('quick_duel'),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: scheme.onPrimaryContainer,
+              ),
             ),
-            const SizedBox(height: 10),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final stack = constraints.maxWidth < 470;
-                final login = _RewardButton(
-                  icon: Icons.calendar_today_outlined,
-                  label: wallet.dailyLoginAvailable
-                      ? 'Claim +${wallet.dailyLoginAmount}'
-                      : 'Login reward claimed',
-                  busy: economy.claimingDaily,
-                  onPressed: wallet.dailyLoginAvailable
-                      ? economy.claimDailyLogin
-                      : null,
-                );
-                final ad = _RewardButton(
-                  icon: Icons.ondemand_video_outlined,
-                  label: wallet.dailyAdAvailable
-                      ? 'Watch +${wallet.dailyAdAmount}'
-                      : 'Ad reward claimed',
-                  busy: economy.showingDailyAd,
-                  onPressed: wallet.dailyAdAvailable
-                      ? economy.claimDailyRewardedAd
-                      : null,
-                );
-                if (stack) {
-                  return Column(
-                    children: [
-                      SizedBox(width: double.infinity, child: login),
-                      const SizedBox(height: 8),
-                      SizedBox(width: double.infinity, child: ad),
-                    ],
-                  );
-                }
-                return Row(
-                  children: [
-                    Expanded(child: login),
-                    const SizedBox(width: 10),
-                    Expanded(child: ad),
-                  ],
-                );
-              },
+            const SizedBox(height: 4),
+            Text(
+              context.tr('quick_duel_body'),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: scheme.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onQuickDuel,
+              icon: Icon(
+                economy.canEnterOnline ? Icons.public : Icons.lock_outline,
+              ),
+              label: Text(
+                economy.canEnterOnline
+                    ? context.tr('find_opponent')
+                    : context.tr('open_coin_store'),
+              ),
             ),
             if (economy.error != null) ...[
-              const SizedBox(height: 8),
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Text(
-                  economy.error!,
-                  style: TextStyle(color: scheme.error),
-                ),
-              ),
+              const SizedBox(height: 10),
+              Text(economy.error!, style: TextStyle(color: scheme.error)),
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _RewardButton extends StatelessWidget {
-  const _RewardButton({
-    required this.icon,
-    required this.label,
-    required this.busy,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool busy;
-  final Future<bool> Function()? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.tonalIcon(
-      onPressed: busy || onPressed == null
-          ? null
-          : () async {
-              final success = await onPressed!();
-              if (!context.mounted || !success) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Coin reward added.')),
-              );
-            },
-      icon: busy
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(icon),
-      label: Text(label, overflow: TextOverflow.ellipsis),
-    );
-  }
-}
-
-class _WelcomePanel extends StatelessWidget {
-  const _WelcomePanel({required this.store});
-
-  final LocalProgressStore store;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            store.tutorialCompleted
-                ? context.tr('welcome_returning_title')
-                : context.tr('welcome_new_title'),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: scheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            store.tutorialCompleted
-                ? context.tr('welcome_returning_body')
-                : context.tr('welcome_new_body'),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: scheme.onPrimaryContainer),
-          ),
-        ],
       ),
     );
   }

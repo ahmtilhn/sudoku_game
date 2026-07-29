@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/app_theme.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
@@ -27,29 +28,6 @@ class OnlineDuelScreen extends StatefulWidget {
 }
 
 class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
-  static const List<double> _grayscaleMatrix = <double>[
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0.2126,
-    0.7152,
-    0.0722,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-  ];
-
   OnlineDuelController? _controller;
   StreamSubscription<OnlineDuelSnapshot>? _subscription;
   StreamSubscription<OnlineDuelFeedback>? _feedbackSubscription;
@@ -61,7 +39,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   final Set<int> _opponentMoveIndexes = <int>{};
   bool _loading = true;
   bool _screenLoadedSent = false;
-  Timer? _ticker;
   Timer? _feedbackTimer;
   Timer? _progressTimer;
   String? _shownResultFor;
@@ -69,9 +46,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   @override
   void initState() {
     super.initState();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
     unawaited(_connect());
   }
 
@@ -80,7 +54,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     unawaited(_subscription?.cancel());
     unawaited(_feedbackSubscription?.cancel());
     unawaited(_controller?.dispose());
-    _ticker?.cancel();
     _feedbackTimer?.cancel();
     _progressTimer?.cancel();
     super.dispose();
@@ -282,83 +255,49 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final textScale = media.textScaler.scale(1).clamp(0.8, 1.18).toDouble();
     final snapshot = _snapshot;
-    final waitingForOpponent =
+    final inputLocked =
         snapshot != null &&
-        snapshot.status == OnlineDuelStatus.active &&
-        !snapshot.isLocalTurn;
-    return MediaQuery(
-      data: media.copyWith(textScaler: TextScaler.linear(textScale)),
-      child: PopScope(
-        canPop: snapshot?.isFinished ?? true,
-        onPopInvokedWithResult: (didPop, _) async {
-          if (!didPop && await _confirmLeave() && context.mounted) {
-            Navigator.of(context).pop();
-          }
-        },
-        child: Scaffold(
-          appBar: AppBar(
-            toolbarHeight: 48,
-            titleSpacing: 16,
-            title: Text(context.tr('online_duel')),
+        (snapshot.isFinished ||
+            !snapshot.isLocalTurn ||
+            _controller?.pendingMove == true);
+    return PopScope(
+      canPop: snapshot?.isFinished ?? true,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (!didPop && await _confirmLeave() && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: 48,
+          titleSpacing: 16,
+          title: Text(
+            snapshot == null
+                ? context.tr('online_duel')
+                : context.strings.difficultyLabel(
+                    _difficulty(snapshot.difficulty),
+                  ),
           ),
-          bottomNavigationBar: snapshot == null
-              ? null
-              : AnimatedOpacity(
-                  duration: const Duration(milliseconds: 240),
-                  opacity: waitingForOpponent ? 0.58 : 1,
-                  child: ColorFiltered(
-                    colorFilter: ColorFilter.matrix(
-                      waitingForOpponent
-                          ? _grayscaleMatrix
-                          : const <double>[
-                              1,
-                              0,
-                              0,
-                              0,
-                              0,
-                              0,
-                              1,
-                              0,
-                              0,
-                              0,
-                              0,
-                              0,
-                              1,
-                              0,
-                              0,
-                              0,
-                              0,
-                              0,
-                              1,
-                              0,
-                            ],
+        ),
+        bottomNavigationBar: snapshot == null
+            ? null
+            : IgnorePointer(
+                ignoring: inputLocked,
+                child: NumberPadDock(
+                  child: NumberPad(
+                    maxValue: 9,
+                    completedValues: completedSudokuNumbers(
+                      board: snapshot.board,
+                      maxValue: 9,
                     ),
-                    child: IgnorePointer(
-                      ignoring:
-                          snapshot.isFinished ||
-                          _controller?.pendingMove == true,
-                      child: NumberPadDock(
-                        child: NumberPad(
-                          maxValue: 9,
-                          completedValues: completedSudokuNumbers(
-                            board: snapshot.board,
-                            maxValue: 9,
-                          ),
-                          enabled:
-                              _controller?.pendingMove != true &&
-                              !snapshot.isFinished,
-                          onNumber: _enterNumber,
-                          onErase: () => setState(() => _selectedIndex = null),
-                        ),
-                      ),
-                    ),
+                    enabled: !inputLocked,
+                    onNumber: _enterNumber,
+                    onErase: () => setState(() => _selectedIndex = null),
                   ),
                 ),
-          body: SafeArea(child: _buildBody(context)),
-        ),
+              ),
+        body: SafeArea(child: _buildBody(context)),
       ),
     );
   }
@@ -406,8 +345,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       puzzle: snapshot.puzzle,
       solution: List<int>.filled(81, 1),
     );
-    final waitingForOpponent =
-        snapshot.status == OnlineDuelStatus.active && !snapshot.isLocalTurn;
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact =
@@ -421,110 +358,66 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
           ),
           child: Column(
             children: [
-              _TurnBanner(
-                snapshot: snapshot,
-                readySeconds: _secondsUntil(snapshot.readyDeadline),
-                turnSeconds: _secondsUntil(snapshot.turnDeadline),
-                compact: compact,
-              ),
-              SizedBox(height: compact ? 4 : 8),
               if (snapshot.status == OnlineDuelStatus.readyWindow ||
                   snapshot.status == OnlineDuelStatus.waiting)
                 Padding(
                   padding: EdgeInsets.only(bottom: compact ? 4 : 8),
                   child: _ReadyPanel(
                     snapshot: snapshot,
-                    seconds: _secondsUntil(snapshot.readyDeadline),
                     onReady: _controller?.ready,
                     compact: compact,
                   ),
                 ),
               Expanded(
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 240),
-                  curve: Curves.easeOut,
-                  opacity: waitingForOpponent ? 0.58 : 1,
-                  child: ColorFiltered(
-                    colorFilter: ColorFilter.matrix(
-                      waitingForOpponent
-                          ? _grayscaleMatrix
-                          : const <double>[
-                              1,
-                              0,
-                              0,
-                              0,
-                              0,
-                              0,
-                              1,
-                              0,
-                              0,
-                              0,
-                              0,
-                              0,
-                              1,
-                              0,
-                              0,
-                              0,
-                              0,
-                              0,
-                              1,
-                              0,
-                            ],
-                    ),
-                    child: Column(
-                      children: [
-                        _MatchHeader(
-                          snapshot: snapshot,
-                          compact: compact,
-                          seconds: _secondsUntil(
-                            snapshot.status == OnlineDuelStatus.active
-                                ? snapshot.turnDeadline
-                                : snapshot.readyDeadline,
-                          ),
-                        ),
-                        SizedBox(height: compact ? 4 : 8),
-                        Expanded(
-                          child: Center(
-                            child: AspectRatio(
-                              aspectRatio: 1,
-                              child: IgnorePointer(
-                                ignoring: snapshot.isFinished,
-                                child: SudokuBoard(
-                                  puzzle: puzzle,
-                                  board: snapshot.board,
-                                  selectedIndex: _selectedIndex,
-                                  errorIndex: _feedbackCell,
-                                  localMoveIndexes: _localMoveIndexes,
-                                  opponentMoveIndexes: _opponentMoveIndexes,
-                                  enabled: !snapshot.isFinished,
-                                  onCellTap: _selectCell,
-                                ),
+                child: Column(
+                  children: [
+                    if (snapshot.status == OnlineDuelStatus.active) ...[
+                      _MatchHeader(snapshot: snapshot, compact: compact),
+                      SizedBox(height: compact ? 4 : 8),
+                    ],
+                    Expanded(
+                      child: Center(
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: RepaintBoundary(
+                            child: IgnorePointer(
+                              ignoring:
+                                  snapshot.isFinished || !snapshot.isLocalTurn,
+                              child: SudokuBoard(
+                                puzzle: puzzle,
+                                board: snapshot.board,
+                                selectedIndex: _selectedIndex,
+                                errorIndex: _feedbackCell,
+                                localMoveIndexes: _localMoveIndexes,
+                                opponentMoveIndexes: _opponentMoveIndexes,
+                                enabled:
+                                    !snapshot.isFinished &&
+                                    snapshot.isLocalTurn,
+                                onCellTap: _selectCell,
                               ),
                             ),
                           ),
                         ),
-                        if (!compact) ...[
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 24,
-                            child: Center(
-                              child: Text(
-                                _controller?.pendingMove == true
-                                    ? context.tr('sending_move')
-                                    : snapshot.isLocalTurn
-                                    ? context.tr(
-                                        'select_empty_cell_enter_number',
-                                      )
-                                    : context.tr('waiting_opponent_move'),
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
+                    if (!compact) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 24,
+                        child: Center(
+                          child: Text(
+                            _controller?.pendingMove == true
+                                ? context.tr('sending_move')
+                                : snapshot.isLocalTurn
+                                ? context.tr('select_empty_cell_enter_number')
+                                : context.tr('waiting_opponent_move'),
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -532,12 +425,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         );
       },
     );
-  }
-
-  int? _secondsUntil(DateTime? deadline) {
-    if (deadline == null) return null;
-    final diff = deadline.difference(DateTime.now()).inMilliseconds;
-    return diff <= 0 ? 0 : (diff / 1000).ceil();
   }
 
   SudokuDifficulty _difficulty(String value) {
@@ -1015,15 +902,10 @@ class _ResultLine extends StatelessWidget {
 }
 
 class _MatchHeader extends StatelessWidget {
-  const _MatchHeader({
-    required this.snapshot,
-    required this.compact,
-    required this.seconds,
-  });
+  const _MatchHeader({required this.snapshot, required this.compact});
 
   final OnlineDuelSnapshot snapshot;
   final bool compact;
-  final int? seconds;
 
   @override
   Widget build(BuildContext context) {
@@ -1032,10 +914,6 @@ class _MatchHeader extends StatelessWidget {
     final total = (scoreA + scoreB).clamp(1, 999999);
     final aShare = scoreA / total;
     final scheme = Theme.of(context).colorScheme;
-    final active = snapshot.status == OnlineDuelStatus.active;
-    final timerLabel = active
-        ? context.tr('turn_timer_seconds', <Object>[seconds ?? 0])
-        : context.tr('match_timer_seconds', <Object>[seconds ?? 0]);
 
     return Semantics(
       label: context.tr('match_header_semantics'),
@@ -1071,7 +949,7 @@ class _MatchHeader extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                _TimerPill(label: timerLabel, active: active, compact: compact),
+                _TimerPill(deadline: snapshot.turnDeadline, compact: compact),
               ] else
                 Row(
                   children: [
@@ -1085,8 +963,7 @@ class _MatchHeader extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: _TimerPill(
-                        label: timerLabel,
-                        active: active,
+                        deadline: snapshot.turnDeadline,
                         compact: compact,
                       ),
                     ),
@@ -1130,31 +1007,54 @@ class _MatchHeader extends StatelessWidget {
   }
 }
 
-class _TimerPill extends StatelessWidget {
-  const _TimerPill({
-    required this.label,
-    required this.active,
-    required this.compact,
-  });
+class _TimerPill extends StatefulWidget {
+  const _TimerPill({required this.deadline, required this.compact});
 
-  final String label;
-  final bool active;
+  final DateTime? deadline;
   final bool compact;
+
+  @override
+  State<_TimerPill> createState() => _TimerPillState();
+}
+
+class _TimerPillState extends State<_TimerPill> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final gameColors = Theme.of(context).extension<GameColors>()!;
+    final seconds = _secondsUntil(widget.deadline);
+    final color = seconds != null && seconds <= 5
+        ? gameColors.timerCritical
+        : seconds != null && seconds <= 10
+        ? gameColors.warning
+        : scheme.primary;
     return Container(
       constraints: BoxConstraints(
-        minWidth: compact ? 50 : 76,
-        maxWidth: compact ? 60 : 96,
+        minWidth: widget.compact ? 50 : 76,
+        maxWidth: widget.compact ? 60 : 96,
       ),
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 4 : 10,
-        vertical: compact ? 5 : 7,
+        horizontal: widget.compact ? 4 : 10,
+        vertical: widget.compact ? 5 : 7,
       ),
       decoration: BoxDecoration(
-        color: active ? scheme.primary : scheme.secondaryContainer,
+        color: color,
         borderRadius: BorderRadius.circular(999),
       ),
       child: FittedBox(
@@ -1164,18 +1064,18 @@ class _TimerPill extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              active ? Icons.timer_outlined : Icons.hourglass_bottom_rounded,
-              size: compact ? 12 : 16,
-              color: active ? scheme.onPrimary : scheme.onSecondaryContainer,
+              Icons.timer_outlined,
+              size: widget.compact ? 12 : 16,
+              color: scheme.onPrimary,
             ),
-            SizedBox(width: compact ? 2 : 4),
+            SizedBox(width: widget.compact ? 2 : 4),
             Text(
-              label,
+              context.tr('turn_timer_seconds', <Object>[seconds ?? 0]),
               maxLines: 1,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: active ? scheme.onPrimary : scheme.onSecondaryContainer,
-                fontSize: compact ? 11 : 12,
+                color: scheme.onPrimary,
+                fontSize: widget.compact ? 11 : 12,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -1183,6 +1083,12 @@ class _TimerPill extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  int? _secondsUntil(DateTime? deadline) {
+    if (deadline == null) return null;
+    final diff = deadline.difference(DateTime.now()).inMilliseconds;
+    return diff <= 0 ? 0 : (diff / 1000).ceil();
   }
 }
 
@@ -1207,7 +1113,6 @@ class _DuelPlayerPlate extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final displayName = isLocalPlayer ? context.tr('you') : player.displayName;
     final score = snapshot.scores[seat] ?? 0;
-    final rating = snapshot.rating?[seat]?.afterGlobal ?? 1000;
     final children = <Widget>[
       PlayerAvatar(
         displayName: player.displayName,
@@ -1306,10 +1211,6 @@ class _DuelPlayerPlate extends StatelessWidget {
               spacing: 4,
               runSpacing: 2,
               children: [
-                _MiniBadge(
-                  icon: Icons.military_tech_outlined,
-                  label: context.tr('elo_value', <Object>[rating]),
-                ),
                 if (active)
                   _MiniBadge(
                     icon: Icons.play_arrow_rounded,
@@ -1418,99 +1319,14 @@ class _MiniBadge extends StatelessWidget {
   }
 }
 
-class _TurnBanner extends StatelessWidget {
-  const _TurnBanner({
-    required this.snapshot,
-    required this.readySeconds,
-    required this.turnSeconds,
-    required this.compact,
-  });
-
-  final OnlineDuelSnapshot snapshot;
-  final int? readySeconds;
-  final int? turnSeconds;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = snapshot.status == OnlineDuelStatus.active;
-    final text = active
-        ? snapshot.isLocalTurn
-              ? context.tr('your_turn')
-              : context.tr('opponents_turn')
-        : snapshot.status == OnlineDuelStatus.readyWindow
-        ? context.tr('get_ready')
-        : context.tr('connecting_players');
-    final subtitle = active
-        ? compact
-              ? '${turnSeconds ?? 0} s'
-              : context.tr('move_time_seconds', <Object>[turnSeconds ?? 0])
-        : snapshot.status == OnlineDuelStatus.readyWindow
-        ? compact
-              ? '${readySeconds ?? 0} s'
-              : context.tr('automatic_start_seconds', <Object>[
-                  readySeconds ?? 0,
-                ])
-        : context.tr('online_turn_number', <Object>[snapshot.turnNumber]);
-    final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      liveRegion: true,
-      label: '$text, $subtitle',
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 240),
-        padding: EdgeInsets.symmetric(
-          horizontal: compact ? 8 : 12,
-          vertical: compact ? 6 : 8,
-        ),
-        decoration: BoxDecoration(
-          color: snapshot.isLocalTurn
-              ? scheme.primaryContainer
-              : scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
-          border: snapshot.isLocalTurn
-              ? Border.all(color: scheme.primary, width: 1.5)
-              : null,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              snapshot.isLocalTurn
-                  ? Icons.touch_app_rounded
-                  : Icons.hourglass_top_rounded,
-              size: compact ? 18 : 24,
-            ),
-            SizedBox(width: compact ? 5 : 8),
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Flexible(
-              child: Text(
-                subtitle,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _ReadyPanel extends StatelessWidget {
   const _ReadyPanel({
     required this.snapshot,
-    required this.seconds,
     required this.onReady,
     required this.compact,
   });
 
   final OnlineDuelSnapshot snapshot;
-  final int? seconds;
   final VoidCallback? onReady;
   final bool compact;
 
@@ -1526,7 +1342,6 @@ class _ReadyPanel extends StatelessWidget {
         : !opponent.screenLoaded
         ? context.tr('opponent_opening_game')
         : context.tr('opponent_ready');
-    final countdownText = seconds == null ? '' : ' · $seconds s';
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -1537,51 +1352,95 @@ class _ReadyPanel extends StatelessWidget {
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '$opponentStatus$countdownText',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final readyButton = FilledButton.icon(
+            onPressed: you.ready ? null : onReady,
+            icon: Icon(
+              you.ready ? Icons.check_circle : Icons.check_circle_outline,
+              size: compact ? 17 : 24,
+            ),
+            label: Text(
+              you.ready ? context.tr('ready') : context.tr('i_am_ready'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: compact
-                  ? Theme.of(context).textTheme.bodySmall
-                  : Theme.of(context).textTheme.bodyMedium,
             ),
-          ),
-          SizedBox(width: compact ? 5 : 8),
-          FilledButton(
-            onPressed: you.ready ? null : onReady,
-            style: compact
-                ? FilledButton.styleFrom(
-                    minimumSize: Size.zero,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 7,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  )
-                : null,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    you.ready ? Icons.check_circle : Icons.check_circle_outline,
-                    size: compact ? 17 : 24,
-                  ),
-                  SizedBox(width: compact ? 5 : 8),
-                  Text(
-                    you.ready ? context.tr('ready') : context.tr('i_am_ready'),
-                    maxLines: 1,
-                  ),
-                ],
+          );
+          final status = Row(
+            children: [
+              Expanded(
+                child: Text(
+                  opponentStatus,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: compact
+                      ? Theme.of(context).textTheme.bodySmall
+                      : Theme.of(context).textTheme.bodyMedium,
+                ),
               ),
-            ),
-          ),
-        ],
+              const SizedBox(width: 6),
+              _CountdownText(deadline: snapshot.readyDeadline),
+            ],
+          );
+          if (compact || constraints.maxWidth < 360) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [status, const SizedBox(height: 6), readyButton],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: status),
+              const SizedBox(width: 8),
+              readyButton,
+            ],
+          );
+        },
       ),
     );
+  }
+}
+
+class _CountdownText extends StatefulWidget {
+  const _CountdownText({required this.deadline});
+
+  final DateTime? deadline;
+
+  @override
+  State<_CountdownText> createState() => _CountdownTextState();
+}
+
+class _CountdownTextState extends State<_CountdownText> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final seconds = _secondsUntil(widget.deadline);
+    if (seconds == null) return const SizedBox.shrink();
+    return Text(
+      context.tr('turn_timer_seconds', <Object>[seconds]),
+      style: const TextStyle(fontWeight: FontWeight.w800),
+    );
+  }
+
+  int? _secondsUntil(DateTime? deadline) {
+    if (deadline == null) return null;
+    final diff = deadline.difference(DateTime.now()).inMilliseconds;
+    return diff <= 0 ? 0 : (diff / 1000).ceil();
   }
 }
