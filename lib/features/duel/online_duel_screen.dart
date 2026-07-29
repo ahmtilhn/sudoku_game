@@ -1165,111 +1165,188 @@ class _MatchHeader extends StatelessWidget {
     final total = (scoreA + scoreB).clamp(1, 999999);
     final aShare = scoreA / total;
     final scheme = Theme.of(context).colorScheme;
+    final height = compact ? 76.0 : 88.0;
+    final timerSize = compact ? 58.0 : 70.0;
 
     return Semantics(
       label: context.tr('match_header_semantics'),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: const Color(0xFF081226).withValues(alpha: .74),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF1A2943)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: .22),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+      child: SizedBox(
+        height: height,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Positioned.fill(
+              top: compact ? 10 : 12,
+              bottom: compact ? 6 : 8,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF071124).withValues(alpha: .84),
+                  border: Border(
+                    top: BorderSide(
+                      color: const Color(0xFF1B2C50).withValues(alpha: .9),
+                    ),
+                    bottom: BorderSide(
+                      color: const Color(0xFF162743).withValues(alpha: .9),
+                    ),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: .28),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: .08),
+                      blurRadius: 22,
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(compact ? 6 : 10),
-          child: Column(
-            children: [
-              if (compact) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DuelPlayerPlate(
-                        snapshot: snapshot,
-                        seat: OnlineDuelSeat.a,
-                        compact: compact,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _DuelPlayerPlate(
-                        snapshot: snapshot,
-                        seat: OnlineDuelSeat.b,
-                        compact: compact,
-                        alignEnd: true,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                _TimerPill(deadline: snapshot.turnDeadline, compact: compact),
-              ] else
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DuelPlayerPlate(
-                        snapshot: snapshot,
-                        seat: OnlineDuelSeat.a,
-                        compact: compact,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: _TimerPill(
-                        deadline: snapshot.turnDeadline,
-                        compact: compact,
-                      ),
-                    ),
-                    Expanded(
-                      child: _DuelPlayerPlate(
-                        snapshot: snapshot,
-                        seat: OnlineDuelSeat.b,
-                        compact: compact,
-                        alignEnd: true,
-                      ),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: SizedBox(
-                  height: compact ? 7 : 9,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: (aShare * 1000).round().clamp(1, 999).toInt(),
-                        child: ColoredBox(color: scheme.primary),
-                      ),
-                      Expanded(
-                        flex: ((1 - aShare) * 1000)
-                            .round()
-                            .clamp(1, 999)
-                            .toInt(),
-                        child: ColoredBox(color: scheme.tertiary),
-                      ),
-                    ],
+            Positioned.fill(
+              top: compact ? 10 : 12,
+              bottom: compact ? 6 : 8,
+              child: IgnorePointer(
+                child: CustomPaint(
+                  painter: _HeaderCircuitPainter(
+                    primary: scheme.primary,
+                    tertiary: scheme.tertiary,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+            Positioned.fill(
+              top: compact ? 12 : 14,
+              bottom: compact ? 11 : 13,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _DuelPlayerPlate(
+                      snapshot: snapshot,
+                      seat: OnlineDuelSeat.a,
+                      compact: compact,
+                    ),
+                  ),
+                  SizedBox(width: timerSize + (compact ? 10 : 18)),
+                  Expanded(
+                    child: _DuelPlayerPlate(
+                      snapshot: snapshot,
+                      seat: OnlineDuelSeat.b,
+                      compact: compact,
+                      alignEnd: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 0,
+              child: _TimerPill(
+                deadline: snapshot.turnDeadline,
+                compact: compact,
+                size: timerSize,
+              ),
+            ),
+            Positioned(
+              left: compact ? 18 : 30,
+              right: compact ? 18 : 30,
+              bottom: 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: .24),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: SizedBox(
+                    height: compact ? 4 : 5,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: (aShare * 1000).round().clamp(1, 999).toInt(),
+                          child: ColoredBox(color: scheme.primary),
+                        ),
+                        Expanded(
+                          flex: ((1 - aShare) * 1000)
+                              .round()
+                              .clamp(1, 999)
+                              .toInt(),
+                          child: ColoredBox(color: scheme.tertiary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
+class _HeaderCircuitPainter extends CustomPainter {
+  const _HeaderCircuitPainter({required this.primary, required this.tertiary});
+
+  final Color primary;
+  final Color tertiary;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final midY = size.height * .5;
+    final center = size.width * .5;
+    final gap = size.height * .62;
+    final linePaint = Paint()
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke
+      ..shader = LinearGradient(
+        colors: [
+          primary.withValues(alpha: .42),
+          Colors.white.withValues(alpha: .08),
+          tertiary.withValues(alpha: .42),
+        ],
+      ).createShader(Offset.zero & size);
+
+    canvas.drawLine(Offset(0, midY), Offset(center - gap, midY), linePaint);
+    canvas.drawLine(
+      Offset(center + gap, midY),
+      Offset(size.width, midY),
+      linePaint,
+    );
+
+    final glow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = Colors.white.withValues(alpha: .06);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(center, midY),
+        width: size.height * .98,
+        height: size.height * .98,
+      ),
+      glow,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HeaderCircuitPainter oldDelegate) {
+    return oldDelegate.primary != primary || oldDelegate.tertiary != tertiary;
+  }
+}
+
 class _TimerPill extends StatefulWidget {
-  const _TimerPill({required this.deadline, required this.compact});
+  const _TimerPill({required this.deadline, required this.compact, this.size});
 
   final DateTime? deadline;
   final bool compact;
+  final double? size;
 
   @override
   State<_TimerPill> createState() => _TimerPillState();
@@ -1302,44 +1379,68 @@ class _TimerPillState extends State<_TimerPill> {
         : seconds != null && seconds <= 10
         ? gameColors.warning
         : scheme.primary;
-    final size = widget.compact ? 52.0 : 70.0;
+    final size = widget.size ?? (widget.compact ? 52.0 : 70.0);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0xFF0B1730),
-        border: Border.all(color: color, width: 2),
+        gradient: const RadialGradient(
+          colors: [Color(0xFF17294C), Color(0xFF071124)],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: .18)),
         boxShadow: [
-          BoxShadow(color: color.withValues(alpha: .32), blurRadius: 18),
+          BoxShadow(color: color.withValues(alpha: .48), blurRadius: 18),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .36),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '${seconds ?? 0}',
-              maxLines: 1,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: widget.compact ? 20 : 28,
-                fontWeight: FontWeight.w900,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(5),
+            child: CircularProgressIndicator(
+              value: seconds == null ? null : (seconds / 30).clamp(0.0, 1.0),
+              strokeWidth: widget.compact ? 2.4 : 3,
+              backgroundColor: Colors.white.withValues(alpha: .08),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Padding(
+              padding: const EdgeInsets.all(9),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${seconds ?? 0}',
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: widget.compact ? 22 : 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    context.tr('seconds_short'),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .64),
+                      fontSize: widget.compact ? 8 : 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ),
-            Text(
-              context.tr('seconds_short'),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .62),
-                fontSize: widget.compact ? 8 : 10,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1370,18 +1471,25 @@ class _DuelPlayerPlate extends StatelessWidget {
     final active = snapshot.currentTurnSeat == seat;
     final isLocalPlayer = snapshot.youSeat == seat;
     final scheme = Theme.of(context).colorScheme;
+    final accent = seat == OnlineDuelSeat.a ? scheme.primary : scheme.tertiary;
     final displayName = isLocalPlayer ? context.tr('you') : player.displayName;
     final score = snapshot.scores[seat] ?? 0;
-    final children = <Widget>[
-      PlayerAvatar(
+    final avatarRadius = compact ? 17.0 : 23.0;
+    final avatar = _AvatarRing(
+      color: accent,
+      active: active,
+      child: PlayerAvatar(
         displayName: player.displayName,
         avatarKey: player.avatarKey,
-        radius: compact ? 14 : 22,
+        radius: avatarRadius,
         semanticLabel: context.tr('player_avatar_semantics', <Object>[
           displayName,
         ]),
       ),
-      SizedBox(width: compact ? 4 : 8),
+    );
+    final children = <Widget>[
+      avatar,
+      SizedBox(width: compact ? 6 : 9),
       Expanded(
         child: Column(
           crossAxisAlignment: alignEnd
@@ -1396,7 +1504,13 @@ class _DuelPlayerPlate extends StatelessWidget {
                     : AlignmentDirectional.centerStart,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Row(
+                  alignment: alignEnd
+                      ? AlignmentDirectional.centerEnd
+                      : AlignmentDirectional.centerStart,
+                  child: Column(
+                    crossAxisAlignment: alignEnd
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
@@ -1407,22 +1521,11 @@ class _DuelPlayerPlate extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '$score',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          color: active ? scheme.primary : scheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      Icon(
-                        player.connected
-                            ? Icons.wifi_rounded
-                            : Icons.wifi_off_rounded,
-                        size: 11,
-                        color: player.connected ? scheme.primary : scheme.error,
+                      const SizedBox(height: 2),
+                      _ScoreLine(
+                        score: score,
+                        connected: player.connected,
+                        color: accent,
                       ),
                     ],
                   ),
@@ -1445,38 +1548,18 @@ class _DuelPlayerPlate extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '$score',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: active ? scheme.primary : scheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(width: 3),
-                  Icon(
-                    player.connected
-                        ? Icons.wifi_rounded
-                        : Icons.wifi_off_rounded,
-                    size: 14,
-                    color: player.connected ? scheme.primary : scheme.error,
-                  ),
                 ],
               ),
             const SizedBox(height: 3),
-            Wrap(
-              alignment: alignEnd ? WrapAlignment.end : WrapAlignment.start,
-              spacing: 4,
-              runSpacing: 2,
-              children: [
-                if (active)
-                  _MiniBadge(
-                    icon: Icons.play_arrow_rounded,
-                    label: context.tr('turn_badge'),
-                    emphasized: true,
-                  ),
-              ],
+            Align(
+              alignment: alignEnd
+                  ? AlignmentDirectional.centerEnd
+                  : AlignmentDirectional.centerStart,
+              child: _ScoreLine(
+                score: score,
+                connected: player.connected,
+                color: accent,
+              ),
             ),
           ],
         ),
@@ -1491,24 +1574,14 @@ class _DuelPlayerPlate extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 4 : 8,
-        vertical: compact ? 5 : 7,
+        horizontal: compact ? 4 : 10,
+        vertical: compact ? 4 : 6,
       ),
       decoration: BoxDecoration(
-        color: active ? scheme.primaryContainer : scheme.surface,
+        color: Colors.transparent,
         boxShadow: active
-            ? [
-                BoxShadow(
-                  color: scheme.primary.withValues(alpha: .2),
-                  blurRadius: 18,
-                ),
-              ]
+            ? [BoxShadow(color: accent.withValues(alpha: .18), blurRadius: 14)]
             : null,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: active ? scheme.primary : scheme.outlineVariant,
-          width: active ? 1.5 : 1,
-        ),
       ),
       child: compact
           ? Align(
@@ -1534,54 +1607,72 @@ class _DuelPlayerPlate extends StatelessWidget {
   }
 }
 
-class _MiniBadge extends StatelessWidget {
-  const _MiniBadge({
-    required this.icon,
-    required this.label,
-    this.emphasized = false,
+class _AvatarRing extends StatelessWidget {
+  const _AvatarRing({
+    required this.child,
+    required this.color,
+    required this.active,
   });
 
-  final IconData icon;
-  final String label;
-  final bool emphasized;
+  final Widget child;
+  final Color color;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: active ? color : Colors.white.withValues(alpha: .24),
+          width: active ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: active ? .54 : .24),
+            blurRadius: active ? 16 : 10,
+          ),
+        ],
+      ),
+      child: Padding(padding: const EdgeInsets.all(2), child: child),
+    );
+  }
+}
+
+class _ScoreLine extends StatelessWidget {
+  const _ScoreLine({
+    required this.score,
+    required this.connected,
+    required this.color,
+  });
+
+  final int score;
+  final bool connected;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: emphasized ? scheme.primary : scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: scheme.outlineVariant),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 11,
-                color: emphasized ? scheme.onPrimary : scheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 2),
-              Text(
-                label,
-                maxLines: 1,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: emphasized
-                      ? scheme.onPrimary
-                      : scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.emoji_events, size: 13, color: scheme.tertiary),
+        const SizedBox(width: 3),
+        Text(
+          '$score',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .92),
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
           ),
         ),
-      ),
+        const SizedBox(width: 8),
+        Icon(
+          connected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+          size: 12,
+          color: connected ? color : scheme.error,
+        ),
+      ],
     );
   }
 }
