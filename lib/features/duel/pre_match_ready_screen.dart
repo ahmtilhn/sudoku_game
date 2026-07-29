@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -6,6 +7,8 @@ import '../../localization/app_strings.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
+import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
 import 'online_duel_screen.dart';
 
@@ -182,18 +185,18 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
     final youReady = _you?.ready == true || _localReadyPressed;
     final opponentReady = _opponent?.ready == true;
     return Scaffold(
-      backgroundColor: const Color(0xFF061124),
+      backgroundColor: const Color(0xFF0B1215),
       body: SafeArea(
         child: Stack(
           children: [
-            _ArenaBackground(animation: _pulseController),
+            AppBackdrop(animation: _pulseController),
             Positioned(
               left: 12,
               top: 8,
               child: IconButton.filledTonal(
                 tooltip: context.tr('cancel_search'),
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.arrow_back),
+                icon: const DuelAssetIcon(DuelAsset.back, size: 22),
               ),
             ),
             Padding(
@@ -216,7 +219,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                         : context.tr('searching_similar_opponents'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: .62),
+                      color: Colors.white.withValues(alpha: .74),
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -225,8 +228,13 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                       builder: (context, constraints) {
                         final compact = constraints.maxHeight < 560;
                         final cardWidth = compact ? 126.0 : 142.0;
-                        final side = constraints.maxWidth < 390 ? 6.0 : 8.0;
+                        final gap = constraints.maxWidth < 390 ? 46.0 : 62.0;
+                        final side = math.max(
+                          0.0,
+                          (constraints.maxWidth - (cardWidth * 2) - gap) / 2,
+                        );
                         final top = compact ? 18.0 : 28.0;
+                        final bottom = top;
                         return Stack(
                           children: [
                             AnimatedBuilder(
@@ -266,7 +274,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                                   right:
                                       side -
                                       (constraints.maxWidth * .52 * value),
-                                  bottom: top,
+                                  bottom: bottom,
                                   width: cardWidth,
                                   child: Opacity(
                                     opacity: 1 - (.55 * value),
@@ -317,7 +325,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                   ),
                   if (_error != null) ...[
                     _StatusBar(
-                      icon: Icons.cloud_off_outlined,
+                      asset: DuelAsset.cloud,
                       text: context.tr('online_connection_failed', <Object>[
                         _error!,
                       ]),
@@ -325,9 +333,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                     const SizedBox(height: 10),
                   ] else ...[
                     _StatusBar(
-                      icon: readyStage
-                          ? Icons.hourglass_top_rounded
-                          : Icons.shield_outlined,
+                      asset: readyStage ? DuelAsset.timer : DuelAsset.shield,
                       text: readyStage
                           ? _readyStatusText(context, youReady, opponentReady)
                           : context.tr('elo_hint'),
@@ -340,10 +346,13 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: youReady || _openingMatch ? null : _ready,
-                        icon: Icon(
-                          youReady
-                              ? Icons.check_circle
-                              : Icons.check_circle_outline,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF29D398),
+                          foregroundColor: const Color(0xFF08110E),
+                        ),
+                        icon: DuelAssetIcon(
+                          youReady ? DuelAsset.check : DuelAsset.shield,
+                          size: 22,
                         ),
                         label: Text(
                           youReady
@@ -381,74 +390,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
   }
 }
 
-class _ArenaBackground extends StatelessWidget {
-  const _ArenaBackground({required this.animation});
-
-  final Animation<double> animation;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, _) => CustomPaint(
-        painter: _ArenaPainter(animation.value),
-        child: const SizedBox.expand(),
-      ),
-    );
-  }
-}
-
-class _ArenaPainter extends CustomPainter {
-  const _ArenaPainter(this.progress);
-
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bg = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF061124), Color(0xFF081A36), Color(0xFF120D32)],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, bg);
-
-    final start = Offset(size.width * .64, size.height * .1);
-    final end = Offset(size.width * .36, size.height * .9);
-    final line = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.transparent,
-          const Color(0xFF58A8FF).withValues(alpha: .85),
-          const Color(0xFFB64DFF).withValues(alpha: .55),
-          Colors.transparent,
-        ],
-      ).createShader(Offset.zero & size)
-      ..strokeWidth = 1.6;
-    canvas.drawLine(start, end, line);
-
-    final sweep = Paint()
-      ..color = Colors.white.withValues(alpha: .22)
-      ..strokeWidth = 2.4
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-    final t = progress;
-    final a = Offset.lerp(start, end, (t - .08).clamp(0, 1))!;
-    final b = Offset.lerp(start, end, (t + .08).clamp(0, 1))!;
-    canvas.drawLine(a, b, sweep);
-
-    final glow = Paint()
-      ..color = const Color(0xFF58A8FF).withValues(alpha: .08)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24);
-    canvas.drawCircle(Offset(size.width * .5, size.height * .52), 86, glow);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ArenaPainter oldDelegate) =>
-      oldDelegate.progress != progress;
-}
-
 class _PlayerReadyCard extends StatelessWidget {
   const _PlayerReadyCard({
     required this.player,
@@ -469,15 +410,15 @@ class _PlayerReadyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderColor = highlighted
-        ? const Color(0xFF2E7BFF)
-        : const Color(0xFF9B4DFF);
+        ? const Color(0xFF29D398)
+        : const Color(0xFF7A5CFF);
     final name = player?.displayName ?? fallbackName;
     final radius = compact ? 30.0 : 36.0;
     return Container(
       width: compact ? 126 : 142,
       padding: EdgeInsets.all(compact ? 12 : 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E1B36).withValues(alpha: .86),
+        color: const Color(0xFF18242B).withValues(alpha: .94),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: borderColor.withValues(alpha: .75)),
         boxShadow: [
@@ -521,9 +462,9 @@ class _PlayerReadyCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.emoji_events_rounded,
-                color: Color(0xFFFFC547),
+              const DuelAssetIcon(
+                DuelAsset.trophy,
+                color: Color(0xFFFFC94D),
                 size: 18,
               ),
               const SizedBox(width: 4),
@@ -556,8 +497,8 @@ class _PlayerReadyCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.check_circle_outline,
+                  const DuelAssetIcon(
+                    DuelAsset.check,
                     color: Color(0xFF46F5A8),
                     size: 15,
                   ),
@@ -607,7 +548,7 @@ class _CenterBadge extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: const Color(
-                    0xFF9B4DFF,
+                    0xFF29D398,
                   ).withValues(alpha: .42 * (1 - pulse)),
                 ),
               ),
@@ -617,19 +558,19 @@ class _CenterBadge extends StatelessWidget {
               height: 58,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF13274E),
-                border: Border.all(color: const Color(0xFF9B4DFF), width: 1.5),
+                color: const Color(0xFF22313A),
+                border: Border.all(color: const Color(0xFF29D398), width: 1.5),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9B4DFF).withValues(alpha: .35),
-                    blurRadius: 24,
+                    color: const Color(0xFF29D398).withValues(alpha: .30),
+                    blurRadius: 14,
                   ),
                 ],
               ),
-              child: Icon(
+              child: DuelAssetIcon(
                 readyStage
-                    ? (bothReady ? Icons.handshake : Icons.how_to_reg)
-                    : Icons.search,
+                    ? (bothReady ? DuelAsset.people : DuelAsset.check)
+                    : DuelAsset.search,
                 color: Colors.white,
                 size: 30,
               ),
@@ -642,9 +583,9 @@ class _CenterBadge extends StatelessWidget {
 }
 
 class _StatusBar extends StatelessWidget {
-  const _StatusBar({required this.icon, required this.text, this.trailing});
+  const _StatusBar({required this.asset, required this.text, this.trailing});
 
-  final IconData icon;
+  final String asset;
   final String text;
   final String? trailing;
 
@@ -654,13 +595,13 @@ class _StatusBar extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF172344).withValues(alpha: .82),
+        color: const Color(0xFF18242B).withValues(alpha: .90),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withValues(alpha: .08)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF8B63FF)),
+          DuelAssetIcon(asset, color: const Color(0xFF29D398), size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -675,7 +616,7 @@ class _StatusBar extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF8B63FF)),
+                border: Border.all(color: const Color(0xFF29D398)),
               ),
               child: Text(
                 trailing!,

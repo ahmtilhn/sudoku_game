@@ -8,6 +8,8 @@ import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
 import '../economy/coin_store_screen.dart';
 import 'duel_screen.dart';
 import 'pre_match_ready_screen.dart';
@@ -54,99 +56,139 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final canEnterSelected =
         _economy.balance >= _economy.entryFeeForDifficulty(_difficulty.name);
     if (_searching) {
       return _FullScreenSearchingStage(onCancel: _cancelSearch, error: _error);
     }
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('online_duel'))),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final maxWidth = constraints.maxWidth >= 840 ? 720.0 : 640.0;
-            return Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxWidth),
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-                  children: [
-                    _EntrySummary(economy: _economy, difficulty: _difficulty),
-                    const SizedBox(height: 16),
-                    Text(
-                      context.tr('choose_duel_difficulty'),
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      context.tr('same_difficulty_match'),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    for (final difficulty in SudokuDifficulty.values) ...[
-                      _DifficultyCard(
-                        difficulty: difficulty,
-                        selected: _difficulty == difficulty,
-                        enabled: !_searching,
-                        onSelected: () =>
-                            setState(() => _difficulty = difficulty),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    const SizedBox(height: 8),
-                    _StartActions(
-                      canEnterOnline: canEnterSelected,
-                      loading: _economy.loading,
-                      onFindOpponent: _findOpponent,
-                      onInsufficientCoins: _showInsufficientCoins,
-                      onLocalPractice: _openLocalPractice,
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 12),
-                      Material(
-                        color: scheme.errorContainer,
-                        borderRadius: BorderRadius.circular(14),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                color: scheme.onErrorContainer,
+      backgroundColor: const Color(0xFF0B1215),
+      body: AppBackdrop(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final maxWidth = constraints.maxWidth >= 840 ? 720.0 : 640.0;
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            tooltip: MaterialLocalizations.of(
+                              context,
+                            ).backButtonTooltip,
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white.withValues(
+                                alpha: .08,
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _error!,
-                                  style: TextStyle(
-                                    color: scheme.onErrorContainer,
-                                  ),
-                                ),
+                              foregroundColor: Colors.white,
+                              side: BorderSide(
+                                color: Colors.white.withValues(alpha: .12),
                               ),
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                tooltip: context.tr('dismiss'),
-                                onPressed: () => setState(() => _error = null),
-                                icon: Icon(
-                                  Icons.close,
-                                  color: scheme.onErrorContainer,
-                                ),
-                              ),
-                            ],
+                            ),
+                            icon: const DuelAssetIcon(DuelAsset.back, size: 22),
                           ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              context.tr('online_duel'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _EntrySummary(economy: _economy, difficulty: _difficulty),
+                      const SizedBox(height: 16),
+                      Text(
+                        context.tr('choose_duel_difficulty'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
+                      const SizedBox(height: 6),
+                      Text(
+                        context.tr('same_difficulty_match'),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .72),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      for (final difficulty in SudokuDifficulty.values) ...[
+                        _DifficultyCard(
+                          difficulty: difficulty,
+                          selected: _difficulty == difficulty,
+                          enabled: !_searching,
+                          onSelected: () =>
+                              setState(() => _difficulty = difficulty),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 8),
+                      _StartActions(
+                        canEnterOnline: canEnterSelected,
+                        loading: _economy.loading,
+                        onFindOpponent: _findOpponent,
+                        onInsufficientCoins: _showInsufficientCoins,
+                        onLocalPractice: _openLocalPractice,
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Material(
+                          color: const Color(0xFF3A151D),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const DuelAssetIcon(
+                                  DuelAsset.cloud,
+                                  size: 22,
+                                  color: Color(0xFFFFD7DC),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _error!,
+                                    style: const TextStyle(
+                                      color: Color(0xFFFFD7DC),
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: context.tr('dismiss'),
+                                  onPressed: () =>
+                                      setState(() => _error = null),
+                                  icon: const DuelAssetIcon(
+                                    DuelAsset.close,
+                                    size: 18,
+                                    color: Color(0xFFFFD7DC),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -174,7 +216,11 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock_outline_rounded, size: 42),
+              const DuelAssetIcon(
+                DuelAsset.lock,
+                size: 42,
+                color: Color(0xFF29D398),
+              ),
               const SizedBox(height: 10),
               Text(
                 context.tr('coin_required_title_dynamic', <Object>[
@@ -205,7 +251,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.storefront_outlined),
+                  icon: const DuelAssetIcon(DuelAsset.store, size: 22),
                   label: Text(context.tr('open_coin_store')),
                 ),
               ),
@@ -220,7 +266,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         Navigator.of(sheetContext).pop();
                       }
                     },
-                    icon: const Icon(Icons.card_giftcard_outlined),
+                    icon: const DuelAssetIcon(DuelAsset.gift, size: 22),
                     label: Text(
                       context.tr('claim_daily_coin', <Object>[
                         _economy.wallet!.dailyLoginAmount,
@@ -241,7 +287,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         Navigator.of(sheetContext).pop();
                       }
                     },
-                    icon: const Icon(Icons.ondemand_video_outlined),
+                    icon: const DuelAssetIcon(DuelAsset.video, size: 22),
                     label: Text(
                       context.tr('watch_ad_for_coin', <Object>[
                         _economy.wallet!.dailyAdAmount,
@@ -450,18 +496,17 @@ class _EntrySummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: scheme.primaryContainer,
-      borderRadius: BorderRadius.circular(20),
+      color: const Color(0xFF18242B),
+      borderRadius: BorderRadius.circular(18),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(
-              Icons.monetization_on_rounded,
-              color: scheme.onPrimaryContainer,
+            const DuelAssetIcon(
+              DuelAsset.coin,
               size: 34,
+              color: Color(0xFFFFC94D),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -473,7 +518,7 @@ class _EntrySummary extends StatelessWidget {
                         ? context.tr('balance_loading')
                         : context.tr('balance_coin', <Object>[economy.balance]),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: scheme.onPrimaryContainer,
+                      color: Colors.white,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -483,17 +528,19 @@ class _EntrySummary extends StatelessWidget {
                       economy.entryFeeForDifficulty(difficulty.name),
                       economy.winnerPotForDifficulty(difficulty.name),
                     ]),
-                    style: TextStyle(color: scheme.onPrimaryContainer),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .76),
+                    ),
                   ),
                 ],
               ),
             ),
             IconButton.filledTonal(
-              tooltip: 'Coin Store',
+              tooltip: context.tr('coin_store'),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
               ),
-              icon: const Icon(Icons.storefront_outlined),
+              icon: const DuelAssetIcon(DuelAsset.store, size: 22),
             ),
           ],
         ),
@@ -528,7 +575,18 @@ class _StartActions extends StatelessWidget {
               : canEnterOnline
               ? onFindOpponent
               : onInsufficientCoins,
-          icon: Icon(canEnterOnline ? Icons.public : Icons.lock_outline),
+          style: FilledButton.styleFrom(
+            backgroundColor: canEnterOnline
+                ? const Color(0xFF29D398)
+                : const Color(0xFFFFC94D),
+            foregroundColor: canEnterOnline
+                ? const Color(0xFF08110E)
+                : const Color(0xFF352500),
+          ),
+          icon: DuelAssetIcon(
+            canEnterOnline ? DuelAsset.search : DuelAsset.lock,
+            size: 22,
+          ),
           label: Text(
             canEnterOnline
                 ? context.tr('find_opponent')
@@ -538,7 +596,10 @@ class _StartActions extends StatelessWidget {
         const SizedBox(height: 8),
         TextButton.icon(
           onPressed: onLocalPractice,
-          icon: const Icon(Icons.people_outline),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white.withValues(alpha: .86),
+          ),
+          icon: const DuelAssetIcon(DuelAsset.people, size: 22),
           label: Text(context.tr('local_practice')),
         ),
       ],
@@ -546,27 +607,51 @@ class _StartActions extends StatelessWidget {
   }
 }
 
-class _FullScreenSearchingStage extends StatelessWidget {
+class _FullScreenSearchingStage extends StatefulWidget {
   const _FullScreenSearchingStage({required this.onCancel, this.error});
 
   final VoidCallback onCancel;
   final String? error;
 
   @override
+  State<_FullScreenSearchingStage> createState() =>
+      _FullScreenSearchingStageState();
+}
+
+class _FullScreenSearchingStageState extends State<_FullScreenSearchingStage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _backgroundController;
+
+  @override
+  void initState() {
+    super.initState();
+    _backgroundController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _backgroundController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF061124),
+      backgroundColor: const Color(0xFF0B1215),
       body: SafeArea(
         child: Stack(
           children: [
-            const _SearchBackground(),
+            AppBackdrop(animation: _backgroundController),
             Positioned(
               left: 12,
               top: 8,
               child: IconButton.filledTonal(
                 tooltip: context.tr('cancel_search'),
-                onPressed: onCancel,
-                icon: const Icon(Icons.arrow_back),
+                onPressed: widget.onCancel,
+                icon: const DuelAssetIcon(DuelAsset.back, size: 22),
               ),
             ),
             Padding(
@@ -591,9 +676,14 @@ class _FullScreenSearchingStage extends StatelessWidget {
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final side = constraints.maxWidth < 390 ? 6.0 : 8.0;
-                        final top = constraints.maxHeight < 560 ? 18.0 : 28.0;
                         const cardWidth = 128.0;
+                        final gap = constraints.maxWidth < 390 ? 58.0 : 76.0;
+                        final side = math.max(
+                          0.0,
+                          (constraints.maxWidth - (cardWidth * 2) - gap) / 2,
+                        );
+                        final top = constraints.maxHeight < 560 ? 18.0 : 28.0;
+                        final bottom = top;
                         return Stack(
                           children: [
                             Positioned(
@@ -607,7 +697,7 @@ class _FullScreenSearchingStage extends StatelessWidget {
                             ),
                             Positioned(
                               right: side,
-                              bottom: top,
+                              bottom: bottom,
                               width: cardWidth,
                               child: _SearchPreviewCard(
                                 title: context.tr('searching_opponent_short'),
@@ -621,17 +711,17 @@ class _FullScreenSearchingStage extends StatelessWidget {
                     ),
                   ),
                   _SearchInfoBar(
-                    text: error ?? context.tr('elo_hint'),
-                    icon: error == null
-                        ? Icons.shield_outlined
-                        : Icons.cloud_off_outlined,
-                    error: error != null,
+                    text: widget.error ?? context.tr('elo_hint'),
+                    asset: widget.error == null
+                        ? DuelAsset.shield
+                        : DuelAsset.cloud,
+                    error: widget.error != null,
                   ),
                   const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: onCancel,
+                      onPressed: widget.onCancel,
                       child: Text(context.tr('cancel_search')),
                     ),
                   ),
@@ -645,50 +735,6 @@ class _FullScreenSearchingStage extends StatelessWidget {
   }
 }
 
-class _SearchBackground extends StatelessWidget {
-  const _SearchBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _SearchBackgroundPainter(),
-      child: const SizedBox.expand(),
-    );
-  }
-}
-
-class _SearchBackgroundPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bg = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF061124), Color(0xFF081A36), Color(0xFF120D32)],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, bg);
-
-    final start = Offset(size.width * .64, size.height * .1);
-    final end = Offset(size.width * .36, size.height * .9);
-    final line = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.transparent,
-          const Color(0xFF58A8FF).withValues(alpha: .85),
-          const Color(0xFFB64DFF).withValues(alpha: .55),
-          Colors.transparent,
-        ],
-      ).createShader(Offset.zero & size)
-      ..strokeWidth = 1.6;
-    canvas.drawLine(start, end, line);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
 class _SearchPreviewCard extends StatelessWidget {
   const _SearchPreviewCard({required this.title, required this.known});
 
@@ -697,12 +743,12 @@ class _SearchPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = known ? const Color(0xFF2E7BFF) : const Color(0xFF9B4DFF);
+    final border = known ? const Color(0xFF29D398) : const Color(0xFF3AA9FF);
     return Container(
       width: 128,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E1B36).withValues(alpha: .86),
+        color: const Color(0xFF18242B).withValues(alpha: .94),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: border.withValues(alpha: .75)),
       ),
@@ -712,10 +758,10 @@ class _SearchPreviewCard extends StatelessWidget {
           CircleAvatar(
             radius: 34,
             backgroundColor: border.withValues(alpha: .2),
-            child: Icon(
-              known ? Icons.person : Icons.person_search,
-              color: Colors.white,
-              size: 32,
+            child: DuelAssetIcon(
+              known ? DuelAsset.avatar : DuelAsset.search,
+              size: 34,
+              color: known ? null : Colors.white,
             ),
           ),
           const SizedBox(height: 10),
@@ -732,9 +778,9 @@ class _SearchPreviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.emoji_events_rounded,
-                color: Color(0xFFFFC547),
+              const DuelAssetIcon(
+                DuelAsset.trophy,
+                color: Color(0xFFFFC94D),
                 size: 18,
               ),
               const SizedBox(width: 4),
@@ -811,7 +857,7 @@ class _SearchOrbState extends State<_SearchOrb>
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: const Color(
-                    0xFF58A8FF,
+                    0xFF29D398,
                   ).withValues(alpha: .34 * (1 - pulse)),
                 ),
               ),
@@ -821,16 +867,20 @@ class _SearchOrbState extends State<_SearchOrb>
               height: 58,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF13274E),
-                border: Border.all(color: const Color(0xFF9B4DFF), width: 1.5),
+                color: const Color(0xFF18242B),
+                border: Border.all(color: const Color(0xFF29D398), width: 1.5),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF9B4DFF).withValues(alpha: .35),
-                    blurRadius: 24,
+                    color: const Color(0xFF29D398).withValues(alpha: .35),
+                    blurRadius: 14,
                   ),
                 ],
               ),
-              child: const Icon(Icons.search, color: Colors.white, size: 30),
+              child: const DuelAssetIcon(
+                DuelAsset.search,
+                color: Colors.white,
+                size: 30,
+              ),
             ),
           ],
         );
@@ -851,8 +901,8 @@ class _SearchDotsPainter extends CustomPainter {
         center.dy + 44 * math.sin(angle),
       );
       final paint = Paint()
-        ..color = (i.isEven ? const Color(0xFF58A8FF) : const Color(0xFFB64DFF))
-            .withValues(alpha: .35 + (i / dots) * .45);
+        ..color = (i.isEven ? const Color(0xFF29D398) : const Color(0xFF3AA9FF))
+            .withValues(alpha: .28 + (i / dots) * .32);
       canvas.drawCircle(offset, 2.2, paint);
     }
   }
@@ -864,12 +914,12 @@ class _SearchDotsPainter extends CustomPainter {
 class _SearchInfoBar extends StatelessWidget {
   const _SearchInfoBar({
     required this.text,
-    required this.icon,
+    required this.asset,
     required this.error,
   });
 
   final String text;
-  final IconData icon;
+  final String asset;
   final bool error;
 
   @override
@@ -878,16 +928,17 @@ class _SearchInfoBar extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: (error ? Colors.red.shade900 : const Color(0xFF172344))
+        color: (error ? const Color(0xFF3A151D) : const Color(0xFF18242B))
             .withValues(alpha: .82),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withValues(alpha: .08)),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: error ? Colors.red.shade100 : const Color(0xFF8B63FF),
+          DuelAssetIcon(
+            asset,
+            size: 22,
+            color: error ? const Color(0xFFFFD7DC) : const Color(0xFF29D398),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -917,29 +968,66 @@ class _DifficultyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Card(
       margin: EdgeInsets.zero,
-      color: selected ? scheme.primaryContainer : null,
+      color: selected ? const Color(0xFF123429) : const Color(0xFF18242B),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         enabled: enabled,
         onTap: enabled ? onSelected : null,
-        leading: Icon(
-          selected ? Icons.radio_button_checked : Icons.radio_button_off,
-          color: selected ? scheme.primary : scheme.onSurfaceVariant,
-        ),
+        leading: _SelectionGlyph(selected: selected),
         title: Text(
           context.strings.difficultyLabel(difficulty),
-          style: const TextStyle(fontWeight: FontWeight.w800),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         subtitle: Text(
           context.tr('difficulty_queue', <Object>[
             context.strings.difficultyLabel(difficulty),
           ]),
+          style: TextStyle(color: Colors.white.withValues(alpha: .70)),
         ),
-        trailing: selected ? const Icon(Icons.check_rounded) : null,
+        trailing: selected
+            ? const DuelAssetIcon(
+                DuelAsset.check,
+                color: Color(0xFF29D398),
+                size: 22,
+              )
+            : null,
       ),
+    );
+  }
+}
+
+class _SelectionGlyph extends StatelessWidget {
+  const _SelectionGlyph({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: selected
+              ? const Color(0xFF29D398)
+              : Colors.white.withValues(alpha: .38),
+          width: 2,
+        ),
+      ),
+      child: selected
+          ? const DuelAssetIcon(
+              DuelAsset.check,
+              size: 14,
+              color: Color(0xFF29D398),
+            )
+          : null,
     );
   }
 }

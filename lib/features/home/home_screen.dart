@@ -4,6 +4,8 @@ import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
 import '../../widgets/adaptive_app_shell.dart';
+import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
 import '../career/career_screen.dart';
 import '../duel/matchmaking_screen.dart';
@@ -43,14 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF1B2638), Color(0xFF263247), Color(0xFF151D2C)],
-          ),
-        ),
+      body: AppBackdrop(
         child: SafeArea(
           child: RefreshIndicator(
             onRefresh: _economy.refresh,
@@ -139,7 +134,7 @@ class _HomeTopBar extends StatelessWidget {
         children: [
           _CircleIconButton(
             tooltip: context.tr('profile'),
-            icon: Icons.person_outline,
+            asset: DuelAsset.profile,
             onPressed: onProfile,
           ),
           Expanded(
@@ -157,7 +152,7 @@ class _HomeTopBar extends StatelessWidget {
           ),
           _CircleIconButton(
             tooltip: context.tr('settings'),
-            icon: Icons.settings_outlined,
+            asset: DuelAsset.settings,
             onPressed: onSettings,
           ),
         ],
@@ -169,12 +164,12 @@ class _HomeTopBar extends StatelessWidget {
 class _CircleIconButton extends StatelessWidget {
   const _CircleIconButton({
     required this.tooltip,
-    required this.icon,
+    required this.asset,
     required this.onPressed,
   });
 
   final String tooltip;
-  final IconData icon;
+  final String asset;
   final VoidCallback onPressed;
 
   @override
@@ -187,7 +182,7 @@ class _CircleIconButton extends StatelessWidget {
         foregroundColor: Colors.white,
         side: BorderSide(color: Colors.white.withValues(alpha: .14)),
       ),
-      icon: Icon(icon),
+      icon: DuelAssetIcon(asset, size: 22),
     );
   }
 }
@@ -230,17 +225,17 @@ class _PlayerSummary extends StatelessWidget {
                 Row(
                   children: [
                     _CompactStat(
-                      icon: Icons.emoji_events,
+                      asset: DuelAsset.trophy,
                       value: '${store.completedLevelCount}',
                       label: context.tr('home_progress_label'),
-                      color: const Color(0xFFE8C15A),
+                      color: const Color(0xFF3AA9FF),
                     ),
                     const SizedBox(width: 12),
                     _CompactStat(
-                      icon: Icons.monetization_on_outlined,
+                      asset: DuelAsset.coin,
                       value: '${economy.balance}',
                       label: context.tr('home_wallet_label'),
-                      color: const Color(0xFF7BC6B2),
+                      color: const Color(0xFFFFC94D),
                     ),
                   ],
                 ),
@@ -262,13 +257,13 @@ class _PlayerSummary extends StatelessWidget {
 
 class _CompactStat extends StatelessWidget {
   const _CompactStat({
-    required this.icon,
+    required this.asset,
     required this.value,
     required this.label,
     required this.color,
   });
 
-  final IconData icon;
+  final String asset;
   final String value;
   final String label;
   final Color color;
@@ -278,7 +273,7 @@ class _CompactStat extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: color),
+        DuelAssetIcon(asset, size: 15, color: color),
         const SizedBox(width: 4),
         Text(
           value,
@@ -316,20 +311,16 @@ class _DailyRewardPanel extends StatelessWidget {
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
-              color: const Color(0xFFE8C15A).withValues(alpha: .16),
+              color: const Color(0xFFFFC94D).withValues(alpha: .16),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: const Color(0xFFE8C15A).withValues(alpha: .38),
+                color: const Color(0xFFFFC94D).withValues(alpha: .38),
               ),
             ),
             child: const SizedBox(
               width: 58,
               height: 58,
-              child: Icon(
-                Icons.card_giftcard_rounded,
-                color: Color(0xFFE8C15A),
-                size: 34,
-              ),
+              child: DuelAssetIcon(DuelAsset.gift, size: 42),
             ),
           ),
           const SizedBox(width: 12),
@@ -362,10 +353,10 @@ class _DailyRewardPanel extends StatelessWidget {
             onPressed: onTap,
             style: FilledButton.styleFrom(
               minimumSize: const Size(72, 40),
-              backgroundColor: const Color(0xFF7BC6B2),
-              foregroundColor: const Color(0xFF08201D),
+              backgroundColor: const Color(0xFFFFC94D),
+              foregroundColor: const Color(0xFF2B1F00),
             ),
-            child: Text(context.tr('claim_daily_coin', const <Object>[20])),
+            child: Text(context.tr('open_coin_store')),
           ),
         ],
       ),
@@ -395,7 +386,7 @@ class _OnlineHeroCard extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF35445B), Color(0xFF243047)],
+              colors: [Color(0xFF22313A), Color(0xFF18242B)],
             ),
           ),
           child: Stack(
@@ -419,11 +410,7 @@ class _OnlineHeroCard extends StatelessWidget {
                       child: const SizedBox(
                         width: 58,
                         height: 58,
-                        child: Icon(
-                          Icons.sports_martial_arts_rounded,
-                          color: Color(0xFFE8C15A),
-                          size: 32,
-                        ),
+                        child: DuelAssetIcon(DuelAsset.swords, size: 38),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -453,8 +440,8 @@ class _OnlineHeroCard extends StatelessWidget {
                       onPressed: onTap,
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(116, 38),
-                        backgroundColor: const Color(0xFFE8C15A),
-                        foregroundColor: const Color(0xFF332400),
+                        backgroundColor: const Color(0xFF29D398),
+                        foregroundColor: const Color(0xFF08110E),
                       ),
                       child: Text(context.tr('home_play_online_cta')),
                     ),
@@ -465,7 +452,7 @@ class _OnlineHeroCard extends StatelessWidget {
                 left: 14,
                 top: 12,
                 child: _SmallPill(
-                  icon: Icons.monetization_on_outlined,
+                  asset: DuelAsset.coin,
                   text: context.tr('online_duel_fee_summary', <Object>[
                     economy.minimumOnlineBalance,
                   ]),
@@ -496,7 +483,7 @@ class _HomeActionGrid extends StatelessWidget {
       children: [
         Expanded(
           child: _SmallActionCard(
-            icon: Icons.casino_outlined,
+            asset: DuelAsset.careerBook,
             title: context.tr('career'),
             subtitle: context.tr('home_career_card_body'),
             value: '${store.completedLevelCount}',
@@ -506,7 +493,7 @@ class _HomeActionGrid extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _SmallActionCard(
-            icon: Icons.badge_outlined,
+            asset: DuelAsset.profile,
             title: context.tr('profile'),
             subtitle: context.tr('shown_to_other_players'),
             value: context.tr('home_rating_label'),
@@ -520,14 +507,14 @@ class _HomeActionGrid extends StatelessWidget {
 
 class _SmallActionCard extends StatelessWidget {
   const _SmallActionCard({
-    required this.icon,
+    required this.asset,
     required this.title,
     required this.subtitle,
     required this.value,
     required this.onTap,
   });
 
-  final IconData icon;
+  final String asset;
   final String title;
   final String subtitle;
   final String value;
@@ -553,7 +540,11 @@ class _SmallActionCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(icon, color: const Color(0xFFE8C15A), size: 20),
+                  DuelAssetIcon(
+                    asset,
+                    size: 22,
+                    color: const Color(0xFF3AA9FF),
+                  ),
                   const Spacer(),
                   Text(
                     value,
@@ -619,9 +610,9 @@ class _GlassPanel extends StatelessWidget {
 }
 
 class _SmallPill extends StatelessWidget {
-  const _SmallPill({required this.icon, required this.text});
+  const _SmallPill({required this.asset, required this.text});
 
-  final IconData icon;
+  final String asset;
   final String text;
 
   @override
@@ -637,7 +628,7 @@ class _SmallPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: const Color(0xFFE8C15A), size: 13),
+            DuelAssetIcon(asset, size: 14, color: const Color(0xFFFFC94D)),
             const SizedBox(width: 4),
             Text(
               text,
@@ -671,7 +662,7 @@ class _SudokuMistPainter extends CustomPainter {
       ..shader =
           RadialGradient(
             colors: [
-              const Color(0xFFE8C15A).withValues(alpha: .16),
+              const Color(0xFF29D398).withValues(alpha: .14),
               Colors.transparent,
             ],
           ).createShader(
@@ -702,7 +693,11 @@ class _InlineError extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            Icon(Icons.error_outline, color: scheme.onErrorContainer),
+            DuelAssetIcon(
+              DuelAsset.cloud,
+              size: 22,
+              color: scheme.onErrorContainer,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

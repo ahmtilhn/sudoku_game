@@ -12,6 +12,8 @@ import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/sudoku_board.dart';
@@ -272,7 +274,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: activeArena ? const Color(0xFF172033) : null,
+        backgroundColor: activeArena ? const Color(0xFF0B1215) : null,
         appBar: activeArena
             ? null
             : AppBar(
@@ -308,7 +310,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
               ),
         body: Theme(
           data: activeArena ? _arenaTheme(context) : Theme.of(context),
-          child: SafeArea(child: _buildBody(context)),
+          child: activeArena
+              ? AppBackdrop(
+                  dim: .44,
+                  child: SafeArea(child: _buildBody(context)),
+                )
+              : SafeArea(child: _buildBody(context)),
         ),
       ),
     );
@@ -317,25 +324,28 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   ThemeData _arenaTheme(BuildContext context) {
     final base = Theme.of(context);
     const scheme = ColorScheme.dark(
-      primary: Color(0xFF3D74B6),
-      onPrimary: Colors.white,
-      secondary: Color(0xFF1B8A5A),
-      onSecondary: Colors.white,
-      tertiary: Color(0xFFE0B64B),
-      surface: Color(0xFF202B3E),
-      surfaceContainerLow: Color(0xFF263247),
-      surfaceContainerHighest: Color(0xFF334158),
-      outline: Color(0xFF607089),
-      outlineVariant: Color(0xFF48576E),
-      error: Color(0xFFD65A5A),
-      errorContainer: Color(0xFF5D2527),
-      onSurface: Color(0xFFF4F7FB),
-      onSurfaceVariant: Color(0xFFD3DAE6),
+      primary: Color(0xFF29D398),
+      onPrimary: Color(0xFF08110E),
+      secondary: Color(0xFF3AA9FF),
+      onSecondary: Color(0xFF071B2E),
+      tertiary: Color(0xFFFFC94D),
+      onTertiary: Color(0xFF2B1F00),
+      surface: Color(0xFF132026),
+      surfaceContainerLow: Color(0xFF121B20),
+      surfaceContainer: Color(0xFF18242B),
+      surfaceContainerHigh: Color(0xFF22313A),
+      surfaceContainerHighest: Color(0xFF22313A),
+      outline: Color(0xFF7F8B94),
+      outlineVariant: Color(0xFF2E414B),
+      error: Color(0xFFFF5B6B),
+      errorContainer: Color(0xFF3A151D),
+      onSurface: Color(0xFFF8FAFC),
+      onSurfaceVariant: Color(0xFFB7C3CA),
     );
     return base.copyWith(
       brightness: Brightness.dark,
       colorScheme: scheme,
-      scaffoldBackgroundColor: const Color(0xFF172033),
+      scaffoldBackgroundColor: const Color(0xFF0B1215),
     );
   }
 
@@ -348,7 +358,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.cloud_off_outlined, size: 44),
+              const DuelAssetIcon(DuelAsset.cloud, size: 44),
               const SizedBox(height: 12),
               Text(
                 context.tr('online_connection_failed', <Object>[_error!]),
@@ -363,7 +373,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                   });
                   unawaited(_connect());
                 },
-                icon: const Icon(Icons.refresh),
+                icon: const DuelAssetIcon(DuelAsset.refresh, size: 22),
                 label: Text(context.tr('refresh')),
               ),
             ],
@@ -551,7 +561,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
             _statusMessage!,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFF7BC6B2),
+              color: Color(0xFF29D398),
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -593,7 +603,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
             onPressed: () => Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const CoinStoreScreen())),
-            icon: const Icon(Icons.storefront_outlined),
+            icon: const DuelAssetIcon(DuelAsset.store, size: 22),
             label: Text(context.tr('open_coin_store')),
           ),
         ],
@@ -628,31 +638,31 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                 label: context.tr('correct_moves'),
                 localValue: '${snapshot.correctMoves[snapshot.youSeat] ?? 0}',
                 opponentValue: '${snapshot.correctMoves[opponentSeat] ?? 0}',
-                icon: Icons.check_circle_outline,
+                asset: DuelAsset.check,
               ),
               _ResultMetric(
                 label: context.tr('mistakes'),
                 localValue: '${snapshot.mistakes[snapshot.youSeat] ?? 0}',
                 opponentValue: '${snapshot.mistakes[opponentSeat] ?? 0}',
-                icon: Icons.close_rounded,
+                asset: DuelAsset.close,
               ),
               _ResultMetric(
                 label: context.tr('timeouts'),
                 localValue: '${snapshot.timeouts[snapshot.youSeat] ?? 0}',
                 opponentValue: '${snapshot.timeouts[opponentSeat] ?? 0}',
-                icon: Icons.timer_outlined,
+                asset: DuelAsset.timer,
               ),
               _ResultMetric(
                 label: context.tr('hints'),
                 localValue: context.tr('not_available_short'),
                 opponentValue: context.tr('not_available_short'),
-                icon: Icons.lightbulb_outline,
+                asset: DuelAsset.lightbulb,
               ),
               _ResultMetric(
                 label: context.tr('coin_result'),
                 localValue: coinValue,
                 opponentValue: context.tr('coin_amount', const <Object>[0]),
-                icon: Icons.monetization_on_outlined,
+                asset: DuelAsset.coin,
               ),
             ],
           ),
@@ -767,13 +777,13 @@ class _ResultMetric {
     required this.label,
     required this.localValue,
     required this.opponentValue,
-    required this.icon,
+    required this.asset,
   });
 
   final String label;
   final String localValue;
   final String opponentValue;
-  final IconData icon;
+  final String asset;
 }
 
 class _ResultShowcaseCard extends StatelessWidget {
@@ -940,11 +950,10 @@ class _ResultCrown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(
-      Icons.workspace_premium_rounded,
-      color: const Color(0xFFE8C15A),
+    return DuelAssetIcon(
+      DuelAsset.shield,
+      color: const Color(0xFFFFC94D),
       size: 52,
-      shadows: [Shadow(color: accent.withValues(alpha: .20), blurRadius: 8)],
     );
   }
 }
@@ -1030,7 +1039,7 @@ class _ResultPlayersRow extends StatelessWidget {
               child: Text(
                 context.tr('versus_short'),
                 style: TextStyle(
-                  color: const Color(0xFFE8C15A).withValues(alpha: .95),
+                  color: const Color(0xFFFFC94D).withValues(alpha: .95),
                   fontSize: 15,
                   fontWeight: FontWeight.w900,
                 ),
@@ -1157,7 +1166,11 @@ class _ResultCompareRow extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(row.icon, size: 15, color: const Color(0xFFE8C15A)),
+                DuelAssetIcon(
+                  row.asset,
+                  size: 15,
+                  color: const Color(0xFFFFC94D),
+                ),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
@@ -1365,25 +1378,25 @@ class _ResultActionGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primary = _ResultActionButton(
-      icon: Icons.replay_rounded,
+      asset: DuelAsset.refresh,
       label: context.tr('challenge_again'),
       onPressed: busy || !canPlay || invitePending ? null : onRematch,
       filled: false,
     );
     final next = _ResultActionButton(
-      icon: Icons.arrow_forward_rounded,
+      asset: DuelAsset.arrowForward,
       label: context.tr('find_new_match'),
       onPressed: busy || !canPlay ? null : onNewMatch,
       filled: true,
     );
     final friend = _ResultActionButton(
-      icon: Icons.person_add_alt_1_outlined,
+      asset: DuelAsset.people,
       label: context.tr('add_friend'),
       onPressed: busy ? null : onAddFriend,
       filled: false,
     );
     final menu = _ResultActionButton(
-      icon: Icons.home_outlined,
+      asset: DuelAsset.home,
       label: context.tr('main_menu'),
       onPressed: busy ? null : onMenu,
       filled: false,
@@ -1412,13 +1425,13 @@ class _ResultActionGrid extends StatelessWidget {
 
 class _ResultActionButton extends StatelessWidget {
   const _ResultActionButton({
-    required this.icon,
+    required this.asset,
     required this.label,
     required this.onPressed,
     required this.filled,
   });
 
-  final IconData icon;
+  final String asset;
   final String label;
   final VoidCallback? onPressed;
   final bool filled;
@@ -1443,7 +1456,7 @@ class _ResultActionButton extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 18),
+          DuelAssetIcon(asset, size: 18),
           const SizedBox(width: 6),
           Text(label, maxLines: 1),
         ],
@@ -1557,23 +1570,20 @@ class _ArenaToolRail extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _ArenaToolButton(
-          icon: Icons.lightbulb_outline,
-          label: context.tr('hint'),
-        ),
+        _ArenaToolButton(asset: DuelAsset.lightbulb, label: context.tr('hint')),
         const SizedBox(height: 8),
-        _ArenaToolButton(icon: Icons.edit_outlined, label: context.tr('notes')),
+        _ArenaToolButton(asset: DuelAsset.notes, label: context.tr('notes')),
         const SizedBox(height: 8),
-        _ArenaToolButton(icon: Icons.undo, label: context.tr('undo')),
+        _ArenaToolButton(asset: DuelAsset.undo, label: context.tr('undo')),
       ],
     );
   }
 }
 
 class _ArenaToolButton extends StatelessWidget {
-  const _ArenaToolButton({required this.icon, required this.label});
+  const _ArenaToolButton({required this.asset, required this.label});
 
-  final IconData icon;
+  final String asset;
   final String label;
 
   @override
@@ -1588,7 +1598,7 @@ class _ArenaToolButton extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, color: const Color(0xFFE0B64B), size: 20),
+          DuelAssetIcon(asset, color: const Color(0xFFFFC94D), size: 20),
           const SizedBox(height: 4),
           Text(
             label,
@@ -1669,7 +1679,11 @@ class _HistoryDot extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(Icons.circle, size: 8, color: color),
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
@@ -2195,7 +2209,7 @@ class _ScoreLine extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.emoji_events, size: 13, color: scheme.tertiary),
+        DuelAssetIcon(DuelAsset.trophy, size: 13, color: scheme.tertiary),
         const SizedBox(width: 3),
         Text(
           '$score',
@@ -2206,8 +2220,8 @@ class _ScoreLine extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Icon(
-          connected ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+        DuelAssetIcon(
+          connected ? DuelAsset.wifi : DuelAsset.cloud,
           size: 12,
           color: connected ? color : scheme.error,
         ),
@@ -2253,8 +2267,8 @@ class _ReadyPanel extends StatelessWidget {
         builder: (context, constraints) {
           final readyButton = FilledButton.icon(
             onPressed: you.ready ? null : onReady,
-            icon: Icon(
-              you.ready ? Icons.check_circle : Icons.check_circle_outline,
+            icon: DuelAssetIcon(
+              you.ready ? DuelAsset.check : DuelAsset.shield,
               size: compact ? 17 : 24,
             ),
             label: Text(

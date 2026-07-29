@@ -67,19 +67,19 @@ class AppTheme {
   static ThemeData light({required bool highContrast}) {
     const scheme = ColorScheme(
       brightness: Brightness.light,
-      primary: Color(0xFF176B63),
-      onPrimary: Color(0xFFFFFFFF),
-      primaryContainer: Color(0xFFD7F2EC),
-      onPrimaryContainer: Color(0xFF08201D),
-      secondary: Color(0xFF526575),
+      primary: Color(0xFF1FB57E),
+      onPrimary: Color(0xFF08110E),
+      primaryContainer: Color(0xFFD7F8EB),
+      onPrimaryContainer: Color(0xFF08110E),
+      secondary: Color(0xFF3AA9FF),
       onSecondary: Color(0xFFFFFFFF),
-      secondaryContainer: Color(0xFFD7E5EE),
-      onSecondaryContainer: Color(0xFF10202B),
-      tertiary: Color(0xFFA66F12),
-      onTertiary: Color(0xFFFFFFFF),
-      tertiaryContainer: Color(0xFFFFE2A7),
+      secondaryContainer: Color(0xFFDCEEFF),
+      onSecondaryContainer: Color(0xFF071B2E),
+      tertiary: Color(0xFFD99C1D),
+      onTertiary: Color(0xFF08110E),
+      tertiaryContainer: Color(0xFFFFEDB3),
       onTertiaryContainer: Color(0xFF382500),
-      error: Color(0xFFB83A3A),
+      error: Color(0xFFFF5B6B),
       onError: Color(0xFFFFFFFF),
       errorContainer: Color(0xFFFFDAD6),
       onErrorContainer: Color(0xFF410002),
@@ -92,8 +92,8 @@ class AppTheme {
       scrim: Color(0xFF000000),
       inverseSurface: Color(0xFF2B3236),
       onInverseSurface: Color(0xFFEFF3F4),
-      inversePrimary: Color(0xFF73D7C6),
-      surfaceTint: Color(0xFF176B63),
+      inversePrimary: Color(0xFF29D398),
+      surfaceTint: Color(0xFF29D398),
       surfaceContainerLowest: Color(0xFFFFFFFF),
       surfaceContainerLow: Color(0xFFF0F4F5),
       surfaceContainer: Color(0xFFE9EFF1),
@@ -104,14 +104,14 @@ class AppTheme {
       scheme,
       highContrast: highContrast,
       gameColors: const GameColors(
-        success: Color(0xFF287859),
-        onSuccess: Color(0xFFFFFFFF),
-        reward: Color(0xFFA66F12),
-        onReward: Color(0xFFFFFFFF),
-        localPlayer: Color(0xFF176B63),
-        opponentPlayer: Color(0xFF3D74B6),
-        warning: Color(0xFFA66F12),
-        timerCritical: Color(0xFFB83A3A),
+        success: Color(0xFF1FB57E),
+        onSuccess: Color(0xFF08110E),
+        reward: Color(0xFFD99C1D),
+        onReward: Color(0xFF08110E),
+        localPlayer: Color(0xFF29D398),
+        opponentPlayer: Color(0xFF3AA9FF),
+        warning: Color(0xFFFF9F43),
+        timerCritical: Color(0xFFFF5B6B),
       ),
     );
   }
@@ -119,51 +119,51 @@ class AppTheme {
   static ThemeData dark({required bool highContrast}) {
     const scheme = ColorScheme(
       brightness: Brightness.dark,
-      primary: Color(0xFF7BC6B2),
-      onPrimary: Color(0xFF00372F),
-      primaryContainer: Color(0xFF1D5A4F),
-      onPrimaryContainer: Color(0xFFD9F3EB),
-      secondary: Color(0xFFB8C6D8),
-      onSecondary: Color(0xFF223040),
-      secondaryContainer: Color(0xFF3B495D),
-      onSecondaryContainer: Color(0xFFE0E8F2),
-      tertiary: Color(0xFFE8C15A),
-      onTertiary: Color(0xFF3C2B00),
-      tertiaryContainer: Color(0xFF5C4614),
-      onTertiaryContainer: Color(0xFFFFE6A7),
-      error: Color(0xFFFFB4AB),
-      onError: Color(0xFF690005),
-      errorContainer: Color(0xFF93000A),
-      onErrorContainer: Color(0xFFFFDAD6),
-      surface: Color(0xFF172033),
-      onSurface: Color(0xFFF3F6FA),
-      onSurfaceVariant: Color(0xFFC5CFDD),
-      outline: Color(0xFF8B98AA),
-      outlineVariant: Color(0xFF46546A),
+      primary: Color(0xFF29D398),
+      onPrimary: Color(0xFF08110E),
+      primaryContainer: Color(0xFF123429),
+      onPrimaryContainer: Color(0xFFF8FAFC),
+      secondary: Color(0xFF3AA9FF),
+      onSecondary: Color(0xFF071B2E),
+      secondaryContainer: Color(0xFF12304A),
+      onSecondaryContainer: Color(0xFFF8FAFC),
+      tertiary: Color(0xFFFFC94D),
+      onTertiary: Color(0xFF2B1F00),
+      tertiaryContainer: Color(0xFF4B390C),
+      onTertiaryContainer: Color(0xFFF8FAFC),
+      error: Color(0xFFFF5B6B),
+      onError: Color(0xFF2F050B),
+      errorContainer: Color(0xFF3A151D),
+      onErrorContainer: Color(0xFFFFD7DC),
+      surface: Color(0xFF0B1215),
+      onSurface: Color(0xFFF8FAFC),
+      onSurfaceVariant: Color(0xFFB7C3CA),
+      outline: Color(0xFF7F8B94),
+      outlineVariant: Color(0xFF2E414B),
       shadow: Color(0xFF000000),
       scrim: Color(0xFF000000),
-      inverseSurface: Color(0xFFE7F0F2),
-      onInverseSurface: Color(0xFF273135),
-      inversePrimary: Color(0xFF176B63),
-      surfaceTint: Color(0xFF73D7C6),
-      surfaceContainerLowest: Color(0xFF101827),
-      surfaceContainerLow: Color(0xFF1D273A),
-      surfaceContainer: Color(0xFF243047),
-      surfaceContainerHigh: Color(0xFF2C394F),
-      surfaceContainerHighest: Color(0xFF35445B),
+      inverseSurface: Color(0xFFF8FAFC),
+      onInverseSurface: Color(0xFF0B1215),
+      inversePrimary: Color(0xFF1FB57E),
+      surfaceTint: Color(0xFF29D398),
+      surfaceContainerLowest: Color(0xFF0B1215),
+      surfaceContainerLow: Color(0xFF121B20),
+      surfaceContainer: Color(0xFF18242B),
+      surfaceContainerHigh: Color(0xFF22313A),
+      surfaceContainerHighest: Color(0xFF22313A),
     );
     return _build(
       scheme,
       highContrast: highContrast,
       gameColors: const GameColors(
-        success: Color(0xFF64D3A2),
-        onSuccess: Color(0xFF003823),
-        reward: Color(0xFFF1C45B),
-        onReward: Color(0xFF3D2B00),
-        localPlayer: Color(0xFF73D7C6),
-        opponentPlayer: Color(0xFF8DB4E2),
-        warning: Color(0xFFF1C45B),
-        timerCritical: Color(0xFFFFB4AB),
+        success: Color(0xFF29D398),
+        onSuccess: Color(0xFF08110E),
+        reward: Color(0xFFFFC94D),
+        onReward: Color(0xFF2B1F00),
+        localPlayer: Color(0xFF29D398),
+        opponentPlayer: Color(0xFF7A5CFF),
+        warning: Color(0xFFFF9F43),
+        timerCritical: Color(0xFFFF5B6B),
       ),
     );
   }
@@ -179,7 +179,7 @@ class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: scheme.brightness == Brightness.light
           ? const Color(0xFFF4F6F8)
-          : const Color(0xFF121A2A),
+          : const Color(0xFF0B1215),
       extensions: <ThemeExtension<dynamic>>[gameColors],
       textTheme: baseTextTheme
           .copyWith(
@@ -222,7 +222,7 @@ class AppTheme {
         centerTitle: false,
         backgroundColor: scheme.brightness == Brightness.light
             ? const Color(0xFFF4F6F8)
-            : const Color(0xFF121A2A),
+            : const Color(0xFF0B1215),
         foregroundColor: scheme.onSurface,
         elevation: 0,
       ),
@@ -244,11 +244,36 @@ class AppTheme {
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(52, 52),
+          foregroundColor: scheme.onSurface,
+          side: BorderSide(color: scheme.outlineVariant),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+        style: TextButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
       ),
       chipTheme: ChipThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: _SudokuPageTransitionsBuilder(),
+          TargetPlatform.iOS: _SudokuPageTransitionsBuilder(),
+          TargetPlatform.macOS: _SudokuPageTransitionsBuilder(),
+          TargetPlatform.windows: _SudokuPageTransitionsBuilder(),
+          TargetPlatform.linux: _SudokuPageTransitionsBuilder(),
+        },
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scheme.surface,
@@ -262,6 +287,39 @@ class AppTheme {
       ),
       visualDensity: VisualDensity.standard,
       materialTapTargetSize: MaterialTapTargetSize.padded,
+    );
+  }
+}
+
+class _SudokuPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _SudokuPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (route.isFirst) return child;
+    final curve = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return FadeTransition(
+      opacity: curve,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(.04, .018),
+          end: Offset.zero,
+        ).animate(curve),
+        child: ScaleTransition(
+          scale: Tween<double>(begin: .985, end: 1).animate(curve),
+          child: child,
+        ),
+      ),
     );
   }
 }

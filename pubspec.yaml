@@ -42,4 +42,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/puzzles/
+    - assets/images/app_backdrop.png
+    - assets/images/ui/
     - assets/localization/Localizable.xcstrings
