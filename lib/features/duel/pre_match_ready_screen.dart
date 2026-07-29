@@ -18,7 +18,8 @@ class PreMatchReadyScreen extends StatefulWidget {
   State<PreMatchReadyScreen> createState() => _PreMatchReadyScreenState();
 }
 
-class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
+class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
+    with SingleTickerProviderStateMixin {
   static const Duration _minimumSearchStage = Duration(milliseconds: 2600);
 
   OnlineDuelController? _controller;
@@ -30,10 +31,15 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   bool _handedOff = false;
   Timer? _minimumTimer;
   Timer? _clockTimer;
+  late final AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
     _minimumTimer = Timer(_minimumSearchStage, () {
       if (!mounted) return;
       setState(() => _minimumElapsed = true);
@@ -49,6 +55,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   void dispose() {
     _minimumTimer?.cancel();
     _clockTimer?.cancel();
+    _pulseController.dispose();
     unawaited(_subscription?.cancel());
     if (!_handedOff) {
       unawaited(_controller?.dispose());
@@ -100,9 +107,27 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     if (_handedOff || !_minimumElapsed) return;
     _handedOff = true;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) =>
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 520),
+        reverseTransitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (_, _, _) =>
             OnlineDuelScreen(roomId: widget.roomId, controller: controller),
+        transitionsBuilder: (_, animation, _, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, .035),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }
@@ -140,7 +165,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            const _ArenaBackground(),
+            _ArenaBackground(animation: _pulseController),
             Positioned(
               left: 12,
               top: 8,
@@ -181,7 +206,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
                         return Stack(
                           children: [
                             Align(
-                              alignment: const Alignment(-.78, -.84),
+                              alignment: const Alignment(-.66, -.74),
                               child: _PlayerReadyCard(
                                 player: _you,
                                 fallbackName: context.tr('you'),
@@ -192,7 +217,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
                               ),
                             ),
                             Align(
-                              alignment: const Alignment(.74, .28),
+                              alignment: const Alignment(.66, .42),
                               child: _PlayerReadyCard(
                                 player: _opponent,
                                 fallbackName: readyStage
@@ -210,6 +235,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
                                 bothReady:
                                     _you?.ready == true &&
                                     _opponent?.ready == true,
+                                animation: _pulseController,
                               ),
                             ),
                           ],
@@ -231,9 +257,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
                           ? Icons.hourglass_top_rounded
                           : Icons.shield_outlined,
                       text: readyStage
-                          ? (_you?.ready == true
-                                ? context.tr('waiting_opponent_ready')
-                                : context.tr('match_ready_prompt'))
+                          ? _readyStatusText(context)
                           : context.tr('elo_hint'),
                       trailing: readyStage ? '$_secondsRemaining' : null,
                     ),
@@ -272,21 +296,39 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
       ),
     );
   }
+
+  String _readyStatusText(BuildContext context) {
+    final youReady = _you?.ready == true;
+    final opponentReady = _opponent?.ready == true;
+    if (youReady && opponentReady) return context.tr('everyone_ready_starting');
+    if (youReady) return context.tr('you_ready_waiting_opponent');
+    if (opponentReady) return context.tr('opponent_ready_waiting_you');
+    return context.tr('match_ready_prompt');
+  }
 }
 
 class _ArenaBackground extends StatelessWidget {
-  const _ArenaBackground();
+  const _ArenaBackground({required this.animation});
+
+  final Animation<double> animation;
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _ArenaPainter(),
-      child: const SizedBox.expand(),
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) => CustomPaint(
+        painter: _ArenaPainter(animation.value),
+        child: const SizedBox.expand(),
+      ),
     );
   }
 }
 
 class _ArenaPainter extends CustomPainter {
+  const _ArenaPainter(this.progress);
+
+  final double progress;
+
   @override
   void paint(Canvas canvas, Size size) {
     final bg = Paint()
@@ -297,6 +339,8 @@ class _ArenaPainter extends CustomPainter {
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, bg);
 
+    final start = Offset(size.width * .62, size.height * .16);
+    final end = Offset(size.width * .38, size.height * .82);
     final line = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -309,11 +353,16 @@ class _ArenaPainter extends CustomPainter {
         ],
       ).createShader(Offset.zero & size)
       ..strokeWidth = 1.6;
-    canvas.drawLine(
-      Offset(size.width * .68, size.height * .16),
-      Offset(size.width * .38, size.height * .78),
-      line,
-    );
+    canvas.drawLine(start, end, line);
+
+    final sweep = Paint()
+      ..color = Colors.white.withValues(alpha: .22)
+      ..strokeWidth = 2.4
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    final t = progress;
+    final a = Offset.lerp(start, end, (t - .08).clamp(0, 1))!;
+    final b = Offset.lerp(start, end, (t + .08).clamp(0, 1))!;
+    canvas.drawLine(a, b, sweep);
 
     final glow = Paint()
       ..color = const Color(0xFF58A8FF).withValues(alpha: .08)
@@ -322,7 +371,8 @@ class _ArenaPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _ArenaPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 class _PlayerReadyCard extends StatelessWidget {
@@ -457,34 +507,62 @@ class _PlayerReadyCard extends StatelessWidget {
 }
 
 class _CenterBadge extends StatelessWidget {
-  const _CenterBadge({required this.readyStage, required this.bothReady});
+  const _CenterBadge({
+    required this.readyStage,
+    required this.bothReady,
+    required this.animation,
+  });
 
   final bool readyStage;
   final bool bothReady;
+  final Animation<double> animation;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 58,
-      height: 58,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFF13274E),
-        border: Border.all(color: const Color(0xFF9B4DFF), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF9B4DFF).withValues(alpha: .35),
-            blurRadius: 24,
-          ),
-        ],
-      ),
-      child: Icon(
-        readyStage
-            ? (bothReady ? Icons.handshake : Icons.how_to_reg)
-            : Icons.search,
-        color: Colors.white,
-        size: 30,
-      ),
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) {
+        final pulse = Curves.easeOut.transform(animation.value);
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 58 + (pulse * 42),
+              height: 58 + (pulse * 42),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(
+                    0xFF9B4DFF,
+                  ).withValues(alpha: .42 * (1 - pulse)),
+                ),
+              ),
+            ),
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF13274E),
+                border: Border.all(color: const Color(0xFF9B4DFF), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF9B4DFF).withValues(alpha: .35),
+                    blurRadius: 24,
+                  ),
+                ],
+              ),
+              child: Icon(
+                readyStage
+                    ? (bothReady ? Icons.handshake : Icons.how_to_reg)
+                    : Icons.search,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -122,7 +122,7 @@ void main() {
     expect(find.byType(RepaintBoundary), findsWidgets);
     expect(find.text('You'), findsWidgets);
     expect(find.text('Bob'), findsWidgets);
-    expect(find.byIcon(Icons.timer_outlined), findsOneWidget);
+    expect(find.text('s'), findsOneWidget);
   });
 
   testWidgets('opponent turn keeps board readable and disables number input', (

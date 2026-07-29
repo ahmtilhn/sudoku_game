@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -591,14 +592,14 @@ class _FullScreenSearchingStage extends StatelessWidget {
                     child: Stack(
                       children: [
                         Align(
-                          alignment: const Alignment(-.78, -.82),
+                          alignment: const Alignment(-.66, -.74),
                           child: _SearchPreviewCard(
                             title: context.tr('you'),
                             known: true,
                           ),
                         ),
                         Align(
-                          alignment: const Alignment(.74, .3),
+                          alignment: const Alignment(.66, .42),
                           child: _SearchPreviewCard(
                             title: context.tr('searching_opponent_short'),
                             known: false,
@@ -656,6 +657,8 @@ class _SearchBackgroundPainter extends CustomPainter {
       ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, bg);
 
+    final start = Offset(size.width * .62, size.height * .18);
+    final end = Offset(size.width * .38, size.height * .82);
     final line = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -668,11 +671,7 @@ class _SearchBackgroundPainter extends CustomPainter {
         ],
       ).createShader(Offset.zero & size)
       ..strokeWidth = 1.6;
-    canvas.drawLine(
-      Offset(size.width * .68, size.height * .18),
-      Offset(size.width * .38, size.height * .78),
-      line,
-    );
+    canvas.drawLine(start, end, line);
   }
 
   @override
@@ -750,28 +749,105 @@ class _SearchPreviewCard extends StatelessWidget {
   }
 }
 
-class _SearchOrb extends StatelessWidget {
+class _SearchOrb extends StatefulWidget {
   const _SearchOrb();
 
   @override
+  State<_SearchOrb> createState() => _SearchOrbState();
+}
+
+class _SearchOrbState extends State<_SearchOrb>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 58,
-      height: 58,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFF13274E),
-        border: Border.all(color: const Color(0xFF9B4DFF), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF9B4DFF).withValues(alpha: .35),
-            blurRadius: 24,
-          ),
-        ],
-      ),
-      child: const Icon(Icons.search, color: Colors.white, size: 30),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final pulse = Curves.easeOut.transform(_controller.value);
+        final rotation = _controller.value;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Transform.rotate(
+              angle: rotation * 6.28318,
+              child: SizedBox(
+                width: 104,
+                height: 104,
+                child: CustomPaint(painter: _SearchDotsPainter()),
+              ),
+            ),
+            Container(
+              width: 58 + pulse * 38,
+              height: 58 + pulse * 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(
+                    0xFF58A8FF,
+                  ).withValues(alpha: .34 * (1 - pulse)),
+                ),
+              ),
+            ),
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF13274E),
+                border: Border.all(color: const Color(0xFF9B4DFF), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF9B4DFF).withValues(alpha: .35),
+                    blurRadius: 24,
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.search, color: Colors.white, size: 30),
+            ),
+          ],
+        );
+      },
     );
   }
+}
+
+class _SearchDotsPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    const dots = 12;
+    for (var i = 0; i < dots; i++) {
+      final angle = (i / dots) * 6.28318;
+      final offset = Offset(
+        center.dx + 44 * math.cos(angle),
+        center.dy + 44 * math.sin(angle),
+      );
+      final paint = Paint()
+        ..color = (i.isEven ? const Color(0xFF58A8FF) : const Color(0xFFB64DFF))
+            .withValues(alpha: .35 + (i / dots) * .45);
+      canvas.drawCircle(offset, 2.2, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _SearchInfoBar extends StatelessWidget {

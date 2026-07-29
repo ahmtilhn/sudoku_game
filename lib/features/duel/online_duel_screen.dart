@@ -256,6 +256,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
+    final activeArena = snapshot?.status == OnlineDuelStatus.active;
     final inputLocked =
         snapshot != null &&
         (snapshot.isFinished ||
@@ -269,36 +270,70 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 48,
-          titleSpacing: 16,
-          title: Text(
-            snapshot == null
-                ? context.tr('online_duel')
-                : context.strings.difficultyLabel(
-                    _difficulty(snapshot.difficulty),
-                  ),
-          ),
-        ),
+        backgroundColor: activeArena ? const Color(0xFF050A18) : null,
+        appBar: activeArena
+            ? null
+            : AppBar(
+                toolbarHeight: 48,
+                titleSpacing: 16,
+                title: Text(
+                  snapshot == null
+                      ? context.tr('online_duel')
+                      : context.strings.difficultyLabel(
+                          _difficulty(snapshot.difficulty),
+                        ),
+                ),
+              ),
         bottomNavigationBar: snapshot == null
             ? null
-            : IgnorePointer(
-                ignoring: inputLocked,
-                child: NumberPadDock(
-                  child: NumberPad(
-                    maxValue: 9,
-                    completedValues: completedSudokuNumbers(
-                      board: snapshot.board,
+            : Theme(
+                data: activeArena ? _arenaTheme(context) : Theme.of(context),
+                child: IgnorePointer(
+                  ignoring: inputLocked,
+                  child: NumberPadDock(
+                    child: NumberPad(
                       maxValue: 9,
+                      completedValues: completedSudokuNumbers(
+                        board: snapshot.board,
+                        maxValue: 9,
+                      ),
+                      enabled: !inputLocked,
+                      onNumber: _enterNumber,
+                      onErase: () => setState(() => _selectedIndex = null),
                     ),
-                    enabled: !inputLocked,
-                    onNumber: _enterNumber,
-                    onErase: () => setState(() => _selectedIndex = null),
                   ),
                 ),
               ),
-        body: SafeArea(child: _buildBody(context)),
+        body: Theme(
+          data: activeArena ? _arenaTheme(context) : Theme.of(context),
+          child: SafeArea(child: _buildBody(context)),
+        ),
       ),
+    );
+  }
+
+  ThemeData _arenaTheme(BuildContext context) {
+    final base = Theme.of(context);
+    const scheme = ColorScheme.dark(
+      primary: Color(0xFF159BFF),
+      onPrimary: Colors.white,
+      secondary: Color(0xFF8B63FF),
+      onSecondary: Colors.white,
+      tertiary: Color(0xFFB64DFF),
+      surface: Color(0xFF091226),
+      surfaceContainerLow: Color(0xFF0B1428),
+      surfaceContainerHighest: Color(0xFF111C34),
+      outline: Color(0xFF263957),
+      outlineVariant: Color(0xFF1A2943),
+      error: Color(0xFFFF6B7A),
+      errorContainer: Color(0xFF4A1720),
+      onSurface: Color(0xFFE7EEFF),
+      onSurfaceVariant: Color(0xFF91A0BC),
+    );
+    return base.copyWith(
+      brightness: Brightness.dark,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: const Color(0xFF050A18),
     );
   }
 
@@ -349,6 +384,33 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       builder: (context, constraints) {
         final compact =
             constraints.maxHeight < 520 || constraints.maxWidth < 380;
+        final board = RepaintBoundary(
+          child: IgnorePointer(
+            ignoring: snapshot.isFinished || !snapshot.isLocalTurn,
+            child: SudokuBoard(
+              puzzle: puzzle,
+              board: snapshot.board,
+              selectedIndex: _selectedIndex,
+              errorIndex: _feedbackCell,
+              localMoveIndexes: _localMoveIndexes,
+              opponentMoveIndexes: _opponentMoveIndexes,
+              enabled: !snapshot.isFinished && snapshot.isLocalTurn,
+              onCellTap: _selectCell,
+            ),
+          ),
+        );
+        if (snapshot.status == OnlineDuelStatus.active) {
+          return _ArenaMatchLayout(
+            snapshot: snapshot,
+            compact: compact,
+            board: board,
+            statusText: _controller?.pendingMove == true
+                ? context.tr('sending_move')
+                : snapshot.isLocalTurn
+                ? context.tr('select_empty_cell_enter_number')
+                : context.tr('waiting_opponent_move'),
+          );
+        }
         return Padding(
           padding: EdgeInsets.fromLTRB(
             compact ? 8 : 12,
@@ -369,56 +431,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                   ),
                 ),
               Expanded(
-                child: Column(
-                  children: [
-                    if (snapshot.status == OnlineDuelStatus.active) ...[
-                      _MatchHeader(snapshot: snapshot, compact: compact),
-                      SizedBox(height: compact ? 4 : 8),
-                    ],
-                    Expanded(
-                      child: Center(
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: RepaintBoundary(
-                            child: IgnorePointer(
-                              ignoring:
-                                  snapshot.isFinished || !snapshot.isLocalTurn,
-                              child: SudokuBoard(
-                                puzzle: puzzle,
-                                board: snapshot.board,
-                                selectedIndex: _selectedIndex,
-                                errorIndex: _feedbackCell,
-                                localMoveIndexes: _localMoveIndexes,
-                                opponentMoveIndexes: _opponentMoveIndexes,
-                                enabled:
-                                    !snapshot.isFinished &&
-                                    snapshot.isLocalTurn,
-                                onCellTap: _selectCell,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (!compact) ...[
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: 24,
-                        child: Center(
-                          child: Text(
-                            _controller?.pendingMove == true
-                                ? context.tr('sending_move')
-                                : snapshot.isLocalTurn
-                                ? context.tr('select_empty_cell_enter_number')
-                                : context.tr('waiting_opponent_move'),
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                child: Center(child: AspectRatio(aspectRatio: 1, child: board)),
               ),
             ],
           ),
@@ -903,6 +916,242 @@ class _ResultLine extends StatelessWidget {
   }
 }
 
+class _ArenaMatchLayout extends StatelessWidget {
+  const _ArenaMatchLayout({
+    required this.snapshot,
+    required this.compact,
+    required this.board,
+    required this.statusText,
+  });
+
+  final OnlineDuelSnapshot snapshot;
+  final bool compact;
+  final Widget board;
+  final String statusText;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF050A18), Color(0xFF071226), Color(0xFF050A18)],
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          compact ? 8 : 12,
+          compact ? 6 : 10,
+          compact ? 8 : 12,
+          compact ? 6 : 10,
+        ),
+        child: Column(
+          children: [
+            _MatchHeader(snapshot: snapshot, compact: compact),
+            SizedBox(height: compact ? 8 : 12),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth >= 720;
+                  final boardMax = constraints.maxHeight < constraints.maxWidth
+                      ? constraints.maxHeight
+                      : constraints.maxWidth;
+                  final boardSize = wide
+                      ? (boardMax - 10).clamp(280.0, 520.0)
+                      : boardMax.clamp(260.0, 520.0);
+                  final boardWidget = Center(
+                    child: SizedBox.square(
+                      dimension: boardSize,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF159BFF,
+                              ).withValues(alpha: .18),
+                              blurRadius: 24,
+                            ),
+                          ],
+                        ),
+                        child: board,
+                      ),
+                    ),
+                  );
+                  if (!wide) return boardWidget;
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const SizedBox(width: 88, child: _ArenaToolRail()),
+                      Expanded(child: boardWidget),
+                      SizedBox(
+                        width: 120,
+                        child: _MoveHistoryPanel(snapshot: snapshot),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: compact ? 4 : 8),
+            Text(
+              statusText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white.withValues(alpha: .58),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ArenaToolRail extends StatelessWidget {
+  const _ArenaToolRail();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _ArenaToolButton(
+          icon: Icons.lightbulb_outline,
+          label: context.tr('hint'),
+        ),
+        const SizedBox(height: 8),
+        _ArenaToolButton(icon: Icons.edit_outlined, label: context.tr('notes')),
+        const SizedBox(height: 8),
+        _ArenaToolButton(icon: Icons.undo, label: context.tr('undo')),
+      ],
+    );
+  }
+}
+
+class _ArenaToolButton extends StatelessWidget {
+  const _ArenaToolButton({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 58,
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111C34).withValues(alpha: .88),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF263957)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: const Color(0xFF9AB8FF), size: 20),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .72),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoveHistoryPanel extends StatelessWidget {
+  const _MoveHistoryPanel({required this.snapshot});
+
+  final OnlineDuelSnapshot snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final opponentSeat = snapshot.youSeat == OnlineDuelSeat.a
+        ? OnlineDuelSeat.b
+        : OnlineDuelSeat.a;
+    final opponent = snapshot.players[opponentSeat]!;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D172C).withValues(alpha: .88),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF263957)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr('last_move'),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .68),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _HistoryDot(
+            color: const Color(0xFF9B4DFF),
+            label: opponent.displayName,
+            value: '${snapshot.scores[opponentSeat] ?? 0}',
+          ),
+          const SizedBox(height: 8),
+          _HistoryDot(
+            color: const Color(0xFF159BFF),
+            label: context.tr('you'),
+            value: '${snapshot.scores[snapshot.youSeat] ?? 0}',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HistoryDot extends StatelessWidget {
+  const _HistoryDot({
+    required this.color,
+    required this.label,
+    required this.value,
+  });
+
+  final Color color;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.circle, size: 8, color: color),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white, fontSize: 11),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .7),
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _MatchHeader extends StatelessWidget {
   const _MatchHeader({required this.snapshot, required this.compact});
 
@@ -921,9 +1170,16 @@ class _MatchHeader extends StatelessWidget {
       label: context.tr('match_header_semantics'),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest,
+          color: const Color(0xFF081226).withValues(alpha: .74),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: scheme.outlineVariant),
+          border: Border.all(color: const Color(0xFF1A2943)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: .22),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Padding(
           padding: EdgeInsets.all(compact ? 6 : 10),
@@ -1046,39 +1302,40 @@ class _TimerPillState extends State<_TimerPill> {
         : seconds != null && seconds <= 10
         ? gameColors.warning
         : scheme.primary;
+    final size = widget.compact ? 52.0 : 70.0;
     return Container(
-      constraints: BoxConstraints(
-        minWidth: widget.compact ? 50 : 76,
-        maxWidth: widget.compact ? 60 : 96,
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: widget.compact ? 4 : 10,
-        vertical: widget.compact ? 5 : 7,
-      ),
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(999),
+        shape: BoxShape.circle,
+        color: const Color(0xFF0B1730),
+        border: Border.all(color: color, width: 2),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: .32), blurRadius: 18),
+        ],
       ),
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Row(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.timer_outlined,
-              size: widget.compact ? 12 : 16,
-              color: scheme.onPrimary,
-            ),
-            SizedBox(width: widget.compact ? 2 : 4),
             Text(
-              context.tr('turn_timer_seconds', <Object>[seconds ?? 0]),
+              '${seconds ?? 0}',
               maxLines: 1,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: scheme.onPrimary,
-                fontSize: widget.compact ? 11 : 12,
+                color: Colors.white,
+                fontSize: widget.compact ? 20 : 28,
                 fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              context.tr('seconds_short'),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .62),
+                fontSize: widget.compact ? 8 : 10,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -1239,6 +1496,14 @@ class _DuelPlayerPlate extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: active ? scheme.primaryContainer : scheme.surface,
+        boxShadow: active
+            ? [
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: .2),
+                  blurRadius: 18,
+                ),
+              ]
+            : null,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: active ? scheme.primary : scheme.outlineVariant,

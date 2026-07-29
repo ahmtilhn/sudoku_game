@@ -5482,6 +5482,36 @@
         }
       }
     },
+    "you_ready_waiting_opponent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You are ready. Waiting for your opponent."
+          }
+        }
+      }
+    },
+    "opponent_ready_waiting_you": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opponent is ready. Waiting for you."
+          }
+        }
+      }
+    },
+    "everyone_ready_starting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyone is ready. Starting the game..."
+          }
+        }
+      }
+    },
     "match_ready_prompt": {
       "localizations": {
         "en": {
@@ -5588,6 +5618,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Balance: %1d Coin"
+          }
+        }
+      }
+    },
+    "last_move": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last move"
+          }
+        }
+      }
+    },
+    "seconds_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "s"
           }
         }
       }
