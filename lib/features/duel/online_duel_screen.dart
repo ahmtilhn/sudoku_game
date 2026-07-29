@@ -542,6 +542,63 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
               ? '+${context.tr('coin_amount', <Object>[entryFee])}'
               : context.tr('coin_amount', const <Object>[0]))
         : '${coinDelta >= 0 ? '+' : ''}${context.tr('coin_amount', <Object>[coinDelta])}';
+    final footer = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_statusMessage != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _statusMessage!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF7BC6B2),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+        if (invite != null && invite.status == 'pending') ...[
+          const SizedBox(height: 12),
+          _ResultInvitationPanel(
+            invite: invite,
+            opponentName: opponent.displayName,
+            seconds: seconds,
+            busy: _busy,
+            canPlay: canPlay,
+            onDecline: () => _respond(invite, false),
+            onAccept: () => _respond(invite, true),
+          ),
+        ],
+        const SizedBox(height: 14),
+        _ResultActionGrid(
+          busy: _busy,
+          canPlay: canPlay,
+          invitePending: invite?.status == 'pending',
+          onRematch: _createRematch,
+          onNewMatch: () => Navigator.of(context).pop('new_match'),
+          onAddFriend: _addFriend,
+          onMenu: () => Navigator.of(context).pop('menu'),
+        ),
+        if (!canPlay) ...[
+          const SizedBox(height: 10),
+          Text(
+            context.tr('not_enough_coins_online', <Object>[entryFee]),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFFFFB4AB),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          FilledButton.tonalIcon(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CoinStoreScreen())),
+            icon: const Icon(Icons.storefront_outlined),
+            label: Text(context.tr('open_coin_store')),
+          ),
+        ],
+      ],
+    );
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
@@ -565,6 +622,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
             localRating: localRating,
             opponentRating: opponentRating,
             rating: rating,
+            footer: footer,
             rows: [
               _ResultMetric(
                 label: context.tr('correct_moves'),
@@ -598,163 +656,6 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
               ),
             ],
           ),
-          if (_statusMessage != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              _statusMessage!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
-            ),
-          ],
-          if (invite != null && invite.status == 'pending') ...[
-            const SizedBox(height: 12),
-            Material(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: invite.isSender
-                    ? Row(
-                        children: [
-                          const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              context.tr('waiting_for_player_seconds', <Object>[
-                                opponent.displayName,
-                                seconds,
-                              ]),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            context.tr('wants_rematch_seconds', <Object>[
-                              invite.sender.displayName,
-                              seconds,
-                            ]),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: _busy
-                                      ? null
-                                      : () => _respond(invite, false),
-                                  child: Text(context.tr('decline')),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: FilledButton(
-                                  onPressed: _busy || !canPlay
-                                      ? null
-                                      : () => _respond(invite, true),
-                                  child: Text(context.tr('accept')),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 430;
-              final actions = <Widget>[
-                FilledButton.icon(
-                  onPressed: _busy || !canPlay || invite?.status == 'pending'
-                      ? null
-                      : _createRematch,
-                  icon: const Icon(Icons.replay_rounded),
-                  label: Text(context.tr('challenge_again')),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _busy || !canPlay
-                      ? null
-                      : () => Navigator.of(context).pop('new_match'),
-                  icon: const Icon(Icons.person_search_outlined),
-                  label: Text(context.tr('find_new_match')),
-                ),
-              ];
-              if (wide) {
-                return Row(
-                  children: [
-                    Expanded(child: actions[0]),
-                    const SizedBox(width: 8),
-                    Expanded(child: actions[1]),
-                  ],
-                );
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [actions[0], const SizedBox(height: 8), actions[1]],
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 430;
-              final addFriend = OutlinedButton.icon(
-                onPressed: _busy ? null : _addFriend,
-                icon: const Icon(Icons.person_add_alt_1_outlined),
-                label: Text(context.tr('add_friend')),
-              );
-              final menu = TextButton.icon(
-                onPressed: _busy
-                    ? null
-                    : () => Navigator.of(context).pop('menu'),
-                icon: const Icon(Icons.home_outlined),
-                label: Text(context.tr('main_menu')),
-              );
-              if (wide) {
-                return Row(
-                  children: [
-                    Expanded(child: addFriend),
-                    const SizedBox(width: 8),
-                    Expanded(child: menu),
-                  ],
-                );
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [addFriend, menu],
-              );
-            },
-          ),
-          if (!canPlay) ...[
-            const SizedBox(height: 8),
-            Text(
-              context.tr('not_enough_coins_online', <Object>[entryFee]),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-            const SizedBox(height: 6),
-            FilledButton.tonalIcon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
-              ),
-              icon: const Icon(Icons.storefront_outlined),
-              label: Text(context.tr('open_coin_store')),
-            ),
-          ],
         ],
       ),
     );
@@ -889,6 +790,7 @@ class _ResultShowcaseCard extends StatelessWidget {
     required this.opponentRating,
     required this.rating,
     required this.rows,
+    required this.footer,
   });
 
   final String title;
@@ -903,6 +805,7 @@ class _ResultShowcaseCard extends StatelessWidget {
   final int opponentRating;
   final OnlineDuelRatingChange? rating;
   final List<_ResultMetric> rows;
+  final Widget footer;
 
   @override
   Widget build(BuildContext context) {
@@ -989,6 +892,7 @@ class _ResultShowcaseCard extends StatelessWidget {
                     const SizedBox(height: 12),
                     _ResultEloBar(rating: rating!, color: accent),
                   ],
+                  footer,
                 ],
               ),
             ),
@@ -1345,6 +1249,209 @@ class _ResultEloBar extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _ResultInvitationPanel extends StatelessWidget {
+  const _ResultInvitationPanel({
+    required this.invite,
+    required this.opponentName,
+    required this.seconds,
+    required this.busy,
+    required this.canPlay,
+    required this.onDecline,
+    required this.onAccept,
+  });
+
+  final RematchInvitation invite;
+  final String opponentName;
+  final int seconds;
+  final bool busy;
+  final bool canPlay;
+  final VoidCallback onDecline;
+  final VoidCallback onAccept;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .07),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: invite.isSender
+            ? Row(
+                children: [
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      context.tr('waiting_for_player_seconds', <Object>[
+                        opponentName,
+                        seconds,
+                      ]),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    context.tr('wants_rematch_seconds', <Object>[
+                      invite.sender.displayName,
+                      seconds,
+                    ]),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: busy ? null : onDecline,
+                          child: Text(context.tr('decline')),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: busy || !canPlay ? null : onAccept,
+                          child: Text(context.tr('accept')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _ResultActionGrid extends StatelessWidget {
+  const _ResultActionGrid({
+    required this.busy,
+    required this.canPlay,
+    required this.invitePending,
+    required this.onRematch,
+    required this.onNewMatch,
+    required this.onAddFriend,
+    required this.onMenu,
+  });
+
+  final bool busy;
+  final bool canPlay;
+  final bool invitePending;
+  final VoidCallback onRematch;
+  final VoidCallback onNewMatch;
+  final VoidCallback onAddFriend;
+  final VoidCallback onMenu;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = _ResultActionButton(
+      icon: Icons.replay_rounded,
+      label: context.tr('challenge_again'),
+      onPressed: busy || !canPlay || invitePending ? null : onRematch,
+      filled: false,
+    );
+    final next = _ResultActionButton(
+      icon: Icons.arrow_forward_rounded,
+      label: context.tr('find_new_match'),
+      onPressed: busy || !canPlay ? null : onNewMatch,
+      filled: true,
+    );
+    final friend = _ResultActionButton(
+      icon: Icons.person_add_alt_1_outlined,
+      label: context.tr('add_friend'),
+      onPressed: busy ? null : onAddFriend,
+      filled: false,
+    );
+    final menu = _ResultActionButton(
+      icon: Icons.home_outlined,
+      label: context.tr('main_menu'),
+      onPressed: busy ? null : onMenu,
+      filled: false,
+    );
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: primary),
+            const SizedBox(width: 8),
+            Expanded(child: next),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: friend),
+            const SizedBox(width: 8),
+            Expanded(child: menu),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ResultActionButton extends StatelessWidget {
+  const _ResultActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    required this.filled,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = filled
+        ? FilledButton.styleFrom(
+            minimumSize: const Size(0, 44),
+            backgroundColor: const Color(0xFF1E9B63),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+          )
+        : OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 44),
+            foregroundColor: Colors.white,
+            side: BorderSide(color: Colors.white.withValues(alpha: .18)),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+          );
+    final child = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 6),
+          Text(label, maxLines: 1),
+        ],
+      ),
+    );
+    return filled
+        ? FilledButton(onPressed: onPressed, style: style, child: child)
+        : OutlinedButton(onPressed: onPressed, style: style, child: child);
   }
 }
 
