@@ -243,6 +243,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         enableDrag: false,
         isScrollControlled: true,
         useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black.withValues(alpha: .46),
         constraints: const BoxConstraints(maxWidth: 560),
         builder: (sheetContext) => _OnlineResultSheet(snapshot: snapshot),
       );
@@ -270,7 +272,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: activeArena ? const Color(0xFF050A18) : null,
+        backgroundColor: activeArena ? const Color(0xFF172033) : null,
         appBar: activeArena
             ? null
             : AppBar(
@@ -315,25 +317,25 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   ThemeData _arenaTheme(BuildContext context) {
     final base = Theme.of(context);
     const scheme = ColorScheme.dark(
-      primary: Color(0xFF159BFF),
+      primary: Color(0xFF3D74B6),
       onPrimary: Colors.white,
-      secondary: Color(0xFF8B63FF),
+      secondary: Color(0xFF1B8A5A),
       onSecondary: Colors.white,
-      tertiary: Color(0xFFB64DFF),
-      surface: Color(0xFF091226),
-      surfaceContainerLow: Color(0xFF0B1428),
-      surfaceContainerHighest: Color(0xFF111C34),
-      outline: Color(0xFF263957),
-      outlineVariant: Color(0xFF1A2943),
-      error: Color(0xFFFF6B7A),
-      errorContainer: Color(0xFF4A1720),
-      onSurface: Color(0xFFE7EEFF),
-      onSurfaceVariant: Color(0xFF91A0BC),
+      tertiary: Color(0xFFE0B64B),
+      surface: Color(0xFF202B3E),
+      surfaceContainerLow: Color(0xFF263247),
+      surfaceContainerHighest: Color(0xFF334158),
+      outline: Color(0xFF607089),
+      outlineVariant: Color(0xFF48576E),
+      error: Color(0xFFD65A5A),
+      errorContainer: Color(0xFF5D2527),
+      onSurface: Color(0xFFF4F7FB),
+      onSurfaceVariant: Color(0xFFD3DAE6),
     );
     return base.copyWith(
       brightness: Brightness.dark,
       colorScheme: scheme,
-      scaffoldBackgroundColor: const Color(0xFF050A18),
+      scaffoldBackgroundColor: const Color(0xFF172033),
     );
   }
 
@@ -518,7 +520,15 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
         : won
         ? context.tr('you_won')
         : context.tr('you_lost');
-    final balance = _economy.balance;
+    final resultSubtitle = snapshot.winnerSeat == null
+        ? context.tr('result_draw_subtitle')
+        : won
+        ? context.tr('result_win_subtitle')
+        : context.tr('result_loss_subtitle');
+    final you = snapshot.players[snapshot.youSeat]!;
+    final localRating = rating?.afterGlobal ?? 1000;
+    final opponentRating =
+        snapshot.rating?[opponentSeat]?.afterGlobal ?? (localRating + 0);
     final canPlay = _economy.balance >= entryFee;
     final invite = _invitation;
     final seconds = invite == null
@@ -535,102 +545,58 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
-        20,
-        4,
-        20,
+        14,
+        6,
+        14,
         20 + MediaQuery.viewInsetsOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PlayerAvatar(
-            displayName: winnerPlayer.displayName,
-            avatarKey: winnerPlayer.avatarKey,
-            radius: 32,
-            semanticLabel: context.tr('winner_avatar_semantics', <Object>[
-              winnerPlayer.displayName,
-            ]),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            resultTitle,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            snapshot.winnerSeat == null
-                ? context.tr('draw')
-                : context.tr('winner_name', <Object>[winnerPlayer.displayName]),
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 16),
-          Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                children: [
-                  _ResultLine(
-                    label: context.tr('match_type'),
-                    value:
-                        '${snapshot.mode.toUpperCase()} · ${snapshot.difficulty}',
-                  ),
-                  _ResultLine(
-                    label: context.tr('online_turns_label'),
-                    value: '${snapshot.turnNumber}',
-                  ),
-                  _ResultLine(
-                    label: context.tr('final_score_label'),
-                    value: '$localScore – $opponentScore',
-                  ),
-                  _ResultLine(
-                    label: context.tr('entry_fee'),
-                    value: context.tr('coin_amount', <Object>[entryFee]),
-                  ),
-                  _ResultLine(
-                    label: won
-                        ? context.tr('winner_pot')
-                        : snapshot.winnerSeat == null
-                        ? context.tr('refund')
-                        : context.tr('match_result'),
-                    value: coinValue,
-                  ),
-                  _ResultLine(
-                    label: context.tr('current_balance'),
-                    value: context.tr('coin_amount', <Object>[balance]),
-                  ),
-                  if (rating != null)
-                    _ResultLine(
-                      label: context.tr('rating'),
-                      value:
-                          '${rating.beforeGlobal} → ${rating.afterGlobal} (${rating.deltaGlobal >= 0 ? '+' : ''}${rating.deltaGlobal})',
-                    ),
-                  _ResultLine(
-                    label: context.tr('mistakes'),
-                    value: '${snapshot.mistakes[snapshot.youSeat] ?? 0}',
-                  ),
-                  _ResultLine(
-                    label: context.tr('correct_moves'),
-                    value: '${snapshot.correctMoves[snapshot.youSeat] ?? 0}',
-                  ),
-                  _ResultLine(
-                    label: context.tr('timeouts'),
-                    value: '${snapshot.timeouts[snapshot.youSeat] ?? 0}',
-                  ),
-                  _ResultLine(
-                    label: context.tr('hints'),
-                    value: context.tr('not_available_short'),
-                  ),
-                  if (snapshot.finishReason != null)
-                    _ResultLine(
-                      label: context.tr('finish_reason'),
-                      value: snapshot.finishReason!.replaceAll('_', ' '),
-                    ),
-                ],
+          _ResultShowcaseCard(
+            title: resultTitle,
+            subtitle: resultSubtitle,
+            won: won,
+            draw: snapshot.winnerSeat == null,
+            localPlayer: you,
+            opponent: opponent,
+            localScore: localScore,
+            opponentScore: opponentScore,
+            localRating: localRating,
+            opponentRating: opponentRating,
+            rating: rating,
+            rows: [
+              _ResultMetric(
+                label: context.tr('correct_moves'),
+                localValue: '${snapshot.correctMoves[snapshot.youSeat] ?? 0}',
+                opponentValue: '${snapshot.correctMoves[opponentSeat] ?? 0}',
+                icon: Icons.check_circle_outline,
               ),
-            ),
+              _ResultMetric(
+                label: context.tr('mistakes'),
+                localValue: '${snapshot.mistakes[snapshot.youSeat] ?? 0}',
+                opponentValue: '${snapshot.mistakes[opponentSeat] ?? 0}',
+                icon: Icons.close_rounded,
+              ),
+              _ResultMetric(
+                label: context.tr('timeouts'),
+                localValue: '${snapshot.timeouts[snapshot.youSeat] ?? 0}',
+                opponentValue: '${snapshot.timeouts[opponentSeat] ?? 0}',
+                icon: Icons.timer_outlined,
+              ),
+              _ResultMetric(
+                label: context.tr('hints'),
+                localValue: context.tr('not_available_short'),
+                opponentValue: context.tr('not_available_short'),
+                icon: Icons.lightbulb_outline,
+              ),
+              _ResultMetric(
+                label: context.tr('coin_result'),
+                localValue: coinValue,
+                opponentValue: context.tr('coin_amount', const <Object>[0]),
+                icon: Icons.monetization_on_outlined,
+              ),
+            ],
           ),
           if (_statusMessage != null) ...[
             const SizedBox(height: 10),
@@ -895,23 +861,489 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
   }
 }
 
-class _ResultLine extends StatelessWidget {
-  const _ResultLine({required this.label, required this.value});
+class _ResultMetric {
+  const _ResultMetric({
+    required this.label,
+    required this.localValue,
+    required this.opponentValue,
+    required this.icon,
+  });
 
   final String label;
-  final String value;
+  final String localValue;
+  final String opponentValue;
+  final IconData icon;
+}
+
+class _ResultShowcaseCard extends StatelessWidget {
+  const _ResultShowcaseCard({
+    required this.title,
+    required this.subtitle,
+    required this.won,
+    required this.draw,
+    required this.localPlayer,
+    required this.opponent,
+    required this.localScore,
+    required this.opponentScore,
+    required this.localRating,
+    required this.opponentRating,
+    required this.rating,
+    required this.rows,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool won;
+  final bool draw;
+  final OnlineDuelPlayer localPlayer;
+  final OnlineDuelPlayer opponent;
+  final int localScore;
+  final int opponentScore;
+  final int localRating;
+  final int opponentRating;
+  final OnlineDuelRatingChange? rating;
+  final List<_ResultMetric> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = draw
+        ? const Color(0xFF8DA2BE)
+        : won
+        ? const Color(0xFF1E9B63)
+        : const Color(0xFFC15B55);
+    final banner = draw
+        ? const Color(0xFF4D627E)
+        : won
+        ? const Color(0xFF128151)
+        : const Color(0xFF9E403B);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF172235),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: .42)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .24),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(painter: _ResultSurfacePainter(accent)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ResultCrown(accent: accent),
+                  const SizedBox(height: 4),
+                  _ResultBanner(title: title, color: banner),
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .86),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _ResultPlayersRow(
+                    localPlayer: localPlayer,
+                    opponent: opponent,
+                    localScore: localScore,
+                    opponentScore: opponentScore,
+                    localRating: localRating,
+                    opponentRating: opponentRating,
+                    accent: accent,
+                  ),
+                  const SizedBox(height: 12),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .08),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        children: [
+                          for (final row in rows) _ResultCompareRow(row: row),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (rating != null) ...[
+                    const SizedBox(height: 12),
+                    _ResultEloBar(rating: rating!, color: accent),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultSurfacePainter extends CustomPainter {
+  const _ResultSurfacePainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -1),
+        radius: .9,
+        colors: [color.withValues(alpha: .08), Colors.transparent],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, paint);
+
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: .05)
+      ..strokeWidth = 1;
+    for (var i = 0; i < 4; i++) {
+      final y = size.height * (.18 + i * .16);
+      canvas.drawLine(Offset(12, y), Offset(size.width - 12, y), line);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ResultSurfacePainter oldDelegate) {
+    return oldDelegate.color != color;
+  }
+}
+
+class _ResultCrown extends StatelessWidget {
+  const _ResultCrown({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(
+      Icons.workspace_premium_rounded,
+      color: const Color(0xFFE8C15A),
+      size: 52,
+      shadows: [Shadow(color: accent.withValues(alpha: .20), blurRadius: 8)],
+    );
+  }
+}
+
+class _ResultBanner extends StatelessWidget {
+  const _ResultBanner({required this.title, required this.color});
+
+  final String title;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .22),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 7),
+        child: Text(
+          title.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFFFFEAA6),
+            fontSize: 25,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultPlayersRow extends StatelessWidget {
+  const _ResultPlayersRow({
+    required this.localPlayer,
+    required this.opponent,
+    required this.localScore,
+    required this.opponentScore,
+    required this.localRating,
+    required this.opponentRating,
+    required this.accent,
+  });
+
+  final OnlineDuelPlayer localPlayer;
+  final OnlineDuelPlayer opponent;
+  final int localScore;
+  final int opponentScore;
+  final int localRating;
+  final int opponentRating;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF243149),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            Expanded(
+              child: _ResultPlayerSummary(
+                player: localPlayer,
+                score: localScore,
+                rating: localRating,
+                color: const Color(0xFF1E9B63),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                context.tr('versus_short'),
+                style: TextStyle(
+                  color: const Color(0xFFE8C15A).withValues(alpha: .95),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Expanded(
+              child: _ResultPlayerSummary(
+                player: opponent,
+                score: opponentScore,
+                rating: opponentRating,
+                color: accent,
+                alignEnd: true,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultPlayerSummary extends StatelessWidget {
+  const _ResultPlayerSummary({
+    required this.player,
+    required this.score,
+    required this.rating,
+    required this.color,
+    this.alignEnd = false,
+  });
+
+  final OnlineDuelPlayer player;
+  final int score;
+  final int rating;
+  final Color color;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = <Widget>[
+      _AvatarRing(
+        color: color,
+        active: true,
+        child: PlayerAvatar(
+          displayName: player.displayName,
+          avatarKey: player.avatarKey,
+          radius: 19,
+          semanticLabel: context.tr('player_avatar_semantics', <Object>[
+            player.displayName,
+          ]),
+        ),
+      ),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: alignEnd
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              player.displayName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '$score',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+              ),
+            ),
+            Text(
+              context.tr('rating_value', <Object>[rating]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .72),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+    return Row(
+      textDirection: alignEnd ? TextDirection.rtl : TextDirection.ltr,
+      children: content,
+    );
+  }
+}
+
+class _ResultCompareRow extends StatelessWidget {
+  const _ResultCompareRow({required this.row});
+
+  final _ResultMetric row;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          Expanded(child: Text(label)),
-          const SizedBox(width: 12),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
+          SizedBox(
+            width: 44,
+            child: Text(
+              row.localValue,
+              textAlign: TextAlign.start,
+              style: const TextStyle(
+                color: Color(0xFF41C182),
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(row.icon, size: 15, color: const Color(0xFFE8C15A)),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    row.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .82),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 44,
+            child: Text(
+              row.opponentValue,
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                color: Color(0xFF6EA0D8),
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _ResultEloBar extends StatelessWidget {
+  const _ResultEloBar({required this.rating, required this.color});
+
+  final OnlineDuelRatingChange rating;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final before = rating.beforeGlobal;
+    final after = rating.afterGlobal;
+    final delta = rating.deltaGlobal;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          context.tr('result_elo_change'),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .72),
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Row(
+          children: [
+            Text(
+              '$before',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: SizedBox(
+                  height: 9,
+                  child: LinearProgressIndicator(
+                    value: (after / 2500).clamp(.05, 1.0),
+                    backgroundColor: Colors.white.withValues(alpha: .12),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$after (${delta >= 0 ? '+' : ''}$delta)',
+              style: TextStyle(color: color, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -936,7 +1368,7 @@ class _ArenaMatchLayout extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF050A18), Color(0xFF071226), Color(0xFF050A18)],
+          colors: [Color(0xFF1C2638), Color(0xFF273347), Color(0xFF182132)],
         ),
       ),
       child: Padding(
@@ -969,9 +1401,9 @@ class _ArenaMatchLayout extends StatelessWidget {
                           boxShadow: [
                             BoxShadow(
                               color: const Color(
-                                0xFF159BFF,
-                              ).withValues(alpha: .18),
-                              blurRadius: 24,
+                                0xFF3D74B6,
+                              ).withValues(alpha: .14),
+                              blurRadius: 18,
                             ),
                           ],
                         ),
@@ -1043,20 +1475,20 @@ class _ArenaToolButton extends StatelessWidget {
       width: 58,
       padding: const EdgeInsets.symmetric(vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFF111C34).withValues(alpha: .88),
+        color: const Color(0xFF2E3A50).withValues(alpha: .94),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF263957)),
+        border: Border.all(color: const Color(0xFF5A6A82)),
       ),
       child: Column(
         children: [
-          Icon(icon, color: const Color(0xFF9AB8FF), size: 20),
+          Icon(icon, color: const Color(0xFFE0B64B), size: 20),
           const SizedBox(height: 4),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: .72),
+              color: Colors.white.withValues(alpha: .88),
               fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
@@ -1081,9 +1513,9 @@ class _MoveHistoryPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D172C).withValues(alpha: .88),
+        color: const Color(0xFF2B374D).withValues(alpha: .96),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF263957)),
+        border: Border.all(color: const Color(0xFF5A6A82)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1092,20 +1524,20 @@ class _MoveHistoryPanel extends StatelessWidget {
           Text(
             context.tr('last_move'),
             style: TextStyle(
-              color: Colors.white.withValues(alpha: .68),
+              color: Colors.white.withValues(alpha: .86),
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 10),
           _HistoryDot(
-            color: const Color(0xFF9B4DFF),
+            color: const Color(0xFFE0B64B),
             label: opponent.displayName,
             value: '${snapshot.scores[opponentSeat] ?? 0}',
           ),
           const SizedBox(height: 8),
           _HistoryDot(
-            color: const Color(0xFF159BFF),
+            color: const Color(0xFF3D74B6),
             label: context.tr('you'),
             value: '${snapshot.scores[snapshot.youSeat] ?? 0}',
           ),
@@ -1181,13 +1613,13 @@ class _MatchHeader extends StatelessWidget {
               bottom: compact ? 6 : 8,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF071124).withValues(alpha: .84),
+                  color: const Color(0xFF29364B).withValues(alpha: .96),
                   border: Border(
                     top: BorderSide(
-                      color: const Color(0xFF1B2C50).withValues(alpha: .9),
+                      color: const Color(0xFF64748D).withValues(alpha: .72),
                     ),
                     bottom: BorderSide(
-                      color: const Color(0xFF162743).withValues(alpha: .9),
+                      color: const Color(0xFF3E4D64).withValues(alpha: .9),
                     ),
                   ),
                   boxShadow: [
@@ -1197,8 +1629,8 @@ class _MatchHeader extends StatelessWidget {
                       offset: const Offset(0, 10),
                     ),
                     BoxShadow(
-                      color: scheme.primary.withValues(alpha: .08),
-                      blurRadius: 22,
+                      color: scheme.tertiary.withValues(alpha: .10),
+                      blurRadius: 16,
                     ),
                   ],
                 ),
@@ -1324,7 +1756,7 @@ class _HeaderCircuitPainter extends CustomPainter {
     final glow = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2
-      ..color = Colors.white.withValues(alpha: .06);
+      ..color = Colors.white.withValues(alpha: .12);
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(center, midY),
@@ -1386,11 +1818,11 @@ class _TimerPillState extends State<_TimerPill> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: const RadialGradient(
-          colors: [Color(0xFF17294C), Color(0xFF071124)],
+          colors: [Color(0xFF3A4960), Color(0xFF222D40)],
         ),
-        border: Border.all(color: Colors.white.withValues(alpha: .18)),
+        border: Border.all(color: Colors.white.withValues(alpha: .30)),
         boxShadow: [
-          BoxShadow(color: color.withValues(alpha: .48), blurRadius: 18),
+          BoxShadow(color: color.withValues(alpha: .28), blurRadius: 12),
           BoxShadow(
             color: Colors.black.withValues(alpha: .36),
             blurRadius: 12,
@@ -1406,7 +1838,7 @@ class _TimerPillState extends State<_TimerPill> {
             child: CircularProgressIndicator(
               value: seconds == null ? null : (seconds / 30).clamp(0.0, 1.0),
               strokeWidth: widget.compact ? 2.4 : 3,
-              backgroundColor: Colors.white.withValues(alpha: .08),
+              backgroundColor: Colors.white.withValues(alpha: .18),
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
@@ -1624,13 +2056,13 @@ class _AvatarRing extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: active ? color : Colors.white.withValues(alpha: .24),
+          color: active ? color : Colors.white.withValues(alpha: .38),
           width: active ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: active ? .54 : .24),
-            blurRadius: active ? 16 : 10,
+            color: color.withValues(alpha: active ? .30 : .12),
+            blurRadius: active ? 12 : 6,
           ),
         ],
       ),
