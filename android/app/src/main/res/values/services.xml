@@ -11,6 +11,6 @@
     <!-- Play Games project and server-side OAuth client from the linked Google Cloud project. -->
     <string name="game_services_project_id" translatable="false">31445697560</string>
     <string name="game_services_web_client_id" translatable="false">31445697560-srkgbb34irg821mamsq0tnd6hvr4j8li.apps.googleusercontent.com</string>
-    <string name="leaderboard_global_rating" translatable="false">REPLACE_WITH_LEADERBOARD_ID</string>
+    <string name="leaderboard_global_rating" translatable="false">CgkIzMyzm9saEAIQZQ</string>
     <string name="achievement_first_win" translatable="false">REPLACE_WITH_ACHIEVEMENT_ID</string>
 </resources>
