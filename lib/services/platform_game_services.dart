@@ -170,6 +170,12 @@ class PlatformGameServices {
     <String, Object?>{'achievementId': achievementId},
   );
 
+  Future<bool> recordGameStatsEvents(
+    List<Map<String, Object?>> events,
+  ) => _invokeBool('recordGameStatsEvents', <String, Object?>{
+    'events': events,
+  });
+
   Future<String?> requestServerAuthCode() async {
     final value = await _invoke<Object?>('requestServerAuthCode');
     return value?.toString();
