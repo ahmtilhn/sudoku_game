@@ -57,11 +57,12 @@ class PushNotificationService {
       }
 
       await _initializeLocalNotifications();
-      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: false,
-        sound: true,
-      );
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+            alert: true,
+            badge: false,
+            sound: true,
+          );
 
       await _tokenSubscription?.cancel();
       await _messageSubscription?.cancel();
@@ -77,10 +78,12 @@ class PushNotificationService {
         _registerToken,
       );
 
-      final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+      final initialMessage = await FirebaseMessaging.instance
+          .getInitialMessage();
       if (initialMessage != null) _handleOpenedMessage(initialMessage);
 
-      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      final settings = await FirebaseMessaging.instance
+          .getNotificationSettings();
       permissionGranted.value = _isAuthorized(settings.authorizationStatus);
       if (permissionGranted.value) {
         final token = await FirebaseMessaging.instance.getToken();
@@ -175,7 +178,8 @@ class PushNotificationService {
       await _localNotifications.show(
         id: challengeId.hashCode & 0x7fffffff,
         title: message.notification?.title ?? 'New Sudoku challenge',
-        body: message.notification?.body ??
+        body:
+            message.notification?.body ??
             'A player challenged you. Open Sudoku Duel to respond.',
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(

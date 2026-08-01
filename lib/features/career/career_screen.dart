@@ -64,17 +64,15 @@ class _CareerScreenState extends State<CareerScreen> {
             Text(
               context.tr('three_mistake_rule'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 18),
             for (final difficulty in SudokuDifficulty.values) ...[
               _DifficultyCard(
                 difficulty: difficulty,
                 clueCount: PuzzleCatalog.targetClueCount(difficulty),
-                progress: widget.store.progressFor(
-                  'career-${difficulty.name}',
-                ),
+                progress: widget.store.progressFor('career-${difficulty.name}'),
                 generating: _generatingDifficulty == difficulty,
                 onTap: _generatingDifficulty == null
                     ? () => _startRandomPuzzle(difficulty)
@@ -104,24 +102,19 @@ class _CareerScreenState extends State<CareerScreen> {
           coinContinueCost: 25,
           onCoinContinue: widget.store.spendCoins,
           onRewardedContinue: AdsService.instance.showRewarded,
-          onConsumeHint: () => HintEconomy.consumeOrAcquire(
-            gameContext,
-            widget.store,
-          ),
+          onConsumeHint: () =>
+              HintEconomy.consumeOrAcquire(gameContext, widget.store),
           hintBalanceProvider: () => widget.store.hints,
-          onCompleted: ({
-            required seconds,
-            required mistakes,
-            required hints,
-          }) async {
-            await widget.store.recordResult(
-              puzzleId: 'career-${difficulty.name}',
-              seconds: seconds,
-              mistakes: mistakes,
-              hints: hints,
-            );
-            await widget.store.addCoins(10);
-          },
+          onCompleted:
+              ({required seconds, required mistakes, required hints}) async {
+                await widget.store.recordResult(
+                  puzzleId: 'career-${difficulty.name}',
+                  seconds: seconds,
+                  mistakes: mistakes,
+                  hints: hints,
+                );
+                await widget.store.addCoins(10);
+              },
         ),
       ),
     );
@@ -174,15 +167,15 @@ class _DifficultyCard extends StatelessWidget {
                     Text(
                       context.strings.difficultyLabel(difficulty),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       context.tr('random_clue_count', <Object>[clueCount]),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                     if (progress != null) ...[
                       const SizedBox(height: 6),

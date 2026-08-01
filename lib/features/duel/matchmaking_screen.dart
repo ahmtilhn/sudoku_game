@@ -49,16 +49,16 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           const SizedBox(height: 18),
           Text(
             context.tr('choose_duel_difficulty'),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
             context.tr('same_difficulty_match'),
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 20),
           for (final difficulty in SudokuDifficulty.values) ...[
@@ -85,8 +85,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                   Text(
                     context.tr('searching_opponent'),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -126,22 +126,20 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   }
 
   void _openFriendRequests() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const FriendRequestsScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const FriendRequestsScreen()));
   }
 
   void _openPlatformFriends() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const PlatformSocialScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const PlatformSocialScreen()));
   }
 
   void _openLocalPractice() {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => DuelScreen(difficulty: _difficulty),
-      ),
+      MaterialPageRoute(builder: (_) => DuelScreen(difficulty: _difficulty)),
     );
   }
 }

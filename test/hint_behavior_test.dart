@@ -10,16 +10,14 @@ import 'package:sudoku_game/localization/app_strings.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const localizationChannel = MethodChannel(
-    'com.devovia.sudoku/localization',
-  );
+  const localizationChannel = MethodChannel('com.devovia.sudoku/localization');
 
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      localizationChannel,
-      (_) async => AppStrings.english,
-    );
+          localizationChannel,
+          (_) async => AppStrings.english,
+        );
   });
 
   tearDown(() {
@@ -68,10 +66,7 @@ void main() {
 
     expect(_cellTextFinder(1, '2'), findsOneWidget);
     expect(_cellTextFinder(2, '3'), findsNothing);
-    expect(
-      find.byKey(const ValueKey<String>('action-undo')),
-      findsNothing,
-    );
+    expect(find.byKey(const ValueKey<String>('action-undo')), findsNothing);
 
     await _disposeGame(tester);
   });
@@ -115,10 +110,7 @@ void main() {
 
     expect(_cellTextFinder(2, '3'), findsNothing);
     expect(_cellTextFinder(1, '2'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('action-undo')),
-      findsNothing,
-    );
+    expect(find.byKey(const ValueKey<String>('action-undo')), findsNothing);
 
     await _disposeGame(tester);
   });
@@ -143,16 +135,6 @@ const SudokuPuzzle _hintPuzzle = SudokuPuzzle(
   size: 4,
   boxRows: 2,
   boxColumns: 2,
-  puzzle: <int>[
-    1, 0, 0, 4,
-    0, 4, 1, 2,
-    2, 1, 4, 3,
-    4, 3, 2, 1,
-  ],
-  solution: <int>[
-    1, 2, 3, 4,
-    3, 4, 1, 2,
-    2, 1, 4, 3,
-    4, 3, 2, 1,
-  ],
+  puzzle: <int>[1, 0, 0, 4, 0, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
+  solution: <int>[1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
 );

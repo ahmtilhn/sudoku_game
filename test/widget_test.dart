@@ -8,16 +8,14 @@ import 'package:sudoku_game/localization/app_strings.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const localizationChannel = MethodChannel(
-    'com.devovia.sudoku/localization',
-  );
+  const localizationChannel = MethodChannel('com.devovia.sudoku/localization');
 
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      localizationChannel,
-      (_) async => AppStrings.english,
-    );
+          localizationChannel,
+          (_) async => AppStrings.english,
+        );
   });
 
   tearDown(() {

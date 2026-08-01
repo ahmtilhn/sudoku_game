@@ -75,7 +75,8 @@ class SocialChallenge {
         (json['recipient'] as Map?)?.cast<String, dynamic>() ??
             const <String, dynamic>{},
       ),
-      expiresAt: DateTime.tryParse(json['expiresAt']?.toString() ?? '') ??
+      expiresAt:
+          DateTime.tryParse(json['expiresAt']?.toString() ?? '') ??
           DateTime.now(),
       roomId: json['roomId']?.toString(),
     );
@@ -119,10 +120,7 @@ class SocialApiClient {
     await _request(
       'PUT',
       '/v1/me/devices/current',
-      body: <String, Object>{
-        'token': token,
-        'platform': platform,
-      },
+      body: <String, Object>{'token': token, 'platform': platform},
     );
   }
 
@@ -243,15 +241,15 @@ class SocialApiClient {
     final response = switch (method) {
       'GET' => await _client.get(uri, headers: headers),
       'POST' => await _client.post(
-          uri,
-          headers: headers,
-          body: jsonEncode(body ?? const <String, Object?>{}),
-        ),
+        uri,
+        headers: headers,
+        body: jsonEncode(body ?? const <String, Object?>{}),
+      ),
       'PUT' => await _client.put(
-          uri,
-          headers: headers,
-          body: jsonEncode(body ?? const <String, Object?>{}),
-        ),
+        uri,
+        headers: headers,
+        body: jsonEncode(body ?? const <String, Object?>{}),
+      ),
       _ => throw ArgumentError.value(method, 'method'),
     };
 

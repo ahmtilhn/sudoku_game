@@ -70,14 +70,14 @@ class SudokuBoard extends StatelessWidget {
                 final background = errorIndex == index
                     ? scheme.errorContainer
                     : selected
-                        ? scheme.primaryContainer
-                        : hinted
-                            ? scheme.tertiaryContainer
-                            : sameValue
-                                ? matchingValueBackground
-                                : related
-                                    ? scheme.surfaceContainerHighest
-                                    : scheme.surface;
+                    ? scheme.primaryContainer
+                    : hinted
+                    ? scheme.tertiaryContainer
+                    : sameValue
+                    ? matchingValueBackground
+                    : related
+                    ? scheme.surfaceContainerHighest
+                    : scheme.surface;
 
                 return Semantics(
                   button: !locked,
@@ -128,8 +128,8 @@ class SudokuBoard extends StatelessWidget {
                                   color: hinted
                                       ? scheme.onTertiaryContainer
                                       : fixed
-                                          ? scheme.onSurface
-                                          : scheme.primary,
+                                      ? scheme.onSurface
+                                      : scheme.primary,
                                 ),
                               ),
                             ),

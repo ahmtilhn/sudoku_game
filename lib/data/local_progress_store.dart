@@ -50,7 +50,7 @@ class SharedPreferencesBackend implements PreferencesBackend {
 
 class MemoryPreferencesBackend implements PreferencesBackend {
   MemoryPreferencesBackend([Map<String, Object>? initialValues])
-      : _values = <String, Object>{...?initialValues};
+    : _values = <String, Object>{...?initialValues};
 
   final Map<String, Object> _values;
 
@@ -96,10 +96,10 @@ class LevelProgress {
   final int bestMistakes;
 
   Map<String, Object> toJson() => <String, Object>{
-        'stars': stars,
-        'bestSeconds': bestSeconds,
-        'bestMistakes': bestMistakes,
-      };
+    'stars': stars,
+    'bestSeconds': bestSeconds,
+    'bestMistakes': bestMistakes,
+  };
 
   factory LevelProgress.fromJson(Map<String, dynamic> json) {
     return LevelProgress(
@@ -164,8 +164,8 @@ class LocalProgressStore extends ChangeNotifier {
       stars: previous == null
           ? stars
           : stars > previous.stars
-              ? stars
-              : previous.stars,
+          ? stars
+          : previous.stars,
       bestSeconds: previous == null || seconds < previous.bestSeconds
           ? seconds
           : previous.bestSeconds,

@@ -49,15 +49,13 @@ class AppStrings {
     'career_random_subtitle': 'Choose a difficulty and get a new puzzle',
     'career_random_intro':
         'Choose a difficulty. A fresh, unique Sudoku will be generated for every game.',
-    'three_mistake_rule':
-        'Career rule: the round ends after 3 wrong moves.',
+    'three_mistake_rule': 'Career rule: the round ends after 3 wrong moves.',
     'coins_count': '%1d coins',
     'random_clue_count': 'About %1d starting clues',
     'local_duel': 'Local Duel',
     'local_duel_subtitle': 'Take 10-second turns on the same device',
     'online_duel': 'Online Duel',
-    'online_duel_subtitle':
-        'Choose a difficulty and match with the same queue',
+    'online_duel_subtitle': 'Choose a difficulty and match with the same queue',
     'choose_duel_difficulty': 'Choose your duel difficulty',
     'same_difficulty_match':
         'You will only be matched with players who selected the same difficulty.',
@@ -138,8 +136,7 @@ class AppStrings {
     'light': 'Light',
     'dark': 'Dark',
     'high_contrast': 'High contrast',
-    'high_contrast_subtitle':
-        'Makes the board and text easier to distinguish.',
+    'high_contrast_subtitle': 'Makes the board and text easier to distinguish.',
     'data': 'Data',
     'clear_career_progress': 'Clear career progress',
     'completed_levels': '%1d completed levels',
@@ -244,12 +241,12 @@ class AppStrings {
   }
 
   String difficultyLabel(SudokuDifficulty difficulty) => switch (difficulty) {
-        SudokuDifficulty.beginner => text('difficulty_beginner'),
-        SudokuDifficulty.easy => text('difficulty_easy'),
-        SudokuDifficulty.medium => text('difficulty_medium'),
-        SudokuDifficulty.hard => text('difficulty_hard'),
-        SudokuDifficulty.expert => text('difficulty_expert'),
-      };
+    SudokuDifficulty.beginner => text('difficulty_beginner'),
+    SudokuDifficulty.easy => text('difficulty_easy'),
+    SudokuDifficulty.medium => text('difficulty_medium'),
+    SudokuDifficulty.hard => text('difficulty_hard'),
+    SudokuDifficulty.expert => text('difficulty_expert'),
+  };
 
   String puzzleTitle(SudokuPuzzle puzzle) {
     if (puzzle.id == 'tutorial-4x4') {
