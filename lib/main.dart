@@ -9,6 +9,7 @@ import 'services/ads_service.dart';
 import 'services/coin_store_service.dart';
 import 'services/economy_service.dart';
 import 'services/firebase_services.dart';
+import 'services/platform_game_stats_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/reminder_notification_service.dart';
 
@@ -27,10 +28,11 @@ Future<void> main() async {
       ),
     );
     unawaited(
-      _initializeOptionalService('Firebase and push notifications', () async {
+      _initializeOptionalService('Firebase, push, and Google Play Game Stats', () async {
         await FirebaseServices.instance.initialize();
         await PushNotificationService.instance.initialize();
-      }, timeout: const Duration(seconds: 45)),
+        await PlatformGameStatsService.instance.initialize();
+      }, timeout: const Duration(seconds: 60)),
     );
     unawaited(
       _initializeOptionalService(
