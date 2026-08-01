@@ -6,6 +6,7 @@ import com.google.android.gms.games.AnnotatedData
 import com.google.android.gms.games.FriendsResolutionRequiredException
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayerBuffer
+import com.google.android.gms.tasks.Task
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -80,6 +81,11 @@ class MainActivity : FlutterActivity() {
                 "unlockAchievement" -> {
                     val requestedId = call.argument<String>("achievementId")
                     unlockAchievement(requestedId, result)
+                }
+                "recordGameStatsEvents" -> {
+                    val events = call.argument<List<*>>("events").orEmpty()
+                        .mapNotNull { it as? Map<*, *> }
+                    recordGameStatsEvents(events, result)
                 }
                 "requestServerAuthCode" -> requestServerAuthCode(result)
                 else -> result.notImplemented()
@@ -269,6 +275,172 @@ class MainActivity : FlutterActivity() {
         }
         PlayGames.getAchievementsClient(this).unlock(achievementId)
         result.success(true)
+    }
+
+    private fun recordGameStatsEvents(
+        events: List<Map<*, *>>,
+        result: MethodChannel.Result,
+    ) {
+        if (!ensureConfigured(result)) return
+        if (events.isEmpty()) {
+            result.error("invalid_game_stats", "At least one Game Stats event is required.", null)
+            return
+        }
+
+        try {
+            val client = obtainGameStatsClient()
+            val builtEvents = events.map(::buildPlayerGameEvent)
+            val recordMethod = client.javaClass.methods.firstOrNull { method ->
+                method.name == "recordEvent" &&
+                    method.parameterCount == 1 &&
+                    builtEvents.firstOrNull()?.let { event ->
+                        method.parameterTypes[0].isAssignableFrom(event.javaClass)
+                    } == true
+            } ?: throw IllegalStateException("Game Stats recordEvent API is unavailable.")
+
+            for (event in builtEvents) {
+                recordMethod.invoke(client, event)
+            }
+
+            val uploadMethod = client.javaClass.methods.firstOrNull { method ->
+                method.name == "requestEventsUpload" && method.parameterCount == 0
+            } ?: throw IllegalStateException("Game Stats upload API is unavailable.")
+            val uploadResult = uploadMethod.invoke(client)
+            if (uploadResult is Task<*>) {
+                uploadResult
+                    .addOnSuccessListener { result.success(true) }
+                    .addOnFailureListener { exception ->
+                        result.error(
+                            "game_stats_upload_failed",
+                            exception.localizedMessage ?: "Game Stats upload failed.",
+                            null,
+                        )
+                    }
+            } else {
+                result.success(true)
+            }
+        } catch (error: Throwable) {
+            result.error(
+                "game_stats_sdk_unavailable",
+                error.cause?.localizedMessage ?: error.localizedMessage
+                    ?: "Google Play Game Stats SDK is unavailable.",
+                null,
+            )
+        }
+    }
+
+    private fun obtainGameStatsClient(): Any {
+        val getter = PlayGames::class.java.methods.firstOrNull { method ->
+            method.name == "getGameStatsClient" && method.parameterCount == 1
+        } ?: throw IllegalStateException("PlayGames.getGameStatsClient is unavailable.")
+        return getter.invoke(null, this)
+            ?: throw IllegalStateException("Unable to create the Game Stats client.")
+    }
+
+    private fun buildPlayerGameEvent(event: Map<*, *>): Any {
+        val eventName = event["eventName"]?.toString()?.trim().orEmpty()
+        if (eventName.isEmpty()) {
+            throw IllegalArgumentException("A Game Stats event name is required.")
+        }
+        val builderClass = playerGameEventBuilderClass()
+        val constructor = builderClass.constructors.firstOrNull { candidate ->
+            candidate.parameterCount == 1 &&
+                candidate.parameterTypes[0].isAssignableFrom(String::class.java)
+        } ?: throw IllegalStateException("PlayerGameEvent.Builder(String) is unavailable.")
+        val builder = constructor.newInstance(eventName)
+        val properties = event["properties"] as? Map<*, *> ?: emptyMap<Any, Any>()
+        for ((rawName, rawDefinition) in properties) {
+            val propertyName = rawName?.toString()?.trim().orEmpty()
+            val definition = rawDefinition as? Map<*, *>
+                ?: throw IllegalArgumentException("Invalid Game Stats property definition.")
+            val type = definition["type"]?.toString()?.lowercase().orEmpty()
+            val value = definition["value"]
+                ?: throw IllegalArgumentException("Game Stats property value is required.")
+            addPlayerGameEventProperty(builder, propertyName, type, value)
+        }
+        val buildMethod = builder.javaClass.methods.firstOrNull { method ->
+            method.name == "build" && method.parameterCount == 0
+        } ?: throw IllegalStateException("PlayerGameEvent.Builder.build is unavailable.")
+        return buildMethod.invoke(builder)
+            ?: throw IllegalStateException("Unable to build a PlayerGameEvent.")
+    }
+
+    private fun playerGameEventBuilderClass(): Class<*> {
+        val candidates = listOf(
+            "com.google.android.gms.games.PlayerGameEvent\$Builder",
+            "com.google.android.gms.games.gamestats.PlayerGameEvent\$Builder",
+            "com.google.android.gms.games.gamesstats.PlayerGameEvent\$Builder",
+            "com.google.android.gms.games.stats.PlayerGameEvent\$Builder",
+        )
+        for (name in candidates) {
+            try {
+                return Class.forName(name)
+            } catch (_: ClassNotFoundException) {
+                // Try the next SDK package used by current or preview releases.
+            }
+        }
+        throw ClassNotFoundException("PlayerGameEvent.Builder was not found.")
+    }
+
+    private fun addPlayerGameEventProperty(
+        builder: Any,
+        propertyName: String,
+        type: String,
+        rawValue: Any,
+    ) {
+        if (propertyName.isBlank()) {
+            throw IllegalArgumentException("Game Stats property name is required.")
+        }
+        val methods = builder.javaClass.methods.filter { method ->
+            method.name == "addProperty" &&
+                method.parameterCount == 2 &&
+                method.parameterTypes[0].isAssignableFrom(String::class.java)
+        }
+        val candidates: List<Pair<Class<*>, Any>> = when (type) {
+            "string" -> listOf(String::class.java to rawValue.toString())
+            "bool", "boolean" -> {
+                val value = rawValue as? Boolean
+                    ?: rawValue.toString().toBooleanStrictOrNull()
+                    ?: throw IllegalArgumentException("Invalid Boolean Game Stats value.")
+                listOf(Boolean::class.javaPrimitiveType!! to value, Boolean::class.java to value)
+            }
+            "int64", "int", "long" -> {
+                val value = (rawValue as? Number)?.toLong()
+                    ?: rawValue.toString().toLongOrNull()
+                    ?: throw IllegalArgumentException("Invalid integer Game Stats value.")
+                buildList {
+                    add(Long::class.javaPrimitiveType!! to value)
+                    add(Long::class.java to value)
+                    if (value in Int.MIN_VALUE..Int.MAX_VALUE) {
+                        add(Int::class.javaPrimitiveType!! to value.toInt())
+                        add(Int::class.java to value.toInt())
+                    }
+                }
+            }
+            "double" -> {
+                val value = (rawValue as? Number)?.toDouble()
+                    ?: rawValue.toString().toDoubleOrNull()
+                    ?: throw IllegalArgumentException("Invalid double Game Stats value.")
+                listOf(
+                    Double::class.javaPrimitiveType!! to value,
+                    Double::class.java to value,
+                    Float::class.javaPrimitiveType!! to value.toFloat(),
+                    Float::class.java to value.toFloat(),
+                )
+            }
+            else -> throw IllegalArgumentException("Unsupported Game Stats property type: $type")
+        }
+
+        for ((parameterType, value) in candidates) {
+            val method = methods.firstOrNull { candidate ->
+                candidate.parameterTypes[1] == parameterType
+            }
+            if (method != null) {
+                method.invoke(builder, propertyName, value)
+                return
+            }
+        }
+        throw IllegalStateException("No compatible addProperty overload for $type.")
     }
 
     private fun requestServerAuthCode(result: MethodChannel.Result) {
