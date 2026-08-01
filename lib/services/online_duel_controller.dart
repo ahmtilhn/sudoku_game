@@ -2,17 +2,22 @@ import 'dart:async';
 
 import 'online_duel_models.dart';
 import 'online_duel_transport.dart';
+import 'platform_game_stats_service.dart';
 import 'platform_leaderboard_service.dart';
 
 class OnlineDuelController {
   OnlineDuelController(
     this._transport, {
     PlatformLeaderboardMirror? platformLeaderboardMirror,
+    PlatformGameStatsMirror? platformGameStatsMirror,
   }) : _platformLeaderboardMirror =
-           platformLeaderboardMirror ?? PlatformLeaderboardService.instance;
+           platformLeaderboardMirror ?? PlatformLeaderboardService.instance,
+       _platformGameStatsMirror =
+           platformGameStatsMirror ?? PlatformGameStatsService.instance;
 
   final OnlineDuelTransport _transport;
   final PlatformLeaderboardMirror _platformLeaderboardMirror;
+  final PlatformGameStatsMirror _platformGameStatsMirror;
   final StreamController<OnlineDuelSnapshot> _snapshots =
       StreamController<OnlineDuelSnapshot>.broadcast();
   final StreamController<OnlineDuelFeedback> _feedback =
@@ -173,9 +178,11 @@ class OnlineDuelController {
     _pendingMove = false;
     final snapshot = OnlineDuelSnapshot.fromJson(payload);
     _snapshot = snapshot;
+    _platformGameStatsMirror.observeSnapshot(snapshot);
     _snapshots.add(snapshot);
     if (snapshot.isFinished) {
       unawaited(_platformLeaderboardMirror.mirrorFinalRatings(snapshot));
+      unawaited(_platformGameStatsMirror.mirrorFinalStats(snapshot));
     }
   }
 
