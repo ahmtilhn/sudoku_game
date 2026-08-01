@@ -6011,6 +6011,266 @@
           }
         }
       }
+    },
+    "coin_history_empty": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Coin activity yet."
+          }
+        }
+      }
+    },
+    "coin_history_balance_after": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s · Balance %2s"
+          }
+        }
+      }
+    },
+    "ledger_starter_grant": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starter Coins"
+          }
+        }
+      }
+    },
+    "ledger_match_entry": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online match entry"
+          }
+        }
+      }
+    },
+    "ledger_match_payout": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match prize"
+          }
+        }
+      }
+    },
+    "ledger_match_refund": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match refund"
+          }
+        }
+      }
+    },
+    "ledger_daily_login": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily login reward"
+          }
+        }
+      }
+    },
+    "ledger_daily_rewarded_ad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily ad reward"
+          }
+        }
+      }
+    },
+    "ledger_career_rewarded_ad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Career ad reward"
+          }
+        }
+      }
+    },
+    "ledger_achievement_reward": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Achievement reward"
+          }
+        }
+      }
+    },
+    "ledger_career_continue": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Career continue"
+          }
+        }
+      }
+    },
+    "ledger_hint_purchase": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hint purchase"
+          }
+        }
+      }
+    },
+    "ledger_store_purchase": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coin Store purchase"
+          }
+        }
+      }
+    },
+    "ledger_purchase_refund": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purchase refund"
+          }
+        }
+      }
+    },
+    "friend_requests_setup_required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deploy the social backend and configure Firebase before using friend requests."
+          }
+        }
+      }
+    },
+    "friend_requests_empty": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have no pending friend requests."
+          }
+        }
+      }
+    },
+    "friend_request_accepted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s is now your friend."
+          }
+        }
+      }
+    },
+    "friend_request_declined": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend request declined."
+          }
+        }
+      }
+    },
+    "player_rating_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%1s · %2d rating"
+          }
+        }
+      }
+    },
+    "player_rating_wins_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%1s · %2d rating · %3d/%4d wins"
+          }
+        }
+      }
+    },
+    "challenge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Challenge"
+          }
+        }
+      }
+    },
+    "platform_friends": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platform friends"
+          }
+        }
+      }
+    },
+    "platform_friends_empty_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No platform friends available"
+          }
+        }
+      }
+    },
+    "platform_friends_empty_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend access may not be granted, or no matching Play Games/Game Center friends were returned."
+          }
+        }
+      }
+    },
+    "open_native_platform_profile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open native platform profile"
+          }
+        }
+      }
+    },
+    "try_again": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -2,6 +2,9 @@
 
 Generated on 2026-07-26 for PR #21.
 
+Current Google Play Console execution checklist:
+`docs/GOOGLE_PLAY_CONSOLE_RELEASE_TASKS.md`.
+
 ## A. Google Play Internal Test
 
 Neden gerekli:

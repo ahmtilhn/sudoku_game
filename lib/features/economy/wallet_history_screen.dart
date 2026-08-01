@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
 
 class WalletHistoryScreen extends StatefulWidget {
@@ -29,10 +30,10 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Coin history'),
+        title: Text(context.tr('coin_history')),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: context.tr('refresh'),
             onPressed: _reload,
             icon: const Icon(Icons.refresh),
           ),
@@ -61,7 +62,7 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
                       const SizedBox(height: 12),
                       FilledButton(
                         onPressed: _reload,
-                        child: const Text('Try again'),
+                        child: Text(context.tr('try_again')),
                       ),
                     ],
                   ),
@@ -70,7 +71,7 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
             }
             final entries = snapshot.data ?? const <CoinLedgerEntry>[];
             if (entries.isEmpty) {
-              return const Center(child: Text('No Coin activity yet.'));
+              return Center(child: Text(context.tr('coin_history_empty')));
             }
             return LayoutBuilder(
               builder: (context, constraints) {
@@ -120,11 +121,14 @@ class _LedgerTile extends StatelessWidget {
         ),
       ),
       title: Text(
-        _reasonLabel(entry.reason),
+        _reasonLabel(context, entry.reason),
         style: const TextStyle(fontWeight: FontWeight.w700),
       ),
       subtitle: Text(
-        '${DateFormat.yMMMd().add_Hm().format(entry.createdAt.toLocal())} · Balance $balance',
+        context.tr('coin_history_balance_after', <Object>[
+          DateFormat.yMMMd().add_Hm().format(entry.createdAt.toLocal()),
+          balance,
+        ]),
       ),
       trailing: Text(
         '${positive ? '+' : '-'}$amount',
@@ -136,19 +140,19 @@ class _LedgerTile extends StatelessWidget {
     );
   }
 
-  String _reasonLabel(String reason) => switch (reason) {
-    'starter_grant' => 'Starter Coins',
-    'match_entry' => 'Online match entry',
-    'match_payout' => 'Match prize',
-    'match_refund' => 'Match refund',
-    'daily_login' => 'Daily login reward',
-    'daily_rewarded_ad' => 'Daily ad reward',
-    'career_rewarded_ad' => 'Career ad reward',
-    'achievement_reward' => 'Achievement reward',
-    'career_continue' => 'Career continue',
-    'hint_purchase' => 'Hint purchase',
-    'store_purchase' => 'Coin Store purchase',
-    'purchase_refund' => 'Purchase refund',
+  String _reasonLabel(BuildContext context, String reason) => switch (reason) {
+    'starter_grant' => context.tr('ledger_starter_grant'),
+    'match_entry' => context.tr('ledger_match_entry'),
+    'match_payout' => context.tr('ledger_match_payout'),
+    'match_refund' => context.tr('ledger_match_refund'),
+    'daily_login' => context.tr('ledger_daily_login'),
+    'daily_rewarded_ad' => context.tr('ledger_daily_rewarded_ad'),
+    'career_rewarded_ad' => context.tr('ledger_career_rewarded_ad'),
+    'achievement_reward' => context.tr('ledger_achievement_reward'),
+    'career_continue' => context.tr('ledger_career_continue'),
+    'hint_purchase' => context.tr('ledger_hint_purchase'),
+    'store_purchase' => context.tr('ledger_store_purchase'),
+    'purchase_refund' => context.tr('ledger_purchase_refund'),
     _ => reason.replaceAll('_', ' '),
   };
 }

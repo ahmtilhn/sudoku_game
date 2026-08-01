@@ -114,5 +114,26 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
                 "Missing android/key.properties. Release builds must use the private upload key and must never fall back to the debug key.",
             )
         }
+
+        val servicesXml = rootProject.file("app/src/main/res/values/services.xml")
+        val servicesText = servicesXml.takeIf { it.exists() }?.readText()
+            ?: throw GradleException("Missing ${servicesXml.path}; release service identifiers cannot be verified.")
+        val blockedReleaseValues = mapOf(
+            "Google test AdMob App ID" to "ca-app-pub-3940256099942544~",
+            "Meta placeholder app id" to "000000000000000",
+            "Meta placeholder client token" to "REPLACE_WITH_META_CLIENT_TOKEN",
+            "Play Games leaderboard placeholder" to "REPLACE_WITH_LEADERBOARD_ID",
+            "Play Games achievement placeholder" to "REPLACE_WITH_ACHIEVEMENT_ID",
+        )
+        val remainingBlockedValues = blockedReleaseValues
+            .filterValues { blockedValue -> servicesText.contains(blockedValue) }
+            .keys
+        if (remainingBlockedValues.isNotEmpty()) {
+            throw GradleException(
+                "Release build still contains non-production service values in services.xml: " +
+                    remainingBlockedValues.joinToString(", ") +
+                    ". Configure AdMob, Meta, Play Games leaderboards, and achievements before building a release AAB.",
+            )
+        }
     }
 }

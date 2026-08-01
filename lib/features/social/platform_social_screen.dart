@@ -660,18 +660,17 @@ class _PlatformPlayerSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Platform friends',
+          context.tr('platform_friends'),
           style: Theme.of(
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 10),
         if (players.isEmpty)
-          const _MessageCard(
+          _MessageCard(
             icon: Icons.people_outline,
-            title: 'No platform friends available',
-            body:
-                'Friend access may not be granted, or no matching Play Games/Game Center friends were returned.',
+            title: context.tr('platform_friends_empty_title'),
+            body: context.tr('platform_friends_empty_body'),
           )
         else
           for (final player in players)
@@ -682,7 +681,7 @@ class _PlatformPlayerSection extends StatelessWidget {
                   player.displayName,
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
-                subtitle: const Text('Open native platform profile'),
+                subtitle: Text(context.tr('open_native_platform_profile')),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => onProfile(player),
               ),
@@ -729,37 +728,79 @@ class _SocialPlayerSection extends StatelessWidget {
           for (final player in players)
             Card(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-                child: Row(
-                  children: [
-                    const CircleAvatar(child: Icon(Icons.person_outline)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            player.displayName,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final actions = Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.end,
+                      children: [
+                        if (onAddFriend != null &&
+                            player.friendshipStatus != 'accepted')
+                          IconButton.outlined(
+                            tooltip: context.tr('add_friend'),
+                            onPressed: () => onAddFriend!(player),
+                            icon: const Icon(Icons.person_add_alt_1_outlined),
                           ),
-                          Text(
-                            '@${player.username} · ${player.rating} rating · ${player.wins}/${player.gamesPlayed} wins',
+                        FilledButton(
+                          onPressed: () => onChallenge(player),
+                          child: Text(context.tr('challenge')),
+                        ),
+                      ],
+                    );
+                    final details = Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const CircleAvatar(child: Icon(Icons.person_outline)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                player.displayName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              Text(
+                                context
+                                    .tr('player_rating_wins_summary', <Object>[
+                                      player.username,
+                                      player.rating,
+                                      player.wins,
+                                      player.gamesPlayed,
+                                    ]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+
+                    if (constraints.maxWidth < 420) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          details,
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: actions,
                           ),
                         ],
-                      ),
-                    ),
-                    if (onAddFriend != null &&
-                        player.friendshipStatus != 'accepted')
-                      IconButton(
-                        tooltip: 'Add friend',
-                        onPressed: () => onAddFriend!(player),
-                        icon: const Icon(Icons.person_add_alt_1_outlined),
-                      ),
-                    FilledButton(
-                      onPressed: () => onChallenge(player),
-                      child: const Text('Challenge'),
-                    ),
-                  ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(child: details),
+                        const SizedBox(width: 12),
+                        actions,
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
