@@ -1,7 +1,20 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Flutter and Kotlin plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val releaseSigningConfigured = keystorePropertiesFile.exists()
+
+if (releaseSigningConfigured) {
+    FileInputStream(keystorePropertiesFile).use { stream ->
+        keystoreProperties.load(stream)
+    }
 }
 
 android {
@@ -24,10 +37,37 @@ android {
         multiDexEnabled = true
     }
 
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                val storeFilePath = keystoreProperties.getProperty("storeFile")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw GradleException("storeFile is missing from android/key.properties")
+                val configuredStorePassword = keystoreProperties.getProperty("storePassword")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw GradleException("storePassword is missing from android/key.properties")
+                val configuredKeyAlias = keystoreProperties.getProperty("keyAlias")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw GradleException("keyAlias is missing from android/key.properties")
+                val configuredKeyPassword = keystoreProperties.getProperty("keyPassword")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: throw GradleException("keyPassword is missing from android/key.properties")
+
+                storeFile = rootProject.file(storeFilePath)
+                storePassword = configuredStorePassword
+                keyAlias = configuredKeyAlias
+                keyPassword = configuredKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Replace this with the production upload key before store release.
-            signingConfig = signingConfigs.getByName("debug")
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
@@ -45,4 +85,37 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    doFirst {
+        if (!releaseSigningConfigured) {
+            throw GradleException(
+                "Missing android/key.properties. Release builds must use the private upload key and must never fall back to the debug key.",
+            )
+        }
+
+        val servicesXml = rootProject.file("app/src/main/res/values/services.xml")
+        val servicesText = servicesXml.takeIf { it.exists() }?.readText()
+            ?: throw GradleException("Missing ${servicesXml.path}; release service identifiers cannot be verified.")
+        val blockedReleaseValues = mapOf(
+            "Google test AdMob App ID" to "ca-app-pub-3940256099942544~",
+            "Meta placeholder app id" to "000000000000000",
+            "Meta placeholder client token" to "REPLACE_WITH_META_CLIENT_TOKEN",
+            "Play Games project placeholder" to "0000000000",
+            "Play Games web client placeholder" to "REPLACE_WITH_PGS_WEB_CLIENT_ID",
+            "Play Games leaderboard placeholder" to "REPLACE_WITH_LEADERBOARD_ID",
+            "Play Games achievement placeholder" to "REPLACE_WITH_ACHIEVEMENT_ID",
+        )
+        val remainingBlockedValues = blockedReleaseValues
+            .filterValues { blockedValue -> servicesText.contains(blockedValue) }
+            .keys
+        if (remainingBlockedValues.isNotEmpty()) {
+            throw GradleException(
+                "Release build still contains non-production service values in services.xml: " +
+                    remainingBlockedValues.joinToString(", ") +
+                    ". Configure AdMob, Meta, Play Games project, web client, leaderboards, and achievements before building a release AAB.",
+            )
+        }
+    }
 }

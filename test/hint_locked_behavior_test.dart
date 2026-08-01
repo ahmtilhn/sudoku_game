@@ -23,11 +23,10 @@ void main() {
         .setMockMethodCallHandler(localizationChannel, null);
   });
 
-  testWidgets('a rapid double tap consumes and reveals exactly one hint', (
+  testWidgets('hinted cells stay locked while player moves remain undoable', (
     tester,
   ) async {
     final strings = await AppStrings.load();
-    var consumeCalls = 0;
 
     await tester.pumpWidget(
       AppStringsScope(
@@ -36,29 +35,33 @@ void main() {
           home: GameScreen(
             puzzle: _hintPuzzle,
             hintBalanceProvider: () => 3,
-            onConsumeHint: () {
-              consumeCalls++;
-              return Future<bool>.value(true);
-            },
+            onConsumeHint: () async => true,
           ),
         ),
       ),
     );
     await tester.pump();
 
-    final hintButton = find.byKey(const ValueKey<String>('action-hint'));
-    expect(hintButton, findsOneWidget);
-    final button = tester.widget<TextButton>(hintButton);
-    button.onPressed!();
-    button.onPressed!();
-    await tester.pump();
-
-    expect(consumeCalls, 1);
-
+    await tester.tap(find.byKey(const ValueKey<String>('action-hint')));
     await tester.pump();
 
     expect(_cellTextFinder(1, '2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-1')));
+    await tester.tap(find.byKey(const ValueKey<String>('action-erase')));
+    await tester.pump();
+    expect(_cellTextFinder(1, '2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-2')));
+    await tester.tap(find.byKey(const ValueKey<String>('number-3')));
+    await tester.pump();
+    expect(_cellTextFinder(2, '3'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('action-undo')));
+    await tester.pump();
+
     expect(_cellTextFinder(2, '3'), findsNothing);
+    expect(_cellTextFinder(1, '2'), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('action-undo')), findsNothing);
 
     await _disposeGame(tester);

@@ -1,0 +1,8 @@
+*.cc text eol=lf
+*.cmake text eol=lf
+*.dart text eol=lf
+*.kts text eol=lf
+*.py text eol=lf
+*.swift text eol=lf
+
+*.ps1 text eol=crlf

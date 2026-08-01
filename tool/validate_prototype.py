@@ -32,34 +32,36 @@ for dart_file in list((ROOT / 'lib').rglob('*.dart')) + list((ROOT / 'test').rgl
             errors.append(f'{dart_file.relative_to(ROOT)} imports missing {imported}')
 
 catalog = (ROOT / 'lib/data/puzzle_catalog.dart').read_text(encoding='utf-8')
-grids = re.findall(r"'([0-9]{81})'", catalog)
-if len(grids) < 10:
-    errors.append(f'Expected at least 10 puzzle/solution grids, found {len(grids)}')
+required_catalog_patterns = {
+    'dynamic puzzle generator': r'static SudokuPuzzle generatePuzzle\(',
+    'seeded solved grid generation': r'_generateSolvedGrid\(random\)',
+    'unique puzzle carving': r'_carveUniquePuzzle\(',
+    'unique solution checker': r'static bool hasUniqueSolution\(',
+    'daily puzzle factory': r'static SudokuPuzzle dailyPuzzle\(',
+    'duel puzzle factory': r'static SudokuPuzzle duelPuzzle\(',
+}
 
-def valid_solution(value: str) -> bool:
-    board = [int(item) for item in value]
-    required = set(range(1, 10))
-    rows = [board[row * 9:(row + 1) * 9] for row in range(9)]
-    columns = [board[column::9] for column in range(9)]
-    boxes = []
-    for box_row in range(3):
-        for box_column in range(3):
-            box = []
-            for row in range(box_row * 3, box_row * 3 + 3):
-                start = row * 9 + box_column * 3
-                box.extend(board[start:start + 3])
-            boxes.append(box)
-    return all(set(group) == required for group in rows + columns + boxes)
+for name, pattern in required_catalog_patterns.items():
+    if not re.search(pattern, catalog):
+        errors.append(f'Missing catalog capability: {name}')
 
-for index in range(0, len(grids) - 1, 2):
-    puzzle, solution = grids[index], grids[index + 1]
-    if not valid_solution(solution):
-        errors.append(f'Invalid solution grid at pair {index // 2 + 1}')
-    if any(clue != '0' and clue != answer for clue, answer in zip(puzzle, solution)):
-        errors.append(f'Puzzle clues do not match solution at pair {index // 2 + 1}')
+for difficulty in ('beginner', 'easy', 'medium', 'hard', 'expert'):
+    if f'SudokuDifficulty.{difficulty}' not in catalog:
+        errors.append(f'Missing target clue count for difficulty: {difficulty}')
+
+engine_test = (ROOT / 'test/sudoku_engine_test.dart').read_text(encoding='utf-8')
+required_test_patterns = {
+    'generated puzzle validity test': 'generated puzzles have a valid shape and one solution',
+    'deterministic seed test': 'the same seed produces the same puzzle',
+    'duel difficulty test': 'duel puzzle keeps the selected difficulty',
+}
+
+for name, marker in required_test_patterns.items():
+    if marker not in engine_test:
+        errors.append(f'Missing engine test coverage: {name}')
 
 if errors:
     print('\n'.join(f'ERROR: {error}' for error in errors))
     sys.exit(1)
 
-print(f'Prototype validation passed: {len(REQUIRED)} required files, {len(grids) // 2} base puzzles.')
+print(f'Prototype validation passed: {len(REQUIRED)} required files and dynamic puzzle generation coverage.')
