@@ -94,23 +94,33 @@ typedef PlatformLeaderboardPresenter = Future<bool> Function({
 });
 
 class PlatformLeaderboardService implements PlatformLeaderboardMirror {
-  PlatformLeaderboardService({
+  factory PlatformLeaderboardService({
     PlatformLeaderboardIds ids = const PlatformLeaderboardIds(),
     TargetPlatform? platform,
     PlatformConfiguredCheck? isConfigured,
     PlatformAuthenticationRefresh? refreshAuthentication,
     PlatformScoreSubmitter? submitScore,
     PlatformLeaderboardPresenter? showLeaderboard,
-  }) : _ids = ids,
-       _platform = platform,
-       _isConfigured =
-           isConfigured ?? PlatformGameServices.instance.isConfigured,
-       _refreshAuthentication =
-           refreshAuthentication ??
-           PlatformGameServices.instance.refreshAuthentication,
-       _submitScore = submitScore ?? PlatformGameServices.instance.submitScore,
-       _showLeaderboard =
-           showLeaderboard ?? PlatformGameServices.instance.showLeaderboard;
+  }) {
+    return PlatformLeaderboardService._(
+      ids,
+      platform,
+      isConfigured ?? PlatformGameServices.instance.isConfigured,
+      refreshAuthentication ??
+          PlatformGameServices.instance.refreshAuthentication,
+      submitScore ?? PlatformGameServices.instance.submitScore,
+      showLeaderboard ?? PlatformGameServices.instance.showLeaderboard,
+    );
+  }
+
+  PlatformLeaderboardService._(
+    this._ids,
+    this._platform,
+    this._isConfigured,
+    this._refreshAuthentication,
+    this._submitScore,
+    this._showLeaderboard,
+  );
 
   static final PlatformLeaderboardService instance =
       PlatformLeaderboardService();
@@ -134,7 +144,8 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     OnlineDuelSnapshot snapshot,
   ) async {
     final platform = _resolvedPlatform;
-    if (platform != TargetPlatform.android && platform != TargetPlatform.iOS) {
+    if (platform == null ||
+        (platform != TargetPlatform.android && platform != TargetPlatform.iOS)) {
       return const PlatformLeaderboardMirrorResult(
         status: PlatformLeaderboardMirrorStatus.skipped,
       );
