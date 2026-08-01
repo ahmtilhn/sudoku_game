@@ -58,16 +58,16 @@ describe('ranked ELO rating system', () => {
   });
 
   it('produces finite bounded ratings across representative rating gaps', () => {
-    const ratings = <number>[100, 500, 1000, 1500, 2000, 2500, 3000];
-    const results = <0 | 0.5 | 1>[0, 0.5, 1];
-    const games = <number>[0, 19, 20, 99, 100, 500];
+    const ratings = [100, 500, 1000, 1500, 2000, 2500, 3000];
+    const results: Array<0 | 0.5 | 1> = [0, 0.5, 1];
+    const games = [0, 19, 20, 99, 100, 500];
 
-    for (finalA in ratings) {
-      for (finalB in ratings) {
-        for (final result in results) {
-          for (final played in games) {
-            const delta = eloDelta(finalA, finalB, result, played);
-            const after = applyRating(finalA, delta);
+    for (const ratingA of ratings) {
+      for (const ratingB of ratings) {
+        for (const result of results) {
+          for (const played of games) {
+            const delta = eloDelta(ratingA, ratingB, result, played);
+            const after = applyRating(ratingA, delta);
             expect(Number.isFinite(delta)).toBe(true);
             expect(after).toBeGreaterThanOrEqual(100);
             expect(after).toBeLessThanOrEqual(3000);
