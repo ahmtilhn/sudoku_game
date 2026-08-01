@@ -5,6 +5,8 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Flutter and Kotlin plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 
 val keystoreProperties = Properties()
@@ -30,7 +32,7 @@ android {
 
     defaultConfig {
         applicationId = "com.devoviastudio.sudoku"
-        minSdk = flutter.minSdkVersion
+        minSdk = maxOf(24, flutter.minSdkVersion)
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -68,12 +70,30 @@ android {
             if (releaseSigningConfigured) {
                 signingConfig = signingConfigs.getByName("release")
             }
+
+            // Emergency store hotfix: the Play-distributed minified build crashes
+            // before MainActivity while WorkManager creates its Room database.
+            // Keep release optimization disabled until the dependency/R8 issue is
+            // reproduced and verified independently on a release APK.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
 
 dependencies {
     implementation("com.google.android.gms:play-services-games-v2:19.0.0")
+
+    // Pin AndroidX startup/background components to current stable releases.
+    // Older transitive WorkManager/Room combinations crashed during eager startup
+    // in the minified Play build while creating WorkDatabase.
+    implementation("androidx.work:work-runtime:2.11.2")
+    implementation("androidx.startup:startup-runtime:1.2.0")
+
+    // Meta Audience Network 6.21.x references these compile-time annotations.
+    // Keeping the tiny annotation JAR on the release classpath prevents R8
+    // from treating Nullsafe/Nullsafe.Mode as missing classes.
+    implementation("com.facebook.infer.annotation:infer-annotation:0.18.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
@@ -102,8 +122,6 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
             "Google test AdMob App ID" to "ca-app-pub-3940256099942544~",
             "Meta placeholder app id" to "000000000000000",
             "Meta placeholder client token" to "REPLACE_WITH_META_CLIENT_TOKEN",
-            "Play Games project placeholder" to "0000000000",
-            "Play Games web client placeholder" to "REPLACE_WITH_PGS_WEB_CLIENT_ID",
             "Play Games leaderboard placeholder" to "REPLACE_WITH_LEADERBOARD_ID",
             "Play Games achievement placeholder" to "REPLACE_WITH_ACHIEVEMENT_ID",
         )
@@ -114,7 +132,7 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
             throw GradleException(
                 "Release build still contains non-production service values in services.xml: " +
                     remainingBlockedValues.joinToString(", ") +
-                    ". Configure AdMob, Meta, Play Games project, web client, leaderboards, and achievements before building a release AAB.",
+                    ". Configure AdMob, Meta, Play Games leaderboards, and achievements before building a release AAB.",
             )
         }
     }

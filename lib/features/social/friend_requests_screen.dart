@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../localization/app_strings.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 
@@ -30,8 +31,7 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
     if (!_configured) {
       setState(() {
         _loading = false;
-        _error =
-            'Deploy the social backend and configure Firebase before using friend requests.';
+        _error = context.tr('friend_requests_setup_required');
       });
       return;
     }
@@ -65,8 +65,10 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
         SnackBar(
           content: Text(
             accept
-                ? '${player.displayName} is now your friend.'
-                : 'Friend request declined.',
+                ? context.tr('friend_request_accepted', <Object>[
+                    player.displayName,
+                  ])
+                : context.tr('friend_request_declined'),
           ),
         ),
       );
@@ -83,10 +85,10 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Friend requests'),
+        title: Text(context.tr('friend_requests')),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: context.tr('refresh'),
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
@@ -108,37 +110,55 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
                       ),
                     )
                   else if (_requests.isEmpty)
-                    const Card(
+                    Card(
                       child: Padding(
-                        padding: EdgeInsets.all(18),
-                        child: Text('You have no pending friend requests.'),
+                        padding: const EdgeInsets.all(18),
+                        child: Text(context.tr('friend_requests_empty')),
                       ),
                     )
                   else
                     for (final player in _requests)
                       Card(
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.person_add_alt_1_outlined),
-                          ),
-                          title: Text(
-                            player.displayName,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          subtitle: Text(
-                            '@${player.username} · ${player.rating} rating',
-                          ),
-                          trailing: Wrap(
-                            spacing: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              IconButton(
-                                tooltip: 'Decline',
-                                onPressed: () => _respond(player, false),
-                                icon: const Icon(Icons.close),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const CircleAvatar(
+                                  child: Icon(Icons.person_add_alt_1_outlined),
+                                ),
+                                title: Text(
+                                  player.displayName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  context.tr('player_rating_summary', <Object>[
+                                    player.username,
+                                    player.rating,
+                                  ]),
+                                ),
                               ),
-                              FilledButton(
-                                onPressed: () => _respond(player, true),
-                                child: const Text('Accept'),
+                              Align(
+                                alignment: AlignmentDirectional.centerEnd,
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    IconButton.outlined(
+                                      tooltip: context.tr('decline'),
+                                      onPressed: () => _respond(player, false),
+                                      icon: const Icon(Icons.close),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => _respond(player, true),
+                                      child: Text(context.tr('accept')),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),

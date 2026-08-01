@@ -73,87 +73,109 @@ class NumberPad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (var value = 1; value <= maxValue; value++)
-              Builder(
-                builder: (context) {
-                  final isCompleted = completedValues.contains(value);
-                  return SizedBox(
-                    width: maxValue == 9 ? 52 : 64,
-                    height: 52,
-                    child: FilledButton.tonal(
-                      key: ValueKey<String>('number-$value'),
-                      onPressed: enabled && !isCompleted
-                          ? () => onNumber(value)
-                          : null,
-                      style: FilledButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        backgroundColor: scheme.secondaryContainer,
-                        foregroundColor: scheme.onSecondaryContainer,
-                      ),
-                      child: Text(
-                        '$value',
-                        style: TextStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                          decoration: isCompleted
-                              ? TextDecoration.lineThrough
-                              : null,
-                        ),
-                      ),
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = maxValue == 9 && constraints.maxWidth < 430;
+        final spacing = compact ? 4.0 : 8.0;
+        final oneRowWidth = constraints.maxWidth - (spacing * (maxValue - 1));
+        final oneRowButtonWidth = oneRowWidth / maxValue;
+        final buttonWidth = oneRowButtonWidth >= 48
+            ? oneRowButtonWidth.clamp(48.0, maxValue == 9 ? 58.0 : 72.0)
+            : 56.0;
+        final buttonHeight = compact ? 48.0 : 54.0;
+
+        return AnimatedOpacity(
+          duration: const Duration(milliseconds: 180),
+          opacity: enabled ? 1 : 0.58,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: spacing,
+                runSpacing: compact ? 4 : 8,
+                children: [
+                  for (var value = 1; value <= maxValue; value++)
+                    Builder(
+                      builder: (context) {
+                        final isCompleted = completedValues.contains(value);
+                        return SizedBox(
+                          width: buttonWidth,
+                          height: buttonHeight,
+                          child: FilledButton.tonal(
+                            key: ValueKey<String>('number-$value'),
+                            onPressed: enabled && !isCompleted
+                                ? () => onNumber(value)
+                                : null,
+                            style: FilledButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(48, 48),
+                              backgroundColor: scheme.secondaryContainer,
+                              foregroundColor: scheme.onSecondaryContainer,
+                            ),
+                            child: Text(
+                              '$value',
+                              style: TextStyle(
+                                fontSize: compact ? 17 : 21,
+                                fontWeight: FontWeight.w800,
+                                decoration: isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                ],
               ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 4,
-          children: [
-            _ActionButton(
-              buttonKey: const ValueKey<String>('action-erase'),
-              icon: Icons.backspace_outlined,
-              label: context.tr('erase'),
-              onPressed: enabled ? onErase : null,
-            ),
-            if (onToggleNotes != null)
-              _ActionButton(
-                buttonKey: const ValueKey<String>('action-notes'),
-                icon: notesEnabled ? Icons.edit_note : Icons.edit_note_outlined,
-                label: notesEnabled
-                    ? context.tr('notes_on')
-                    : context.tr('notes'),
-                selected: notesEnabled,
-                onPressed: enabled ? onToggleNotes : null,
+              SizedBox(height: compact ? 6 : 12),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 4,
+                runSpacing: 4,
+                children: [
+                  _ActionButton(
+                    buttonKey: const ValueKey<String>('action-erase'),
+                    icon: Icons.backspace_outlined,
+                    label: context.tr('erase'),
+                    onPressed: enabled ? onErase : null,
+                  ),
+                  if (onToggleNotes != null)
+                    _ActionButton(
+                      buttonKey: const ValueKey<String>('action-notes'),
+                      icon: notesEnabled
+                          ? Icons.edit_note
+                          : Icons.edit_note_outlined,
+                      label: notesEnabled
+                          ? context.tr('notes_on')
+                          : context.tr('notes'),
+                      selected: notesEnabled,
+                      onPressed: enabled ? onToggleNotes : null,
+                    ),
+                  if (onUndo != null)
+                    _ActionButton(
+                      buttonKey: const ValueKey<String>('action-undo'),
+                      icon: Icons.undo,
+                      label: context.tr('undo'),
+                      onPressed: enabled ? onUndo : null,
+                    ),
+                  if (onHint != null)
+                    _ActionButton(
+                      buttonKey: const ValueKey<String>('action-hint'),
+                      icon: Icons.lightbulb_outline,
+                      label: hintCount == null
+                          ? context.tr('hint')
+                          : '${context.tr('hint')} ($hintCount)',
+                      onPressed: enabled ? onHint : null,
+                    ),
+                ],
               ),
-            if (onUndo != null)
-              _ActionButton(
-                buttonKey: const ValueKey<String>('action-undo'),
-                icon: Icons.undo,
-                label: context.tr('undo'),
-                onPressed: enabled ? onUndo : null,
-              ),
-            if (onHint != null)
-              _ActionButton(
-                buttonKey: const ValueKey<String>('action-hint'),
-                icon: Icons.lightbulb_outline,
-                label: hintCount == null
-                    ? context.tr('hint')
-                    : '${context.tr('hint')} ($hintCount)',
-                onPressed: enabled ? onHint : null,
-              ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -175,16 +197,29 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
+    final scheme = Theme.of(context).colorScheme;
+    return TextButton(
       key: buttonKey,
       onPressed: onPressed,
       style: TextButton.styleFrom(
         backgroundColor: selected
-            ? Theme.of(context).colorScheme.primaryContainer
+            ? scheme.primaryContainer
             : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(44, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      icon: Icon(icon),
-      label: Text(label),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18),
+            const SizedBox(width: 5),
+            Text(label, maxLines: 1),
+          ],
+        ),
+      ),
     );
   }
 }

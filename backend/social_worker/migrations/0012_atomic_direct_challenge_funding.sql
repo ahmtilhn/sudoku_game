@@ -1,0 +1,94 @@
+PRAGMA foreign_keys = ON;
+
+DROP TRIGGER IF EXISTS fund_direct_challenge_match;
+
+CREATE TRIGGER fund_direct_challenge_match
+AFTER INSERT ON matches
+WHEN NEW.challenge_id IS NOT NULL
+BEGIN
+  -- Establish eligibility first. The escrow row becomes the transaction-local
+  -- marker used by every following statement, so an exact 100 Coin balance is
+  -- valid and no second balance check is affected by the first deduction.
+  INSERT INTO match_coin_escrow (
+    match_id, player_a_id, player_b_id, player_a_amount,
+    player_b_amount, pot_amount, status, funded_at
+  )
+  SELECT NEW.id, NEW.player_a_id, NEW.player_b_id,
+         100, 100, 200, 'funded', NEW.created_at
+  WHERE (SELECT online_coins FROM players WHERE id = NEW.player_a_id) >= 100
+    AND (SELECT online_coins FROM players WHERE id = NEW.player_b_id) >= 100;
+
+  -- The legacy challenge route updates the challenge before inserting the
+  -- match. If either balance is insufficient, close that challenge cleanly and
+  -- leave a terminal audit match instead of returning an accepted room with no
+  -- funded game.
+  UPDATE challenges
+  SET status = 'cancelled', room_id = NULL, updated_at = NEW.created_at
+  WHERE id = NEW.challenge_id
+    AND NOT EXISTS (
+      SELECT 1 FROM match_coin_escrow WHERE match_id = NEW.id
+    );
+
+  UPDATE matches
+  SET status = 'cancelled', winner_id = NULL,
+      finish_reason = 'insufficient_coins',
+      finished_at = NEW.created_at, updated_at = NEW.created_at
+  WHERE id = NEW.id
+    AND NOT EXISTS (
+      SELECT 1 FROM match_coin_escrow WHERE match_id = NEW.id
+    );
+
+  UPDATE players
+  SET online_coins = online_coins - 100, updated_at = NEW.created_at
+  WHERE id = NEW.player_a_id
+    AND EXISTS (
+      SELECT 1 FROM match_coin_escrow
+      WHERE match_id = NEW.id AND status = 'funded'
+    );
+
+  INSERT INTO coin_ledger (
+    id, player_id, amount, balance_after, reason,
+    reference_type, reference_id, idempotency_key, metadata_json, created_at
+  )
+  SELECT lower(hex(randomblob(16))),
+         NEW.player_a_id,
+         -100,
+         (SELECT online_coins FROM players WHERE id = NEW.player_a_id),
+         'match_entry',
+         'match',
+         NEW.id,
+         'match_entry:' || NEW.id || ':' || NEW.player_a_id,
+         json_object('entryFee', 100, 'pot', 200, 'source', 'direct_challenge'),
+         NEW.created_at
+  WHERE EXISTS (
+    SELECT 1 FROM match_coin_escrow
+    WHERE match_id = NEW.id AND status = 'funded'
+  );
+
+  UPDATE players
+  SET online_coins = online_coins - 100, updated_at = NEW.created_at
+  WHERE id = NEW.player_b_id
+    AND EXISTS (
+      SELECT 1 FROM match_coin_escrow
+      WHERE match_id = NEW.id AND status = 'funded'
+    );
+
+  INSERT INTO coin_ledger (
+    id, player_id, amount, balance_after, reason,
+    reference_type, reference_id, idempotency_key, metadata_json, created_at
+  )
+  SELECT lower(hex(randomblob(16))),
+         NEW.player_b_id,
+         -100,
+         (SELECT online_coins FROM players WHERE id = NEW.player_b_id),
+         'match_entry',
+         'match',
+         NEW.id,
+         'match_entry:' || NEW.id || ':' || NEW.player_b_id,
+         json_object('entryFee', 100, 'pot', 200, 'source', 'direct_challenge'),
+         NEW.created_at
+  WHERE EXISTS (
+    SELECT 1 FROM match_coin_escrow
+    WHERE match_id = NEW.id AND status = 'funded'
+  );
+END;

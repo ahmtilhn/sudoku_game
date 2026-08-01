@@ -1,0 +1,158 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+
+import 'online_duel_models.dart';
+import 'social_api_client.dart';
+
+abstract class OnlineDuelTransport {
+  Stream<OnlineDuelEvent> get events;
+  void send(Map<String, Object?> message);
+  Future<void> close();
+}
+
+class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
+  WebSocketOnlineDuelTransport._(this._channel) {
+    _subscription = _channel.stream.listen(
+      (message) {
+        try {
+          final decoded = jsonDecode(message.toString()) as Map;
+          _events.add(
+            OnlineDuelEvent.fromJson(decoded.cast<String, dynamic>()),
+          );
+        } catch (error, stackTrace) {
+          _events.addError(error, stackTrace);
+        }
+      },
+      onError: _events.addError,
+      onDone: _events.close,
+    );
+  }
+
+  static const Duration _connectTimeout = Duration(seconds: 15);
+  static const Duration _appCheckTimeout = Duration(seconds: 5);
+
+  final WebSocketChannel _channel;
+  final StreamController<OnlineDuelEvent> _events =
+      StreamController<OnlineDuelEvent>.broadcast();
+  late final StreamSubscription<dynamic> _subscription;
+
+  static Future<WebSocketOnlineDuelTransport> connect(String roomId) async {
+    if (!SocialApiClient.instance.configured) {
+      throw const SocialApiException(
+        0,
+        'The social backend URL is not configured.',
+      );
+    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw const SocialApiException(401, 'A Firebase session is required.');
+    }
+
+    final String? token;
+    try {
+      token = await user.getIdToken().timeout(_connectTimeout);
+    } on TimeoutException {
+      throw const SocialApiException(
+        0,
+        'Firebase session refresh timed out. Please try again.',
+      );
+    } on FirebaseAuthException catch (error) {
+      throw SocialApiException(
+        401,
+        error.message ?? 'Unable to refresh the Firebase session.',
+      );
+    }
+    if (token == null || token.isEmpty) {
+      throw const SocialApiException(
+        401,
+        'Unable to obtain a Firebase ID token.',
+      );
+    }
+
+    final uri = SocialApiClient.instance.websocketUri(
+      '/v1/rooms/$roomId/connect',
+    );
+    final appCheckToken = await _appCheckToken();
+    final IOWebSocketChannel channel;
+    try {
+      channel = IOWebSocketChannel.connect(
+        uri,
+        headers: onlineDuelHeadersForTest(
+          firebaseIdToken: token,
+          appCheckToken: appCheckToken,
+        ),
+      );
+      await channel.ready.timeout(_connectTimeout);
+    } on TimeoutException {
+      throw const SocialApiException(
+        0,
+        'The duel room connection timed out. Please try again.',
+      );
+    } on WebSocketChannelException catch (error) {
+      throw SocialApiException(
+        0,
+        error.message ?? 'Unable to connect to the duel room.',
+      );
+    }
+    return WebSocketOnlineDuelTransport._(channel);
+  }
+
+  @override
+  Stream<OnlineDuelEvent> get events => _events.stream;
+
+  @override
+  void send(Map<String, Object?> message) {
+    _channel.sink.add(jsonEncode(message));
+  }
+
+  @override
+  Future<void> close() async {
+    await _subscription.cancel();
+    await _channel.sink.close();
+    if (!_events.isClosed) await _events.close();
+  }
+}
+
+Map<String, String> onlineDuelHeadersForTest({
+  required String firebaseIdToken,
+  String? appCheckToken,
+}) {
+  return <String, String>{
+    'authorization': 'Bearer $firebaseIdToken',
+    if (appCheckToken != null && appCheckToken.isNotEmpty)
+      'x-firebase-appcheck': appCheckToken,
+  };
+}
+
+Future<String?> _appCheckToken() async {
+  try {
+    final token = await FirebaseAppCheck.instance
+        .getToken(false)
+        .timeout(WebSocketOnlineDuelTransport._appCheckTimeout);
+    return token == null || token.isEmpty ? null : token;
+  } catch (_) {
+    return null;
+  }
+}
+
+class FakeOnlineDuelTransport implements OnlineDuelTransport {
+  final StreamController<OnlineDuelEvent> _events =
+      StreamController<OnlineDuelEvent>.broadcast();
+  final List<Map<String, Object?>> sent = <Map<String, Object?>>[];
+
+  @override
+  Stream<OnlineDuelEvent> get events => _events.stream;
+
+  void emit(OnlineDuelEvent event) => _events.add(event);
+
+  @override
+  void send(Map<String, Object?> message) => sent.add(message);
+
+  @override
+  Future<void> close() => _events.close();
+}

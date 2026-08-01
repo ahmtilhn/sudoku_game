@@ -318,11 +318,11 @@ import UIKit
           return
         }
         if #available(iOS 18.0, *) {
-            let controller = GKGameCenterViewController(player: player)
-            self.presentGameCenter(controller, result: result)
-          } else {
-            self.showDashboard(state: .default, result: result)
-          }
+          let controller = GKGameCenterViewController(player: player)
+          self.presentGameCenter(controller, result: result)
+        } else {
+          self.showDashboard(state: .default, result: result)
+        }
       }
     }
   }

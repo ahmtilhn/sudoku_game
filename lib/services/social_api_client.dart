@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class SocialPlayer {
@@ -39,6 +43,113 @@ class SocialPlayer {
       achievementCount: (json['achievementCount'] as num?)?.toInt() ?? 0,
       friendshipStatus: json['friendshipStatus']?.toString(),
       lastPlayedAt: DateTime.tryParse(json['lastPlayedAt']?.toString() ?? ''),
+    );
+  }
+}
+
+class SocialAchievement {
+  const SocialAchievement({
+    required this.id,
+    required this.category,
+    required this.title,
+    required this.tier,
+    required this.unlocked,
+  });
+
+  final String id;
+  final String category;
+  final String title;
+  final String tier;
+  final bool unlocked;
+
+  factory SocialAchievement.fromJson(Map<String, dynamic> json) {
+    return SocialAchievement(
+      id: json['id']?.toString() ?? '',
+      category: json['category']?.toString() ?? 'ranked',
+      title: json['title']?.toString() ?? '',
+      tier: json['tier']?.toString() ?? 'bronze',
+      unlocked: json['unlocked'] == true,
+    );
+  }
+}
+
+class CompetitiveProfile {
+  const CompetitiveProfile({
+    required this.publicId,
+    required this.username,
+    required this.displayName,
+    required this.avatarKey,
+    required this.currentElo,
+    required this.rankName,
+    required this.seasonPeak,
+    required this.wins,
+    required this.losses,
+    required this.draws,
+    required this.winRate,
+    required this.winStreak,
+    required this.tournamentEntries,
+    required this.tournamentPodiums,
+    required this.countryContributions,
+    required this.achievementCount,
+    required this.achievementShowcase,
+    required this.privateProfile,
+    this.country,
+    this.rank,
+  });
+
+  final String publicId;
+  final String username;
+  final String displayName;
+  final String avatarKey;
+  final String? country;
+  final int currentElo;
+  final int? rank;
+  final String rankName;
+  final int seasonPeak;
+  final int wins;
+  final int losses;
+  final int draws;
+  final double winRate;
+  final int winStreak;
+  final int tournamentEntries;
+  final int tournamentPodiums;
+  final int countryContributions;
+  final int achievementCount;
+  final List<SocialAchievement> achievementShowcase;
+  final bool privateProfile;
+
+  factory CompetitiveProfile.fromJson(Map<String, dynamic> json) {
+    final showcase = json['achievementShowcase'];
+    return CompetitiveProfile(
+      publicId: json['publicId']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
+      displayName: json['displayName']?.toString() ?? 'Player',
+      avatarKey: json['avatarKey']?.toString() ?? 'default',
+      country: json['country']?.toString(),
+      currentElo: (json['currentElo'] as num?)?.toInt() ?? 1000,
+      rank: (json['rank'] as num?)?.toInt(),
+      rankName: json['rankName']?.toString() ?? 'Bronze',
+      seasonPeak: (json['seasonPeak'] as num?)?.toInt() ?? 1000,
+      wins: (json['wins'] as num?)?.toInt() ?? 0,
+      losses: (json['losses'] as num?)?.toInt() ?? 0,
+      draws: (json['draws'] as num?)?.toInt() ?? 0,
+      winRate: (json['winRate'] as num?)?.toDouble() ?? 0,
+      winStreak: (json['winStreak'] as num?)?.toInt() ?? 0,
+      tournamentEntries: (json['tournamentEntries'] as num?)?.toInt() ?? 0,
+      tournamentPodiums: (json['tournamentPodiums'] as num?)?.toInt() ?? 0,
+      countryContributions:
+          (json['countryContributions'] as num?)?.toInt() ?? 0,
+      achievementCount: (json['achievementCount'] as num?)?.toInt() ?? 0,
+      achievementShowcase: showcase is List
+          ? showcase
+                .whereType<Map>()
+                .map(
+                  (value) =>
+                      SocialAchievement.fromJson(value.cast<String, dynamic>()),
+                )
+                .toList(growable: false)
+          : const <SocialAchievement>[],
+      privateProfile: json['privateProfile'] == true,
     );
   }
 }
@@ -83,6 +194,26 @@ class SocialChallenge {
   }
 }
 
+class MatchmakingResult {
+  const MatchmakingResult({
+    required this.status,
+    required this.difficulty,
+    this.roomId,
+  });
+
+  final String status;
+  final String difficulty;
+  final String? roomId;
+
+  factory MatchmakingResult.fromJson(Map<String, dynamic> json) {
+    return MatchmakingResult(
+      status: json['status']?.toString() ?? 'queued',
+      difficulty: json['difficulty']?.toString() ?? 'easy',
+      roomId: json['roomId']?.toString(),
+    );
+  }
+}
+
 class SocialApiException implements Exception {
   const SocialApiException(this.statusCode, this.message);
 
@@ -98,11 +229,58 @@ class SocialApiClient {
 
   static final SocialApiClient instance = SocialApiClient._();
 
-  static const String _baseUrl = String.fromEnvironment('SOCIAL_BACKEND_URL');
+  static const String _configuredBaseUrl = String.fromEnvironment(
+    'SOCIAL_BACKEND_URL',
+  );
+  static const String _debugFallbackBaseUrl =
+      'https://sudoku-duel-social-staging.ilhanahmet246.workers.dev';
+  static const Duration _requestTimeout = Duration(seconds: 15);
+  static const Duration _appCheckTimeout = Duration(seconds: 5);
 
   final http.Client _client = http.Client();
 
-  bool get configured => _baseUrl.startsWith('https://');
+  static String get _baseUrl {
+    final configured = _configuredBaseUrl.trim();
+    final selected = configured.isNotEmpty
+        ? configured
+        : kDebugMode
+        ? _debugFallbackBaseUrl
+        : '';
+    return _withoutTrailingSlashes(selected);
+  }
+
+  static String _withoutTrailingSlashes(String value) {
+    var result = value.trim();
+    while (result.endsWith('/')) {
+      result = result.substring(0, result.length - 1);
+    }
+    return result;
+  }
+
+  bool get configured {
+    final uri = Uri.tryParse(_baseUrl);
+    return uri != null && uri.scheme == 'https' && uri.host.isNotEmpty;
+  }
+
+  String get baseUrl => _baseUrl;
+
+  bool get usingDebugFallback =>
+      kDebugMode && _configuredBaseUrl.trim().isEmpty;
+
+  Uri websocketUri(String path) {
+    if (!configured) {
+      throw const SocialApiException(
+        0,
+        'The social backend URL is not configured.',
+      );
+    }
+    final base = Uri.parse(_baseUrl);
+    return base.replace(
+      scheme: base.scheme == 'https' ? 'wss' : 'ws',
+      path: path,
+      query: '',
+    );
+  }
 
   Future<SocialPlayer> ensureProfile({String? displayName}) async {
     final response = await _request(
@@ -121,6 +299,17 @@ class SocialApiClient {
       'PUT',
       '/v1/me/devices/current',
       body: <String, Object>{'token': token, 'platform': platform},
+    );
+  }
+
+  Future<void> disableCurrentDeviceToken() async {
+    if (!configured) return;
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token == null || token.isEmpty) return;
+    await _request(
+      'DELETE',
+      '/v1/me/devices/current',
+      body: <String, Object>{'token': token},
     );
   }
 
@@ -207,6 +396,51 @@ class SocialApiClient {
     return SocialChallenge.fromJson(response);
   }
 
+  Future<MatchmakingResult> joinRankedQueue({
+    required String difficulty,
+  }) async {
+    final response = await _request(
+      'POST',
+      '/v1/matchmaking/queue',
+      body: <String, Object>{'difficulty': difficulty},
+    );
+    return MatchmakingResult.fromJson(response);
+  }
+
+  Future<void> cancelRankedQueue() async {
+    await _request('DELETE', '/v1/matchmaking/queue');
+  }
+
+  Future<Map<String, dynamic>?> activeMatch() async {
+    final response = await _request('GET', '/v1/matches/active');
+    final match = response['match'];
+    return match is Map ? match.cast<String, dynamic>() : null;
+  }
+
+  Future<Map<String, dynamic>> loadLeaderboard(String scope) async {
+    return _request('GET', '/v1/leaderboards/$scope');
+  }
+
+  Future<CompetitiveProfile> loadCompetitiveProfile() async {
+    final response = await _request('GET', '/v1/competitive/profile');
+    return CompetitiveProfile.fromJson(response);
+  }
+
+  Future<Map<String, dynamic>> loadCompetitiveLeaderboard(
+    String scope, {
+    String mode = 'top',
+    String? cursor,
+  }) async {
+    final query = <String, String>{'mode': mode};
+    if (cursor != null && cursor.isNotEmpty) query['cursor'] = cursor;
+    final suffix = Uri(queryParameters: query).query;
+    return _request('GET', '/v1/competitive/leaderboards/$scope?$suffix');
+  }
+
+  Future<Map<String, dynamic>> loadRatings() async {
+    return _request('GET', '/v1/me/ratings');
+  }
+
   Future<Map<String, dynamic>> _request(
     String method,
     String path, {
@@ -223,7 +457,21 @@ class SocialApiClient {
     if (user == null) {
       throw const SocialApiException(401, 'A Firebase session is required.');
     }
-    final idToken = await user.getIdToken();
+
+    final String? idToken;
+    try {
+      idToken = await user.getIdToken().timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const SocialApiException(
+        0,
+        'Firebase session refresh timed out. Please try again.',
+      );
+    } on FirebaseAuthException catch (error) {
+      throw SocialApiException(
+        401,
+        error.message ?? 'Unable to refresh the Firebase session.',
+      );
+    }
     if (idToken == null || idToken.isEmpty) {
       throw const SocialApiException(
         401,
@@ -232,20 +480,29 @@ class SocialApiClient {
     }
 
     final uri = Uri.parse('$_baseUrl$path');
+    final appCheckToken = await _appCheckToken();
     final headers = <String, String>{
       'authorization': 'Bearer $idToken',
       'accept': 'application/json',
+      ...?appCheckToken == null
+          ? null
+          : <String, String>{'x-firebase-appcheck': appCheckToken},
       if (body != null) 'content-type': 'application/json',
     };
 
-    final response = switch (method) {
-      'GET' => await _client.get(uri, headers: headers),
-      'POST' => await _client.post(
+    final Future<http.Response> responseFuture = switch (method) {
+      'GET' => _client.get(uri, headers: headers),
+      'POST' => _client.post(
         uri,
         headers: headers,
         body: jsonEncode(body ?? const <String, Object?>{}),
       ),
-      'PUT' => await _client.put(
+      'PUT' => _client.put(
+        uri,
+        headers: headers,
+        body: jsonEncode(body ?? const <String, Object?>{}),
+      ),
+      'DELETE' => _client.delete(
         uri,
         headers: headers,
         body: jsonEncode(body ?? const <String, Object?>{}),
@@ -253,9 +510,39 @@ class SocialApiClient {
       _ => throw ArgumentError.value(method, 'method'),
     };
 
-    final decoded = response.body.isEmpty
-        ? <String, dynamic>{}
-        : (jsonDecode(response.body) as Map).cast<String, dynamic>();
+    final http.Response response;
+    try {
+      response = await responseFuture.timeout(_requestTimeout);
+    } on TimeoutException {
+      throw const SocialApiException(
+        0,
+        'The social server did not respond in time. Please try again.',
+      );
+    } on http.ClientException catch (error) {
+      throw SocialApiException(
+        0,
+        error.message.isEmpty
+            ? 'Unable to connect to the social server.'
+            : error.message,
+      );
+    }
+
+    final Map<String, dynamic> decoded;
+    if (response.body.isEmpty) {
+      decoded = <String, dynamic>{};
+    } else {
+      try {
+        final value = jsonDecode(response.body);
+        if (value is! Map) throw const FormatException();
+        decoded = Map<String, dynamic>.from(value);
+      } catch (_) {
+        throw SocialApiException(
+          response.statusCode,
+          'The social server returned an invalid response.',
+        );
+      }
+    }
+
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw SocialApiException(
         response.statusCode,
@@ -272,5 +559,16 @@ class SocialApiClient {
         .map((item) => SocialPlayer.fromJson(item.cast<String, dynamic>()))
         .where((player) => player.publicId.isNotEmpty)
         .toList(growable: false);
+  }
+
+  Future<String?> _appCheckToken() async {
+    try {
+      final token = await FirebaseAppCheck.instance
+          .getToken(false)
+          .timeout(_appCheckTimeout);
+      return token == null || token.isEmpty ? null : token;
+    } catch (_) {
+      return null;
+    }
   }
 }

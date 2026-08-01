@@ -59,9 +59,9 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 
-	<!-- Google-provided test App ID. Replace before publishing. -->
+	<!-- Production AdMob application ID for Sudoku Duel iOS. -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-8422988604275177~3293784266</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Your permission helps us measure advertising performance and keep optional rewards available.</string>
 

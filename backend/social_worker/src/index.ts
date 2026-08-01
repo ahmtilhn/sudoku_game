@@ -4,15 +4,48 @@ import {
   importPKCS8,
   jwtVerify,
 } from 'jose';
+import { AppCheckError, verifyAppCheckRequest } from './app_check';
+import {
+  nextAlarmAt,
+  shouldPersistClientMessage,
+  shouldUpdateAlarm,
+  terminalRoomCleanupDue,
+} from './cost_retention';
+import {
+  type ClientEnvelope,
+  type DuelDifficulty,
+  type DuelMode,
+  type DuelState,
+  type PlayerPublic,
+  type PublicEvent,
+  type Seat,
+  applyDueDeadlines,
+  applyForfeit,
+  applyMove,
+  applyRating,
+  applyReady,
+  applyScreenLoaded,
+  createInitialDuelState,
+  eloDelta,
+  markConnected,
+  markDisconnected,
+  snapshot,
+} from './online_duel';
 
 export interface Env {
   DB: D1Database;
   GAME_ROOMS: DurableObjectNamespace;
+  MATCHMAKING_QUEUE?: DurableObjectNamespace;
   FIREBASE_PROJECT_ID: string;
   FCM_PROJECT_ID: string;
   FCM_CLIENT_EMAIL: string;
   FCM_PRIVATE_KEY: string;
   ALLOWED_ORIGIN: string;
+  FIREBASE_PROJECT_NUMBER?: string;
+  ALLOWED_APP_CHECK_APP_IDS?: string;
+  REQUIRE_APP_CHECK?: string;
+  BUILD_COMMIT?: string;
+  ENVIRONMENT?: string;
 }
 
 type PlayerRow = {
@@ -72,7 +105,17 @@ export default {
       if (url.pathname === '/health') {
         return reply(env, { ok: true, service: 'sudoku-duel-social' });
       }
+      if (url.pathname === '/version') {
+        return reply(env, {
+          service: 'sudoku-duel-social',
+          protocolVersion: 1,
+          schemaVersion: 3,
+          buildCommit: env.BUILD_COMMIT || 'local',
+          environment: env.ENVIRONMENT || 'local',
+        });
+      }
 
+      await verifyAppCheckRequest(request, env);
       const uid = await authenticateFirebase(request, env);
       const player = await ensurePlayer(env, uid, null);
 
@@ -87,12 +130,22 @@ export default {
       ) {
         response = await registerDevice(request, env, player);
       } else if (
+        url.pathname === '/v1/me/devices/current' &&
+        request.method === 'DELETE'
+      ) {
+        response = await disableDevice(request, env, player);
+      } else if (
         url.pathname === '/v1/players/search' &&
         request.method === 'GET'
       ) {
         response = await searchPlayers(url, env, player);
       } else if (url.pathname === '/v1/friends' && request.method === 'GET') {
         response = await listFriends(env, player);
+      } else if (
+        url.pathname === '/v1/friends/requests' &&
+        request.method === 'GET'
+      ) {
+        response = await listIncomingFriendRequests(env, player);
       } else if (
         url.pathname === '/v1/friends/requests' &&
         request.method === 'POST'
@@ -113,6 +166,38 @@ export default {
       } else if (url.pathname === '/v1/challenges' && request.method === 'GET') {
         response = await listChallenges(url, env, player);
       } else if (
+        url.pathname === '/v1/matchmaking/queue' &&
+        request.method === 'POST'
+      ) {
+        response = await joinRankedQueue(request, env, player);
+      } else if (
+        url.pathname === '/v1/matchmaking/queue' &&
+        request.method === 'DELETE'
+      ) {
+        response = await cancelRankedQueue(env, player);
+      } else if (
+        url.pathname === '/v1/matches/active' &&
+        request.method === 'GET'
+      ) {
+        response = await activeMatch(env, player);
+      } else if (
+        url.pathname === '/v1/matches/history' &&
+        request.method === 'GET'
+      ) {
+        response = await matchHistory(url, env, player);
+      } else if (
+        /^\/v1\/matches\/[^/]+$/.test(url.pathname) &&
+        request.method === 'GET'
+      ) {
+        response = await matchDetail(env, player, url.pathname.split('/')[3]);
+      } else if (url.pathname === '/v1/me/ratings' && request.method === 'GET') {
+        response = await myRatings(env, player);
+      } else if (
+        /^\/v1\/leaderboards\/[^/]+$/.test(url.pathname) &&
+        request.method === 'GET'
+      ) {
+        response = await leaderboard(url, env, player, url.pathname.split('/')[3]);
+      } else if (
         /^\/v1\/challenges\/[^/]+\/respond$/.test(url.pathname) &&
         request.method === 'POST'
       ) {
@@ -129,6 +214,9 @@ export default {
       }
       return corsResponse(env, response);
     } catch (error) {
+      if (error instanceof AppCheckError) {
+        return corsResponse(env, errorReply(env, 403, error.code));
+      }
       if (error instanceof HttpError) {
         return corsResponse(env, errorReply(env, error.status, error.message));
       }
@@ -248,6 +336,23 @@ async function registerDevice(
   return reply(env, { ok: true });
 }
 
+async function disableDevice(
+  request: Request,
+  env: Env,
+  player: PlayerRow,
+): Promise<Response> {
+  const body = await readJson(request);
+  const token = requiredString(body.token, 'token', 32, 4096);
+  await env.DB.prepare(
+    `UPDATE device_tokens
+     SET enabled = 0, updated_at = ?
+     WHERE player_id = ? AND token = ?`,
+  )
+    .bind(new Date().toISOString(), player.id, token)
+    .run();
+  return reply(env, { ok: true });
+}
+
 async function searchPlayers(
   url: URL,
   env: Env,
@@ -304,6 +409,25 @@ async function listFriends(env: Env, current: PlayerRow): Promise<Response> {
        AND f.status = 'accepted'
      ORDER BY p.display_name COLLATE NOCASE
      LIMIT 200`,
+  )
+    .bind(current.id, current.id, current.id)
+    .all<PlayerRow>();
+  return reply(env, { players: rows.results.map(playerJson) });
+}
+
+async function listIncomingFriendRequests(
+  env: Env,
+  current: PlayerRow,
+): Promise<Response> {
+  const rows = await env.DB.prepare(
+    `SELECT p.*, 'pending' AS friendship_status
+     FROM friendships f
+     JOIN players p ON p.id = f.requester_id
+     WHERE (f.player_low_id = ? OR f.player_high_id = ?)
+       AND f.status = 'pending'
+       AND f.requester_id != ?
+     ORDER BY f.created_at DESC
+     LIMIT 100`,
   )
     .bind(current.id, current.id, current.id)
     .all<PlayerRow>();
@@ -516,6 +640,17 @@ async function respondChallenge(
   )
     .bind(status, roomId, now, challenge.id)
     .run();
+  if (action === 'accept' && roomId) {
+    await createMatchRow(env, {
+      roomId,
+      challengeId: challenge.id,
+      mode: 'friendly',
+      difficulty: challenge.difficulty,
+      playerAId: challenge.challenger_id,
+      playerBId: challenge.recipient_id,
+      now,
+    });
+  }
 
   ctx.waitUntil(
     sendPlayerNotification(env, challenge.challenger_id, {
@@ -537,6 +672,298 @@ async function respondChallenge(
   return reply(env, await challengeJson(env, updated));
 }
 
+async function joinRankedQueue(
+  request: Request,
+  env: Env,
+  current: PlayerRow,
+): Promise<Response> {
+  await enforceRateLimit(env, `ranked_queue:${current.id}`, 20, 600);
+  const body = await readJson(request);
+  const difficulty = requiredString(body.difficulty, 'difficulty', 4, 16);
+  if (!DIFFICULTIES.has(difficulty)) throw new HttpError(400, 'Invalid difficulty.');
+  const now = new Date().toISOString();
+  const rating = await ratingFor(env, current.id, difficulty);
+  const opponent = await env.DB.prepare(
+    `SELECT q.player_id, q.rating, p.*
+     FROM ranked_queue q
+     JOIN players p ON p.id = q.player_id
+     WHERE q.difficulty = ?
+       AND q.player_id != ?
+       AND NOT EXISTS (
+         SELECT 1 FROM friendships b
+         WHERE b.player_low_id = CASE WHEN q.player_id < ? THEN q.player_id ELSE ? END
+           AND b.player_high_id = CASE WHEN q.player_id < ? THEN ? ELSE q.player_id END
+           AND b.status = 'blocked'
+       )
+     ORDER BY ABS(q.rating - ?), q.joined_at
+     LIMIT 1`,
+  )
+    .bind(difficulty, current.id, current.id, current.id, current.id, current.id, rating)
+    .first<PlayerRow & { player_id: string; rating: number }>();
+
+  if (!opponent) {
+    await env.DB.prepare(
+      `INSERT INTO ranked_queue (player_id, difficulty, rating, joined_at, updated_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(player_id) DO UPDATE SET
+         difficulty = excluded.difficulty,
+         rating = excluded.rating,
+         updated_at = excluded.updated_at,
+         room_id = NULL,
+         matched_player_id = NULL`,
+    )
+      .bind(current.id, difficulty, rating, now, now)
+      .run();
+    return reply(env, { status: 'queued', difficulty, rating });
+  }
+
+  const roomId = crypto.randomUUID();
+  await createMatchRow(env, {
+    roomId,
+    challengeId: null,
+    mode: 'ranked',
+    difficulty,
+    playerAId: opponent.player_id,
+    playerBId: current.id,
+    now,
+  });
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE ranked_queue
+       SET room_id = ?, matched_player_id = ?, updated_at = ?
+       WHERE player_id = ?`,
+    ).bind(roomId, current.id, now, opponent.player_id),
+    env.DB.prepare(
+      `INSERT INTO ranked_queue (
+         player_id, difficulty, rating, joined_at, updated_at, room_id, matched_player_id
+       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(player_id) DO UPDATE SET
+         difficulty = excluded.difficulty,
+         rating = excluded.rating,
+         updated_at = excluded.updated_at,
+         room_id = excluded.room_id,
+         matched_player_id = excluded.matched_player_id`,
+    ).bind(current.id, difficulty, rating, now, now, roomId, opponent.player_id),
+  ]);
+  return reply(env, { status: 'matched', difficulty, roomId }, 201);
+}
+
+async function cancelRankedQueue(env: Env, current: PlayerRow): Promise<Response> {
+  await env.DB.prepare('DELETE FROM ranked_queue WHERE player_id = ? AND room_id IS NULL')
+    .bind(current.id)
+    .run();
+  return reply(env, { ok: true });
+}
+
+async function activeMatch(env: Env, current: PlayerRow): Promise<Response> {
+  const match = await env.DB.prepare(
+    `SELECT * FROM matches
+     WHERE (player_a_id = ? OR player_b_id = ?)
+       AND status IN ('waiting', 'countdown', 'active', 'paused')
+     ORDER BY created_at DESC
+     LIMIT 1`,
+  )
+    .bind(current.id, current.id)
+    .first<Record<string, unknown>>();
+  return reply(env, { match: match ? publicMatch(match, current.id) : null });
+}
+
+async function matchHistory(
+  url: URL,
+  env: Env,
+  current: PlayerRow,
+): Promise<Response> {
+  const limit = clampLimit(url.searchParams.get('limit'), 20, 50);
+  const rows = await env.DB.prepare(
+    `SELECT m.*, mp.result, mp.score, mp.rating_delta_global
+     FROM matches m
+     JOIN match_players mp ON mp.match_id = m.id AND mp.player_id = ?
+     WHERE m.player_a_id = ? OR m.player_b_id = ?
+     ORDER BY COALESCE(m.finished_at, m.created_at) DESC
+     LIMIT ?`,
+  )
+    .bind(current.id, current.id, current.id, limit)
+    .all<Record<string, unknown>>();
+  return reply(env, { matches: rows.results.map((row) => publicMatch(row, current.id)) });
+}
+
+async function matchDetail(
+  env: Env,
+  current: PlayerRow,
+  matchId: string,
+): Promise<Response> {
+  const match = await env.DB.prepare(
+    `SELECT * FROM matches
+     WHERE id = ? AND (player_a_id = ? OR player_b_id = ?)
+     LIMIT 1`,
+  )
+    .bind(matchId, current.id, current.id)
+    .first<Record<string, unknown>>();
+  if (!match) throw new HttpError(404, 'Match not found.');
+  const players = await env.DB.prepare(
+    'SELECT * FROM match_players WHERE match_id = ? ORDER BY seat',
+  )
+    .bind(matchId)
+    .all<Record<string, unknown>>();
+  return reply(env, { match: publicMatch(match, current.id), players: players.results });
+}
+
+async function myRatings(env: Env, current: PlayerRow): Promise<Response> {
+  await ensureRatingRows(env, current.id);
+  const rows = await env.DB.prepare(
+    `SELECT scope, rating, games_played, wins, losses, draws, best_rating, provisional_games
+     FROM player_ratings WHERE player_id = ? ORDER BY scope`,
+  )
+    .bind(current.id)
+    .all<Record<string, unknown>>();
+  return reply(env, { ratings: rows.results });
+}
+
+async function leaderboard(
+  url: URL,
+  env: Env,
+  current: PlayerRow,
+  scope: string,
+): Promise<Response> {
+  if (scope !== 'global' && !DIFFICULTIES.has(scope)) {
+    throw new HttpError(400, 'Invalid leaderboard scope.');
+  }
+  const limit = clampLimit(url.searchParams.get('limit'), 50, 100);
+  const rows = await env.DB.prepare(
+    `SELECT pr.*, p.public_id, p.username, p.display_name, p.avatar_key
+     FROM player_ratings pr
+     JOIN players p ON p.id = pr.player_id
+     WHERE pr.scope = ?
+     ORDER BY pr.rating DESC, pr.games_played DESC, pr.updated_at ASC
+     LIMIT ?`,
+  )
+    .bind(scope, limit)
+    .all<Record<string, unknown>>();
+  const rank = await env.DB.prepare(
+    `SELECT COUNT(*) + 1 AS rank
+     FROM player_ratings mine
+     JOIN player_ratings other ON other.scope = mine.scope
+     WHERE mine.player_id = ? AND mine.scope = ?
+       AND (other.rating > mine.rating
+         OR (other.rating = mine.rating AND other.games_played > mine.games_played)
+         OR (other.rating = mine.rating AND other.games_played = mine.games_played
+             AND other.updated_at < mine.updated_at))`,
+  )
+    .bind(current.id, scope)
+    .first<{ rank: number }>();
+  const currentRating = await ratingFor(env, current.id, scope);
+  return reply(env, {
+    scope,
+    entries: rows.results.map((row, index) => ({
+      rank: index + 1,
+      publicId: row.public_id,
+      username: row.username,
+      displayName: row.display_name,
+      avatarKey: row.avatar_key,
+      rating: row.rating,
+      gamesPlayed: row.games_played,
+      wins: row.wins,
+      losses: row.losses,
+      draws: row.draws,
+      winRate:
+        Number(row.games_played) === 0
+          ? 0
+          : Number(row.wins) / Number(row.games_played),
+    })),
+    currentPlayer: { rank: rank?.rank ?? null, rating: currentRating },
+    nextCursor: null,
+  });
+}
+
+async function createMatchRow(
+  env: Env,
+  input: {
+    roomId: string;
+    challengeId: string | null;
+    mode: DuelMode;
+    difficulty: string;
+    playerAId: string;
+    playerBId: string;
+    now: string;
+  },
+): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO matches (
+      id, room_id, challenge_id, mode, difficulty, status,
+      player_a_id, player_b_id, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, ?, ?, ?)
+    ON CONFLICT(room_id) DO NOTHING`,
+  )
+    .bind(
+      crypto.randomUUID(),
+      input.roomId,
+      input.challengeId,
+      input.mode,
+      input.difficulty,
+      input.playerAId,
+      input.playerBId,
+      input.now,
+      input.now,
+    )
+    .run();
+}
+
+async function ensureRatingRows(env: Env, playerId: string): Promise<void> {
+  const now = new Date().toISOString();
+  await env.DB.batch(
+    ['global', ...DIFFICULTIES].map((scope) =>
+      env.DB.prepare(
+        `INSERT INTO player_ratings (player_id, scope, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(player_id, scope) DO NOTHING`,
+      ).bind(playerId, scope, now),
+    ),
+  );
+}
+
+async function ratingFor(env: Env, playerId: string, scope: string): Promise<number> {
+  await ensureRatingRows(env, playerId);
+  const row = await env.DB.prepare(
+    'SELECT rating FROM player_ratings WHERE player_id = ? AND scope = ?',
+  )
+    .bind(playerId, scope)
+    .first<{ rating: number }>();
+  return row?.rating ?? 1000;
+}
+
+function clampLimit(value: string | null, fallback: number, max: number): number {
+  const parsed = Number(value ?? fallback);
+  if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, max);
+}
+
+function publicMatch(row: Record<string, unknown>, currentPlayerId: string): Record<string, unknown> {
+  const playerAId = String(row.player_a_id ?? '');
+  const playerBId = String(row.player_b_id ?? '');
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    mode: row.mode,
+    difficulty: row.difficulty,
+    status: row.status,
+    youSeat: currentPlayerId === playerAId ? 'A' : currentPlayerId === playerBId ? 'B' : null,
+    winnerSeat:
+      row.winner_id == null
+        ? null
+        : row.winner_id === playerAId
+          ? 'A'
+          : row.winner_id === playerBId
+            ? 'B'
+            : null,
+    finishReason: row.finish_reason,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    result: row.result ?? null,
+    score: row.score ?? null,
+    ratingDelta: row.rating_delta_global ?? null,
+  };
+}
+
 async function connectRoom(
   request: Request,
   env: Env,
@@ -546,14 +973,17 @@ async function connectRoom(
   if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
     throw new HttpError(426, 'WebSocket upgrade required.');
   }
-  const challenge = await env.DB.prepare(
-    `SELECT * FROM challenges
-     WHERE room_id = ? AND status = 'accepted' LIMIT 1`,
+  const match = await env.DB.prepare(
+    `SELECT * FROM matches
+     WHERE room_id = ? LIMIT 1`,
   )
     .bind(roomId)
-    .first<ChallengeRow>();
-  if (!challenge) throw new HttpError(404, 'Game room not found.');
-  if (challenge.challenger_id !== current.id && challenge.recipient_id !== current.id) {
+    .first<{
+      player_a_id: string;
+      player_b_id: string;
+    }>();
+  if (!match) throw new HttpError(404, 'Game room not found.');
+  if (match.player_a_id !== current.id && match.player_b_id !== current.id) {
     throw new HttpError(403, 'You are not a participant in this room.');
   }
 
@@ -830,7 +1260,7 @@ function corsResponse(env: Env, response: Response): Response {
   const headers = new Headers(response.headers);
   headers.set('access-control-allow-origin', env.ALLOWED_ORIGIN || '*');
   headers.set('access-control-allow-headers', 'authorization, content-type');
-  headers.set('access-control-allow-methods', 'GET, POST, PUT, OPTIONS');
+  headers.set('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
   headers.set('vary', 'origin');
   return new Response(response.body, {
     status: response.status,
@@ -840,10 +1270,16 @@ function corsResponse(env: Env, response: Response): Response {
 }
 
 export class GameRoom {
+  private roomState: DuelState | null = null;
+
   constructor(
     private readonly state: DurableObjectState,
     private readonly env: Env,
-  ) {}
+  ) {
+    this.state.blockConcurrencyWhile(async () => {
+      this.roomState = (await this.state.storage.get<DuelState>('duelState')) ?? null;
+    });
+  }
 
   async fetch(request: Request): Promise<Response> {
     if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
@@ -853,19 +1289,34 @@ export class GameRoom {
     const roomId = request.headers.get('x-sudoku-room-id');
     if (!playerId || !roomId) return new Response('Missing room identity.', { status: 400 });
 
+    const duel = await this.loadOrCreate(roomId);
+    const seat = this.seatForPlayer(duel, playerId);
+    if (!seat) return new Response('Forbidden.', { status: 403 });
+    for (const socket of this.state.getWebSockets(playerId)) {
+      try {
+        socket.close(4001, 'Replaced by a newer connection.');
+      } catch {
+        // Closed sockets are ignored by the hibernation runtime.
+      }
+    }
+
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
     this.state.acceptWebSocket(server, [playerId]);
-    server.send(
-      JSON.stringify({
-        type: 'connected',
-        roomId,
-        playerId,
-        serverTime: Date.now(),
-      }),
-    );
-    this.broadcast({ type: 'presence', playerId, state: 'connected' }, server);
+    const now = Date.now();
+    const events = applyDueDeadlines(duel, now);
+    events.push(markConnected(duel, seat, now));
+    await this.persist();
+    this.send(server, {
+      v: 1,
+      type: 'connected',
+      eventId: `${duel.roomId}:${duel.revision}:connected:${seat}`,
+      revision: duel.revision,
+      serverTime: now,
+      payload: snapshot(duel, seat, now),
+    });
+    this.broadcast(events);
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -876,23 +1327,86 @@ export class GameRoom {
       socket.close(1009, 'Message too large.');
       return;
     }
-    let parsed: Record<string, unknown>;
+    const duel = this.roomState;
+    if (!duel) {
+      this.send(socket, serverError(0, 'room_not_initialized'));
+      return;
+    }
+    const seat = this.seatForPlayer(duel, playerId);
+    if (!seat) {
+      socket.close(4003, 'Forbidden.');
+      return;
+    }
+    let parsed: ClientEnvelope;
     try {
-      parsed = JSON.parse(text) as Record<string, unknown>;
+      parsed = JSON.parse(text) as ClientEnvelope;
     } catch {
-      socket.send(JSON.stringify({ type: 'error', error: 'Invalid JSON.' }));
+      this.send(socket, protocolError(duel, 'invalid_json'));
       return;
     }
-    const type = typeof parsed.type === 'string' ? parsed.type : '';
-    if (!['ready', 'move', 'forfeit', 'ping'].includes(type)) {
-      socket.send(JSON.stringify({ type: 'error', error: 'Unsupported message type.' }));
+    if (parsed.v !== 1 || typeof parsed.type !== 'string') {
+      this.send(socket, protocolError(duel, 'invalid_envelope'));
       return;
     }
-    this.broadcast({
-      ...parsed,
-      playerId,
-      serverTime: Date.now(),
-    });
+    const now = Date.now();
+    const requestId = requestIdOf(parsed);
+    const beforeRevision = duel.revision;
+    let events: PublicEvent[];
+    if (parsed.type === 'ready') {
+      events = applyReady(duel, seat, now);
+    } else if (parsed.type === 'game_screen_loaded' || parsed.type === 'screen_loaded') {
+      events = applyScreenLoaded(duel, seat, now);
+    } else if (parsed.type === 'move') {
+      const payload = parsed.payload ?? {};
+      events = applyMove(
+        duel,
+        seat,
+        requestId,
+        parsed.expectedRevision,
+        Number(payload.cellIndex),
+        Number(payload.value),
+        now,
+      );
+    } else if (parsed.type === 'forfeit') {
+      events = applyForfeit(duel, seat, requestId, now);
+    } else if (parsed.type === 'request_snapshot') {
+      events = [
+        {
+          v: 1,
+          type: 'snapshot',
+          eventId: `${duel.roomId}:${duel.revision}:snapshot:${seat}`,
+          revision: duel.revision,
+          serverTime: now,
+          payload: snapshot(duel, seat, now),
+        },
+      ];
+    } else if (parsed.type === 'ping') {
+      events = [
+        {
+          v: 1,
+          type: 'pong',
+          eventId: `${duel.roomId}:${duel.revision}:pong:${seat}`,
+          revision: duel.revision,
+          serverTime: now,
+          payload: {},
+        },
+      ];
+    } else {
+      events = [protocolError(duel, 'unsupported_message_type')];
+    }
+    if (
+      shouldPersistClientMessage({
+        type: parsed.type,
+        beforeRevision,
+        afterRevision: duel.revision,
+      })
+    ) {
+      await this.persist();
+    }
+    this.broadcast(events);
+    if (duel.status === 'completed' || duel.status === 'forfeited' || duel.status === 'cancelled') {
+      await this.settleIfNeeded(duel);
+    }
   }
 
   async webSocketClose(
@@ -902,30 +1416,474 @@ export class GameRoom {
     wasClean: boolean,
   ): Promise<void> {
     const [playerId] = this.state.getTags(socket);
-    this.broadcast({
-      type: 'presence',
-      playerId,
-      state: 'disconnected',
-      code,
-      wasClean,
-    });
+    const duel = this.roomState;
+    if (!duel) return;
+    const seat = this.seatForPlayer(duel, playerId);
+    if (!seat) return;
+    const event = markDisconnected(duel, seat, Date.now());
+    await this.persist();
+    this.broadcast([event]);
+    await this.scheduleAlarm();
   }
 
   async webSocketError(socket: WebSocket): Promise<void> {
     const [playerId] = this.state.getTags(socket);
-    this.broadcast({ type: 'presence', playerId, state: 'error' });
+    console.warn('room websocket error', { playerId });
   }
 
-  private broadcast(payload: Record<string, unknown>, exclude?: WebSocket): void {
-    const encoded = JSON.stringify(payload);
+  async alarm(): Promise<void> {
+    const duel = this.roomState;
+    if (!duel) return;
+    const now = Date.now();
+    if (
+      terminalRoomCleanupDue(
+        { status: duel.status, settled: duel.settled, finishedAt: duel.finishedAt },
+        now,
+      )
+    ) {
+      await this.cleanupTerminalRoom();
+      return;
+    }
+    const events = applyDueDeadlines(duel, now);
+    if (events.length > 0) {
+      await this.persist();
+      this.broadcast(events);
+    }
+    if (duel.status === 'completed' || duel.status === 'forfeited' || duel.status === 'cancelled') {
+      await this.settleIfNeeded(duel);
+    }
+    await this.scheduleAlarm();
+  }
+
+  private async loadOrCreate(roomId: string): Promise<DuelState> {
+    if (this.roomState) return this.roomState;
+    const match = await this.env.DB.prepare(
+      `SELECT m.*, a.public_id AS a_public_id, a.username AS a_username,
+              a.display_name AS a_display_name, a.avatar_key AS a_avatar_key,
+              b.public_id AS b_public_id, b.username AS b_username,
+              b.display_name AS b_display_name, b.avatar_key AS b_avatar_key
+       FROM matches m
+       JOIN players a ON a.id = m.player_a_id
+       JOIN players b ON b.id = m.player_b_id
+       WHERE m.room_id = ?
+       LIMIT 1`,
+    )
+      .bind(roomId)
+      .first<Record<string, string>>();
+    if (!match) throw new Error('Match row not found.');
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    const now = Date.now();
+    this.roomState = createInitialDuelState({
+      roomId,
+      matchId: match.id,
+      challengeId: match.challenge_id ?? null,
+      mode: match.mode as DuelMode,
+      difficulty: match.difficulty as DuelDifficulty,
+      playerA: publicPlayer(match.player_a_id, match.a_public_id, match.a_username, match.a_display_name, match.a_avatar_key),
+      playerB: publicPlayer(match.player_b_id, match.b_public_id, match.b_username, match.b_display_name, match.b_avatar_key),
+      now,
+      randomBytes: bytes,
+    });
+    await this.persist();
+    return this.roomState;
+  }
+
+  private seatForPlayer(duel: DuelState, playerId: string): Seat | null {
+    if (duel.playerA.player.id === playerId) return 'A';
+    if (duel.playerB.player.id === playerId) return 'B';
+    return null;
+  }
+
+  private async persist(): Promise<void> {
+    if (!this.roomState) return;
+    await this.state.storage.put('duelState', this.roomState);
+    await this.scheduleAlarm();
+  }
+
+  private async scheduleAlarm(): Promise<void> {
+    const duel = this.roomState;
+    if (!duel) return;
+    const desiredAlarmAt = nextAlarmAt(
+      {
+        status: duel.status,
+        readyDeadline: duel.readyDeadline,
+        turnDeadline: duel.turnDeadline,
+        playerADisconnectDeadline: duel.playerA.disconnectDeadline,
+        playerBDisconnectDeadline: duel.playerB.disconnectDeadline,
+        finishedAt: duel.finishedAt,
+        settled: duel.settled,
+      },
+      Date.now(),
+    );
+    const currentAlarmAt = await this.state.storage.getAlarm();
+    if (!shouldUpdateAlarm(currentAlarmAt, desiredAlarmAt)) return;
+    if (desiredAlarmAt === null) {
+      await this.state.storage.deleteAlarm();
+    } else {
+      await this.state.storage.setAlarm(desiredAlarmAt);
+    }
+  }
+
+  private async settleIfNeeded(duel: DuelState): Promise<void> {
+    if (duel.settled) return;
+    const existingSettlement = await this.env.DB.prepare(
+      'SELECT 1 FROM match_settlements WHERE match_id = ? LIMIT 1',
+    )
+      .bind(duel.matchId)
+      .first();
+    if (existingSettlement) {
+      duel.settled = true;
+      await this.persist();
+      return;
+    }
+    duel.settlementAttempts++;
+    const now = new Date().toISOString();
+    const winnerId =
+      duel.winnerSeat === 'A'
+        ? duel.playerA.player.id
+        : duel.winnerSeat === 'B'
+          ? duel.playerB.player.id
+          : null;
+    const rated = duel.mode === 'ranked' && duel.startedAt !== null && duel.status !== 'cancelled';
+    const globalA = await this.ratingRow(duel.playerA.player.id, 'global');
+    const globalB = await this.ratingRow(duel.playerB.player.id, 'global');
+    const diffA = await this.ratingRow(duel.playerA.player.id, duel.difficulty);
+    const diffB = await this.ratingRow(duel.playerB.player.id, duel.difficulty);
+    let resultA: 0 | 0.5 | 1 = 0.5;
+    if (duel.winnerSeat === 'A') resultA = 1;
+    if (duel.winnerSeat === 'B') resultA = 0;
+    const resultB = (1 - resultA) as 0 | 0.5 | 1;
+    const globalDeltaA = rated ? eloDelta(globalA.rating, globalB.rating, resultA, globalA.games_played) : 0;
+    const globalDeltaB = rated ? eloDelta(globalB.rating, globalA.rating, resultB, globalB.games_played) : 0;
+    const diffDeltaA = rated ? eloDelta(diffA.rating, diffB.rating, resultA, diffA.games_played) : 0;
+    const diffDeltaB = rated ? eloDelta(diffB.rating, diffA.rating, resultB, diffB.games_played) : 0;
+    duel.ratingResult = {
+      A: {
+        beforeGlobal: globalA.rating,
+        afterGlobal: applyRating(globalA.rating, globalDeltaA),
+        deltaGlobal: globalDeltaA,
+        beforeDifficulty: diffA.rating,
+        afterDifficulty: applyRating(diffA.rating, diffDeltaA),
+        deltaDifficulty: diffDeltaA,
+      },
+      B: {
+        beforeGlobal: globalB.rating,
+        afterGlobal: applyRating(globalB.rating, globalDeltaB),
+        deltaGlobal: globalDeltaB,
+        beforeDifficulty: diffB.rating,
+        afterDifficulty: applyRating(diffB.rating, diffDeltaB),
+        deltaDifficulty: diffDeltaB,
+      },
+    };
+    const escrow = await this.env.DB.prepare(
+      `SELECT player_a_amount, player_b_amount, pot_amount
+       FROM match_coin_escrow
+       WHERE match_id = ? LIMIT 1`,
+    )
+      .bind(duel.matchId)
+      .first<{
+        player_a_amount: number;
+        player_b_amount: number;
+        pot_amount: number;
+      }>();
+    const coinAmount = Number(escrow?.pot_amount ?? 0);
+    const coinStatements: D1PreparedStatement[] = [];
+    if (duel.winnerSeat !== null && duel.status !== 'cancelled' && coinAmount > 0) {
+      const loserSeat = duel.winnerSeat === 'A' ? 'B' : 'A';
+      const loserId = loserSeat === 'A' ? duel.playerA.player.id : duel.playerB.player.id;
+      coinStatements.push(
+        this.env.DB.prepare(
+          `INSERT INTO match_coin_settlements (match_id, winner_id, loser_id, amount, applied_at)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(match_id) DO NOTHING`,
+        ).bind(duel.matchId, winnerId, loserId, coinAmount, now),
+      );
+    }
+    const settlementHash = `${duel.matchId}:${duel.revision}:${duel.finishReason}:${winnerId ?? 'draw'}`;
+    await this.env.DB.batch([
+      this.env.DB.prepare(
+        `INSERT INTO match_settlements (match_id, settlement_hash, settled_at, attempts)
+         VALUES (?, ?, ?, 1)
+         ON CONFLICT(match_id) DO UPDATE SET attempts = attempts + 1`,
+      ).bind(duel.matchId, settlementHash, now),
+      this.env.DB.prepare(
+        `UPDATE matches
+         SET status = ?, finished_at = ?, winner_id = ?, finish_reason = ?,
+             rated = ?, rating_settled_at = ?, updated_at = ?
+         WHERE id = ? AND rating_settled_at IS NULL`,
+      ).bind(duel.status, now, winnerId, duel.finishReason, rated ? 1 : 0, now, now, duel.matchId),
+      this.matchPlayerStatement(duel, 'A', resultA, duel.ratingResult.A, now),
+      this.matchPlayerStatement(duel, 'B', resultB, duel.ratingResult.B, now),
+      ...this.ratingStatements(duel, 'A', resultA, duel.ratingResult.A, rated, now),
+      ...this.ratingStatements(duel, 'B', resultB, duel.ratingResult.B, rated, now),
+      this.env.DB.prepare(
+        'UPDATE challenges SET status = ? WHERE id = ? AND status = ?',
+      ).bind(duel.status === 'cancelled' ? 'cancelled' : 'completed', duel.challengeId, 'accepted'),
+      ...coinStatements,
+    ]);
+    if (duel.winnerSeat !== null && duel.status !== 'cancelled' && coinAmount > 0) {
+      const loserSeat = duel.winnerSeat === 'A' ? 'B' : 'A';
+      const winnerBalance = await this.onlineCoinBalance(duel.winnerSeat === 'A' ? duel.playerA.player.id : duel.playerB.player.id);
+      const loserBalance = await this.onlineCoinBalance(loserSeat === 'A' ? duel.playerA.player.id : duel.playerB.player.id);
+      duel.coinResult = {
+        amount: coinAmount,
+        winnerSeat: duel.winnerSeat,
+        loserSeat,
+        balances: {
+          [duel.winnerSeat]: winnerBalance,
+          [loserSeat]: loserBalance,
+        } as Record<Seat, number>,
+        deltas: {
+          [duel.winnerSeat]: coinAmount,
+          [loserSeat]: 0,
+        } as Record<Seat, number>,
+      };
+      await this.env.DB.prepare(
+        `UPDATE match_coin_settlements
+         SET winner_balance_after = ?, loser_balance_after = ?
+         WHERE match_id = ?`,
+      ).bind(winnerBalance, loserBalance, duel.matchId).run();
+    } else if (duel.winnerSeat === null && escrow) {
+      const balanceA = await this.onlineCoinBalance(duel.playerA.player.id);
+      const balanceB = await this.onlineCoinBalance(duel.playerB.player.id);
+      duel.coinResult = {
+        amount: 0,
+        winnerSeat: null,
+        loserSeat: null,
+        balances: { A: balanceA, B: balanceB },
+        deltas: {
+          A: Number(escrow.player_a_amount ?? 0),
+          B: Number(escrow.player_b_amount ?? 0),
+        },
+      };
+    }
+    duel.settled = true;
+    await this.persist();
+    this.broadcast([
+      {
+        v: 1,
+        type: 'rating_updated',
+        eventId: `${duel.roomId}:${duel.revision}:rating_updated`,
+        revision: duel.revision,
+        serverTime: Date.now(),
+        payload: { rating: duel.ratingResult, coinSettlement: duel.coinResult },
+      },
+    ]);
+  }
+
+  private async cleanupTerminalRoom(): Promise<void> {
     for (const socket of this.state.getWebSockets()) {
-      if (socket !== exclude) {
-        try {
-          socket.send(encoded);
-        } catch {
-          // The hibernation runtime removes closed sockets automatically.
-        }
+      try {
+        socket.close(1000, 'Match storage cleaned up.');
+      } catch {
+        // Closed sockets are ignored by the hibernation runtime.
+      }
+    }
+    this.roomState = null;
+    await this.state.storage.deleteAlarm();
+    await this.state.storage.deleteAll();
+  }
+
+  private async onlineCoinBalance(playerId: string): Promise<number> {
+    const row = await this.env.DB.prepare('SELECT online_coins FROM players WHERE id = ?')
+      .bind(playerId)
+      .first<{ online_coins: number }>();
+    return row?.online_coins ?? 0;
+  }
+
+  private async ratingRow(playerId: string, scope: string): Promise<{ rating: number; games_played: number }> {
+    await ensureRatingRows(this.env, playerId);
+    const row = await this.env.DB.prepare(
+      'SELECT rating, games_played FROM player_ratings WHERE player_id = ? AND scope = ?',
+    )
+      .bind(playerId, scope)
+      .first<{ rating: number; games_played: number }>();
+    return row ?? { rating: 1000, games_played: 0 };
+  }
+
+  private matchPlayerStatement(
+    duel: DuelState,
+    seat: Seat,
+    result: 0 | 0.5 | 1,
+    rating: NonNullable<DuelState['ratingResult']>[Seat],
+    now: string,
+  ): D1PreparedStatement {
+    const playerId = seat === 'A' ? duel.playerA.player.id : duel.playerB.player.id;
+    const resultText = duel.status === 'cancelled' ? 'cancelled' : result === 1 ? 'win' : result === 0 ? 'loss' : 'draw';
+    return this.env.DB.prepare(
+      `INSERT INTO match_players (
+        match_id, player_id, seat, result, score, mistakes, correct_moves,
+        timeouts, rating_before_global, rating_after_global, rating_delta_global,
+        rating_before_difficulty, rating_after_difficulty, rating_delta_difficulty, joined_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(match_id, player_id) DO NOTHING`,
+    ).bind(
+      duel.matchId,
+      playerId,
+      seat,
+      resultText,
+      duel.scores[seat],
+      duel.mistakes[seat],
+      duel.correctMoves[seat],
+      duel.timeouts[seat],
+      rating.beforeGlobal,
+      rating.afterGlobal,
+      rating.deltaGlobal,
+      rating.beforeDifficulty,
+      rating.afterDifficulty,
+      rating.deltaDifficulty,
+      now,
+    );
+  }
+
+  private ratingStatements(
+    duel: DuelState,
+    seat: Seat,
+    result: 0 | 0.5 | 1,
+    rating: NonNullable<DuelState['ratingResult']>[Seat],
+    rated: boolean,
+    now: string,
+  ): D1PreparedStatement[] {
+    if (!rated) return [];
+    const playerId = seat === 'A' ? duel.playerA.player.id : duel.playerB.player.id;
+    const win = result === 1 ? 1 : 0;
+    const loss = result === 0 ? 1 : 0;
+    const draw = result === 0.5 ? 1 : 0;
+    return [
+      this.env.DB.prepare(
+        `UPDATE player_ratings
+         SET rating = ?, games_played = games_played + 1, wins = wins + ?,
+             losses = losses + ?, draws = draws + ?,
+             win_streak = CASE WHEN ? = 1 THEN win_streak + 1 ELSE 0 END,
+             best_rating = MAX(best_rating, ?), provisional_games = MAX(0, provisional_games - 1),
+             updated_at = ?
+         WHERE player_id = ? AND scope = 'global'`,
+      ).bind(rating.afterGlobal, win, loss, draw, win, rating.afterGlobal, now, playerId),
+      this.env.DB.prepare(
+        `UPDATE player_ratings
+         SET rating = ?, games_played = games_played + 1, wins = wins + ?,
+             losses = losses + ?, draws = draws + ?,
+             win_streak = CASE WHEN ? = 1 THEN win_streak + 1 ELSE 0 END,
+             best_rating = MAX(best_rating, ?), provisional_games = MAX(0, provisional_games - 1),
+             updated_at = ?
+         WHERE player_id = ? AND scope = ?`,
+      ).bind(rating.afterDifficulty, win, loss, draw, win, rating.afterDifficulty, now, playerId, duel.difficulty),
+      this.env.DB.prepare('UPDATE players SET rating = ?, games_played = games_played + 1, wins = wins + ?, losses = losses + ? WHERE id = ?')
+        .bind(rating.afterGlobal, win, loss, playerId),
+    ];
+  }
+
+  private broadcast(events: PublicEvent[]): void {
+    if (events.length === 0) return;
+    for (const socket of this.state.getWebSockets()) {
+      for (const payload of events) {
+        this.send(socket, this.eventForSocket(socket, payload));
       }
     }
   }
+
+  private eventForSocket(
+    socket: WebSocket,
+    payload: PublicEvent,
+  ): PublicEvent {
+    const duel = this.roomState;
+    if (!duel) return payload;
+
+    const [playerId] = this.state.getTags(socket);
+    const seat = this.seatForPlayer(duel, playerId);
+    if (!seat) return payload;
+
+    if (
+      payload.type === 'match_started' ||
+      payload.type === 'game_started' ||
+      payload.type === 'snapshot'
+    ) {
+      return {
+        ...payload,
+        payload: snapshot(duel, seat, payload.serverTime),
+      };
+    }
+
+    const actorSeat = payload.payload.seat;
+    if (
+      (payload.type === 'move_accepted' ||
+        payload.type === 'move_rejected') &&
+      (actorSeat === 'A' || actorSeat === 'B')
+    ) {
+      const recovery = payload.payload.snapshot;
+      return {
+        ...payload,
+        payload: {
+          ...payload.payload,
+          forYou: actorSeat === seat,
+          ...(recovery && typeof recovery === 'object'
+            ? { snapshot: snapshot(duel, seat, payload.serverTime) }
+            : {}),
+        },
+      };
+    }
+
+    return payload;
+  }
+
+  private send(socket: WebSocket, payload: PublicEvent): void {
+    try {
+      socket.send(JSON.stringify(payload));
+    } catch {
+      // The hibernation runtime removes closed sockets automatically.
+    }
+  }
+}
+
+export class MatchmakingQueue {
+  constructor(
+    private readonly state: DurableObjectState,
+    private readonly env: Env,
+  ) {}
+
+  fetch(): Response {
+    return new Response('Matchmaking queue is coordinated through the authenticated Worker API.', {
+      status: 200,
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    });
+  }
+}
+
+function requestIdOf(envelope: ClientEnvelope): string {
+  return typeof envelope.requestId === 'string' && envelope.requestId.length <= 80
+    ? envelope.requestId
+    : crypto.randomUUID();
+}
+
+function protocolError(state: DuelState, code: string): PublicEvent {
+  return {
+    v: 1,
+    type: 'protocol_error',
+    eventId: `${state.roomId}:${state.revision}:protocol_error:${code}`,
+    revision: state.revision,
+    serverTime: Date.now(),
+    payload: { code },
+  };
+}
+
+function serverError(revision: number, code: string): PublicEvent {
+  return {
+    v: 1,
+    type: 'server_error',
+    eventId: `server:${revision}:${code}`,
+    revision,
+    serverTime: Date.now(),
+    payload: { code },
+  };
+}
+
+function publicPlayer(
+  id: string,
+  publicId: string,
+  username: string,
+  displayName: string,
+  avatarKey: string,
+): PlayerPublic {
+  return { id, publicId, username, displayName, avatarKey };
 }

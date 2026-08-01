@@ -44,6 +44,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android upload/release signing secrets
+/android/key.properties
+**/*.jks
+**/*.keystore
+
 # Cloudflare Worker local state and secrets
 **/node_modules/
 **/.wrangler/

@@ -2,137 +2,711 @@ import 'package:flutter/material.dart';
 
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
-import '../../widgets/menu_card.dart';
+import '../../services/economy_service.dart';
+import '../../widgets/adaptive_app_shell.dart';
+import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/player_avatar.dart';
 import '../career/career_screen.dart';
-import '../daily/daily_screen.dart';
 import '../duel/matchmaking_screen.dart';
+import '../economy/coin_store_screen.dart';
 import '../settings/settings_screen.dart';
-import '../tutorial/tutorial_screen.dart';
+import '../social/player_profile_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.store});
 
   final LocalProgressStore store;
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final EconomyService _economy = EconomyService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _economy.addListener(_onEconomyChanged);
+    _economy.initialize();
+  }
+
+  @override
+  void dispose() {
+    _economy.removeListener(_onEconomyChanged);
+    super.dispose();
+  }
+
+  void _onEconomyChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('app_name')),
-        actions: [
-          AnimatedBuilder(
-            animation: store,
-            builder: (context, _) => Row(
+      body: AppBackdrop(
+        child: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _economy.refresh,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final maxWidth = constraints.maxWidth >= 840 ? 760.0 : 680.0;
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    child: AnimatedBuilder(
+                      animation: widget.store,
+                      builder: (context, _) => ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+                        children: [
+                          _HomeTopBar(
+                            onProfile: () =>
+                                _open(context, const PlayerProfileScreen()),
+                            onSettings: () => _open(
+                              context,
+                              SettingsScreen(store: widget.store),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _PlayerSummary(
+                            store: widget.store,
+                            economy: _economy,
+                          ),
+                          const SizedBox(height: 12),
+                          _DailyRewardPanel(
+                            economy: _economy,
+                            onTap: () =>
+                                _open(context, const CoinStoreScreen()),
+                          ),
+                          const SizedBox(height: 12),
+                          _OnlineHeroCard(
+                            economy: _economy,
+                            onTap: () =>
+                                _open(context, const MatchmakingScreen()),
+                          ),
+                          const SizedBox(height: 12),
+                          _HomeActionGrid(
+                            store: widget.store,
+                            onCareer: () => _open(
+                              context,
+                              CareerScreen(store: widget.store),
+                            ),
+                            onProfile: () =>
+                                _open(context, const PlayerProfileScreen()),
+                          ),
+                          if (_economy.error != null) ...[
+                            const SizedBox(height: 12),
+                            _InlineError(message: _economy.error!),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _open(BuildContext context, Widget screen) {
+    return Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => screen));
+  }
+}
+
+class _HomeTopBar extends StatelessWidget {
+  const _HomeTopBar({required this.onProfile, required this.onSettings});
+
+  final VoidCallback onProfile;
+  final VoidCallback onSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: Row(
+        children: [
+          _CircleIconButton(
+            tooltip: context.tr('profile'),
+            asset: DuelAsset.profile,
+            onPressed: onProfile,
+          ),
+          Expanded(
+            child: Text(
+              context.tr('app_name').toUpperCase(),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          _CircleIconButton(
+            tooltip: context.tr('settings'),
+            asset: DuelAsset.settings,
+            onPressed: onSettings,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({
+    required this.tooltip,
+    required this.asset,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final String asset;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.white.withValues(alpha: .08),
+        foregroundColor: Colors.white,
+        side: BorderSide(color: Colors.white.withValues(alpha: .14)),
+      ),
+      icon: DuelAssetIcon(asset, size: 22),
+    );
+  }
+}
+
+class _PlayerSummary extends StatelessWidget {
+  const _PlayerSummary({required this.store, required this.economy});
+
+  final LocalProgressStore store;
+  final EconomyService economy;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      child: Row(
+        children: [
+          PlayerAvatar(
+            displayName: context.tr('you'),
+            avatarKey: 'home-${store.completedLevelCount}',
+            radius: 24,
+            semanticLabel: context.tr('player_avatar_semantics', <Object>[
+              context.tr('you'),
+            ]),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Chip(
-                  avatar: const Icon(Icons.lightbulb_outline, size: 18),
-                  label: Text('${store.hints}'),
+                Text(
+                  context.tr('you'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-                const SizedBox(width: 4),
-                Chip(
-                  avatar: const Icon(Icons.monetization_on_outlined, size: 18),
-                  label: Text('${store.coins}'),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    _CompactStat(
+                      asset: DuelAsset.trophy,
+                      value: '${store.completedLevelCount}',
+                      label: context.tr('home_progress_label'),
+                      color: const Color(0xFF3AA9FF),
+                    ),
+                    const SizedBox(width: 12),
+                    _CompactStat(
+                      asset: DuelAsset.coin,
+                      value: '${economy.balance}',
+                      label: context.tr('home_wallet_label'),
+                      color: const Color(0xFFFFC94D),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          IconButton(
-            tooltip: context.tr('settings'),
-            onPressed: () => _open(context, SettingsScreen(store: store)),
-            icon: const Icon(Icons.settings_outlined),
+          CoinPill(
+            balance: economy.balance,
+            loading: economy.loading && economy.wallet == null,
+            onPressed: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
+            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
-      body: AnimatedBuilder(
-        animation: store,
-        builder: (context, _) => ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-          children: [
-            _WelcomePanel(store: store),
-            const SizedBox(height: 18),
-            MenuCard(
-              icon: Icons.casino_outlined,
-              title: context.tr('career'),
-              subtitle: context.tr('career_random_subtitle'),
-              trailing: Text(
-                context.tr('coins_count', <Object>[store.coins]),
-                style: const TextStyle(fontWeight: FontWeight.w800),
+    );
+  }
+}
+
+class _CompactStat extends StatelessWidget {
+  const _CompactStat({
+    required this.asset,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final String asset;
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DuelAssetIcon(asset, size: 15, color: color),
+        const SizedBox(width: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .70),
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DailyRewardPanel extends StatelessWidget {
+  const _DailyRewardPanel({required this.economy, required this.onTap});
+
+  final EconomyService economy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFC94D).withValues(alpha: .16),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: const Color(0xFFFFC94D).withValues(alpha: .38),
               ),
-              onTap: () => _open(context, CareerScreen(store: store)),
             ),
-            const SizedBox(height: 12),
-            MenuCard(
-              icon: Icons.public,
-              title: context.tr('online_duel'),
-              subtitle: context.tr('online_duel_subtitle'),
-              onTap: () => _open(context, const MatchmakingScreen()),
+            child: const SizedBox(
+              width: 58,
+              height: 58,
+              child: DuelAssetIcon(DuelAsset.gift, size: 42),
             ),
-            const SizedBox(height: 12),
-            MenuCard(
-              icon: Icons.today_outlined,
-              title: context.tr('daily_sudoku'),
-              subtitle: context.tr('daily_subtitle'),
-              onTap: () => _open(context, DailyScreen(store: store)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('home_daily_reward_title'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  context.tr('home_daily_reward_body'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .72),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            MenuCard(
-              icon: Icons.school_outlined,
-              title: context.tr('how_to_play'),
-              subtitle: store.tutorialCompleted
-                  ? context.tr('tutorial_repeat')
-                  : context.tr('tutorial_new'),
-              onTap: () => _open(context, TutorialScreen(store: store)),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: onTap,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(72, 40),
+              backgroundColor: const Color(0xFFFFC94D),
+              foregroundColor: const Color(0xFF2B1F00),
+            ),
+            child: Text(context.tr('open_coin_store')),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnlineHeroCard extends StatelessWidget {
+  const _OnlineHeroCard({required this.economy, required this.onTap});
+
+  final EconomyService economy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Ink(
+          height: 220,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: Colors.white.withValues(alpha: .14)),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF22313A), Color(0xFF18242B)],
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(painter: _SudokuMistPainter()),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .09),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .16),
+                        ),
+                      ),
+                      child: const SizedBox(
+                        width: 58,
+                        height: 58,
+                        child: DuelAssetIcon(DuelAsset.swords, size: 38),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.tr('online_duel'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 23,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      context.tr('online_duel_subtitle'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .75),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton(
+                      onPressed: onTap,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(116, 38),
+                        backgroundColor: const Color(0xFF29D398),
+                        foregroundColor: const Color(0xFF08110E),
+                      ),
+                      child: Text(context.tr('home_play_online_cta')),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 14,
+                top: 12,
+                child: _SmallPill(
+                  asset: DuelAsset.coin,
+                  text: context.tr('online_duel_fee_summary', <Object>[
+                    economy.minimumOnlineBalance,
+                  ]),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeActionGrid extends StatelessWidget {
+  const _HomeActionGrid({
+    required this.store,
+    required this.onCareer,
+    required this.onProfile,
+  });
+
+  final LocalProgressStore store;
+  final VoidCallback onCareer;
+  final VoidCallback onProfile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _SmallActionCard(
+            asset: DuelAsset.careerBook,
+            title: context.tr('career'),
+            subtitle: context.tr('home_career_card_body'),
+            value: '${store.completedLevelCount}',
+            onTap: onCareer,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _SmallActionCard(
+            asset: DuelAsset.profile,
+            title: context.tr('profile'),
+            subtitle: context.tr('shown_to_other_players'),
+            value: context.tr('home_rating_label'),
+            onTap: onProfile,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SmallActionCard extends StatelessWidget {
+  const _SmallActionCard({
+    required this.asset,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String asset;
+  final String title;
+  final String subtitle;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: .12)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  DuelAssetIcon(
+                    asset,
+                    size: 22,
+                    color: const Color(0xFF3AA9FF),
+                  ),
+                  const Spacer(),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .72),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .68),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassPanel extends StatelessWidget {
+  const _GlassPanel({
+    required this.child,
+    this.padding = const EdgeInsets.all(14),
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .12)),
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
+class _SmallPill extends StatelessWidget {
+  const _SmallPill({required this.asset, required this.text});
+
+  final String asset;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .20),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DuelAssetIcon(asset, size: 14, color: const Color(0xFFFFC94D)),
+            const SizedBox(width: 4),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-  void _open(BuildContext context, Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
-  }
 }
 
-class _WelcomePanel extends StatelessWidget {
-  const _WelcomePanel({required this.store});
+class _SudokuMistPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final grid = Paint()
+      ..color = Colors.white.withValues(alpha: .045)
+      ..strokeWidth = 1;
+    for (var i = 1; i < 6; i++) {
+      final dx = size.width * i / 6;
+      final dy = size.height * i / 6;
+      canvas.drawLine(Offset(dx, 0), Offset(dx, size.height), grid);
+      canvas.drawLine(Offset(0, dy), Offset(size.width, dy), grid);
+    }
 
-  final LocalProgressStore store;
+    final warm = Paint()
+      ..shader =
+          RadialGradient(
+            colors: [
+              const Color(0xFF29D398).withValues(alpha: .14),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(size.width * .72, size.height * .30),
+              radius: size.width * .42,
+            ),
+          );
+    canvas.drawRect(Offset.zero & size, warm);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SudokuMistPainter oldDelegate) => false;
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message});
+
+  final String message;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [scheme.primaryContainer, scheme.secondaryContainer],
-        ),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            store.tutorialCompleted
-                ? context.tr('welcome_returning_title')
-                : context.tr('welcome_new_title'),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: scheme.onPrimaryContainer,
+    return Material(
+      color: scheme.errorContainer,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            DuelAssetIcon(
+              DuelAsset.cloud,
+              size: 22,
+              color: scheme.onErrorContainer,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            store.tutorialCompleted
-                ? context.tr('welcome_returning_body')
-                : context.tr('welcome_new_body'),
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: scheme.onPrimaryContainer),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(color: scheme.onErrorContainer),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

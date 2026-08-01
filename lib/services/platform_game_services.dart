@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import 'platform_player_identity.dart';
+
 class PlatformPlayer {
   const PlatformPlayer({
     required this.platform,
@@ -16,6 +18,17 @@ class PlatformPlayer {
   final String? alias;
   final String? avatarUrl;
 
+  PlatformPlayerIdentity toIdentity({bool authenticated = true}) {
+    return PlatformPlayerIdentity(
+      platform: platform,
+      platformPlayerId: playerId,
+      displayName: displayName,
+      authenticated: authenticated,
+      avatarUrl: avatarUrl,
+      lastUpdatedAt: DateTime.now(),
+    );
+  }
+
   factory PlatformPlayer.fromMap(Map<Object?, Object?> map) {
     return PlatformPlayer(
       platform: map['platform']?.toString() ?? 'unknown',
@@ -23,6 +36,59 @@ class PlatformPlayer {
       displayName: map['displayName']?.toString() ?? 'Player',
       alias: map['alias']?.toString(),
       avatarUrl: map['avatarUrl']?.toString(),
+    );
+  }
+}
+
+class GameCenterIdentityProof {
+  const GameCenterIdentityProof({
+    required this.gamePlayerId,
+    required this.displayName,
+    required this.publicKeyUrl,
+    required this.signature,
+    required this.salt,
+    required this.timestamp,
+    this.bundleId,
+  });
+
+  final String gamePlayerId;
+  final String displayName;
+  final String publicKeyUrl;
+  final String signature;
+  final String salt;
+  final int timestamp;
+  final String? bundleId;
+
+  bool get hasSignatureMaterial =>
+      gamePlayerId.trim().isNotEmpty &&
+      publicKeyUrl.trim().isNotEmpty &&
+      signature.trim().isNotEmpty &&
+      salt.trim().isNotEmpty &&
+      timestamp > 0;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'platform': 'game_center',
+    'platformPlayerId': gamePlayerId,
+    'displayName': displayName,
+    'publicKeyUrl': publicKeyUrl,
+    'signatureBase64': signature,
+    'saltBase64': salt,
+    'timestampMs': timestamp,
+    if (bundleId != null) 'bundleId': bundleId,
+  };
+
+  factory GameCenterIdentityProof.fromMap(Map<Object?, Object?> map) {
+    return GameCenterIdentityProof(
+      gamePlayerId:
+          map['gamePlayerId']?.toString() ??
+          map['platformPlayerId']?.toString() ??
+          '',
+      displayName: map['displayName']?.toString() ?? 'Player',
+      publicKeyUrl: map['publicKeyUrl']?.toString() ?? '',
+      signature: map['signature']?.toString() ?? '',
+      salt: map['salt']?.toString() ?? '',
+      timestamp: _intFromMap(map['timestampMs'] ?? map['timestamp']),
+      bundleId: map['bundleId']?.toString(),
     );
   }
 }
@@ -109,8 +175,12 @@ class PlatformGameServices {
     return value?.toString();
   }
 
-  Future<Map<Object?, Object?>?> requestIdentityVerification() =>
-      _invokeMap('requestIdentityVerification');
+  Future<GameCenterIdentityProof?> requestGameCenterIdentityProof() async {
+    final map = await _invokeMap('requestIdentityVerification');
+    if (map == null) return null;
+    final proof = GameCenterIdentityProof.fromMap(map);
+    return proof.hasSignatureMaterial ? proof : null;
+  }
 
   Future<List<PlatformPlayer>> _loadPlayers(String method) async {
     final values = await _invoke<List<Object?>?>(method) ?? const <Object?>[];
@@ -153,4 +223,10 @@ class PlatformGameServices {
       );
     }
   }
+}
+
+int _intFromMap(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '') ?? 0;
 }

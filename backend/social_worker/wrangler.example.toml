@@ -1,11 +1,21 @@
 name = "sudoku-duel-social"
-main = "src/main.ts"
+main = "src/entry.ts"
 compatibility_date = "2026-07-24"
 
 [vars]
 FIREBASE_PROJECT_ID = "REPLACE_WITH_FIREBASE_PROJECT_ID"
+FIREBASE_PROJECT_NUMBER = "REPLACE_WITH_FIREBASE_PROJECT_NUMBER"
 FCM_PROJECT_ID = "REPLACE_WITH_FIREBASE_PROJECT_ID"
 ALLOWED_ORIGIN = "*"
+ALLOWED_APP_CHECK_APP_IDS = "REPLACE_WITH_ANDROID_APP_ID,REPLACE_WITH_IOS_APP_ID"
+REQUIRE_APP_CHECK = "true"
+BUILD_COMMIT = "local"
+ENVIRONMENT = "production"
+ALLOW_TEST_PURCHASE_GRANTS = "false"
+DEBUG_UNLIMITED_COINS = "false"
+GOOGLE_PLAY_PACKAGE_NAME = "com.devoviastudio.sudoku"
+APPLE_BUNDLE_ID = "com.devoviastudio.sudoku"
+ADMOB_REWARDED_AD_UNITS = "ca-app-pub-8422988604275177/3474727600,ca-app-pub-8422988604275177/4787809275,ca-app-pub-8422988604275177/3366916396,ca-app-pub-8422988604275177/4982984468"
 
 [[d1_databases]]
 binding = "DB"
@@ -13,14 +23,30 @@ database_name = "sudoku-duel-social"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
 migrations_dir = "migrations"
 
+[triggers]
+crons = ["17 3 * * *"]
+
 [[durable_objects.bindings]]
 name = "GAME_ROOMS"
 class_name = "GameRoom"
+
+[[durable_objects.bindings]]
+name = "MATCHMAKING_QUEUE"
+class_name = "MatchmakingQueue"
 
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
 
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["MatchmakingQueue"]
+
 # Add secrets with Wrangler; never commit their values:
 # wrangler secret put FCM_CLIENT_EMAIL
 # wrangler secret put FCM_PRIVATE_KEY
+# wrangler secret put GOOGLE_PLAY_CLIENT_EMAIL
+# wrangler secret put GOOGLE_PLAY_PRIVATE_KEY
+# wrangler secret put APPLE_IAP_ISSUER_ID
+# wrangler secret put APPLE_IAP_KEY_ID
+# wrangler secret put APPLE_IAP_PRIVATE_KEY

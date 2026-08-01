@@ -1,35 +1,20 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
+import '../firebase_options.dart';
+
 class FirebaseRuntimeConfig {
   const FirebaseRuntimeConfig._();
 
-  static const String apiKey = String.fromEnvironment('FIREBASE_API_KEY');
-  static const String projectId = String.fromEnvironment('FIREBASE_PROJECT_ID');
-  static const String messagingSenderId = String.fromEnvironment(
-    'FIREBASE_MESSAGING_SENDER_ID',
-  );
-  static const String androidAppId = String.fromEnvironment(
-    'FIREBASE_ANDROID_APP_ID',
-  );
-  static const String iosAppId = String.fromEnvironment('FIREBASE_IOS_APP_ID');
-  static const String storageBucket = String.fromEnvironment(
-    'FIREBASE_STORAGE_BUCKET',
-  );
-  static const String iosBundleId = String.fromEnvironment(
-    'FIREBASE_IOS_BUNDLE_ID',
-    defaultValue: 'com.devoviastudio.sudoku',
-  );
+  static const String expectedProjectId = 'focus-sweep-503417-d7';
 
   static bool get configured {
-    if (apiKey.isEmpty || projectId.isEmpty || messagingSenderId.isEmpty) {
-      return false;
-    }
+    if (kIsWeb) return false;
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return androidAppId.isNotEmpty;
+      return DefaultFirebaseOptions.android.projectId == expectedProjectId;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return iosAppId.isNotEmpty;
+      return DefaultFirebaseOptions.ios.projectId == expectedProjectId;
     }
     return false;
   }
@@ -39,18 +24,30 @@ class FirebaseRuntimeConfig {
       throw StateError('Firebase runtime configuration is incomplete.');
     }
 
-    final appId = defaultTargetPlatform == TargetPlatform.iOS
-        ? iosAppId
-        : androidAppId;
-    return FirebaseOptions(
-      apiKey: apiKey,
-      appId: appId,
-      messagingSenderId: messagingSenderId,
-      projectId: projectId,
-      storageBucket: storageBucket.isEmpty ? null : storageBucket,
-      iosBundleId: defaultTargetPlatform == TargetPlatform.iOS
-          ? iosBundleId
-          : null,
-    );
+    final options = DefaultFirebaseOptions.currentPlatform;
+    if (options.projectId != expectedProjectId) {
+      throw StateError(
+        'Firebase configuration belongs to ${options.projectId}, '
+        'expected $expectedProjectId.',
+      );
+    }
+    return options;
+  }
+
+  static Future<bool> initializeIfConfigured() async {
+    if (!configured) return false;
+
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(options: options);
+    } else {
+      final activeProject = Firebase.app().options.projectId;
+      if (activeProject != expectedProjectId) {
+        throw StateError(
+          'The active Firebase app belongs to $activeProject, '
+          'expected $expectedProjectId.',
+        );
+      }
+    }
+    return true;
   }
 }
