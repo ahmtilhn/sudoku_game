@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Google-provided test App ID. Replace before publishing. -->
-    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <!-- Production AdMob application ID for Sudoku Duel Android. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-8422988604275177~6950938184</string>
 
     <!-- Meta App Events stays disabled until real values are supplied. -->
     <string name="facebook_app_id" translatable="false">000000000000000</string>
