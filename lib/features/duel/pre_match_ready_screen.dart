@@ -258,6 +258,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                               child: _PlayerReadyCard(
                                 player: _you,
                                 fallbackName: context.tr('you'),
+                                preferFallbackName: true,
                                 ready: youReady,
                                 highlighted: true,
                                 unknown: false,
@@ -283,13 +284,13 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
                                 );
                               },
                               child: _PlayerReadyCard(
-                                player: _opponent,
+                                player: readyStage ? _opponent : null,
                                 fallbackName: readyStage
                                     ? context.tr('opponent')
                                     : context.tr('searching_opponent_short'),
                                 ready: opponentReady,
                                 highlighted: false,
-                                unknown: _opponent == null,
+                                unknown: !readyStage || _opponent == null,
                                 compact: compact,
                               ),
                             ),
@@ -398,6 +399,7 @@ class _PlayerReadyCard extends StatelessWidget {
     required this.highlighted,
     required this.unknown,
     required this.compact,
+    this.preferFallbackName = false,
   });
 
   final OnlineDuelPlayer? player;
@@ -406,13 +408,16 @@ class _PlayerReadyCard extends StatelessWidget {
   final bool highlighted;
   final bool unknown;
   final bool compact;
+  final bool preferFallbackName;
 
   @override
   Widget build(BuildContext context) {
     final borderColor = highlighted
         ? const Color(0xFF29D398)
         : const Color(0xFF7A5CFF);
-    final name = player?.displayName ?? fallbackName;
+    final name = preferFallbackName
+        ? fallbackName
+        : player?.displayName ?? fallbackName;
     final radius = compact ? 30.0 : 36.0;
     return Container(
       width: compact ? 126 : 142,

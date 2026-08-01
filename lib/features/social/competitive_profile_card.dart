@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
 
 class CompetitiveProfileCard extends StatelessWidget {
@@ -11,8 +12,14 @@ class CompetitiveProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF071014).withValues(alpha: .78),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFF3AA9FF).withValues(alpha: .32),
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
@@ -40,16 +47,19 @@ class CompetitiveProfileCard extends StatelessWidget {
                               profile.displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w900),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
                           if (profile.privateProfile) ...[
                             const SizedBox(width: 6),
-                            Icon(
-                              Icons.lock_outline,
+                            DuelAssetIcon(
+                              DuelAsset.lock,
                               size: 16,
-                              color: scheme.onSurfaceVariant,
+                              color: Colors.white.withValues(alpha: .62),
                             ),
                           ],
                         ],
@@ -58,7 +68,11 @@ class CompetitiveProfileCard extends StatelessWidget {
                         '@${profile.username} · ${profile.publicId}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .56),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ),
@@ -97,13 +111,16 @@ class CompetitiveProfileCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               context.tr('achievement_showcase'),
-              style: const TextStyle(fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 8),
             if (profile.achievementShowcase.isEmpty)
               Text(
                 context.tr('achievement_showcase_empty'),
-                style: TextStyle(color: scheme.onSurfaceVariant),
+                style: TextStyle(color: Colors.white.withValues(alpha: .62)),
               )
             else
               Wrap(
@@ -111,9 +128,10 @@ class CompetitiveProfileCard extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   for (final achievement in profile.achievementShowcase.take(3))
-                    Chip(
-                      avatar: const Icon(Icons.emoji_events_outlined, size: 18),
-                      label: Text(achievement.title),
+                    _ProfileChip(
+                      asset: DuelAsset.trophy,
+                      label: achievement.title,
+                      color: const Color(0xFFFFC94D),
                     ),
                 ],
               ),
@@ -131,19 +149,20 @@ class _RankBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: scheme.primaryContainer,
+        color: const Color(0xFF3AA9FF).withValues(alpha: .14),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: scheme.primary),
+        border: Border.all(
+          color: const Color(0xFF3AA9FF).withValues(alpha: .36),
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: Text(
           label,
-          style: TextStyle(
-            color: scheme.onPrimaryContainer,
+          style: const TextStyle(
+            color: Color(0xFF9FD4FF),
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -160,9 +179,51 @@ class _ProfileStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      visualDensity: VisualDensity.compact,
-      label: Text('$label: $value'),
+    return _ProfileChip(
+      asset: DuelAsset.trophy,
+      label: '$label: $value',
+      color: const Color(0xFF29D398),
+    );
+  }
+}
+
+class _ProfileChip extends StatelessWidget {
+  const _ProfileChip({
+    required this.asset,
+    required this.label,
+    required this.color,
+  });
+
+  final String asset;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .24)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DuelAssetIcon(asset, size: 14, color: color),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

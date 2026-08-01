@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../localization/app_strings.dart';
 import '../../services/coin_store_service.dart';
 import '../../services/economy_service.dart';
+import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
 import 'wallet_history_screen.dart';
 
 class CoinStoreScreen extends StatefulWidget {
@@ -40,9 +42,12 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: const Color(0xFF0B1215),
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
         title: Text(context.tr('coin_store')),
         actions: [
           IconButton(
@@ -50,162 +55,166 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const WalletHistoryScreen()),
             ),
-            icon: const Icon(Icons.receipt_long_outlined),
+            icon: const DuelAssetIcon(DuelAsset.notes, size: 22),
           ),
         ],
       ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final columns = width < 360
-                ? 1
-                : width < 600
-                ? (width >= 430 ? 2 : 1)
-                : width < 840
-                ? 2
-                : 3;
-            final maxWidth = width >= 840 ? 960.0 : 720.0;
-            return RefreshIndicator(
-              onRefresh: () async {
-                await Future.wait<void>(<Future<void>>[
-                  _store.refreshProducts(),
-                  _economy.refresh(),
-                ]);
-              },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: maxWidth),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                          child: _BalanceHeader(
-                            balance: _economy.balance,
-                            loading: _economy.loading,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: maxWidth),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                          child: _NoAdsCard(
-                            product: _store.noAdsProduct,
-                            owned: _economy.noAds,
-                            pending:
-                                _store.pendingProductId ==
-                                CoinStoreService.noAdsProductId,
-                            enabled:
-                                _store.pendingProductId == null &&
-                                !_economy.processingPurchase,
-                            onBuy: () => _store.buyNonConsumable(
-                              CoinStoreService.noAdsProductId,
+      body: AppBackdrop(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final columns = width < 360
+                  ? 1
+                  : width < 600
+                  ? (width >= 430 ? 2 : 1)
+                  : width < 840
+                  ? 2
+                  : 3;
+              final maxWidth = width >= 840 ? 960.0 : 720.0;
+              return RefreshIndicator(
+                onRefresh: () async {
+                  await Future.wait<void>(<Future<void>>[
+                    _store.refreshProducts(),
+                    _economy.refresh(),
+                  ]);
+                },
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxWidth),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                            child: _BalanceHeader(
+                              balance: _economy.balance,
+                              loading: _economy.loading,
                             ),
-                            onRestore: _store.restorePurchases,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  if (_store.error != null || _economy.error != null)
                     SliverToBoxAdapter(
                       child: Center(
                         child: ConstrainedBox(
                           constraints: BoxConstraints(maxWidth: maxWidth),
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                            child: Material(
-                              color: scheme.errorContainer,
-                              borderRadius: BorderRadius.circular(16),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.error_outline,
-                                      color: scheme.onErrorContainer,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        _store.error ?? _economy.error!,
-                                        style: TextStyle(
-                                          color: scheme.onErrorContainer,
+                            child: _NoAdsCard(
+                              product: _store.noAdsProduct,
+                              owned: _economy.noAds,
+                              pending:
+                                  _store.pendingProductId ==
+                                  CoinStoreService.noAdsProductId,
+                              enabled:
+                                  _store.pendingProductId == null &&
+                                  !_economy.processingPurchase,
+                              onBuy: () => _store.buyNonConsumable(
+                                CoinStoreService.noAdsProductId,
+                              ),
+                              onRestore: _store.restorePurchases,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_store.error != null || _economy.error != null)
+                      SliverToBoxAdapter(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: maxWidth),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                              child: Material(
+                                color: const Color(0xFF3A151D),
+                                borderRadius: BorderRadius.circular(16),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      const DuelAssetIcon(
+                                        DuelAsset.cloud,
+                                        color: Color(0xFFFFD7DC),
+                                        size: 22,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          _store.error ?? _economy.error!,
+                                          style: const TextStyle(
+                                            color: Color(0xFFFFD7DC),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    sliver: SliverLayoutBuilder(
-                      builder: (context, sliverConstraints) {
-                        final available = sliverConstraints.crossAxisExtent;
-                        final contentWidth = available > maxWidth
-                            ? maxWidth
-                            : available;
-                        final side = (available - contentWidth) / 2;
-                        return SliverPadding(
-                          padding: EdgeInsets.symmetric(horizontal: side),
-                          sliver: _store.loading && _store.products.isEmpty
-                              ? const SliverFillRemaining(
-                                  hasScrollBody: false,
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      sliver: SliverLayoutBuilder(
+                        builder: (context, sliverConstraints) {
+                          final available = sliverConstraints.crossAxisExtent;
+                          final contentWidth = available > maxWidth
+                              ? maxWidth
+                              : available;
+                          final side = (available - contentWidth) / 2;
+                          return SliverPadding(
+                            padding: EdgeInsets.symmetric(horizontal: side),
+                            sliver: _store.loading && _store.products.isEmpty
+                                ? const SliverFillRemaining(
+                                    hasScrollBody: false,
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  )
+                                : SliverGrid(
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: columns,
+                                          mainAxisSpacing: 12,
+                                          crossAxisSpacing: 12,
+                                          childAspectRatio: columns == 1
+                                              ? 2.35
+                                              : 1.15,
+                                        ),
+                                    delegate: SliverChildBuilderDelegate((
+                                      context,
+                                      index,
+                                    ) {
+                                      final product =
+                                          _store.coinProducts[index];
+                                      final pending =
+                                          _store.pendingProductId == product.id;
+                                      return _CoinPackageCard(
+                                        productId: product.id,
+                                        coins: _store.coinAmount(product.id),
+                                        title: product.title,
+                                        description: product.description,
+                                        price: product.price,
+                                        pending: pending,
+                                        enabled:
+                                            _store.pendingProductId == null &&
+                                            !_economy.processingPurchase,
+                                        onBuy: () => _store.buy(product.id),
+                                      );
+                                    }, childCount: _store.coinProducts.length),
                                   ),
-                                )
-                              : SliverGrid(
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: columns,
-                                        mainAxisSpacing: 12,
-                                        crossAxisSpacing: 12,
-                                        childAspectRatio: columns == 1
-                                            ? 2.35
-                                            : 1.15,
-                                      ),
-                                  delegate: SliverChildBuilderDelegate((
-                                    context,
-                                    index,
-                                  ) {
-                                    final product = _store.coinProducts[index];
-                                    final pending =
-                                        _store.pendingProductId == product.id;
-                                    return _CoinPackageCard(
-                                      productId: product.id,
-                                      coins: _store.coinAmount(product.id),
-                                      title: product.title,
-                                      description: product.description,
-                                      price: product.price,
-                                      pending: pending,
-                                      enabled:
-                                          _store.pendingProductId == null &&
-                                          !_economy.processingPurchase,
-                                      onBuy: () => _store.buy(product.id),
-                                    );
-                                  }, childCount: _store.coinProducts.length),
-                                ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -220,20 +229,22 @@ class _BalanceHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final formatted = NumberFormat.decimalPattern().format(balance);
     return Material(
-      color: scheme.primaryContainer,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(22),
-      child: Padding(
+      child: Ink(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF071014).withValues(alpha: .78),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: const Color(0xFFFFC94D).withValues(alpha: .34),
+          ),
+        ),
         child: Row(
           children: [
-            Icon(
-              Icons.monetization_on_rounded,
-              color: scheme.onPrimaryContainer,
-              size: 34,
-            ),
+            const DuelAssetIcon(DuelAsset.homeStoreChest, size: 58),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -241,14 +252,16 @@ class _BalanceHeader extends StatelessWidget {
                 children: [
                   Text(
                     context.tr('your_balance'),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onPrimaryContainer,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .68),
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   Text(
                     loading ? '…' : '$formatted Coin',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: scheme.onPrimaryContainer,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -287,11 +300,19 @@ class _CoinPackageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final number = NumberFormat.decimalPattern().format(coins);
     final popular = productId == 'coins_5000';
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: Ink(
         padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF071014).withValues(alpha: .74),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: (popular ? const Color(0xFFFFC94D) : const Color(0xFF29D398))
+                .withValues(alpha: .28),
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -304,6 +325,7 @@ class _CoinPackageCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -315,12 +337,18 @@ class _CoinPackageCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: scheme.secondaryContainer,
+                      color: const Color(0xFFFFC94D).withValues(alpha: .16),
                       borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: const Color(0xFFFFC94D).withValues(alpha: .32),
+                      ),
                     ),
                     child: Text(
                       context.tr('popular'),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: Color(0xFFFFC94D),
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
               ],
@@ -329,7 +357,11 @@ class _CoinPackageCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(Icons.monetization_on_rounded, color: scheme.tertiary),
+                const DuelAssetIcon(
+                  DuelAsset.coin,
+                  color: Color(0xFFFFC94D),
+                  size: 24,
+                ),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
@@ -337,6 +369,7 @@ class _CoinPackageCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -349,7 +382,7 @@ class _CoinPackageCard extends StatelessWidget {
                 description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: TextStyle(color: Colors.white.withValues(alpha: .62)),
               ),
             ],
             const SizedBox(height: 12),
@@ -392,16 +425,26 @@ class _NoAdsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final price = product?.price ?? context.tr('not_available_short');
     return Material(
-      color: scheme.secondaryContainer,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
-      child: Padding(
+      child: Ink(
         padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF071014).withValues(alpha: .74),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF3AA9FF).withValues(alpha: .28),
+          ),
+        ),
         child: Row(
           children: [
-            Icon(Icons.block, color: scheme.onSecondaryContainer),
+            const DuelAssetIcon(
+              DuelAsset.shield,
+              color: Color(0xFF3AA9FF),
+              size: 28,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -410,7 +453,7 @@ class _NoAdsCard extends StatelessWidget {
                   Text(
                     context.tr('no_ads_title'),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: scheme.onSecondaryContainer,
+                      color: Colors.white,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -419,14 +462,18 @@ class _NoAdsCard extends StatelessWidget {
                     owned
                         ? context.tr('no_ads_owned')
                         : context.tr('no_ads_body'),
-                    style: TextStyle(color: scheme.onSecondaryContainer),
+                    style: TextStyle(color: Colors.white.withValues(alpha: .7)),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 10),
             if (owned)
-              Icon(Icons.check_circle, color: scheme.onSecondaryContainer)
+              const DuelAssetIcon(
+                DuelAsset.check,
+                color: Color(0xFF29D398),
+                size: 24,
+              )
             else
               Column(
                 mainAxisSize: MainAxisSize.min,

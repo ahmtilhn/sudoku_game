@@ -16,6 +16,10 @@ class DuelAsset {
   static const gift = 'assets/images/ui/gift.png';
   static const grid = 'assets/images/ui/grid.png';
   static const home = 'assets/images/ui/home.png';
+  static const homeCareerRelic = 'assets/images/ui/home_career_relic.png';
+  static const homeDuelEmblem = 'assets/images/ui/home_duel_emblem.png';
+  static const homeProfileCrest = 'assets/images/ui/home_profile_crest.png';
+  static const homeStoreChest = 'assets/images/ui/home_store_chest.png';
   static const lightbulb = 'assets/images/ui/lightbulb.png';
   static const lock = 'assets/images/ui/lock.png';
   static const mail = 'assets/images/ui/mail.png';

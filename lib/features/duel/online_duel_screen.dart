@@ -395,7 +395,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact =
-            constraints.maxHeight < 520 || constraints.maxWidth < 380;
+            constraints.maxHeight < 720 || constraints.maxWidth <= 520;
         final board = RepaintBoundary(
           child: IgnorePointer(
             ignoring: snapshot.isFinished || !snapshot.isLocalTurn,
@@ -2103,17 +2103,19 @@ class _DuelPlayerPlate extends StatelessWidget {
                   ),
                 ],
               ),
-            const SizedBox(height: 3),
-            Align(
-              alignment: alignEnd
-                  ? AlignmentDirectional.centerEnd
-                  : AlignmentDirectional.centerStart,
-              child: _ScoreLine(
-                score: score,
-                connected: player.connected,
-                color: accent,
+            if (!compact) ...[
+              const SizedBox(height: 3),
+              Align(
+                alignment: alignEnd
+                    ? AlignmentDirectional.centerEnd
+                    : AlignmentDirectional.centerStart,
+                child: _ScoreLine(
+                  score: score,
+                  connected: player.connected,
+                  color: accent,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

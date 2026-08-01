@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
 import '../../services/social_api_client.dart';
-import '../../widgets/adaptive_app_shell.dart';
+import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
 import 'competitive_profile_card.dart';
 
 class PlayerProfileScreen extends StatefulWidget {
@@ -43,37 +44,118 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('profile'))),
-      body: AdaptivePageContainer(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _profile != null
-            ? RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [CompetitiveProfileCard(profile: _profile!)],
-                ),
-              )
-            : ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
+      backgroundColor: const Color(0xFF0B1215),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: Text(context.tr('profile')),
+      ),
+      body: AppBackdrop(
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                child: _loading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF29D398),
+                        ),
+                      )
+                    : _profile != null
+                    ? RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            CompetitiveProfileCard(profile: _profile!),
+                          ],
+                        ),
+                      )
+                    : ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          _ProfileUnavailablePanel(
+                            message:
+                                _error ??
+                                context.tr('try_again_when_connected'),
+                            onRetry: _load,
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileUnavailablePanel extends StatelessWidget {
+  const _ProfileUnavailablePanel({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF071014).withValues(alpha: .78),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFF3AA9FF).withValues(alpha: .30),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            const DuelAssetIcon(
+              DuelAsset.cloud,
+              size: 34,
+              color: Color(0xFF3AA9FF),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.cloud_off_outlined),
-                      title: Text(context.tr('online_account_unavailable')),
-                      subtitle: Text(
-                        _error ?? context.tr('try_again_when_connected'),
-                      ),
-                      trailing: IconButton(
-                        tooltip: context.tr('retry'),
-                        onPressed: _load,
-                        icon: const Icon(Icons.refresh),
-                      ),
+                  Text(
+                    context.tr('online_account_unavailable'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .66),
                     ),
                   ),
                 ],
               ),
+            ),
+            IconButton(
+              tooltip: context.tr('retry'),
+              onPressed: onRetry,
+              icon: const DuelAssetIcon(
+                DuelAsset.refresh,
+                size: 22,
+                color: Color(0xFF29D398),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

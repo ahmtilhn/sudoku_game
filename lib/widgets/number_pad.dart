@@ -76,7 +76,7 @@ class NumberPad extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = maxValue == 9 && constraints.maxWidth < 430;
+        final compact = maxValue == 9 && constraints.maxWidth <= 520;
         final spacing = compact ? 4.0 : 8.0;
         final oneRowWidth = constraints.maxWidth - (spacing * (maxValue - 1));
         final oneRowButtonWidth = oneRowWidth / maxValue;

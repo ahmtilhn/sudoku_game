@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
@@ -496,51 +497,137 @@ class _EntrySummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fee = economy.entryFeeForDifficulty(difficulty.name);
+    final pot = economy.winnerPotForDifficulty(difficulty.name);
     return Material(
-      color: const Color(0xFF18242B),
-      borderRadius: BorderRadius.circular(18),
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(22),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.zero,
         child: Row(
           children: [
-            const DuelAssetIcon(
-              DuelAsset.coin,
-              size: 34,
-              color: Color(0xFFFFC94D),
-            ),
-            const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    economy.loading && economy.wallet == null
-                        ? context.tr('balance_loading')
-                        : context.tr('balance_coin', <Object>[economy.balance]),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
+              child: Ink(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF071014).withValues(alpha: .78),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: const Color(0xFF29D398).withValues(alpha: .30),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    context.tr('duel_fee_summary', <Object>[
-                      economy.entryFeeForDifficulty(difficulty.name),
-                      economy.winnerPotForDifficulty(difficulty.name),
-                    ]),
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .76),
+                ),
+                child: Row(
+                  children: [
+                    const DuelAssetIcon(DuelAsset.homeDuelEmblem, size: 54),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            economy.loading && economy.wallet == null
+                                ? context.tr('balance_loading')
+                                : context.tr('balance_coin', <Object>[
+                                    NumberFormat.compact().format(
+                                      economy.balance,
+                                    ),
+                                  ]),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              _MatchMetaPill(
+                                asset: DuelAsset.coin,
+                                text: context.tr('duel_fee_summary', <Object>[
+                                  fee,
+                                  pot,
+                                ]),
+                                color: const Color(0xFFFFC94D),
+                              ),
+                              _MatchMetaPill(
+                                asset: DuelAsset.people,
+                                text: context.tr('online_duel_subtitle'),
+                                color: const Color(0xFF29D398),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    IconButton(
+                      tooltip: context.tr('coin_store'),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const CoinStoreScreen(),
+                        ),
+                      ),
+                      style: IconButton.styleFrom(
+                        fixedSize: const Size(46, 46),
+                        backgroundColor: const Color(
+                          0xFF123429,
+                        ).withValues(alpha: .70),
+                        side: BorderSide(
+                          color: const Color(0xFF29D398).withValues(alpha: .22),
+                        ),
+                      ),
+                      icon: const DuelAssetIcon(DuelAsset.store, size: 22),
+                    ),
+                  ],
+                ),
               ),
             ),
-            IconButton.filledTonal(
-              tooltip: context.tr('coin_store'),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MatchMetaPill extends StatelessWidget {
+  const _MatchMetaPill({
+    required this.asset,
+    required this.text,
+    required this.color,
+  });
+
+  final String asset;
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .22)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DuelAssetIcon(asset, size: 13, color: color),
+            const SizedBox(width: 5),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 170),
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-              icon: const DuelAssetIcon(DuelAsset.store, size: 22),
             ),
           ],
         ),
@@ -968,34 +1055,67 @@ class _DifficultyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      color: selected ? const Color(0xFF123429) : const Color(0xFF18242B),
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        enabled: enabled,
+    final accent = selected ? const Color(0xFF29D398) : const Color(0xFF3AA9FF);
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
         onTap: enabled ? onSelected : null,
-        leading: _SelectionGlyph(selected: selected),
-        title: Text(
-          context.strings.difficultyLabel(difficulty),
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          height: 76,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color:
+                (selected ? const Color(0xFF0D2B24) : const Color(0xFF071014))
+                    .withValues(alpha: .82),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: accent.withValues(alpha: .34)),
+          ),
+          child: Row(
+            children: [
+              _SelectionGlyph(selected: selected),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.strings.difficultyLabel(difficulty),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr('difficulty_queue', <Object>[
+                        context.strings.difficultyLabel(difficulty),
+                      ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .62),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              DuelAssetIcon(
+                selected ? DuelAsset.check : DuelAsset.arrowForward,
+                color: accent,
+                size: selected ? 20 : 18,
+              ),
+            ],
           ),
         ),
-        subtitle: Text(
-          context.tr('difficulty_queue', <Object>[
-            context.strings.difficultyLabel(difficulty),
-          ]),
-          style: TextStyle(color: Colors.white.withValues(alpha: .70)),
-        ),
-        trailing: selected
-            ? const DuelAssetIcon(
-                DuelAsset.check,
-                color: Color(0xFF29D398),
-                size: 22,
-              )
-            : null,
       ),
     );
   }
