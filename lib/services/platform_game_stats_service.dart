@@ -51,21 +51,30 @@ typedef PlatformGameStatsProfileLoader =
     Future<PlatformGameStatsProfile> Function();
 
 class PlatformGameStatsService implements PlatformGameStatsMirror {
-  PlatformGameStatsService({
+  factory PlatformGameStatsService({
     TargetPlatform? platform,
     PlatformGameStatsConfiguredCheck? isConfigured,
     PlatformGameStatsAuthenticationRefresh? refreshAuthentication,
     PlatformGameStatsRecorder? recordEvents,
     PlatformGameStatsProfileLoader? loadProfile,
-  }) : _platform = platform,
-       _isConfigured =
-           isConfigured ?? PlatformGameServices.instance.isConfigured,
-       _refreshAuthentication =
-           refreshAuthentication ??
-           PlatformGameServices.instance.refreshAuthentication,
-       _recordEvents =
-           recordEvents ?? PlatformGameServices.instance.recordGameStatsEvents,
-       _loadProfile = loadProfile ?? _loadAuthoritativeProfile;
+  }) {
+    return PlatformGameStatsService._(
+      platform,
+      isConfigured ?? PlatformGameServices.instance.isConfigured,
+      refreshAuthentication ??
+          PlatformGameServices.instance.refreshAuthentication,
+      recordEvents ?? PlatformGameServices.instance.recordGameStatsEvents,
+      loadProfile ?? _loadAuthoritativeProfile,
+    );
+  }
+
+  PlatformGameStatsService._(
+    this._platform,
+    this._isConfigured,
+    this._refreshAuthentication,
+    this._recordEvents,
+    this._loadProfile,
+  );
 
   static final PlatformGameStatsService instance = PlatformGameStatsService();
 
