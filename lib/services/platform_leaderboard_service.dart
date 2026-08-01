@@ -44,18 +44,12 @@ abstract interface class PlatformLeaderboardMirror {
 class PlatformLeaderboardIds {
   const PlatformLeaderboardIds({
     this.android = const <PlatformLeaderboardScope, String>{
-      PlatformLeaderboardScope.global:
-          'REPLACE_WITH_PLAY_GAMES_GLOBAL_PEAK_ELO_ID',
-      PlatformLeaderboardScope.beginner:
-          'REPLACE_WITH_PLAY_GAMES_BEGINNER_PEAK_ELO_ID',
-      PlatformLeaderboardScope.easy:
-          'REPLACE_WITH_PLAY_GAMES_EASY_PEAK_ELO_ID',
-      PlatformLeaderboardScope.medium:
-          'REPLACE_WITH_PLAY_GAMES_MEDIUM_PEAK_ELO_ID',
-      PlatformLeaderboardScope.hard:
-          'REPLACE_WITH_PLAY_GAMES_HARD_PEAK_ELO_ID',
-      PlatformLeaderboardScope.expert:
-          'REPLACE_WITH_PLAY_GAMES_EXPERT_PEAK_ELO_ID',
+      PlatformLeaderboardScope.global: 'CgkIzMyzm9saEAIQZQ',
+      PlatformLeaderboardScope.beginner: 'CgkIzMyzm9saEAIQZg',
+      PlatformLeaderboardScope.easy: 'CgkIzMyzm9saEAIQZw',
+      PlatformLeaderboardScope.medium: 'CgkIzMyzm9saEAIQaA',
+      PlatformLeaderboardScope.hard: 'CgkIzMyzm9saEAIQaQ',
+      PlatformLeaderboardScope.expert: 'CgkIzMyzm9saEAIQag',
     },
     this.ios = const <PlatformLeaderboardScope, String>{
       PlatformLeaderboardScope.global:
