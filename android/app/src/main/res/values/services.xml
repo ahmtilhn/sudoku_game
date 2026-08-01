@@ -8,8 +8,8 @@
     <string name="facebook_client_token" translatable="false">REPLACE_WITH_META_CLIENT_TOKEN</string>
     <string name="fb_login_protocol_scheme" translatable="false">fb000000000000000</string>
 
-    <!-- Play Games project and server-side OAuth client from the linked Google Cloud project. -->
-    <string name="game_services_project_id" translatable="false">31445697560</string>
+    <!-- Play Games application ID and server-side OAuth client. -->
+    <string name="game_services_project_id" translatable="false">917838292556</string>
     <string name="game_services_web_client_id" translatable="false">31445697560-srkgbb34irg821mamsq0tnd6hvr4j8li.apps.googleusercontent.com</string>
     <string name="leaderboard_global_rating" translatable="false">CgkIzMyzm9saEAIQZQ</string>
     <string name="achievement_first_win" translatable="false">REPLACE_WITH_ACHIEVEMENT_ID</string>
