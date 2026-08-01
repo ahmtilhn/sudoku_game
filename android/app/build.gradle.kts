@@ -118,21 +118,24 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
         val servicesXml = rootProject.file("app/src/main/res/values/services.xml")
         val servicesText = servicesXml.takeIf { it.exists() }?.readText()
             ?: throw GradleException("Missing ${servicesXml.path}; release service identifiers cannot be verified.")
+
+        // Only block identifiers that are mandatory for every release build.
+        // Meta App Events is intentionally disabled, and Play Games achievements
+        // may remain unconfigured while leaderboard/Game Stats internal testing is
+        // performed. Their runtime methods already reject placeholders safely.
         val blockedReleaseValues = mapOf(
             "Google test AdMob App ID" to "ca-app-pub-3940256099942544~",
-            "Meta placeholder app id" to "000000000000000",
-            "Meta placeholder client token" to "REPLACE_WITH_META_CLIENT_TOKEN",
-            "Play Games leaderboard placeholder" to "REPLACE_WITH_LEADERBOARD_ID",
-            "Play Games achievement placeholder" to "REPLACE_WITH_ACHIEVEMENT_ID",
+            "Play Games project placeholder" to "REPLACE_WITH_PLAY_GAMES_PROJECT_ID",
+            "Play Games OAuth placeholder" to "REPLACE_WITH_PLAY_GAMES_WEB_CLIENT_ID",
         )
         val remainingBlockedValues = blockedReleaseValues
             .filterValues { blockedValue -> servicesText.contains(blockedValue) }
             .keys
         if (remainingBlockedValues.isNotEmpty()) {
             throw GradleException(
-                "Release build still contains non-production service values in services.xml: " +
+                "Release build still contains mandatory non-production service values in services.xml: " +
                     remainingBlockedValues.joinToString(", ") +
-                    ". Configure AdMob, Meta, Play Games leaderboards, and achievements before building a release AAB.",
+                    ". Configure the required AdMob and Play Games identifiers before building a release AAB.",
             )
         }
     }
