@@ -20,6 +20,24 @@ class AdsService {
     defaultValue: false,
   );
 
+  static const String _androidRewardedProductionId =
+      'ca-app-pub-8422988604275177/3474727600';
+  static const String _androidRewardedInterstitialProductionId =
+      'ca-app-pub-8422988604275177/4787809275';
+  static const String _iosRewardedProductionId =
+      'ca-app-pub-8422988604275177/3366916396';
+  static const String _iosRewardedInterstitialProductionId =
+      'ca-app-pub-8422988604275177/4982984468';
+
+  static const String _androidRewardedTestId =
+      'ca-app-pub-3940256099942544/5224354917';
+  static const String _androidRewardedInterstitialTestId =
+      'ca-app-pub-3940256099942544/5354046379';
+  static const String _iosRewardedTestId =
+      'ca-app-pub-3940256099942544/1712485313';
+  static const String _iosRewardedInterstitialTestId =
+      'ca-app-pub-3940256099942544/6978759866';
+
   final FacebookAppEvents _facebookEvents = FacebookAppEvents();
   final ValueNotifier<bool> adsAvailable = ValueNotifier<bool>(false);
   final ValueNotifier<bool> privacyOptionsRequired = ValueNotifier<bool>(false);
@@ -46,28 +64,44 @@ class AdsService {
 
   String get _rewardedAdUnitId {
     if (Platform.isAndroid) {
-      return const String.fromEnvironment(
+      const overrideId = String.fromEnvironment(
         'ADMOB_ANDROID_REWARDED_ID',
-        defaultValue: 'ca-app-pub-3940256099942544/5224354917',
+        defaultValue: '',
       );
+      if (overrideId.isNotEmpty) return overrideId;
+      return kReleaseMode
+          ? _androidRewardedProductionId
+          : _androidRewardedTestId;
     }
-    return const String.fromEnvironment(
+
+    const overrideId = String.fromEnvironment(
       'ADMOB_IOS_REWARDED_ID',
-      defaultValue: 'ca-app-pub-3940256099942544/1712485313',
+      defaultValue: '',
     );
+    if (overrideId.isNotEmpty) return overrideId;
+    return kReleaseMode ? _iosRewardedProductionId : _iosRewardedTestId;
   }
 
   String get _rewardedInterstitialAdUnitId {
     if (Platform.isAndroid) {
-      return const String.fromEnvironment(
+      const overrideId = String.fromEnvironment(
         'ADMOB_ANDROID_REWARDED_INTERSTITIAL_ID',
-        defaultValue: 'ca-app-pub-3940256099942544/5354046379',
+        defaultValue: '',
       );
+      if (overrideId.isNotEmpty) return overrideId;
+      return kReleaseMode
+          ? _androidRewardedInterstitialProductionId
+          : _androidRewardedInterstitialTestId;
     }
-    return const String.fromEnvironment(
+
+    const overrideId = String.fromEnvironment(
       'ADMOB_IOS_REWARDED_INTERSTITIAL_ID',
-      defaultValue: 'ca-app-pub-3940256099942544/6978759866',
+      defaultValue: '',
     );
+    if (overrideId.isNotEmpty) return overrideId;
+    return kReleaseMode
+        ? _iosRewardedInterstitialProductionId
+        : _iosRewardedInterstitialTestId;
   }
 
   Future<void> initialize() async {
