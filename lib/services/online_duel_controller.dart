@@ -2,11 +2,17 @@ import 'dart:async';
 
 import 'online_duel_models.dart';
 import 'online_duel_transport.dart';
+import 'platform_leaderboard_service.dart';
 
 class OnlineDuelController {
-  OnlineDuelController(this._transport);
+  OnlineDuelController(
+    this._transport, {
+    PlatformLeaderboardMirror? platformLeaderboardMirror,
+  }) : _platformLeaderboardMirror =
+           platformLeaderboardMirror ?? PlatformLeaderboardService.instance;
 
   final OnlineDuelTransport _transport;
+  final PlatformLeaderboardMirror _platformLeaderboardMirror;
   final StreamController<OnlineDuelSnapshot> _snapshots =
       StreamController<OnlineDuelSnapshot>.broadcast();
   final StreamController<OnlineDuelFeedback> _feedback =
@@ -165,8 +171,12 @@ class OnlineDuelController {
 
   void _applySnapshot(Map<String, dynamic> payload) {
     _pendingMove = false;
-    _snapshot = OnlineDuelSnapshot.fromJson(payload);
-    _snapshots.add(_snapshot!);
+    final snapshot = OnlineDuelSnapshot.fromJson(payload);
+    _snapshot = snapshot;
+    _snapshots.add(snapshot);
+    if (snapshot.isFinished) {
+      unawaited(_platformLeaderboardMirror.mirrorFinalRatings(snapshot));
+    }
   }
 
   void _applyPartialState(OnlineDuelEvent event) {
