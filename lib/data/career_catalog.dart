@@ -10,6 +10,7 @@ class CareerLevel {
     required this.difficulty,
     required this.size,
     required this.seed,
+    this.isEndless = false,
   });
 
   final String id;
@@ -19,6 +20,7 @@ class CareerLevel {
   final SudokuDifficulty difficulty;
   final int size;
   final int seed;
+  final bool isEndless;
 
   bool get isChapterStart => chapterLevel == 1;
 
@@ -36,22 +38,64 @@ class CareerLevel {
 class CareerCatalog {
   const CareerCatalog._();
 
+  static const int designedLevelCount = 50;
+  static const int _endlessSeedOffset = 7_000_000;
+  static const int _endlessSeedStep = 104_729;
+
+  /// The hand-authored progression foundation. Levels after this list are
+  /// generated lazily by [levelAt] and have no upper limit.
   static final List<CareerLevel> levels = List<CareerLevel>.unmodifiable(
-    _buildLevels(),
+    _buildDesignedLevels(),
   );
+
   static final Map<String, SudokuPuzzle> _puzzleCache =
       <String, SudokuPuzzle>{};
 
-  static CareerLevel? byId(String id) {
-    for (final level in levels) {
-      if (level.id == id) return level;
+  static String idForLevel(int number) {
+    if (number < 1) {
+      throw ArgumentError.value(number, 'number', 'Must be at least 1.');
     }
-    return null;
+    return 'career-${number.toString().padLeft(3, '0')}';
+  }
+
+  static int? numberFromId(String id) {
+    if (!id.startsWith('career-')) return null;
+    return int.tryParse(id.substring('career-'.length));
+  }
+
+  static CareerLevel levelAt(int number) {
+    if (number < 1) {
+      throw ArgumentError.value(number, 'number', 'Must be at least 1.');
+    }
+    if (number <= designedLevelCount) return levels[number - 1];
+
+    final endlessIndex = number - designedLevelCount - 1;
+    return CareerLevel(
+      id: idForLevel(number),
+      number: number,
+      chapter: 6 + endlessIndex ~/ 10,
+      chapterLevel: endlessIndex % 10 + 1,
+      difficulty: SudokuDifficulty.expert,
+      size: 9,
+      seed: _endlessSeedOffset + number * _endlessSeedStep,
+      isEndless: true,
+    );
+  }
+
+  static List<CareerLevel> levelsThrough(int number) {
+    if (number < 1) return const <CareerLevel>[];
+    return List<CareerLevel>.unmodifiable(
+      List<CareerLevel>.generate(number, (index) => levelAt(index + 1)),
+    );
+  }
+
+  static CareerLevel? byId(String id) {
+    final number = numberFromId(id);
+    return number == null || number < 1 ? null : levelAt(number);
   }
 
   static CareerLevel? previousOf(CareerLevel level) {
-    final index = levels.indexWhere((item) => item.id == level.id);
-    return index <= 0 ? null : levels[index - 1];
+    return level.number <= 1 ? null : levelAt(level.number - 1);
   }
 
   static SudokuPuzzle puzzleFor(CareerLevel level) {
@@ -68,7 +112,7 @@ class CareerCatalog {
         size: level.size,
         seed: level.seed + attempt * 101,
       );
-      if (level.size == 4) return _withCareerId(generated, level.id);
+      if (level.size == 4) return _withCareerId(generated, level);
 
       final analysis = SudokuDifficultyAnalyzer.analyze(generated);
       final distance =
@@ -78,15 +122,19 @@ class CareerCatalog {
         closestDistance = distance;
       }
       if (analysis.difficulty == level.difficulty) {
-        return _withCareerId(generated, level.id);
+        return _withCareerId(generated, level);
       }
     }
-    return _withCareerId(closest!, level.id);
+    return _withCareerId(closest!, level);
   }
 
-  static SudokuPuzzle _withCareerId(SudokuPuzzle source, String id) {
+  static SudokuPuzzle _withCareerId(
+    SudokuPuzzle source,
+    CareerLevel level,
+  ) {
     return SudokuPuzzle(
-      id: id,
+      id: level.id,
+      title: source.title,
       difficulty: source.difficulty,
       puzzle: List<int>.unmodifiable(source.puzzle),
       solution: List<int>.unmodifiable(source.solution),
@@ -96,7 +144,7 @@ class CareerCatalog {
     );
   }
 
-  static List<CareerLevel> _buildLevels() {
+  static List<CareerLevel> _buildDesignedLevels() {
     final result = <CareerLevel>[];
     var global = 1;
     for (var chapter = 1; chapter <= 5; chapter++) {
@@ -104,7 +152,7 @@ class CareerCatalog {
       for (var chapterLevel = 1; chapterLevel <= 10; chapterLevel++) {
         result.add(
           CareerLevel(
-            id: 'career-${global.toString().padLeft(3, '0')}',
+            id: idForLevel(global),
             number: global,
             chapter: chapter,
             chapterLevel: chapterLevel,
