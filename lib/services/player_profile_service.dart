@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import 'firebase_session_service.dart';
+import 'platform_game_services.dart';
 import 'social_api_client.dart';
 
 class PlayerProfileException implements Exception {
@@ -42,6 +43,23 @@ class PlayerProfilePreferences {
   final int gamesPlayed;
   final int wins;
 
+  PlayerProfilePreferences copyWith({
+    String? displayName,
+    String? nameSource,
+  }) {
+    return PlayerProfilePreferences(
+      publicId: publicId,
+      username: username,
+      displayName: displayName ?? this.displayName,
+      profileConfirmed: profileConfirmed,
+      discoverable: discoverable,
+      nameSource: nameSource ?? this.nameSource,
+      rating: rating,
+      gamesPlayed: gamesPlayed,
+      wins: wins,
+    );
+  }
+
   factory PlayerProfilePreferences.fromJson(Map<String, dynamic> json) {
     return PlayerProfilePreferences(
       publicId: json['publicId']?.toString() ?? '',
@@ -66,9 +84,52 @@ class PlayerProfileService {
   final http.Client _client = http.Client();
 
   Future<PlayerProfilePreferences> load() async {
-    return PlayerProfilePreferences.fromJson(
-      await _request('GET', '/v1/me/preferences'),
+    final player = await _loadGooglePlayPlayer();
+
+    PlayerProfilePreferences preferences;
+    try {
+      preferences = PlayerProfilePreferences.fromJson(
+        await _request('GET', '/v1/me/preferences'),
+      );
+    } catch (_) {
+      final displayName = player?.displayName.trim();
+      if (displayName == null || displayName.isEmpty) rethrow;
+      return PlayerProfilePreferences(
+        publicId: '',
+        username: '',
+        displayName: displayName,
+        profileConfirmed: true,
+        discoverable: true,
+        nameSource: 'google_play_games',
+        rating: 1000,
+        gamesPlayed: 0,
+        wins: 0,
+      );
+    }
+
+    final displayName = player?.displayName.trim();
+    if (displayName == null || displayName.isEmpty) return preferences;
+    return preferences.copyWith(
+      displayName: displayName,
+      nameSource: 'google_play_games',
     );
+  }
+
+  Future<PlatformPlayer?> _loadGooglePlayPlayer() async {
+    final games = PlatformGameServices.instance;
+    final cached = games.localPlayer.value;
+    if (cached != null) return cached;
+
+    try {
+      if (!await games.isConfigured()) return null;
+      var authenticated = await games.refreshAuthentication();
+      if (!authenticated) {
+        authenticated = await games.authenticate();
+      }
+      return authenticated ? games.localPlayer.value : null;
+    } on PlatformGameServicesException {
+      return null;
+    }
   }
 
   Future<PlayerProfilePreferences> update({

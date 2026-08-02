@@ -2,6 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../services/platform_game_services.dart';
+
 class PlayerAvatar extends StatelessWidget {
   const PlayerAvatar({
     super.key,
@@ -58,7 +60,7 @@ class PlayerAvatar extends StatelessWidget {
       );
     }
 
-    final url = remoteApprovedImageUrl?.trim();
+    final url = _resolvedRemoteUrl();
     if (url != null && url.startsWith('https://')) {
       return Image.network(
         url,
@@ -70,6 +72,19 @@ class PlayerAvatar extends StatelessWidget {
       );
     }
     return null;
+  }
+
+  String? _resolvedRemoteUrl() {
+    final configuredUrl = remoteApprovedImageUrl?.trim();
+    if (configuredUrl != null && configuredUrl.isNotEmpty) {
+      return configuredUrl;
+    }
+
+    if (!avatarKey.startsWith('home-profile-')) return null;
+    final player = PlatformGameServices.instance.localPlayer.value;
+    final playGamesUrl = player?.avatarUrl?.trim();
+    if (playGamesUrl == null || playGamesUrl.isEmpty) return null;
+    return playGamesUrl;
   }
 
   Widget _frameBuilder(
