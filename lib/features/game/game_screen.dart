@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
+import '../../data/game_session_store.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
@@ -53,14 +54,19 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen>
+    with WidgetsBindingObserver {
+  final GameSessionStore _sessionStore = GameSessionStore.instance;
+  final Stopwatch _stopwatch = Stopwatch();
   late List<int> _board;
   final Map<int, Set<int>> _notes = <int, Set<int>>{};
   final List<_MoveRecord> _history = <_MoveRecord>[];
   final Set<int> _hintedIndexes = <int>{};
   Timer? _timer;
+  Timer? _saveDebounce;
   int? _selectedIndex;
   int? _errorIndex;
+  int _elapsedBaseSeconds = 0;
   int _elapsedSeconds = 0;
   int _mistakes = 0;
   int _totalMistakes = 0;
@@ -70,32 +76,120 @@ class _GameScreenState extends State<GameScreen> {
   bool _roundLost = false;
   bool _lossDialogVisible = false;
   bool _hintInProgress = false;
+  bool _sessionReady = false;
 
-  bool get _canUndo => _history.isNotEmpty && !_completed && !_roundLost;
+  bool get _canUndo =>
+      _history.isNotEmpty && !_completed && !_roundLost && _sessionReady;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _board = List<int>.from(widget.puzzle.puzzle);
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && !_completed && !_roundLost) {
-        setState(() => _elapsedSeconds++);
-      }
-    });
+    unawaited(_initializeSession());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _startClock();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _pauseClock();
+        unawaited(_saveNow());
+    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _pauseClock();
+    _saveDebounce?.cancel();
+    if (!_completed && _sessionReady) unawaited(_saveNow());
     super.dispose();
   }
 
+  Future<void> _initializeSession() async {
+    final saved = await _sessionStore.load(widget.puzzle);
+    if (!mounted) return;
+    if (saved != null) {
+      _board = List<int>.from(saved.board);
+      _notes
+        ..clear()
+        ..addAll(
+          saved.notes.map(
+            (index, values) => MapEntry(index, Set<int>.from(values)),
+          ),
+        );
+      _history
+        ..clear()
+        ..addAll(
+          saved.history.map(
+            (move) => _MoveRecord(
+              index: move.index,
+              previousValue: move.previousValue,
+              previousNotes: Set<int>.from(move.previousNotes),
+            ),
+          ),
+        );
+      _hintedIndexes
+        ..clear()
+        ..addAll(saved.hintedIndexes);
+      _selectedIndex = saved.selectedIndex;
+      _elapsedBaseSeconds = saved.elapsedSeconds;
+      _elapsedSeconds = saved.elapsedSeconds;
+      _mistakes = saved.mistakes;
+      _totalMistakes = saved.totalMistakes;
+      _hintsUsed = saved.hintsUsed;
+      _notesMode = saved.notesMode && widget.allowNotes;
+      _roundLost = saved.roundLost;
+    }
+    setState(() => _sessionReady = true);
+    if (_roundLost) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_showRoundLostDialog());
+      });
+    } else {
+      _startClock();
+    }
+  }
+
+  void _startClock() {
+    if (!_sessionReady || _completed || _roundLost || _stopwatch.isRunning) {
+      return;
+    }
+    _stopwatch.start();
+    _timer ??= Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (!mounted || !_stopwatch.isRunning) return;
+      final current = _elapsedBaseSeconds + _stopwatch.elapsed.inSeconds;
+      if (current == _elapsedSeconds) return;
+      setState(() => _elapsedSeconds = current);
+      if (current % 5 == 0) _scheduleSave();
+    });
+  }
+
+  void _pauseClock() {
+    if (_stopwatch.isRunning) {
+      _elapsedBaseSeconds += _stopwatch.elapsed.inSeconds;
+      _stopwatch
+        ..stop()
+        ..reset();
+      _elapsedSeconds = _elapsedBaseSeconds;
+    }
+    _timer?.cancel();
+    _timer = null;
+  }
+
   void _selectCell(int index) {
-    if (_roundLost) return;
+    if (_roundLost || !_sessionReady) return;
     setState(() {
       _selectedIndex = index;
       _errorIndex = null;
     });
+    _scheduleSave();
   }
 
   void _enterNumber(int value) {
@@ -104,7 +198,8 @@ class _GameScreenState extends State<GameScreen> {
         widget.puzzle.isFixed(index) ||
         _hintedIndexes.contains(index) ||
         _completed ||
-        _roundLost) {
+        _roundLost ||
+        !_sessionReady) {
       return;
     }
 
@@ -112,7 +207,9 @@ class _GameScreenState extends State<GameScreen> {
       setState(() {
         final values = _notes.putIfAbsent(index, () => <int>{});
         values.contains(value) ? values.remove(value) : values.add(value);
+        if (values.isEmpty) _notes.remove(index);
       });
+      _scheduleSave();
       return;
     }
 
@@ -124,6 +221,7 @@ class _GameScreenState extends State<GameScreen> {
         _totalMistakes++;
         _errorIndex = index;
       });
+      _scheduleSave();
 
       final limit = widget.mistakeLimit;
       if (limit != null && nextMistakes >= limit) {
@@ -151,7 +249,8 @@ class _GameScreenState extends State<GameScreen> {
       _notes.remove(index);
       _removeRelatedNotes(index, value);
     });
-    _checkCompletion();
+    _scheduleSave();
+    unawaited(_checkCompletion());
   }
 
   void _erase() {
@@ -160,7 +259,8 @@ class _GameScreenState extends State<GameScreen> {
         widget.puzzle.isFixed(index) ||
         _hintedIndexes.contains(index) ||
         _completed ||
-        _roundLost) {
+        _roundLost ||
+        !_sessionReady) {
       return;
     }
     setState(() {
@@ -174,6 +274,7 @@ class _GameScreenState extends State<GameScreen> {
       _board[index] = 0;
       _notes.remove(index);
     });
+    _scheduleSave();
   }
 
   void _undo() {
@@ -186,10 +287,21 @@ class _GameScreenState extends State<GameScreen> {
           : _notes[move.index] = Set<int>.from(move.previousNotes);
       _selectedIndex = move.index;
     });
+    _scheduleSave();
+  }
+
+  void _toggleNotes() {
+    if (!_sessionReady || _completed || _roundLost) return;
+    setState(() => _notesMode = !_notesMode);
+    _scheduleSave();
   }
 
   Future<void> _hint() async {
-    if (!widget.allowHints || _completed || _roundLost || _hintInProgress) {
+    if (!widget.allowHints ||
+        _completed ||
+        _roundLost ||
+        _hintInProgress ||
+        !_sessionReady) {
       return;
     }
 
@@ -226,7 +338,8 @@ class _GameScreenState extends State<GameScreen> {
         _removeRelatedNotes(index, _board[index]);
         _hintsUsed++;
       });
-      _checkCompletion();
+      _scheduleSave();
+      await _checkCompletion();
     } finally {
       if (mounted) {
         setState(() => _hintInProgress = false);
@@ -236,10 +349,12 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _showRoundLostDialog() async {
     if (!mounted || _lossDialogVisible || _completed) return;
+    _pauseClock();
     setState(() {
       _roundLost = true;
       _lossDialogVisible = true;
     });
+    await _saveNow();
 
     final action = await showDialog<_LossAction>(
       context: context,
@@ -326,9 +441,12 @@ class _GameScreenState extends State<GameScreen> {
       _errorIndex = null;
       _roundLost = false;
     });
+    _startClock();
+    _scheduleSave(immediate: true);
   }
 
   void _restartPuzzle() {
+    _pauseClock();
     setState(() {
       _board = List<int>.from(widget.puzzle.puzzle);
       _notes.clear();
@@ -336,6 +454,7 @@ class _GameScreenState extends State<GameScreen> {
       _hintedIndexes.clear();
       _selectedIndex = null;
       _errorIndex = null;
+      _elapsedBaseSeconds = 0;
       _elapsedSeconds = 0;
       _mistakes = 0;
       _totalMistakes = 0;
@@ -344,26 +463,35 @@ class _GameScreenState extends State<GameScreen> {
       _roundLost = false;
       _hintInProgress = false;
     });
+    _startClock();
+    _scheduleSave(immediate: true);
   }
 
   void _removeRelatedNotes(int index, int value) {
     final row = index ~/ widget.puzzle.size;
     final column = index % widget.puzzle.size;
     final box = SudokuEngine.relatedBoxIndex(widget.puzzle, index);
+    final emptyEntries = <int>[];
     for (final entry in _notes.entries) {
       final noteIndex = entry.key;
       if (noteIndex ~/ widget.puzzle.size == row ||
           noteIndex % widget.puzzle.size == column ||
           SudokuEngine.relatedBoxIndex(widget.puzzle, noteIndex) == box) {
         entry.value.remove(value);
+        if (entry.value.isEmpty) emptyEntries.add(noteIndex);
       }
+    }
+    for (final index in emptyEntries) {
+      _notes.remove(index);
     }
   }
 
   Future<void> _checkCompletion() async {
     if (!SudokuEngine.isComplete(widget.puzzle, _board)) return;
-    _timer?.cancel();
+    _pauseClock();
     setState(() => _completed = true);
+    _saveDebounce?.cancel();
+    await _sessionStore.delete(widget.puzzle.id);
     await widget.onCompleted?.call(
       seconds: _elapsedSeconds,
       mistakes: _totalMistakes,
@@ -420,9 +548,55 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _scheduleSave({bool immediate = false}) {
+    if (!_sessionReady || _completed) return;
+    _saveDebounce?.cancel();
+    if (immediate) {
+      unawaited(_saveNow());
+      return;
+    }
+    _saveDebounce = Timer(
+      const Duration(milliseconds: 300),
+      () => unawaited(_saveNow()),
+    );
+  }
+
+  Future<void> _saveNow() async {
+    if (!_sessionReady || _completed) return;
+    final elapsed = _elapsedBaseSeconds + _stopwatch.elapsed.inSeconds;
+    await _sessionStore.save(
+      GameSessionSnapshot(
+        puzzleId: widget.puzzle.id,
+        puzzleSignature: GameSessionSnapshot.signatureFor(widget.puzzle),
+        board: List<int>.from(_board),
+        notes: _notes.map(
+          (index, values) => MapEntry(index, Set<int>.from(values)),
+        ),
+        history: _history
+            .map(
+              (move) => GameSessionMove(
+                index: move.index,
+                previousValue: move.previousValue,
+                previousNotes: Set<int>.from(move.previousNotes),
+              ),
+            )
+            .toList(),
+        hintedIndexes: Set<int>.from(_hintedIndexes),
+        selectedIndex: _selectedIndex,
+        elapsedSeconds: elapsed,
+        mistakes: _mistakes,
+        totalMistakes: _totalMistakes,
+        hintsUsed: _hintsUsed,
+        notesMode: _notesMode,
+        roundLost: _roundLost,
+        savedAt: DateTime.now().toUtc(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controlsEnabled = !_completed && !_roundLost;
+    final controlsEnabled = _sessionReady && !_completed && !_roundLost;
     final availableHints = widget.hintBalanceProvider?.call();
     final mistakeLabel = widget.mistakeLimit == null
         ? context.tr('mistakes_count', <Object>[_mistakes])
@@ -458,9 +632,7 @@ class _GameScreenState extends State<GameScreen> {
           hintCount: availableHints,
           onNumber: _enterNumber,
           onErase: _erase,
-          onToggleNotes: widget.allowNotes
-              ? () => setState(() => _notesMode = !_notesMode)
-              : null,
+          onToggleNotes: widget.allowNotes ? _toggleNotes : null,
           onUndo: _canUndo ? _undo : null,
           onHint: widget.allowHints ? _hint : null,
         ),
@@ -478,6 +650,10 @@ class _GameScreenState extends State<GameScreen> {
                   width: width,
                   child: Column(
                     children: [
+                      if (!_sessionReady) ...[
+                        const LinearProgressIndicator(),
+                        const SizedBox(height: 12),
+                      ],
                       Row(
                         children: [
                           Chip(
