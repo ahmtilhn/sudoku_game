@@ -12,17 +12,17 @@ class OnlineDuelController with WidgetsBindingObserver {
     this._transport, {
     PlatformLeaderboardMirror? platformLeaderboardMirror,
     PlatformGameStatsMirror? platformGameStatsMirror,
-    WidgetsBinding? binding,
+    this.lifecycleBinding,
   }) : _platformLeaderboardMirror =
            platformLeaderboardMirror ?? PlatformLeaderboardService.instance,
        _platformGameStatsMirror =
-           platformGameStatsMirror ?? PlatformGameStatsService.instance,
-       _binding = binding;
+           platformGameStatsMirror ?? PlatformGameStatsService.instance;
 
   final OnlineDuelTransport _transport;
   final PlatformLeaderboardMirror _platformLeaderboardMirror;
   final PlatformGameStatsMirror _platformGameStatsMirror;
-  WidgetsBinding? _binding;
+  final WidgetsBinding? lifecycleBinding;
+  WidgetsBinding? _observerBinding;
   final StreamController<OnlineDuelSnapshot> _snapshots =
       StreamController<OnlineDuelSnapshot>.broadcast();
   final StreamController<OnlineDuelFeedback> _feedback =
@@ -47,9 +47,9 @@ class OnlineDuelController with WidgetsBindingObserver {
   void start() {
     if (_started) return;
     _started = true;
-    _binding ??= _tryResolveWidgetsBinding();
-    final binding = _binding;
+    final binding = lifecycleBinding ?? _tryResolveWidgetsBinding();
     if (binding != null) {
+      _observerBinding = binding;
       binding.addObserver(this);
       _observerRegistered = true;
     }
@@ -103,7 +103,8 @@ class OnlineDuelController with WidgetsBindingObserver {
 
   Future<void> dispose() async {
     if (_observerRegistered) {
-      _binding?.removeObserver(this);
+      _observerBinding?.removeObserver(this);
+      _observerBinding = null;
       _observerRegistered = false;
     }
     await _subscription?.cancel();
