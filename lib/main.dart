@@ -28,11 +28,17 @@ Future<void> main() async {
       ),
     );
     unawaited(
-      _initializeOptionalService('Firebase, push, and Google Play Game Stats', () async {
+      _initializeOptionalService('Firebase and push', () async {
         await FirebaseServices.instance.initialize();
         await PushNotificationService.instance.initialize();
-        await PlatformGameStatsService.instance.initialize();
       }, timeout: const Duration(seconds: 60)),
+    );
+    unawaited(
+      _initializeOptionalService(
+        'Google Play Games',
+        PlatformGameStatsService.instance.initialize,
+        timeout: const Duration(seconds: 30),
+      ),
     );
     unawaited(
       _initializeOptionalService(
