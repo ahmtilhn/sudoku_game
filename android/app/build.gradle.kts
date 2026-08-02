@@ -1,4 +1,5 @@
 import java.io.FileInputStream
+import java.net.URI
 import java.util.Base64
 import java.util.Properties
 
@@ -19,6 +20,21 @@ if (releaseSigningConfigured) {
         keystoreProperties.load(stream)
     }
 }
+
+val decodedDartDefines: Map<String, String> =
+    ((project.findProperty("dart-defines") as? String).orEmpty())
+        .split(',')
+        .asSequence()
+        .mapNotNull { encoded ->
+            if (encoded.isBlank()) return@mapNotNull null
+            val decoded = runCatching {
+                String(Base64.getDecoder().decode(encoded), Charsets.UTF_8)
+            }.getOrNull() ?: return@mapNotNull null
+            val separator = decoded.indexOf('=')
+            if (separator <= 0) return@mapNotNull null
+            decoded.substring(0, separator) to decoded.substring(separator + 1)
+        }
+        .toMap()
 
 android {
     namespace = "com.devoviastudio.sudoku"
@@ -143,10 +159,6 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
         val servicesText = servicesXml.takeIf { it.exists() }?.readText()
             ?: throw GradleException("Missing ${servicesXml.path}; release service identifiers cannot be verified.")
 
-        // Only block identifiers that are mandatory for every release build.
-        // Meta App Events is intentionally disabled, and Play Games achievements
-        // may remain unconfigured while leaderboard/Game Stats internal testing is
-        // performed. Their runtime methods already reject placeholders safely.
         val blockedReleaseValues = mapOf(
             "Google test AdMob App ID" to "ca-app-pub-3940256099942544~",
             "Play Games project placeholder" to "REPLACE_WITH_PLAY_GAMES_PROJECT_ID",
@@ -160,6 +172,36 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
                 "Release build still contains mandatory non-production service values in services.xml: " +
                     remainingBlockedValues.joinToString(", ") +
                     ". Configure the required AdMob and Play Games identifiers before building a release AAB.",
+            )
+        }
+
+        val appEnvironment = decodedDartDefines["APP_ENVIRONMENT"]?.trim()?.lowercase()
+        if (appEnvironment != "production") {
+            throw GradleException(
+                "Release build requires --dart-define=APP_ENVIRONMENT=production.",
+            )
+        }
+
+        val backendUrl = decodedDartDefines["SOCIAL_BACKEND_URL"]?.trim().orEmpty()
+        val backendUri = runCatching { URI(backendUrl) }.getOrNull()
+        val backendHost = backendUri?.host?.lowercase().orEmpty()
+        if (
+            backendUri == null ||
+            backendUri.scheme != "https" ||
+            backendHost.isBlank() ||
+            backendHost.contains("staging") ||
+            backendHost == "localhost" ||
+            backendHost == "127.0.0.1"
+        ) {
+            throw GradleException(
+                "Release build requires a production HTTPS SOCIAL_BACKEND_URL and rejects staging/localhost hosts.",
+            )
+        }
+
+        val buildCommit = decodedDartDefines["BUILD_COMMIT"]?.trim().orEmpty()
+        if (!Regex("^[0-9a-fA-F]{7,40}$").matches(buildCommit)) {
+            throw GradleException(
+                "Release build requires --dart-define=BUILD_COMMIT=<7-40 character Git SHA>.",
             )
         }
     }
