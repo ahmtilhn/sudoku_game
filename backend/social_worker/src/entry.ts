@@ -32,6 +32,7 @@ import {
   isAppleServerNotificationPath,
   isGooglePlayRtdnPath,
 } from './store_notifications';
+import { runStoreReconciliation } from './store_reconciliation';
 
 export { GameRoom, MatchmakingQueue };
 
@@ -157,6 +158,17 @@ export default {
           })
           .catch((error: unknown) => {
             console.error('purchase_lifecycle_reconciliation_failed', {
+              message: error instanceof Error ? error.message : 'unknown',
+            });
+          }),
+      );
+      ctx.waitUntil(
+        runStoreReconciliation(env)
+          .then((results) => {
+            console.log('store_refund_reconciliation_completed', { results });
+          })
+          .catch((error: unknown) => {
+            console.error('store_refund_reconciliation_failed', {
               message: error instanceof Error ? error.message : 'unknown',
             });
           }),
