@@ -44,6 +44,7 @@ abstract interface class PlatformGameStatsMirror {
 
 typedef PlatformGameStatsConfiguredCheck = Future<bool> Function();
 typedef PlatformGameStatsAuthenticationRefresh = Future<bool> Function();
+typedef PlatformGameStatsAuthenticationRequest = Future<bool> Function();
 typedef PlatformGameStatsRecorder = Future<bool> Function(
   List<Map<String, Object?>> events,
 );
@@ -55,6 +56,7 @@ class PlatformGameStatsService implements PlatformGameStatsMirror {
     TargetPlatform? platform,
     PlatformGameStatsConfiguredCheck? isConfigured,
     PlatformGameStatsAuthenticationRefresh? refreshAuthentication,
+    PlatformGameStatsAuthenticationRequest? authenticate,
     PlatformGameStatsRecorder? recordEvents,
     PlatformGameStatsProfileLoader? loadProfile,
   }) {
@@ -63,6 +65,7 @@ class PlatformGameStatsService implements PlatformGameStatsMirror {
       isConfigured ?? PlatformGameServices.instance.isConfigured,
       refreshAuthentication ??
           PlatformGameServices.instance.refreshAuthentication,
+      authenticate ?? PlatformGameServices.instance.authenticate,
       recordEvents ?? PlatformGameServices.instance.recordGameStatsEvents,
       loadProfile ?? _loadAuthoritativeProfile,
     );
@@ -72,6 +75,7 @@ class PlatformGameStatsService implements PlatformGameStatsMirror {
     this._platform,
     this._isConfigured,
     this._refreshAuthentication,
+    this._authenticate,
     this._recordEvents,
     this._loadProfile,
   );
@@ -81,6 +85,7 @@ class PlatformGameStatsService implements PlatformGameStatsMirror {
   final TargetPlatform? _platform;
   final PlatformGameStatsConfiguredCheck _isConfigured;
   final PlatformGameStatsAuthenticationRefresh _refreshAuthentication;
+  final PlatformGameStatsAuthenticationRequest _authenticate;
   final PlatformGameStatsRecorder _recordEvents;
   final PlatformGameStatsProfileLoader _loadProfile;
   final Set<String> _processedMatchIds = <String>{};
@@ -95,7 +100,11 @@ class PlatformGameStatsService implements PlatformGameStatsMirror {
   Future<void> initialize() async {
     if (_resolvedPlatform != TargetPlatform.android) return;
     if (!await _isConfigured()) return;
-    if (!await _refreshAuthentication()) return;
+    var authenticated = await _refreshAuthentication();
+    if (!authenticated) {
+      authenticated = await _authenticate();
+    }
+    if (!authenticated) return;
     final profile = await _loadProfileWithRetry();
     await _recordEvents(<Map<String, Object?>>[
       _progressEvent(profile.currentElo),
