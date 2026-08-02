@@ -123,11 +123,9 @@ void main() {
     final feedback = expectLater(
       controller.feedback,
       emits(
-        isA<OnlineDuelFeedback>().having(
-          (f) => f.message,
-          'message',
-          'Sıra sende değil.',
-        ),
+        isA<OnlineDuelFeedback>()
+            .having((f) => f.accepted, 'accepted', isFalse)
+            .having((f) => f.reason, 'reason', 'not_your_turn'),
       ),
     );
     transport.emit(_event('snapshot', _snapshot()));
