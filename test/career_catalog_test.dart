@@ -18,9 +18,7 @@ void main() {
 
   test('career has ten levels per difficulty chapter', () {
     for (var chapter = 1; chapter <= 5; chapter++) {
-      final chapterLevels = CareerCatalog.levels
-          .where((level) => level.chapter == chapter)
-          .toList();
+      final chapterLevels = CareerCatalog.chapterLevels(chapter);
       expect(chapterLevels, hasLength(10));
       expect(
         chapterLevels.every(
@@ -54,5 +52,43 @@ void main() {
     expect(first.difficulty, level.difficulty);
     expect(first.puzzle, hasLength(first.cellCount));
     expect(first.solution, hasLength(first.cellCount));
+  });
+
+  test('previous and next level helpers preserve career order', () {
+    final first = CareerCatalog.levels.first;
+    final second = CareerCatalog.levels[1];
+    final last = CareerCatalog.levels.last;
+
+    expect(CareerCatalog.previousOf(first), isNull);
+    expect(CareerCatalog.nextOf(first)?.id, second.id);
+    expect(CareerCatalog.previousOf(second)?.id, first.id);
+    expect(CareerCatalog.nextOf(last), isNull);
+  });
+
+  test('only the first incomplete level after completed progress is playable', () {
+    final completed = <String>{
+      CareerCatalog.levels[0].id,
+      CareerCatalog.levels[1].id,
+      CareerCatalog.levels[2].id,
+    };
+    bool isCompleted(String id) => completed.contains(id);
+
+    expect(
+      CareerCatalog.isUnlocked(CareerCatalog.levels[0], isCompleted),
+      isTrue,
+    );
+    expect(
+      CareerCatalog.isUnlocked(CareerCatalog.levels[3], isCompleted),
+      isTrue,
+    );
+    expect(
+      CareerCatalog.isUnlocked(CareerCatalog.levels[4], isCompleted),
+      isFalse,
+    );
+    expect(CareerCatalog.firstPlayable(isCompleted)?.number, 4);
+  });
+
+  test('first playable is null when every career level is complete', () {
+    expect(CareerCatalog.firstPlayable((_) => true), isNull);
   });
 }
