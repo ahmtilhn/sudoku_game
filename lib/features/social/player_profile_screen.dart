@@ -5,6 +5,7 @@ import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import 'competitive_profile_card.dart';
+import 'google_play_games_screen.dart';
 
 class PlayerProfileScreen extends StatefulWidget {
   const PlayerProfileScreen({super.key});
@@ -41,6 +42,14 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
     }
   }
 
+  void _openGooglePlayGames() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const GooglePlayGamesScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,6 +59,13 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(context.tr('profile')),
+        actions: [
+          IconButton(
+            tooltip: 'Google Play Games',
+            onPressed: _openGooglePlayGames,
+            icon: const Icon(Icons.sports_esports),
+          ),
+        ],
       ),
       body: AppBackdrop(
         child: SafeArea(
