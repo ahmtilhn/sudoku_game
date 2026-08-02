@@ -11,6 +11,15 @@
     <!-- Play Games application ID and server-side OAuth client. -->
     <string name="game_services_project_id" translatable="false">917838292556</string>
     <string name="game_services_web_client_id" translatable="false">31445697560-srkgbb34irg821mamsq0tnd6hvr4j8li.apps.googleusercontent.com</string>
+
+    <!-- Google Play Games leaderboards. -->
     <string name="leaderboard_global_rating" translatable="false">CgkIzMyzm9saEAIQZQ</string>
-    <string name="achievement_first_win" translatable="false">REPLACE_WITH_ACHIEVEMENT_ID</string>
+    <string name="leaderboard_beginner_rating" translatable="false">CgkIzMyzm9saEAIQZg</string>
+    <string name="leaderboard_easy_rating" translatable="false">CgkIzMyzm9saEAIQZw</string>
+    <string name="leaderboard_medium_rating" translatable="false">CgkIzMyzm9saEAIQaA</string>
+    <string name="leaderboard_hard_rating" translatable="false">CgkIzMyzm9saEAIQaQ</string>
+    <string name="leaderboard_expert_rating" translatable="false">CgkIzMyzm9saEAIQag</string>
+
+    <!-- Default achievement used by the platform bridge. -->
+    <string name="achievement_first_win" translatable="false">CgkIzMyzm9saEAIQSg</string>
 </resources>
