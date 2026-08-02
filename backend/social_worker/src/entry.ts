@@ -25,6 +25,13 @@ import {
   verifyAndGrantProductionPurchase,
 } from './production_purchase_verification_v2';
 import { sendPlayerPush } from './push_notifications';
+import {
+  StoreNotificationError,
+  handleAppleServerNotification,
+  handleGooglePlayRtdn,
+  isAppleServerNotificationPath,
+  isGooglePlayRtdnPath,
+} from './store_notifications';
 
 export { GameRoom, MatchmakingQueue };
 
@@ -33,6 +40,8 @@ type RuntimeEnv = Env & {
   GOOGLE_PLAY_CLIENT_EMAIL?: string;
   GOOGLE_PLAY_PRIVATE_KEY?: string;
   GOOGLE_PLAY_PACKAGE_NAME?: string;
+  GOOGLE_PUBSUB_AUDIENCE?: string;
+  GOOGLE_PUBSUB_SERVICE_ACCOUNT?: string;
   APPLE_IAP_ISSUER_ID?: string;
   APPLE_IAP_KEY_ID?: string;
   APPLE_IAP_PRIVATE_KEY?: string;
@@ -56,6 +65,14 @@ export default {
 
     const url = new URL(request.url);
     try {
+      if (isGooglePlayRtdnPath(url.pathname)) {
+        return withCors(await handleGooglePlayRtdn(request, env), env);
+      }
+
+      if (isAppleServerNotificationPath(url.pathname)) {
+        return withCors(await handleAppleServerNotification(request, env), env);
+      }
+
       if (isAdMobSsvPath(url.pathname)) {
         return withCors(await handleAdMobSsv(request, env), env);
       }
@@ -230,7 +247,8 @@ function verificationErrorResponse(
     error instanceof ProductionVerificationError ||
     error instanceof AdMobSsvError ||
     error instanceof AccountProtectionError ||
-    error instanceof AccountDeletionError
+    error instanceof AccountDeletionError ||
+    error instanceof StoreNotificationError
   ) {
     return json(env, error.status, { error: error.message, code: error.code });
   }
