@@ -234,7 +234,7 @@ function parseCertificate(der: Uint8Array): ParsedCertificate {
   }
 
   const tbsChildren = readChildren(der, tbsNode);
-  let index = tbsChildren[0]?.tag === 0xa0 ? 1 : 0;
+  const index = tbsChildren[0]?.tag === 0xa0 ? 1 : 0;
   // serial, signature, issuer, validity, subject, subjectPublicKeyInfo
   if (tbsChildren.length < index + 6) {
     throw new AppleJwsVerificationError('Incomplete X.509 TBSCertificate.');
@@ -361,14 +361,13 @@ function parseAsn1Time(bytes: Uint8Array, node: DerNode): Date {
       ? 1900 + Number(match[1])
       : 2000 + Number(match[1])
     : Number(match[1]);
-  const offset = node.tag === 0x17 ? 0 : 1;
   return new Date(Date.UTC(
     year,
-    Number(match[2 + offset]) - 1,
-    Number(match[3 + offset]),
-    Number(match[4 + offset]),
-    Number(match[5 + offset]),
-    Number(match[6 + offset]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+    Number(match[4]),
+    Number(match[5]),
+    Number(match[6]),
   ));
 }
 
