@@ -572,7 +572,7 @@ function publicSeat(value: SeatState): Record<string, unknown> {
     publicId: value.player.publicId,
     username: value.player.username,
     displayName: value.player.displayName,
-    avatarKey: value.avatarKey,
+    avatarKey: value.player.avatarKey,
     ready: value.ready,
     screenLoaded: value.screenLoaded,
     connected: value.connected,
