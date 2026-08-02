@@ -85,6 +85,7 @@ class PlatformLeaderboardIds {
 
 typedef PlatformConfiguredCheck = Future<bool> Function();
 typedef PlatformAuthenticationRefresh = Future<bool> Function();
+typedef PlatformAuthenticationRequest = Future<bool> Function();
 typedef PlatformScoreSubmitter = Future<bool> Function({
   required int score,
   String? leaderboardId,
@@ -99,6 +100,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     TargetPlatform? platform,
     PlatformConfiguredCheck? isConfigured,
     PlatformAuthenticationRefresh? refreshAuthentication,
+    PlatformAuthenticationRequest? authenticate,
     PlatformScoreSubmitter? submitScore,
     PlatformLeaderboardPresenter? showLeaderboard,
   }) {
@@ -108,6 +110,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       isConfigured ?? PlatformGameServices.instance.isConfigured,
       refreshAuthentication ??
           PlatformGameServices.instance.refreshAuthentication,
+      authenticate ?? PlatformGameServices.instance.authenticate,
       submitScore ?? PlatformGameServices.instance.submitScore,
       showLeaderboard ?? PlatformGameServices.instance.showLeaderboard,
     );
@@ -118,6 +121,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     this._platform,
     this._isConfigured,
     this._refreshAuthentication,
+    this._authenticate,
     this._submitScore,
     this._showLeaderboard,
   );
@@ -129,6 +133,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
   final TargetPlatform? _platform;
   final PlatformConfiguredCheck _isConfigured;
   final PlatformAuthenticationRefresh _refreshAuthentication;
+  final PlatformAuthenticationRequest _authenticate;
   final PlatformScoreSubmitter _submitScore;
   final PlatformLeaderboardPresenter _showLeaderboard;
   final Set<String> _processedMatchIds = <String>{};
@@ -237,7 +242,11 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     final leaderboardId = _ids.idFor(platform, scope);
     if (leaderboardId == null) return false;
     if (!await _isConfigured()) return false;
-    if (!await _refreshAuthentication()) return false;
+    var authenticated = await _refreshAuthentication();
+    if (!authenticated) {
+      authenticated = await _authenticate();
+    }
+    if (!authenticated) return false;
     return _showLeaderboard(leaderboardId: leaderboardId);
   }
 
