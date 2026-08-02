@@ -61,7 +61,11 @@ jobs:
         run: flutter analyze --fatal-infos
 
       - name: Test
-        run: flutter test --coverage --reporter expanded
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 8m \
+            flutter test --coverage --reporter expanded --concurrency=1
 
       - name: Upload coverage
         if: always()
