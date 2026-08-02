@@ -47,7 +47,9 @@ class SharedPreferencesBackend implements PreferencesBackend {
       _preferences.setString(key, value);
 
   @override
-  Future<void> remove(String key) => _preferences.remove(key);
+  Future<void> remove(String key) async {
+    await _preferences.remove(key);
+  }
 }
 
 class MemoryPreferencesBackend implements PreferencesBackend {
@@ -158,9 +160,32 @@ class LocalProgressStore extends ChangeNotifier {
 
   int get completedLevelCount => _progress.length;
 
+  int get completedCareerLevelCount => _progress.keys
+      .map(_careerLevelNumber)
+      .whereType<int>()
+      .length;
+
+  int get nextCareerLevelNumber {
+    var number = 1;
+    while (_progress.containsKey(_careerLevelId(number))) {
+      number++;
+    }
+    return number;
+  }
+
   bool isCompleted(String puzzleId) => _progress.containsKey(puzzleId);
 
+  bool isCareerLevelUnlocked(int number) {
+    if (number < 1) return false;
+    return number == 1 || _progress.containsKey(_careerLevelId(number - 1));
+  }
+
   LevelProgress? progressFor(String puzzleId) => _progress[puzzleId];
+
+  LevelProgress? progressForCareerLevel(int number) {
+    if (number < 1) return null;
+    return _progress[_careerLevelId(number)];
+  }
 
   Future<void> recordResult({
     required String puzzleId,
@@ -300,6 +325,15 @@ class LocalProgressStore extends ChangeNotifier {
       _progress.map((key, value) => MapEntry(key, value.toJson())),
     );
     return _preferences.setString(_progressKey, encoded);
+  }
+
+  static String _careerLevelId(int number) {
+    return 'career-${number.toString().padLeft(3, '0')}';
+  }
+
+  static int? _careerLevelNumber(String id) {
+    if (!id.startsWith('career-')) return null;
+    return int.tryParse(id.substring('career-'.length));
   }
 
   static int _calculateStars({required int mistakes, required int hints}) {
