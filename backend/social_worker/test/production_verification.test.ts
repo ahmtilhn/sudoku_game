@@ -5,7 +5,7 @@ import {
   ProductionVerificationError,
   isProductionPurchasePath,
   verifyAndGrantProductionPurchase,
-} from '../src/production_purchase_verification';
+} from '../src/production_purchase_verification_v2';
 
 describe('production purchase verification routing', () => {
   it('recognizes only the supported Google Play and App Store routes', () => {
@@ -35,6 +35,23 @@ describe('production purchase verification routing', () => {
     ).rejects.toMatchObject<Partial<ProductionVerificationError>>({
       status: 400,
       code: 'invalid_environment',
+    });
+  });
+
+  it('rejects unsupported HTTP methods before authentication', async () => {
+    const request = new Request('https://example.test/v1/purchases/google/verify', {
+      method: 'GET',
+    });
+
+    await expect(
+      verifyAndGrantProductionPurchase(request, {
+        DB: {} as D1Database,
+        FIREBASE_PROJECT_ID: 'project-id',
+        ENVIRONMENT: 'production',
+      }),
+    ).rejects.toMatchObject<Partial<ProductionVerificationError>>({
+      status: 405,
+      code: 'method_not_allowed',
     });
   });
 });
