@@ -14,6 +14,8 @@ ENVIRONMENT = "production"
 ALLOW_TEST_PURCHASE_GRANTS = "false"
 DEBUG_UNLIMITED_COINS = "false"
 GOOGLE_PLAY_PACKAGE_NAME = "com.devoviastudio.sudoku"
+GOOGLE_PUBSUB_AUDIENCE = "REPLACE_WITH_GOOGLE_PUBSUB_PUSH_AUDIENCE"
+GOOGLE_PUBSUB_SERVICE_ACCOUNT = "REPLACE_WITH_GOOGLE_PUBSUB_PUSH_SERVICE_ACCOUNT"
 APPLE_BUNDLE_ID = "com.devoviastudio.sudoku"
 ADMOB_REWARDED_AD_UNITS = "ca-app-pub-8422988604275177/3474727600,ca-app-pub-8422988604275177/4787809275,ca-app-pub-8422988604275177/3366916396,ca-app-pub-8422988604275177/4982984468"
 
@@ -53,3 +55,12 @@ new_sqlite_classes = ["MatchmakingQueue"]
 # APPLE_ROOT_CERTIFICATES_PEM must contain one or more trusted Apple root
 # certificates downloaded from Apple PKI, including BEGIN/END CERTIFICATE lines.
 # wrangler secret put APPLE_ROOT_CERTIFICATES_PEM --config wrangler.production.toml
+#
+# Google Play Pub/Sub push URL:
+#   https://<production-worker-host>/v1/store/google/rtdn
+# Use GOOGLE_PUBSUB_AUDIENCE as the exact OIDC audience configured on the push
+# subscription and GOOGLE_PUBSUB_SERVICE_ACCOUNT as the authenticated push
+# service account email.
+#
+# App Store Server Notifications V2 URL:
+#   https://<production-worker-host>/v1/store/apple/notifications
