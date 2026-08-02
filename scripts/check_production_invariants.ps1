@@ -63,6 +63,8 @@ Assert-ConfiguredValue $content 'FIREBASE_PROJECT_ID'
 Assert-ConfiguredValue $content 'FIREBASE_PROJECT_NUMBER'
 Assert-ConfiguredValue $content 'ALLOWED_APP_CHECK_APP_IDS'
 Assert-ConfiguredValue $content 'GOOGLE_PLAY_PACKAGE_NAME'
+Assert-ConfiguredValue $content 'GOOGLE_PUBSUB_AUDIENCE'
+Assert-ConfiguredValue $content 'GOOGLE_PUBSUB_SERVICE_ACCOUNT'
 Assert-ConfiguredValue $content 'APPLE_BUNDLE_ID'
 Assert-ConfiguredValue $content 'BUILD_COMMIT'
 
