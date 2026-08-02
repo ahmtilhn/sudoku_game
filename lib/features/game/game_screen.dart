@@ -351,6 +351,7 @@ class _GameScreenState extends State<GameScreen>
       _lossDialogVisible = true;
     });
     await _saveNow();
+    if (!mounted) return;
 
     final action = await showDialog<_LossAction>(
       context: context,
