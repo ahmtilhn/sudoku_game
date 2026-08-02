@@ -91,16 +91,12 @@ class _GameScreenState extends State<GameScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.resumed:
-        _startClock();
-      case AppLifecycleState.inactive:
-      case AppLifecycleState.hidden:
-      case AppLifecycleState.paused:
-      case AppLifecycleState.detached:
-        _pauseClock();
-        unawaited(_saveNow());
+    if (state == AppLifecycleState.resumed) {
+      _startClock();
+      return;
     }
+    _pauseClock();
+    unawaited(_saveNow());
   }
 
   @override
