@@ -22,7 +22,7 @@ class OnlineDuelController with WidgetsBindingObserver {
   final OnlineDuelTransport _transport;
   final PlatformLeaderboardMirror _platformLeaderboardMirror;
   final PlatformGameStatsMirror _platformGameStatsMirror;
-  final WidgetsBinding? _binding;
+  WidgetsBinding? _binding;
   final StreamController<OnlineDuelSnapshot> _snapshots =
       StreamController<OnlineDuelSnapshot>.broadcast();
   final StreamController<OnlineDuelFeedback> _feedback =
@@ -47,6 +47,7 @@ class OnlineDuelController with WidgetsBindingObserver {
   void start() {
     if (_started) return;
     _started = true;
+    _binding ??= _tryResolveWidgetsBinding();
     final binding = _binding;
     if (binding != null) {
       binding.addObserver(this);
@@ -332,6 +333,14 @@ class OnlineDuelFeedback {
       message: '',
       matchChanged: true,
     );
+  }
+}
+
+WidgetsBinding? _tryResolveWidgetsBinding() {
+  try {
+    return WidgetsBinding.instance;
+  } on Object {
+    return null;
   }
 }
 
