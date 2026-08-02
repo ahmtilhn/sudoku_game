@@ -299,15 +299,17 @@ class GameSessionStore {
 
   Future<void> delete(String puzzleId) async {
     await _preferences.remove(_key(puzzleId));
-    final latest = await latest();
-    if (latest?.puzzleId == puzzleId) {
+    final latestSession = await latest();
+    if (latestSession?.puzzleId == puzzleId) {
       await _preferences.remove(_latestKey);
     }
   }
 
   Future<void> clearAll() async {
-    final latest = await latest();
-    if (latest != null) await _preferences.remove(_key(latest.puzzleId));
+    final latestSession = await latest();
+    if (latestSession != null) {
+      await _preferences.remove(_key(latestSession.puzzleId));
+    }
     await _preferences.remove(_latestKey);
   }
 
