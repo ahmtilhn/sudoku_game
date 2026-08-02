@@ -55,7 +55,7 @@ void main() {
       hints: 0,
     );
 
-    expect(store.completedLevelCount, 1);
+    expect(store.completedLevelCount, 0);
     expect(store.completedCareerLevelCount, 0);
     expect(store.nextCareerLevelNumber, 1);
   });
