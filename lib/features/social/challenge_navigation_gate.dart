@@ -80,7 +80,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
                   child: showResume
                       ? _ActiveCareerSessionCard(
                           key: ValueKey(metadata!.puzzleId),
-                          level: level,
+                          level: level!,
                           elapsedSeconds: metadata.elapsedSeconds,
                           onTap: () => _resumeCareer(level),
                         )
@@ -158,8 +158,8 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
       MaterialPageRoute(
         builder: (gameContext) => GameScreen(
           puzzle: puzzle,
-          completionTitle: context.tr('level_title', <Object>[
-            context.strings.difficultyLabel(level.difficulty),
+          completionTitle: gameContext.tr('level_title', <Object>[
+            gameContext.strings.difficultyLabel(level.difficulty),
             level.number,
           ]),
           mistakeLimit: 3,
