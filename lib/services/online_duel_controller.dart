@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
+
 import 'online_duel_models.dart';
 import 'online_duel_transport.dart';
 import 'platform_game_stats_service.dart';
 import 'platform_leaderboard_service.dart';
 
-class OnlineDuelController {
+class OnlineDuelController with WidgetsBindingObserver {
   OnlineDuelController(
     this._transport, {
     PlatformLeaderboardMirror? platformLeaderboardMirror,
@@ -23,19 +25,45 @@ class OnlineDuelController {
   final StreamController<OnlineDuelFeedback> _feedback =
       StreamController<OnlineDuelFeedback>.broadcast();
   StreamSubscription<OnlineDuelEvent>? _subscription;
+  StreamSubscription<OnlineDuelConnectionState>? _connectionSubscription;
   OnlineDuelSnapshot? _snapshot;
+  Map<String, Object?>? _pendingMoveEnvelope;
   bool _pendingMove = false;
   bool _started = false;
 
   Stream<OnlineDuelSnapshot> get snapshots => _snapshots.stream;
   Stream<OnlineDuelFeedback> get feedback => _feedback.stream;
+  Stream<OnlineDuelConnectionState> get connectionStates =>
+      _transport.connectionStates;
+  OnlineDuelConnectionState get connectionState =>
+      _transport.connectionState;
   OnlineDuelSnapshot? get current => _snapshot;
   bool get pendingMove => _pendingMove;
 
   void start() {
     if (_started) return;
     _started = true;
-    _subscription = _transport.events.listen(_handleEvent);
+    WidgetsBinding.instance.addObserver(this);
+    _subscription = _transport.events.listen(
+      _handleEvent,
+      onError: (Object error, StackTrace stackTrace) {
+        if (!_feedback.isClosed) {
+          _feedback.add(
+            OnlineDuelFeedback.rejected(reason: 'disconnected'),
+          );
+        }
+      },
+    );
+    _connectionSubscription = _transport.connectionStates.listen(
+      _handleConnectionState,
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_transport.reconnectNow());
+    }
   }
 
   void ready() => _send('ready');
@@ -52,7 +80,11 @@ class OnlineDuelController {
       return false;
     }
     _pendingMove = true;
-    _send('move', <String, Object>{'cellIndex': cellIndex, 'value': value});
+    _pendingMoveEnvelope = _buildEnvelope(
+      'move',
+      <String, Object>{'cellIndex': cellIndex, 'value': value},
+    );
+    _transport.send(_pendingMoveEnvelope!);
     return true;
   }
 
@@ -61,10 +93,22 @@ class OnlineDuelController {
   void requestSnapshot() => _send('request_snapshot');
 
   Future<void> dispose() async {
+    WidgetsBinding.instance.removeObserver(this);
     await _subscription?.cancel();
+    await _connectionSubscription?.cancel();
     await _transport.close();
     await _feedback.close();
     await _snapshots.close();
+  }
+
+  void _handleConnectionState(OnlineDuelConnectionState state) {
+    if (state == OnlineDuelConnectionState.resyncing) {
+      final pendingMove = _pendingMoveEnvelope;
+      if (pendingMove != null) {
+        _transport.send(pendingMove);
+      }
+      requestSnapshot();
+    }
   }
 
   void _handleEvent(OnlineDuelEvent event) {
@@ -91,11 +135,15 @@ class OnlineDuelController {
           ? actorSeat == snapshot.youSeat
           : _pendingMove;
 
-      if (isLocalAction) _pendingMove = false;
+      if (isLocalAction) _clearPendingMove();
 
       final cellIndex = (event.payload['cellIndex'] as num?)?.toInt();
       final value = (event.payload['value'] as num?)?.toInt();
-      if (snapshot != null && cellIndex != null && value != null) {
+      if (snapshot != null &&
+          cellIndex != null &&
+          value != null &&
+          cellIndex >= 0 &&
+          cellIndex < snapshot.board.length) {
         final board = List<int>.from(snapshot.board)..[cellIndex] = value;
         _snapshot = snapshot.copyWith(
           board: board,
@@ -110,7 +158,7 @@ class OnlineDuelController {
         _feedback.add(
           OnlineDuelFeedback.accepted(
             cellIndex: cellIndex,
-            message: 'Hamle kabul edildi',
+            message: 'Move accepted.',
           ),
         );
       }
@@ -130,7 +178,7 @@ class OnlineDuelController {
               : _pendingMove);
 
       if (isLocalRejection) {
-        _pendingMove = false;
+        _clearPendingMove();
         final reason =
             event.payload['reason']?.toString() ??
             event.payload['code']?.toString() ??
@@ -160,7 +208,9 @@ class OnlineDuelController {
       _snapshot = snapshot.copyWith(
         currentTurnSeat: _seat(event.payload['currentTurnSeat']?.toString()),
         turnNumber: (event.payload['turnNumber'] as num?)?.toInt(),
-        turnDeadline: _dateFromMillis(event.payload['turnDeadline']),
+        turnDeadline: event.payload.containsKey('turnDeadline')
+            ? _dateFromMillis(event.payload['turnDeadline'])
+            : snapshot.turnDeadline,
         revision: event.revision,
         serverTime: event.serverTime,
       );
@@ -175,9 +225,13 @@ class OnlineDuelController {
   }
 
   void _applySnapshot(Map<String, dynamic> payload) {
-    _pendingMove = false;
+    _clearPendingMove();
     final snapshot = OnlineDuelSnapshot.fromJson(payload);
+    final previousMatchId = _snapshot?.matchId;
     _snapshot = snapshot;
+    if (previousMatchId != null && previousMatchId != snapshot.matchId) {
+      _feedback.add(OnlineDuelFeedback.matchChanged());
+    }
     _platformGameStatsMirror.observeSnapshot(snapshot);
     _snapshots.add(snapshot);
     if (snapshot.isFinished) {
@@ -195,9 +249,9 @@ class OnlineDuelController {
     _snapshot = snapshot.copyWith(
       status: _status(event.payload['status']?.toString()) ?? snapshot.status,
       players: _playersWithPatch(snapshot.players, event.payload),
-      readyDeadline:
-          _dateFromMillis(event.payload['readyDeadline']) ??
-          snapshot.readyDeadline,
+      readyDeadline: event.payload.containsKey('readyDeadline')
+          ? _dateFromMillis(event.payload['readyDeadline'])
+          : snapshot.readyDeadline,
       revision: event.revision,
       serverTime: event.serverTime,
     );
@@ -205,13 +259,25 @@ class OnlineDuelController {
   }
 
   void _send(String type, [Map<String, Object?> payload = const {}]) {
-    _transport.send(<String, Object?>{
+    _transport.send(_buildEnvelope(type, payload));
+  }
+
+  Map<String, Object?> _buildEnvelope(
+    String type,
+    Map<String, Object?> payload,
+  ) {
+    return <String, Object?>{
       'v': 1,
       'type': type,
       'requestId': DateTime.now().microsecondsSinceEpoch.toString(),
       'expectedRevision': _snapshot?.revision,
       'payload': payload,
-    });
+    };
+  }
+
+  void _clearPendingMove() {
+    _pendingMove = false;
+    _pendingMoveEnvelope = null;
   }
 }
 
@@ -221,12 +287,14 @@ class OnlineDuelFeedback {
     required this.message,
     this.cellIndex,
     this.reason,
+    this.matchChanged = false,
   });
 
   final bool accepted;
   final String message;
   final int? cellIndex;
   final String? reason;
+  final bool matchChanged;
 
   factory OnlineDuelFeedback.accepted({
     int? cellIndex,
@@ -246,6 +314,14 @@ class OnlineDuelFeedback {
       message: _messageForReason(reason),
     );
   }
+
+  factory OnlineDuelFeedback.matchChanged() {
+    return const OnlineDuelFeedback._(
+      accepted: true,
+      message: '',
+      matchChanged: true,
+    );
+  }
 }
 
 Map<OnlineDuelSeat, OnlineDuelPlayer> _playersWithPatch(
@@ -256,20 +332,21 @@ Map<OnlineDuelSeat, OnlineDuelPlayer> _playersWithPatch(
   final presence = (payload['presence'] as Map?)?.cast<String, dynamic>();
   final screenLoaded = (payload['screenLoaded'] as Map?)
       ?.cast<String, dynamic>();
+  final disconnectDeadlines = (payload['disconnectDeadlines'] as Map?)
+      ?.cast<String, dynamic>();
   return {
     for (final entry in current.entries)
-      entry.key: OnlineDuelPlayer(
-        publicId: entry.value.publicId,
-        username: entry.value.username,
-        displayName: entry.value.displayName,
-        avatarKey: entry.value.avatarKey,
+      entry.key: entry.value.copyWith(
         ready: (ready?[_seatKey(entry.key)] as bool?) ?? entry.value.ready,
         screenLoaded:
             (screenLoaded?[_seatKey(entry.key)] as bool?) ??
             entry.value.screenLoaded,
         connected:
             (presence?[_seatKey(entry.key)] as bool?) ?? entry.value.connected,
-        disconnectDeadline: entry.value.disconnectDeadline,
+        disconnectDeadline:
+            disconnectDeadlines?.containsKey(_seatKey(entry.key)) == true
+            ? _dateFromMillis(disconnectDeadlines![_seatKey(entry.key)])
+            : entry.value.disconnectDeadline,
       ),
   };
 }
@@ -277,6 +354,7 @@ Map<OnlineDuelSeat, OnlineDuelPlayer> _playersWithPatch(
 OnlineDuelStatus? _status(String? value) => switch (value) {
   'waiting' => OnlineDuelStatus.waiting,
   'ready_window' => OnlineDuelStatus.readyWindow,
+  'countdown' => OnlineDuelStatus.countdown,
   'active' => OnlineDuelStatus.active,
   'paused' => OnlineDuelStatus.paused,
   'completed' => OnlineDuelStatus.completed,
@@ -289,17 +367,17 @@ OnlineDuelStatus? _status(String? value) => switch (value) {
 String _seatKey(OnlineDuelSeat seat) => seat == OnlineDuelSeat.a ? 'A' : 'B';
 
 String _messageForReason(String reason) => switch (reason) {
-  'not_your_turn' || 'out_of_turn' => 'Sıra sende değil.',
-  'cell_not_editable' || 'cell_locked' => 'Bu hücre değiştirilemez.',
-  'cell_already_filled' => 'Bu hücre dolu.',
+  'not_your_turn' || 'out_of_turn' => "It is not your turn.",
+  'cell_not_editable' || 'cell_locked' => 'This cell cannot be changed.',
+  'cell_already_filled' => 'This cell is already filled.',
   'invalid_move' ||
   'wrong_value' ||
-  'incorrect_value' => 'Bu sayı bu hücre için doğru değil.',
-  'game_not_active' || 'match_not_active' => 'Oyun henüz başlamadı.',
-  'stale_revision' => 'Oyun güncellendi, tahta yenileniyor.',
-  'timeout' => 'İstek zaman aşımına uğradı.',
-  'disconnected' || 'network' => 'Bağlantı sorunu oluştu.',
-  _ => 'Hamle reddedildi.',
+  'incorrect_value' => 'That number is not correct for this cell.',
+  'game_not_active' || 'match_not_active' => 'The game has not started yet.',
+  'stale_revision' => 'The game changed. Refreshing the board.',
+  'timeout' => 'The request timed out.',
+  'disconnected' || 'network' => 'The connection was interrupted.',
+  _ => 'The move was rejected.',
 };
 
 Map<OnlineDuelSeat, int>? _seatIntMap(Object? value) {
