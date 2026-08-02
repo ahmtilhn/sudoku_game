@@ -21,8 +21,9 @@ import {
 import {
   ProductionVerificationError,
   isProductionPurchasePath,
+  reconcilePendingGooglePurchases,
   verifyAndGrantProductionPurchase,
-} from './production_purchase_verification';
+} from './production_purchase_verification_v2';
 import { sendPlayerPush } from './push_notifications';
 
 export { GameRoom, MatchmakingQueue };
@@ -36,6 +37,7 @@ type RuntimeEnv = Env & {
   APPLE_IAP_KEY_ID?: string;
   APPLE_IAP_PRIVATE_KEY?: string;
   APPLE_BUNDLE_ID?: string;
+  APPLE_ROOT_CERTIFICATES_PEM?: string;
   ADMOB_REWARDED_AD_UNITS?: string;
 };
 
@@ -85,6 +87,8 @@ export default {
           ...wallet,
           purchaseGranted: verification.granted,
           androidConsumptionHandledByServer: verification.consumed === true,
+          androidAcknowledgementHandledByServer:
+            verification.acknowledged === true,
         });
       }
 
@@ -117,14 +121,30 @@ export default {
   ): Promise<void> {
     void event;
     ctx.waitUntil(
-      runRetentionCleanup(env).then((results) => {
-        console.log('retention_cleanup_completed', { results });
-      }).catch((error: unknown) => {
-        console.error('retention_cleanup_failed', {
-          message: error instanceof Error ? error.message : 'unknown',
-        });
-      }),
+      runRetentionCleanup(env)
+        .then((results) => {
+          console.log('retention_cleanup_completed', { results });
+        })
+        .catch((error: unknown) => {
+          console.error('retention_cleanup_failed', {
+            message: error instanceof Error ? error.message : 'unknown',
+          });
+        }),
     );
+
+    if ((env.ENVIRONMENT ?? '').toLowerCase() === 'production') {
+      ctx.waitUntil(
+        reconcilePendingGooglePurchases(env)
+          .then((result) => {
+            console.log('purchase_lifecycle_reconciliation_completed', result);
+          })
+          .catch((error: unknown) => {
+            console.error('purchase_lifecycle_reconciliation_failed', {
+              message: error instanceof Error ? error.message : 'unknown',
+            });
+          }),
+      );
+    }
   },
 };
 
