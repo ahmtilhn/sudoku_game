@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/features/social/competitive_profile_card.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
 import 'package:sudoku_game/services/social_api_client.dart';
+import 'package:sudoku_game/widgets/duel_asset_icon.dart';
 
 void main() {
   testWidgets(
@@ -38,7 +39,7 @@ void main() {
       ),
     );
 
-    expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+    expect(find.image(const AssetImage(DuelAsset.lock)), findsOneWidget);
     expect(find.textContaining('TR'), findsNothing);
     expect(find.textContaining('Season'), findsNothing);
     expect(find.textContaining('Tournament'), findsNothing);
