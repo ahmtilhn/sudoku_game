@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, decodeJwt, jwtVerify } from 'jose';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 import { verifyAppleStoreKitJws } from './apple_jws_verifier';
 import type { ProductionPurchaseEnv } from './production_purchase_verification_v2';
@@ -154,14 +154,28 @@ export async function handleAppleServerNotification(
 
   const body = await parseJsonObject(request);
   const signedPayload = requiredString(body.signedPayload, 'signedPayload');
+  const expectedBundleId = requiredEnv(
+    env.APPLE_BUNDLE_ID,
+    'Apple bundle ID is not configured.',
+  );
+  const trustedRoots = requiredEnv(
+    env.APPLE_ROOT_CERTIFICATES_PEM,
+    'Trusted Apple root certificates are not configured.',
+  );
+
   let outer: Record<string, unknown>;
   try {
-    outer = decodeJwt(signedPayload) as Record<string, unknown>;
-  } catch {
+    outer = await verifyAppleStoreKitJws(signedPayload, {
+      trustedRootCertificatesPem: trustedRoots,
+      expectedBundleId,
+    });
+  } catch (error) {
     throw new StoreNotificationError(
-      400,
-      'The App Store notification payload is invalid.',
-      'invalid_apple_notification',
+      401,
+      error instanceof Error
+        ? error.message
+        : 'The App Store notification signature is invalid.',
+      'invalid_apple_notification_signature',
     );
   }
 
@@ -175,10 +189,6 @@ export async function handleAppleServerNotification(
   );
   const data = asObject(outer.data);
   const bundleId = stringValue(data?.bundleId);
-  const expectedBundleId = requiredEnv(
-    env.APPLE_BUNDLE_ID,
-    'Apple bundle ID is not configured.',
-  );
   if (bundleId !== expectedBundleId) {
     throw new StoreNotificationError(
       409,
@@ -213,10 +223,6 @@ export async function handleAppleServerNotification(
     return new Response(null, { status: 200 });
   }
 
-  const trustedRoots = requiredEnv(
-    env.APPLE_ROOT_CERTIFICATES_PEM,
-    'Trusted Apple root certificates are not configured.',
-  );
   const environment = stringValue(data?.environment)?.toLowerCase();
   const transaction = await verifyAppleStoreKitJws(signedTransactionInfo, {
     trustedRootCertificatesPem: trustedRoots,
@@ -673,7 +679,10 @@ function googleProductId(
 
 function parseBase64Json(value: string): Record<string, unknown> {
   try {
-    const decoded = atob(value.replace(/-/g, '+').replace(/_/g, '/'));
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(
+      normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '='),
+    );
     const parsed = JSON.parse(decoded);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new Error();
