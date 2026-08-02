@@ -12,12 +12,11 @@ class OnlineDuelController with WidgetsBindingObserver {
     this._transport, {
     PlatformLeaderboardMirror? platformLeaderboardMirror,
     PlatformGameStatsMirror? platformGameStatsMirror,
-    WidgetsBinding? binding,
+    this._binding,
   }) : _platformLeaderboardMirror =
            platformLeaderboardMirror ?? PlatformLeaderboardService.instance,
        _platformGameStatsMirror =
-           platformGameStatsMirror ?? PlatformGameStatsService.instance,
-       _binding = binding;
+           platformGameStatsMirror ?? PlatformGameStatsService.instance;
 
   final OnlineDuelTransport _transport;
   final PlatformLeaderboardMirror _platformLeaderboardMirror;
