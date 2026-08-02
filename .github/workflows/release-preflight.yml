@@ -41,6 +41,8 @@ jobs:
           sed -i "s/REPLACE_WITH_FIREBASE_PROJECT_ID/${{ vars.FIREBASE_PROJECT_ID }}/g" backend/social_worker/wrangler.production.toml
           sed -i "s/REPLACE_WITH_FIREBASE_PROJECT_NUMBER/${{ vars.FIREBASE_PROJECT_NUMBER }}/g" backend/social_worker/wrangler.production.toml
           sed -i "s/REPLACE_WITH_ANDROID_APP_ID,REPLACE_WITH_IOS_APP_ID/${{ vars.ALLOWED_APP_CHECK_APP_IDS }}/g" backend/social_worker/wrangler.production.toml
+          sed -i "s|REPLACE_WITH_GOOGLE_PUBSUB_PUSH_AUDIENCE|${{ vars.GOOGLE_PUBSUB_AUDIENCE }}|g" backend/social_worker/wrangler.production.toml
+          sed -i "s/REPLACE_WITH_GOOGLE_PUBSUB_PUSH_SERVICE_ACCOUNT/${{ vars.GOOGLE_PUBSUB_SERVICE_ACCOUNT }}/g" backend/social_worker/wrangler.production.toml
           sed -i "s/REPLACE_WITH_GIT_COMMIT_SHA/${GITHUB_SHA}/g" backend/social_worker/wrangler.production.toml
           sed -i "s/REPLACE_WITH_D1_DATABASE_ID/${{ vars.PRODUCTION_D1_DATABASE_ID }}/g" backend/social_worker/wrangler.production.toml
 
