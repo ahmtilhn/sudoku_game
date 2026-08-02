@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import '../../core/formatters.dart';
+import '../../data/career_catalog.dart';
 import '../../data/local_progress_store.dart';
 import '../../data/puzzle_catalog.dart';
 import '../../domain/sudoku.dart';
@@ -22,6 +25,7 @@ class CareerScreen extends StatefulWidget {
 }
 
 class _CareerScreenState extends State<CareerScreen> {
+  int? _generatingLevelNumber;
   SudokuDifficulty? _generatingDifficulty;
   final EconomyService _economy = EconomyService.instance;
 
@@ -85,37 +89,125 @@ class _CareerScreenState extends State<CareerScreen> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final maxWidth = constraints.maxWidth >= 840 ? 720.0 : 640.0;
+              final maxWidth = constraints.maxWidth >= 840 ? 760.0 : 680.0;
               return Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),
                   child: AnimatedBuilder(
                     animation: widget.store,
-                    builder: (context, _) => ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-                      children: [
-                        _CareerIntroPanel(
-                          completedLevels: widget.store.completedLevelCount,
-                        ),
-                        const SizedBox(height: 18),
-                        for (final difficulty in SudokuDifficulty.values) ...[
-                          _DifficultyCard(
-                            difficulty: difficulty,
-                            clueCount: PuzzleCatalog.targetClueCount(
-                              difficulty,
-                            ),
-                            progress: widget.store.progressFor(
-                              'career-${difficulty.name}',
-                            ),
-                            generating: _generatingDifficulty == difficulty,
-                            onTap: _generatingDifficulty == null
-                                ? () => _startRandomPuzzle(difficulty)
-                                : null,
+                    builder: (context, _) {
+                      final nextLevelNumber =
+                          widget.store.nextCareerLevelNumber;
+                      final nextLevel = CareerCatalog.levelAt(nextLevelNumber);
+                      final visibleLevelCount = max(
+                        CareerCatalog.designedLevelCount,
+                        nextLevelNumber + 9,
+                      );
+
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                        children: [
+                          _CareerIntroPanel(
+                            completedLevels:
+                                widget.store.completedCareerLevelCount,
+                          ),
+                          const SizedBox(height: 16),
+                          _NextLevelPanel(
+                            level: nextLevel,
+                            generating:
+                                _generatingLevelNumber == nextLevel.number,
+                            onTap: _isGenerating
+                                ? null
+                                : () => _startCareerLevel(nextLevel),
+                          ),
+                          const SizedBox(height: 22),
+                          Text(
+                            context.tr('career_intro'),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
                           ),
                           const SizedBox(height: 12),
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 240,
+                                  mainAxisExtent: 132,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                ),
+                            itemCount: visibleLevelCount,
+                            itemBuilder: (context, index) {
+                              final level = CareerCatalog.levelAt(index + 1);
+                              final progress = widget.store
+                                  .progressForCareerLevel(level.number);
+                              final unlocked = widget.store
+                                  .isCareerLevelUnlocked(level.number);
+                              return _CareerLevelCard(
+                                level: level,
+                                progress: progress,
+                                unlocked: unlocked,
+                                current: level.number == nextLevelNumber,
+                                generating:
+                                    _generatingLevelNumber == level.number,
+                                onTap: unlocked && !_isGenerating
+                                    ? () => _startCareerLevel(level)
+                                    : null,
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 28),
+                          Divider(
+                            color: Colors.white.withValues(alpha: .15),
+                          ),
+                          const SizedBox(height: 18),
+                          Text(
+                            context.tr('practice'),
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            context.tr('career_random_intro'),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .68),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          for (
+                            final difficulty in SudokuDifficulty.values
+                          ) ...[
+                            _DifficultyCard(
+                              difficulty: difficulty,
+                              clueCount: PuzzleCatalog.targetClueCount(
+                                difficulty,
+                              ),
+                              progress: widget.store.progressFor(
+                                'career-${difficulty.name}',
+                              ),
+                              generating:
+                                  _generatingDifficulty == difficulty,
+                              onTap: _isGenerating
+                                  ? null
+                                  : () => _startRandomPuzzle(difficulty),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                         ],
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
               );
@@ -124,6 +216,53 @@ class _CareerScreenState extends State<CareerScreen> {
         ),
       ),
     );
+  }
+
+  bool get _isGenerating =>
+      _generatingLevelNumber != null || _generatingDifficulty != null;
+
+  Future<void> _startCareerLevel(CareerLevel level) async {
+    if (!widget.store.isCareerLevelUnlocked(level.number)) return;
+    setState(() => _generatingLevelNumber = level.number);
+    final puzzle = await Future<SudokuPuzzle>(() {
+      return CareerCatalog.puzzleFor(level);
+    });
+    if (!mounted) return;
+    setState(() => _generatingLevelNumber = null);
+
+    final wasCompleted = widget.store.isCompleted(level.id);
+    final completed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (gameContext) => GameScreen(
+          puzzle: puzzle,
+          mistakeLimit: 3,
+          coinContinueCost: 25,
+          onCoinContinue: (_) => _economy.spendCareerContinue(),
+          onRewardedContinue: AdsService.instance.showRewarded,
+          onConsumeHint: () =>
+              HintEconomy.consumeOrAcquire(gameContext, widget.store),
+          hintBalanceProvider: () => widget.store.hints,
+          onCompleted:
+              ({required seconds, required mistakes, required hints}) async {
+                await widget.store.recordResult(
+                  puzzleId: level.id,
+                  seconds: seconds,
+                  mistakes: mistakes,
+                  hints: hints,
+                );
+                if (!wasCompleted && level.hintReward > 0) {
+                  await widget.store.addHints(level.hintReward);
+                }
+                await _claimEligibleAchievements();
+              },
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (completed == true) {
+      await _showCareerRewardOffer();
+    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _startRandomPuzzle(SudokuDifficulty difficulty) async {
@@ -284,7 +423,7 @@ class _CareerIntroPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    context.tr('career_random_intro'),
+                    context.tr('career_intro'),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -318,6 +457,219 @@ class _CareerIntroPanel extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NextLevelPanel extends StatelessWidget {
+  const _NextLevelPanel({
+    required this.level,
+    required this.generating,
+    required this.onTap,
+  });
+
+  final CareerLevel level;
+  final bool generating;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _difficultyAccent(level.difficulty);
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                accent.withValues(alpha: .26),
+                const Color(0xFF071014).withValues(alpha: .92),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: accent.withValues(alpha: .55)),
+          ),
+          child: Row(
+            children: [
+              SizedBox.square(
+                dimension: 54,
+                child: generating
+                    ? Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: accent,
+                        ),
+                      )
+                    : DuelAssetIcon(
+                        level.isEndless
+                            ? DuelAsset.refresh
+                            : DuelAsset.grid,
+                        size: 38,
+                        color: accent,
+                      ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('continue_action'),
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      context.tr('level_title', <Object>[
+                        context.strings.difficultyLabel(level.difficulty),
+                        level.number,
+                      ]),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_rounded, color: accent),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CareerLevelCard extends StatelessWidget {
+  const _CareerLevelCard({
+    required this.level,
+    required this.progress,
+    required this.unlocked,
+    required this.current,
+    required this.generating,
+    required this.onTap,
+  });
+
+  final CareerLevel level;
+  final LevelProgress? progress;
+  final bool unlocked;
+  final bool current;
+  final bool generating;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _difficultyAccent(level.difficulty);
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF071014).withValues(alpha: .78),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: current
+                  ? accent
+                  : accent.withValues(alpha: unlocked ? .30 : .12),
+              width: current ? 1.7 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 19,
+                    backgroundColor: accent.withValues(alpha: .14),
+                    child: generating
+                        ? Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: accent,
+                            ),
+                          )
+                        : Icon(
+                            unlocked
+                                ? level.isEndless
+                                      ? Icons.all_inclusive_rounded
+                                      : Icons.grid_4x4_rounded
+                                : Icons.lock_outline_rounded,
+                            color: unlocked
+                                ? accent
+                                : Colors.white.withValues(alpha: .35),
+                            size: 21,
+                          ),
+                  ),
+                  const Spacer(),
+                  if (progress != null)
+                    Row(
+                      children: List<Widget>.generate(
+                        3,
+                        (index) => Icon(
+                          index < progress!.stars
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          size: 17,
+                          color: const Color(0xFFFFC94D),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                context.tr('level_title', <Object>[
+                  context.strings.difficultyLabel(level.difficulty),
+                  level.number,
+                ]),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unlocked
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: .42),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                !unlocked
+                    ? context.tr('complete_previous_level')
+                    : progress == null
+                    ? context.tr('new_level')
+                    : context.tr('best_time', <Object>[
+                        formatDuration(progress!.bestSeconds),
+                      ]),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unlocked
+                      ? accent.withValues(alpha: .86)
+                      : Colors.white.withValues(alpha: .32),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -382,13 +734,7 @@ class _DifficultyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = switch (difficulty) {
-      SudokuDifficulty.beginner => const Color(0xFF29D398),
-      SudokuDifficulty.easy => const Color(0xFF3AA9FF),
-      SudokuDifficulty.medium => const Color(0xFFFFC94D),
-      SudokuDifficulty.hard => const Color(0xFFFF8A3D),
-      SudokuDifficulty.expert => const Color(0xFFFF5C7A),
-    };
+    final accent = _difficultyAccent(difficulty);
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(22),
@@ -485,4 +831,14 @@ class _DifficultyCard extends StatelessWidget {
       ),
     );
   }
+}
+
+Color _difficultyAccent(SudokuDifficulty difficulty) {
+  return switch (difficulty) {
+    SudokuDifficulty.beginner => const Color(0xFF29D398),
+    SudokuDifficulty.easy => const Color(0xFF3AA9FF),
+    SudokuDifficulty.medium => const Color(0xFFFFC94D),
+    SudokuDifficulty.hard => const Color(0xFFFF8A3D),
+    SudokuDifficulty.expert => const Color(0xFFFF5C7A),
+  };
 }
