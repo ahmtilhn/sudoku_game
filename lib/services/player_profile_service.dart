@@ -84,24 +84,27 @@ class PlayerProfileService {
   final http.Client _client = http.Client();
 
   Future<PlayerProfilePreferences> load() async {
-    final preferences = PlayerProfilePreferences.fromJson(
-      await _request('GET', '/v1/me/preferences'),
-    );
+    final player = await _loadGooglePlayPlayer();
 
-    final games = PlatformGameServices.instance;
-    PlatformPlayer? player = games.localPlayer.value;
-    if (player == null) {
-      try {
-        if (await games.isConfigured()) {
-          var authenticated = await games.refreshAuthentication();
-          if (!authenticated) {
-            authenticated = await games.authenticate();
-          }
-          if (authenticated) player = games.localPlayer.value;
-        }
-      } on PlatformGameServicesException {
-        // Keep the backend profile when Play Games is unavailable.
-      }
+    PlayerProfilePreferences preferences;
+    try {
+      preferences = PlayerProfilePreferences.fromJson(
+        await _request('GET', '/v1/me/preferences'),
+      );
+    } catch (_) {
+      final displayName = player?.displayName.trim();
+      if (displayName == null || displayName.isEmpty) rethrow;
+      return PlayerProfilePreferences(
+        publicId: '',
+        username: '',
+        displayName: displayName,
+        profileConfirmed: true,
+        discoverable: true,
+        nameSource: 'google_play_games',
+        rating: 1000,
+        gamesPlayed: 0,
+        wins: 0,
+      );
     }
 
     final displayName = player?.displayName.trim();
@@ -110,6 +113,23 @@ class PlayerProfileService {
       displayName: displayName,
       nameSource: 'google_play_games',
     );
+  }
+
+  Future<PlatformPlayer?> _loadGooglePlayPlayer() async {
+    final games = PlatformGameServices.instance;
+    final cached = games.localPlayer.value;
+    if (cached != null) return cached;
+
+    try {
+      if (!await games.isConfigured()) return null;
+      var authenticated = await games.refreshAuthentication();
+      if (!authenticated) {
+        authenticated = await games.authenticate();
+      }
+      return authenticated ? games.localPlayer.value : null;
+    } on PlatformGameServicesException {
+      return null;
+    }
   }
 
   Future<PlayerProfilePreferences> update({
