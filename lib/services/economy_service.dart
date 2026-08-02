@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../debug/debug_economy.dart';
 import 'ads_service.dart';
@@ -18,6 +19,7 @@ class EconomyService extends ChangeNotifier {
   bool processingPurchase = false;
   String? error;
   Future<void>? _initialization;
+  bool _notificationQueued = false;
 
   int get balance => debugUnlimitedCoinsEnabled
       ? debugUnlimitedCoinBalance
@@ -236,6 +238,21 @@ class EconomyService extends ChangeNotifier {
     if (error == null) return;
     error = null;
     notifyListeners();
+  }
+
+  @override
+  void notifyListeners() {
+    final binding = SchedulerBinding.instance;
+    if (binding.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      if (_notificationQueued) return;
+      _notificationQueued = true;
+      binding.addPostFrameCallback((_) {
+        _notificationQueued = false;
+        super.notifyListeners();
+      });
+      return;
+    }
+    super.notifyListeners();
   }
 
   WalletSnapshot _debugWallet(WalletSnapshot? source) {
