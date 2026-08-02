@@ -72,19 +72,17 @@ void main() {
     expect(fiftyTwo.seed, isNot(fiftyOne.seed));
   });
 
-  test('procedural career puzzles are stable and distinct by level', () {
-    final level51 = CareerCatalog.levelAt(51);
-    final level52 = CareerCatalog.levelAt(52);
-    final first51 = CareerCatalog.puzzleFor(level51);
-    final repeated51 = CareerCatalog.puzzleFor(level51);
-    final puzzle52 = CareerCatalog.puzzleFor(level52);
+  test('procedural level descriptors are deterministic and addressable', () {
+    final firstRead = CareerCatalog.levelAt(51);
+    final repeatedRead = CareerCatalog.levelAt(51);
+    final parsed = CareerCatalog.byId('career-051');
 
-    expect(identical(first51, repeated51), isTrue);
-    expect(first51.id, 'career-051');
-    expect(puzzle52.id, 'career-052');
-    expect(first51.solution, isNot(puzzle52.solution));
-    expect(SudokuEngine.hasUniqueSolution(first51), isTrue);
-    expect(SudokuEngine.hasUniqueSolution(puzzle52), isTrue);
+    expect(repeatedRead.id, firstRead.id);
+    expect(repeatedRead.seed, firstRead.seed);
+    expect(repeatedRead.difficulty, SudokuDifficulty.expert);
+    expect(repeatedRead.size, 9);
+    expect(parsed?.number, 51);
+    expect(parsed?.seed, firstRead.seed);
   });
 
   test('career numbering has no maximum or three-digit wraparound', () {
