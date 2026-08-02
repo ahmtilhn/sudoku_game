@@ -23,6 +23,25 @@ void main() {
     },
   );
 
+  const placeholderIds = PlatformLeaderboardIds(
+    android: <PlatformLeaderboardScope, String>{
+      PlatformLeaderboardScope.global: 'REPLACE_WITH_ANDROID_GLOBAL_ID',
+      PlatformLeaderboardScope.beginner: 'REPLACE_WITH_ANDROID_BEGINNER_ID',
+      PlatformLeaderboardScope.easy: 'REPLACE_WITH_ANDROID_EASY_ID',
+      PlatformLeaderboardScope.medium: 'REPLACE_WITH_ANDROID_MEDIUM_ID',
+      PlatformLeaderboardScope.hard: 'REPLACE_WITH_ANDROID_HARD_ID',
+      PlatformLeaderboardScope.expert: 'REPLACE_WITH_ANDROID_EXPERT_ID',
+    },
+    ios: <PlatformLeaderboardScope, String>{
+      PlatformLeaderboardScope.global: 'REPLACE_WITH_IOS_GLOBAL_ID',
+      PlatformLeaderboardScope.beginner: 'REPLACE_WITH_IOS_BEGINNER_ID',
+      PlatformLeaderboardScope.easy: 'REPLACE_WITH_IOS_EASY_ID',
+      PlatformLeaderboardScope.medium: 'REPLACE_WITH_IOS_MEDIUM_ID',
+      PlatformLeaderboardScope.hard: 'REPLACE_WITH_IOS_HARD_ID',
+      PlatformLeaderboardScope.expert: 'REPLACE_WITH_IOS_EXPERT_ID',
+    },
+  );
+
   test('submits settled ranked global and difficulty ELO once', () async {
     final submissions = <({String id, int score})>[];
     final service = PlatformLeaderboardService(
@@ -99,6 +118,7 @@ void main() {
   test('keeps platform calls disabled while IDs are placeholders', () async {
     var configuredChecks = 0;
     final service = PlatformLeaderboardService(
+      ids: placeholderIds,
       platform: TargetPlatform.android,
       isConfigured: () async {
         configuredChecks++;
