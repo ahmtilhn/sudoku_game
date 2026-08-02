@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
+import '../../services/platform_game_services.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
@@ -12,6 +13,13 @@ class CompetitiveProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final platformPlayer = PlatformGameServices.instance.localPlayer.value;
+    final platformDisplayName = platformPlayer?.displayName.trim();
+    final displayName =
+        platformDisplayName != null && platformDisplayName.isNotEmpty
+        ? platformDisplayName
+        : profile.displayName;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFF071014).withValues(alpha: .78),
@@ -28,11 +36,12 @@ class CompetitiveProfileCard extends StatelessWidget {
             Row(
               children: [
                 PlayerAvatar(
-                  displayName: profile.displayName,
+                  displayName: displayName,
                   avatarKey: profile.avatarKey,
+                  remoteApprovedImageUrl: platformPlayer?.avatarUrl,
                   radius: 28,
                   semanticLabel: context.tr('player_avatar_semantics', <Object>[
-                    profile.displayName,
+                    displayName,
                   ]),
                 ),
                 const SizedBox(width: 12),
@@ -44,7 +53,7 @@ class CompetitiveProfileCard extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              profile.displayName,
+                              displayName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
