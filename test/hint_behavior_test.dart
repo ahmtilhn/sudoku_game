@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sudoku_game/domain/sudoku.dart';
 import 'package:sudoku_game/features/game/game_screen.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
@@ -13,6 +16,9 @@ void main() {
   const localizationChannel = MethodChannel('com.devovia.sudoku/localization');
 
   setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
           localizationChannel,
