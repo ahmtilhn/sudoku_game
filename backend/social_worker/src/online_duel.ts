@@ -20,6 +20,8 @@ export const READY_WINDOW_SECONDS = 10;
 export const READY_DEADLINE_MS = READY_WINDOW_SECONDS * 1_000;
 export const DISCONNECT_GRACE_MS = 45_000;
 export const MAX_GRACE_BUDGET_MS = 60_000;
+export const MAX_MATCH_DURATION_MS = 30 * 60 * 1_000;
+export const MAX_CONSECUTIVE_TIMEOUTS = 3;
 
 export type PlayerPublic = {
   id: string;
@@ -79,6 +81,7 @@ export type DuelState = {
   mistakes: Record<Seat, number>;
   correctMoves: Record<Seat, number>;
   timeouts: Record<Seat, number>;
+  consecutiveTimeouts?: Record<Seat, number>;
   currentTurnSeat: Seat;
   turnNumber: number;
   turnStartedAt: number | null;
@@ -146,6 +149,7 @@ export function createInitialDuelState(input: {
     mistakes: { A: 0, B: 0 },
     correctMoves: { A: 0, B: 0 },
     timeouts: { A: 0, B: 0 },
+    consecutiveTimeouts: { A: 0, B: 0 },
     currentTurnSeat,
     turnNumber: 1,
     turnStartedAt: null,
@@ -230,6 +234,7 @@ export function applyMove(
     );
   }
 
+  timeoutStreaks(state)[seat] = 0;
   const correct = state.solution[cellIndex] === value;
   if (correct) {
     state.board[cellIndex] = value;
@@ -295,6 +300,17 @@ export function applyDueDeadlines(state: DuelState, now: number): PublicEvent[] 
       events.push(event(state, 'ready_window_cancelled', now, readinessPayload(state)));
     }
   }
+
+  if (
+    (state.status === 'active' || state.status === 'paused') &&
+    state.startedAt !== null &&
+    now >= state.startedAt + MAX_MATCH_DURATION_MS
+  ) {
+    finishByScore(state, now, 'max_match_duration');
+    events.push(event(state, 'match_completed', now, publicResult(state)));
+    return events;
+  }
+
   for (const seat of ['A', 'B'] as const) {
     const current = seatFor(state, seat);
     if (
@@ -308,12 +324,28 @@ export function applyDueDeadlines(state: DuelState, now: number): PublicEvent[] 
       state.finishReason = 'disconnect_forfeit';
       state.revision++;
       events.push(event(state, 'match_completed', now, publicResult(state)));
+      return events;
     }
   }
   if (state.status === 'active' && state.turnDeadline !== null && now >= state.turnDeadline) {
-    state.timeouts[state.currentTurnSeat]++;
+    const timedOutSeat = state.currentTurnSeat;
+    state.timeouts[timedOutSeat]++;
+    const streaks = timeoutStreaks(state);
+    streaks[timedOutSeat]++;
     state.revision++;
-    events.push(event(state, 'turn_timeout', now, { seat: state.currentTurnSeat }));
+    events.push(event(state, 'turn_timeout', now, {
+      seat: timedOutSeat,
+      consecutiveTimeouts: streaks[timedOutSeat],
+    }));
+    if (streaks[timedOutSeat] >= MAX_CONSECUTIVE_TIMEOUTS) {
+      state.status = 'forfeited';
+      state.finishedAt = now;
+      state.winnerSeat = otherSeat(timedOutSeat);
+      state.finishReason = 'consecutive_timeouts';
+      state.revision++;
+      events.push(event(state, 'match_completed', now, publicResult(state)));
+      return events;
+    }
     nextTurn(state, now);
     events.push(event(state, 'turn_changed', now, turnPayload(state)));
   }
@@ -372,10 +404,13 @@ export function snapshot(state: DuelState, youSeat: Seat, now: number): Record<s
     mistakes: state.mistakes,
     correctMoves: state.correctMoves,
     timeouts: state.timeouts,
+    consecutiveTimeouts: timeoutStreaks(state),
     currentTurnSeat: state.currentTurnSeat,
     turnNumber: state.turnNumber,
     turnDeadline: state.turnDeadline,
     readyDeadline: state.readyDeadline,
+    matchDeadline:
+      state.startedAt === null ? null : state.startedAt + MAX_MATCH_DURATION_MS,
     serverTime: now,
     ready: { A: state.playerA.ready, B: state.playerB.ready },
     presence: {
@@ -418,6 +453,10 @@ function seatState(player: PlayerPublic, now: number): SeatState {
     disconnectDeadline: null,
     graceRemainingMs: MAX_GRACE_BUDGET_MS,
   };
+}
+
+function timeoutStreaks(state: DuelState): Record<Seat, number> {
+  return (state.consecutiveTimeouts ??= { A: 0, B: 0 });
 }
 
 function rejectMove(
@@ -522,6 +561,7 @@ function publicResult(state: DuelState): Record<string, unknown> {
     mistakes: state.mistakes,
     correctMoves: state.correctMoves,
     timeouts: state.timeouts,
+    consecutiveTimeouts: timeoutStreaks(state),
     rating: state.ratingResult,
     coinSettlement: state.coinResult,
   };
@@ -532,7 +572,7 @@ function publicSeat(value: SeatState): Record<string, unknown> {
     publicId: value.player.publicId,
     username: value.player.username,
     displayName: value.player.displayName,
-    avatarKey: value.player.avatarKey,
+    avatarKey: value.avatarKey,
     ready: value.ready,
     screenLoaded: value.screenLoaded,
     connected: value.connected,
