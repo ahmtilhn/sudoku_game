@@ -42,8 +42,6 @@ class CareerCatalog {
   static const int _endlessSeedOffset = 7_000_000;
   static const int _endlessSeedStep = 104_729;
 
-  /// The hand-authored progression foundation. Levels after this list are
-  /// generated lazily by [levelAt] and have no upper limit.
   static final List<CareerLevel> levels = List<CareerLevel>.unmodifiable(
     _buildDesignedLevels(),
   );
@@ -105,14 +103,16 @@ class CareerCatalog {
   static SudokuPuzzle _generate(CareerLevel level) {
     SudokuPuzzle? closest;
     var closestDistance = 100;
-    final attempts = level.size == 4 ? 1 : 8;
+    final attempts = level.size == 4 || level.isEndless ? 1 : 8;
     for (var attempt = 0; attempt < attempts; attempt++) {
       final generated = SudokuEngine.generate(
         difficulty: level.difficulty,
         size: level.size,
         seed: level.seed + attempt * 101,
       );
-      if (level.size == 4) return _withCareerId(generated, level);
+      if (level.size == 4 || level.isEndless) {
+        return _withCareerId(generated, level);
+      }
 
       final analysis = SudokuDifficultyAnalyzer.analyze(generated);
       final distance =
