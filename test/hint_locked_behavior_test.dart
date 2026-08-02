@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sudoku_game/domain/sudoku.dart';
 import 'package:sudoku_game/features/game/game_screen.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
@@ -11,6 +14,9 @@ void main() {
   const localizationChannel = MethodChannel('com.devovia.sudoku/localization');
 
   setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
           localizationChannel,
@@ -26,7 +32,7 @@ void main() {
   testWidgets('hinted cells stay locked while player moves remain undoable', (
     tester,
   ) async {
-    final strings = await AppStrings.load();
+    final strings = AppStrings.forTesting();
 
     await tester.pumpWidget(
       AppStringsScope(
@@ -41,8 +47,10 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump();
 
     await tester.tap(find.byKey(const ValueKey<String>('action-hint')));
+    await tester.pump();
     await tester.pump();
 
     expect(_cellTextFinder(1, '2'), findsOneWidget);
