@@ -12,10 +12,12 @@ class OnlineDuelController with WidgetsBindingObserver {
     this._transport, {
     PlatformLeaderboardMirror? platformLeaderboardMirror,
     PlatformGameStatsMirror? platformGameStatsMirror,
+    WidgetsBinding? binding,
   }) : _platformLeaderboardMirror =
            platformLeaderboardMirror ?? PlatformLeaderboardService.instance,
        _platformGameStatsMirror =
-           platformGameStatsMirror ?? PlatformGameStatsService.instance;
+           platformGameStatsMirror ?? PlatformGameStatsService.instance,
+       _binding = binding;
 
   final OnlineDuelTransport _transport;
   final PlatformLeaderboardMirror _platformLeaderboardMirror;
@@ -26,10 +28,12 @@ class OnlineDuelController with WidgetsBindingObserver {
       StreamController<OnlineDuelFeedback>.broadcast();
   StreamSubscription<OnlineDuelEvent>? _subscription;
   StreamSubscription<OnlineDuelConnectionState>? _connectionSubscription;
+  WidgetsBinding? _binding;
   OnlineDuelSnapshot? _snapshot;
   Map<String, Object?>? _pendingMoveEnvelope;
   bool _pendingMove = false;
   bool _started = false;
+  bool _observerRegistered = false;
 
   Stream<OnlineDuelSnapshot> get snapshots => _snapshots.stream;
   Stream<OnlineDuelFeedback> get feedback => _feedback.stream;
@@ -43,7 +47,12 @@ class OnlineDuelController with WidgetsBindingObserver {
   void start() {
     if (_started) return;
     _started = true;
-    WidgetsBinding.instance.addObserver(this);
+    _binding ??= _tryResolveWidgetsBinding();
+    final binding = _binding;
+    if (binding != null) {
+      binding.addObserver(this);
+      _observerRegistered = true;
+    }
     _subscription = _transport.events.listen(
       _handleEvent,
       onError: (Object error, StackTrace stackTrace) {
@@ -93,7 +102,10 @@ class OnlineDuelController with WidgetsBindingObserver {
   void requestSnapshot() => _send('request_snapshot');
 
   Future<void> dispose() async {
-    WidgetsBinding.instance.removeObserver(this);
+    if (_observerRegistered) {
+      _binding?.removeObserver(this);
+      _observerRegistered = false;
+    }
     await _subscription?.cancel();
     await _connectionSubscription?.cancel();
     await _transport.close();
@@ -321,6 +333,14 @@ class OnlineDuelFeedback {
       message: '',
       matchChanged: true,
     );
+  }
+}
+
+WidgetsBinding? _tryResolveWidgetsBinding() {
+  try {
+    return WidgetsBinding.instance;
+  } on StateError {
+    return null;
   }
 }
 
