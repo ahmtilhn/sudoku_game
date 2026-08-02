@@ -9,6 +9,7 @@ import 'services/ads_service.dart';
 import 'services/coin_store_service.dart';
 import 'services/economy_service.dart';
 import 'services/firebase_services.dart';
+import 'services/platform_game_services.dart';
 import 'services/platform_game_stats_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/reminder_notification_service.dart';
@@ -36,7 +37,7 @@ Future<void> main() async {
     unawaited(
       _initializeOptionalService(
         'Google Play Games',
-        PlatformGameStatsService.instance.initialize,
+        _initializeGooglePlayGames,
         timeout: const Duration(seconds: 30),
       ),
     );
@@ -62,6 +63,19 @@ Future<void> main() async {
       ),
     );
   });
+}
+
+Future<void> _initializeGooglePlayGames() async {
+  final games = PlatformGameServices.instance;
+  if (!await games.isConfigured()) return;
+
+  var authenticated = await games.refreshAuthentication();
+  if (!authenticated) {
+    authenticated = await games.authenticate();
+  }
+  if (!authenticated) return;
+
+  await PlatformGameStatsService.instance.initialize();
 }
 
 Future<void> _initializeOptionalService(

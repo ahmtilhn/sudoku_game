@@ -3,6 +3,26 @@ import 'package:flutter/material.dart';
 import '../domain/sudoku.dart';
 import '../localization/app_strings.dart';
 
+const ColorScheme _sharedGameBoardScheme = ColorScheme.dark(
+  primary: Color(0xFF29D398),
+  onPrimary: Color(0xFF08110E),
+  secondary: Color(0xFF3AA9FF),
+  onSecondary: Color(0xFF071B2E),
+  tertiary: Color(0xFFFFC94D),
+  onTertiary: Color(0xFF2B1F00),
+  surface: Color(0xFF132026),
+  surfaceContainerLow: Color(0xFF121B20),
+  surfaceContainer: Color(0xFF18242B),
+  surfaceContainerHigh: Color(0xFF22313A),
+  surfaceContainerHighest: Color(0xFF22313A),
+  outline: Color(0xFF7F8B94),
+  outlineVariant: Color(0xFF2E414B),
+  error: Color(0xFFFF5B6B),
+  errorContainer: Color(0xFF3A151D),
+  onSurface: Color(0xFFF8FAFC),
+  onSurfaceVariant: Color(0xFFB7C3CA),
+);
+
 class SudokuBoard extends StatelessWidget {
   const SudokuBoard({
     super.key,
@@ -31,7 +51,7 @@ class SudokuBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    const scheme = _sharedGameBoardScheme;
     final selectedValue = selectedIndex == null ? 0 : board[selectedIndex!];
     final matchingValueBackground = Color.alphaBlend(
       scheme.secondaryContainer.withAlpha(105),
@@ -159,6 +179,7 @@ class SudokuBoard extends StatelessWidget {
                               ? _NotesCell(
                                   values: notes[index] ?? const <int>{},
                                   size: puzzle.size,
+                                  color: scheme.onSurfaceVariant,
                                 )
                               : Center(
                                   child: Text(
@@ -216,10 +237,15 @@ class SudokuBoard extends StatelessWidget {
 }
 
 class _NotesCell extends StatelessWidget {
-  const _NotesCell({required this.values, required this.size});
+  const _NotesCell({
+    required this.values,
+    required this.size,
+    required this.color,
+  });
 
   final Set<int> values;
   final int size;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -234,7 +260,10 @@ class _NotesCell extends StatelessWidget {
             Center(
               child: Text(
                 values.contains(value) ? '$value' : '',
-                style: TextStyle(fontSize: size == 9 ? 9 : 12),
+                style: TextStyle(
+                  fontSize: size == 9 ? 9 : 12,
+                  color: color,
+                ),
               ),
             ),
         ],
