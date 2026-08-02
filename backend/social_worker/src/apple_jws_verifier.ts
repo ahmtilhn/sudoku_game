@@ -115,7 +115,9 @@ export async function verifyAppleStoreKitJws(
   }
 
   const payload = parseJson(base64UrlDecode(parts[1]), 'JWS payload');
-  const bundleId = stringValue(payload.bundleId);
+  const nestedData = objectValue(payload.data);
+  const bundleId =
+    stringValue(payload.bundleId) ?? stringValue(nestedData?.bundleId);
   if (bundleId !== options.expectedBundleId) {
     throw new AppleJwsVerificationError(
       'The App Store bundle identifier does not match this app.',
@@ -123,7 +125,10 @@ export async function verifyAppleStoreKitJws(
     );
   }
 
-  const environment = stringValue(payload.environment)?.toLowerCase();
+  const environment = (
+    stringValue(payload.environment) ??
+    stringValue(nestedData?.environment)
+  )?.toLowerCase();
   if (
     options.expectedEnvironment &&
     environment &&
@@ -235,7 +240,6 @@ function parseCertificate(der: Uint8Array): ParsedCertificate {
 
   const tbsChildren = readChildren(der, tbsNode);
   const index = tbsChildren[0]?.tag === 0xa0 ? 1 : 0;
-  // serial, signature, issuer, validity, subject, subjectPublicKeyInfo
   if (tbsChildren.length < index + 6) {
     throw new AppleJwsVerificationError('Incomplete X.509 TBSCertificate.');
   }
@@ -449,6 +453,12 @@ function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
     difference |= left[index] ^ right[index];
   }
   return difference === 0;
+}
+
+function objectValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function stringValue(value: unknown): string | null {
