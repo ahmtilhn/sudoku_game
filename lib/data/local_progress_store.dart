@@ -158,7 +158,7 @@ class LocalProgressStore extends ChangeNotifier {
     return store;
   }
 
-  int get completedLevelCount => _progress.length;
+  int get completedLevelCount => completedCareerLevelCount;
 
   int get completedCareerLevelCount => _progress.keys
       .map(_careerLevelNumber)
