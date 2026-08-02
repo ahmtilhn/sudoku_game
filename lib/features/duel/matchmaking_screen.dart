@@ -36,6 +36,12 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   int _pollAttempt = 0;
   DateTime? _lastQueueRefresh;
 
+  int get _selectedEntryFee =>
+      _economy.entryFeeForDifficulty(_difficulty.name);
+
+  bool get _canEnterSelectedDifficulty =>
+      _economy.balance >= _selectedEntryFee;
+
   @override
   void initState() {
     super.initState();
@@ -57,8 +63,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canEnterSelected =
-        _economy.balance >= _economy.entryFeeForDifficulty(_difficulty.name);
     if (_searching) {
       return _FullScreenSearchingStage(onCancel: _cancelSearch, error: _error);
     }
@@ -138,7 +142,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       ],
                       const SizedBox(height: 8),
                       _StartActions(
-                        canEnterOnline: canEnterSelected,
+                        canEnterOnline: _canEnterSelectedDifficulty,
                         loading: _economy.loading,
                         onFindOpponent: _findOpponent,
                         onInsufficientCoins: _showInsufficientCoins,
@@ -204,7 +208,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   Future<void> _showInsufficientCoins() async {
     await _economy.refresh();
     if (!mounted) return;
-    if (_economy.canEnterOnline) {
+    if (_canEnterSelectedDifficulty) {
       await _findOpponent();
       return;
     }
@@ -225,7 +229,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
               const SizedBox(height: 10),
               Text(
                 context.tr('coin_required_title_dynamic', <Object>[
-                  _economy.entryFeeForDifficulty(_difficulty.name),
+                  _selectedEntryFee,
                 ]),
                 style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w900,
@@ -234,7 +238,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
               const SizedBox(height: 6),
               Text(
                 context.tr('coin_required_body_dynamic', <Object>[
-                  _economy.entryFeeForDifficulty(_difficulty.name),
+                  _selectedEntryFee,
                   _economy.winnerPotForDifficulty(_difficulty.name),
                 ]),
                 textAlign: TextAlign.center,
@@ -308,7 +312,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     if (_searching) return;
     await _economy.refresh();
     if (!mounted) return;
-    if (!_economy.canEnterOnline) {
+    if (!_canEnterSelectedDifficulty) {
       await _showInsufficientCoins();
       return;
     }
