@@ -14,49 +14,16 @@ class GooglePlayGamesScreen extends StatefulWidget {
 
 class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
   final PlatformGameServices _games = PlatformGameServices.instance;
-  bool _busy = true;
+  bool _busy = false;
   String? _error;
 
-  @override
-  void initState() {
-    super.initState();
-    _connect();
-  }
-
-  Future<bool> _connect() async {
-    if (mounted) {
-      setState(() {
-        _busy = true;
-        _error = null;
-      });
+  Future<bool> _ensureAuthenticated() async {
+    if (!await _games.isConfigured()) return false;
+    var authenticated = await _games.refreshAuthentication();
+    if (!authenticated) {
+      authenticated = await _games.authenticate();
     }
-    try {
-      if (!await _games.isConfigured()) {
-        throw const PlatformGameServicesException(
-          'not_configured',
-          'Google Play Games is not configured for this build.',
-        );
-      }
-      var authenticated = await _games.refreshAuthentication();
-      if (!authenticated) {
-        authenticated = await _games.authenticate();
-      }
-      if (!authenticated) {
-        throw const PlatformGameServicesException(
-          'sign_in_required',
-          'Google Play Games sign-in was not completed.',
-        );
-      }
-      return true;
-    } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = '${error.code}: ${error.message}');
-      return false;
-    } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
-      return false;
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    return authenticated;
   }
 
   Future<void> _openLeaderboard(PlatformLeaderboardScope scope) async {
@@ -82,9 +49,17 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
   }
 
   Future<void> _openAchievements() async {
-    if (!await _connect()) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     try {
+      if (!await _ensureAuthenticated()) {
+        throw const PlatformGameServicesException(
+          'authentication_failed',
+          'Google Play Games authentication could not be completed.',
+        );
+      }
       final opened = await _games.showAchievements();
       if (!opened) {
         throw const PlatformGameServicesException(
@@ -113,63 +88,22 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 children: [
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _games.authenticated,
-                    builder: (context, authenticated, _) {
-                      return ValueListenableBuilder<PlatformPlayer?>(
-                        valueListenable: _games.localPlayer,
-                        builder: (context, player, _) {
-                          return Card(
-                            child: ListTile(
-                              leading: const CircleAvatar(
-                                child: Icon(Icons.sports_esports),
-                              ),
-                              title: Text(
-                                authenticated
-                                    ? player?.displayName ?? 'Google Play Player'
-                                    : 'Google Play Games',
-                              ),
-                              subtitle: Text(
-                                authenticated
-                                    ? 'Connected'
-                                    : 'Not connected',
-                              ),
-                              trailing: _busy
-                                  ? const SizedBox.square(
-                                      dimension: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.4,
-                                      ),
-                                    )
-                                  : authenticated
-                                  ? const Icon(Icons.check_circle_outline)
-                                  : FilledButton.tonal(
-                                      onPressed: _connect,
-                                      child: const Text('Connect'),
-                                    ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                  if (_busy)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: LinearProgressIndicator(),
+                    ),
                   if (_error != null) ...[
-                    const SizedBox(height: 10),
                     Card(
                       color: Theme.of(context).colorScheme.errorContainer,
                       child: ListTile(
                         leading: const Icon(Icons.error_outline),
                         title: const Text('Play Games error'),
                         subtitle: Text(_error!),
-                        trailing: IconButton(
-                          tooltip: context.tr('retry'),
-                          onPressed: _busy ? null : _connect,
-                          icon: const Icon(Icons.refresh),
-                        ),
                       ),
                     ),
+                    const SizedBox(height: 12),
                   ],
-                  const SizedBox(height: 22),
                   Text(
                     context.tr('leaderboards'),
                     style: Theme.of(context).textTheme.titleLarge,
