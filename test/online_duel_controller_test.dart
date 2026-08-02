@@ -104,10 +104,11 @@ void main() {
     await pumpEventQueue();
 
     controller.move(2, 3);
+    final recoveredBoard = List<int>.filled(81, 0)..[0] = 1;
     transport.emit(
       _event('move_rejected', {
         'reason': 'incorrect_value',
-        'snapshot': _snapshot(board: List<int>.filled(81, 0), revision: 7),
+        'snapshot': _snapshot(board: recoveredBoard, revision: 7),
       }, revision: 7),
     );
     await pumpEventQueue();
