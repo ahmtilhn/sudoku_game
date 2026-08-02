@@ -8,6 +8,7 @@ import 'package:sudoku_game/app.dart';
 import 'package:sudoku_game/data/local_progress_store.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
 import 'package:sudoku_game/widgets/duel_asset_icon.dart';
+import 'package:sudoku_game/widgets/player_avatar.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -53,7 +54,7 @@ void main() {
       findsNothing,
     );
 
-    expect(find.image(const AssetImage(DuelAsset.profile)), findsWidgets);
+    expect(find.byType(PlayerAvatar), findsWidgets);
     expect(find.image(const AssetImage(DuelAsset.settings)), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
