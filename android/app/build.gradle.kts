@@ -1,4 +1,5 @@
 import java.io.FileInputStream
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -105,6 +106,29 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+val generateSudokuLauncherIcon by tasks.registering {
+    val encodedIcon = layout.projectDirectory.file("launcher_icon_192.base64")
+    val generatedIcon = layout.projectDirectory.file(
+        "src/main/res/mipmap-xxxhdpi/ic_launcher_sudoku_duel.png",
+    )
+
+    inputs.file(encodedIcon)
+    outputs.file(generatedIcon)
+
+    doLast {
+        val source = encodedIcon.asFile.readText().trim()
+        if (source.isEmpty()) {
+            throw GradleException("The Sudoku Duel launcher icon source is empty.")
+        }
+        generatedIcon.asFile.parentFile.mkdirs()
+        generatedIcon.asFile.writeBytes(Base64.getDecoder().decode(source))
+    }
+}
+
+tasks.matching { it.name == "preBuild" }.configureEach {
+    dependsOn(generateSudokuLauncherIcon)
 }
 
 tasks.matching { it.name == "preReleaseBuild" }.configureEach {
