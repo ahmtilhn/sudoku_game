@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/sudoku.dart';
@@ -240,6 +241,8 @@ class GameSessionStore {
   static const String _latestKey = 'active_game_session_latest_v1';
 
   final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
+  final ValueNotifier<ActiveGameSessionMetadata?> activeSession =
+      ValueNotifier<ActiveGameSessionMetadata?>(null);
 
   Future<GameSessionSnapshot?> load(SudokuPuzzle puzzle) async {
     final raw = await _preferences.getString(_key(puzzle.id));
@@ -262,27 +265,27 @@ class GameSessionStore {
   }
 
   Future<void> save(GameSessionSnapshot snapshot) async {
+    final metadata = ActiveGameSessionMetadata(
+      puzzleId: snapshot.puzzleId,
+      savedAt: snapshot.savedAt,
+      elapsedSeconds: snapshot.elapsedSeconds,
+    );
     await Future.wait<void>(<Future<void>>[
       _preferences.setString(
         _key(snapshot.puzzleId),
         jsonEncode(snapshot.toJson()),
       ),
-      _preferences.setString(
-        _latestKey,
-        jsonEncode(
-          ActiveGameSessionMetadata(
-            puzzleId: snapshot.puzzleId,
-            savedAt: snapshot.savedAt,
-            elapsedSeconds: snapshot.elapsedSeconds,
-          ).toJson(),
-        ),
-      ),
+      _preferences.setString(_latestKey, jsonEncode(metadata.toJson())),
     ]);
+    _publish(metadata);
   }
 
   Future<ActiveGameSessionMetadata?> latest() async {
     final raw = await _preferences.getString(_latestKey);
-    if (raw == null || raw.isEmpty) return null;
+    if (raw == null || raw.isEmpty) {
+      _publish(null);
+      return null;
+    }
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) throw const FormatException();
@@ -290,9 +293,11 @@ class GameSessionStore {
         decoded.map((key, value) => MapEntry(key.toString(), value)),
       );
       if (metadata.puzzleId.isEmpty) throw const FormatException();
+      _publish(metadata);
       return metadata;
     } catch (_) {
       await _preferences.remove(_latestKey);
+      _publish(null);
       return null;
     }
   }
@@ -302,6 +307,7 @@ class GameSessionStore {
     final latestSession = await latest();
     if (latestSession?.puzzleId == puzzleId) {
       await _preferences.remove(_latestKey);
+      _publish(null);
     }
   }
 
@@ -311,9 +317,20 @@ class GameSessionStore {
       await _preferences.remove(_key(latestSession.puzzleId));
     }
     await _preferences.remove(_latestKey);
+    _publish(null);
   }
 
   String _key(String puzzleId) => '$_sessionPrefix$puzzleId';
+
+  void _publish(ActiveGameSessionMetadata? metadata) {
+    final current = activeSession.value;
+    if (current?.puzzleId == metadata?.puzzleId &&
+        current?.elapsedSeconds == metadata?.elapsedSeconds &&
+        current?.savedAt == metadata?.savedAt) {
+      return;
+    }
+    activeSession.value = metadata;
+  }
 }
 
 List<int> _intList(Object? value) {
