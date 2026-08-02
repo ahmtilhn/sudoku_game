@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  MAX_CONSECUTIVE_TIMEOUTS,
+  MAX_MATCH_DURATION_MS,
   applyForfeit,
   applyDueDeadlines,
   applyMove,
@@ -201,6 +203,41 @@ describe('authoritative online duel engine', () => {
     expect(duel.timeouts[seat]).toBe(1);
   });
 
+  it('forfeits after three consecutive timeouts by the same player', () => {
+    const duel = state();
+    startDuel(duel);
+    const seat = duel.currentTurnSeat;
+
+    for (let attempt = 1; attempt <= MAX_CONSECUTIVE_TIMEOUTS; attempt++) {
+      duel.currentTurnSeat = seat;
+      duel.turnDeadline = 40_000 + attempt;
+      applyDueDeadlines(duel, 40_000 + attempt);
+    }
+
+    expect(duel.status).toBe('forfeited');
+    expect(duel.winnerSeat).toBe(seat === 'A' ? 'B' : 'A');
+    expect(duel.finishReason).toBe('consecutive_timeouts');
+    expect(duel.consecutiveTimeouts?.[seat]).toBe(MAX_CONSECUTIVE_TIMEOUTS);
+  });
+
+  it('closes a match at the maximum duration using the current score', () => {
+    const duel = state();
+    startDuel(duel);
+    const startedAt = duel.startedAt!;
+    duel.scores.A = 20;
+    duel.scores.B = 10;
+
+    const events = applyDueDeadlines(
+      duel,
+      startedAt + MAX_MATCH_DURATION_MS,
+    );
+
+    expect(events.map((event) => event.type)).toContain('match_completed');
+    expect(duel.status).toBe('completed');
+    expect(duel.winnerSeat).toBe('A');
+    expect(duel.finishReason).toBe('max_match_duration');
+  });
+
   it('disconnect grace allows reconnect before forfeit', () => {
     const duel = state();
     startDuel(duel);
@@ -225,6 +262,15 @@ describe('authoritative online duel engine', () => {
     expect(duel.status).toBe('forfeited');
     expect(duel.winnerSeat).toBe('B');
     expect(duel.finishReason).toBe('disconnect_forfeit');
+  });
+
+  it('migrates old stored state without timeout streak fields', () => {
+    const duel = state();
+    delete duel.consecutiveTimeouts;
+    const visible = snapshot(duel, 'A', 1_000);
+
+    expect(duel.consecutiveTimeouts).toEqual({ A: 0, B: 0 });
+    expect(visible.consecutiveTimeouts).toEqual({ A: 0, B: 0 });
   });
 
   it('uses a backend-only puzzle bank with valid clue ranges', () => {
