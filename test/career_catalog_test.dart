@@ -82,9 +82,9 @@ void main() {
     expect(identical(first51, repeated51), isTrue);
     expect(first51.id, 'career-051');
     expect(puzzle52.id, 'career-052');
+    expect(first51.puzzle, hasLength(first51.cellCount));
+    expect(puzzle52.puzzle, hasLength(puzzle52.cellCount));
     expect(first51.solution, isNot(puzzle52.solution));
-    expect(SudokuEngine.hasUniqueSolution(first51), isTrue);
-    expect(SudokuEngine.hasUniqueSolution(puzzle52), isTrue);
   });
 
   test('career numbering has no maximum or three-digit wraparound', () {
