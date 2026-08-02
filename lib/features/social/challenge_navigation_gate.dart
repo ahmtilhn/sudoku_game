@@ -82,7 +82,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
                   child: showResume
                       ? _ActiveCareerSessionCard(
                           key: ValueKey(metadata!.puzzleId),
-                          level: level!,
+                          level: level,
                           elapsedSeconds: metadata.elapsedSeconds,
                           onTap: () => _resumeCareer(level),
                         )
