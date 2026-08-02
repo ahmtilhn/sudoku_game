@@ -12,6 +12,8 @@ enum OnlineDuelStatus {
 
 enum OnlineDuelSeat { a, b }
 
+const Object _unsetOnlineDuelValue = Object();
+
 class OnlineDuelPlayer {
   const OnlineDuelPlayer({
     required this.publicId,
@@ -32,6 +34,29 @@ class OnlineDuelPlayer {
   final bool screenLoaded;
   final bool connected;
   final DateTime? disconnectDeadline;
+
+  OnlineDuelPlayer copyWith({
+    bool? ready,
+    bool? screenLoaded,
+    bool? connected,
+    Object? disconnectDeadline = _unsetOnlineDuelValue,
+  }) {
+    return OnlineDuelPlayer(
+      publicId: publicId,
+      username: username,
+      displayName: displayName,
+      avatarKey: avatarKey,
+      ready: ready ?? this.ready,
+      screenLoaded: screenLoaded ?? this.screenLoaded,
+      connected: connected ?? this.connected,
+      disconnectDeadline: identical(
+        disconnectDeadline,
+        _unsetOnlineDuelValue,
+      )
+          ? this.disconnectDeadline
+          : disconnectDeadline as DateTime?,
+    );
+  }
 
   factory OnlineDuelPlayer.fromJson(Map<String, dynamic> json) {
     return OnlineDuelPlayer(
@@ -146,14 +171,14 @@ class OnlineDuelSnapshot {
     Map<OnlineDuelSeat, int>? timeouts,
     OnlineDuelSeat? currentTurnSeat,
     int? turnNumber,
-    DateTime? readyDeadline,
-    DateTime? turnDeadline,
+    Object? readyDeadline = _unsetOnlineDuelValue,
+    Object? turnDeadline = _unsetOnlineDuelValue,
     DateTime? serverTime,
     int? revision,
-    OnlineDuelSeat? winnerSeat,
-    String? finishReason,
-    Map<OnlineDuelSeat, OnlineDuelRatingChange>? rating,
-    OnlineDuelCoinSettlement? coinSettlement,
+    Object? winnerSeat = _unsetOnlineDuelValue,
+    Object? finishReason = _unsetOnlineDuelValue,
+    Object? rating = _unsetOnlineDuelValue,
+    Object? coinSettlement = _unsetOnlineDuelValue,
   }) {
     return OnlineDuelSnapshot(
       roomId: roomId,
@@ -171,18 +196,34 @@ class OnlineDuelSnapshot {
       timeouts: timeouts ?? this.timeouts,
       currentTurnSeat: currentTurnSeat ?? this.currentTurnSeat,
       turnNumber: turnNumber ?? this.turnNumber,
-      readyDeadline: readyDeadline ?? this.readyDeadline,
-      turnDeadline: turnDeadline ?? this.turnDeadline,
+      readyDeadline: identical(readyDeadline, _unsetOnlineDuelValue)
+          ? this.readyDeadline
+          : readyDeadline as DateTime?,
+      turnDeadline: identical(turnDeadline, _unsetOnlineDuelValue)
+          ? this.turnDeadline
+          : turnDeadline as DateTime?,
       serverTime: serverTime ?? this.serverTime,
       revision: revision ?? this.revision,
-      winnerSeat: winnerSeat ?? this.winnerSeat,
-      finishReason: finishReason ?? this.finishReason,
-      rating: rating ?? this.rating,
-      coinSettlement: coinSettlement ?? this.coinSettlement,
+      winnerSeat: identical(winnerSeat, _unsetOnlineDuelValue)
+          ? this.winnerSeat
+          : winnerSeat as OnlineDuelSeat?,
+      finishReason: identical(finishReason, _unsetOnlineDuelValue)
+          ? this.finishReason
+          : finishReason as String?,
+      rating: identical(rating, _unsetOnlineDuelValue)
+          ? this.rating
+          : rating as Map<OnlineDuelSeat, OnlineDuelRatingChange>?,
+      coinSettlement: identical(coinSettlement, _unsetOnlineDuelValue)
+          ? this.coinSettlement
+          : coinSettlement as OnlineDuelCoinSettlement?,
     );
   }
 
   factory OnlineDuelSnapshot.fromJson(Map<String, dynamic> json) {
+    final puzzle = _intList(json['puzzle']);
+    final board = _intList(json['board']);
+    _validateSnapshotShape(puzzle: puzzle, board: board);
+
     return OnlineDuelSnapshot(
       roomId: json['roomId']?.toString() ?? '',
       matchId: json['matchId']?.toString() ?? '',
@@ -191,8 +232,8 @@ class OnlineDuelSnapshot {
       status: _status(json['status']?.toString()),
       youSeat: _seat(json['youSeat']?.toString()) ?? OnlineDuelSeat.a,
       players: _players(json['players']),
-      puzzle: _intList(json['puzzle']),
-      board: _intList(json['board']),
+      puzzle: puzzle,
+      board: board,
       scores: _seatIntMap(json['scores']),
       mistakes: _seatIntMap(json['mistakes']),
       correctMoves: _seatIntMap(json['correctMoves']),
@@ -290,7 +331,38 @@ DateTime? _dateFromMillis(Object? value) {
 
 List<int> _intList(Object? value) {
   if (value is! List) return const <int>[];
-  return value.map((item) => (item as num?)?.toInt() ?? 0).toList();
+  return value.map((item) => (item as num?)?.toInt() ?? -1).toList();
+}
+
+void _validateSnapshotShape({
+  required List<int> puzzle,
+  required List<int> board,
+}) {
+  if (puzzle.isEmpty || board.length != puzzle.length) {
+    throw const FormatException(
+      'Online duel snapshot puzzle and board lengths are invalid.',
+    );
+  }
+  final size = switch (puzzle.length) {
+    16 => 4,
+    81 => 9,
+    _ => 0,
+  };
+  if (size == 0) {
+    throw FormatException(
+      'Unsupported online duel board length: ${puzzle.length}.',
+    );
+  }
+  for (var index = 0; index < puzzle.length; index++) {
+    final clue = puzzle[index];
+    final value = board[index];
+    if (clue < 0 || clue > size || value < 0 || value > size) {
+      throw FormatException('Invalid online duel cell value at index $index.');
+    }
+    if (clue != 0 && value != clue) {
+      throw FormatException('Online duel board changed a clue at index $index.');
+    }
+  }
 }
 
 Map<OnlineDuelSeat, OnlineDuelPlayer> _players(Object? value) {
