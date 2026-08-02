@@ -248,10 +248,14 @@ class EconomyService extends ChangeNotifier {
       _notificationQueued = true;
       binding.addPostFrameCallback((_) {
         _notificationQueued = false;
-        super.notifyListeners();
+        _dispatchNotification();
       });
       return;
     }
+    _dispatchNotification();
+  }
+
+  void _dispatchNotification() {
     super.notifyListeners();
   }
 
