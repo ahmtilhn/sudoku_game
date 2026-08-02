@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import 'firebase_session_service.dart';
+import 'platform_game_services.dart';
 import 'social_api_client.dart';
 
 class PlayerProfileException implements Exception {
@@ -42,6 +43,23 @@ class PlayerProfilePreferences {
   final int gamesPlayed;
   final int wins;
 
+  PlayerProfilePreferences copyWith({
+    String? displayName,
+    String? nameSource,
+  }) {
+    return PlayerProfilePreferences(
+      publicId: publicId,
+      username: username,
+      displayName: displayName ?? this.displayName,
+      profileConfirmed: profileConfirmed,
+      discoverable: discoverable,
+      nameSource: nameSource ?? this.nameSource,
+      rating: rating,
+      gamesPlayed: gamesPlayed,
+      wins: wins,
+    );
+  }
+
   factory PlayerProfilePreferences.fromJson(Map<String, dynamic> json) {
     return PlayerProfilePreferences(
       publicId: json['publicId']?.toString() ?? '',
@@ -66,8 +84,31 @@ class PlayerProfileService {
   final http.Client _client = http.Client();
 
   Future<PlayerProfilePreferences> load() async {
-    return PlayerProfilePreferences.fromJson(
+    final preferences = PlayerProfilePreferences.fromJson(
       await _request('GET', '/v1/me/preferences'),
+    );
+
+    final games = PlatformGameServices.instance;
+    PlatformPlayer? player = games.localPlayer.value;
+    if (player == null) {
+      try {
+        if (await games.isConfigured()) {
+          var authenticated = await games.refreshAuthentication();
+          if (!authenticated) {
+            authenticated = await games.authenticate();
+          }
+          if (authenticated) player = games.localPlayer.value;
+        }
+      } on PlatformGameServicesException {
+        // Keep the backend profile when Play Games is unavailable.
+      }
+    }
+
+    final displayName = player?.displayName.trim();
+    if (displayName == null || displayName.isEmpty) return preferences;
+    return preferences.copyWith(
+      displayName: displayName,
+      nameSource: 'google_play_games',
     );
   }
 
