@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Google Play Games Services IDs exported from Play Console. -->
+<resources>
+    <string name="app_id" translatable="false">917838292556</string>
+    <string name="package_name" translatable="false">com.devoviastudio.sudoku</string>
+
+    <string name="achievement_first_victory" translatable="false">CgkIzMyzm9saEAIQSg</string>
+
+    <string name="leaderboard_highest_global_elo" translatable="false">CgkIzMyzm9saEAIQZQ</string>
+    <string name="leaderboard_highest_beginner_elo" translatable="false">CgkIzMyzm9saEAIQZg</string>
+    <string name="leaderboard_highest_easy_elo" translatable="false">CgkIzMyzm9saEAIQZw</string>
+    <string name="leaderboard_highest_medium_elo" translatable="false">CgkIzMyzm9saEAIQaA</string>
+    <string name="leaderboard_highest_hard_elo" translatable="false">CgkIzMyzm9saEAIQaQ</string>
+    <string name="leaderboard_highest_expert_elo" translatable="false">CgkIzMyzm9saEAIQag</string>
+</resources>
