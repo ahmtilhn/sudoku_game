@@ -40,15 +40,17 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
   void initState() {
     super.initState();
     _push.openedChallengeId.addListener(_scheduleChallengeOpen);
+    _sessions.activeSession.addListener(_onActiveSessionChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduleChallengeOpen();
-      unawaited(_loadActiveSession());
+      unawaited(_sessions.latest());
     });
   }
 
   @override
   void dispose() {
     _push.openedChallengeId.removeListener(_scheduleChallengeOpen);
+    _sessions.activeSession.removeListener(_onActiveSessionChanged);
     super.dispose();
   }
 
@@ -94,6 +96,15 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
     );
   }
 
+  void _onActiveSessionChanged() {
+    if (!mounted) return;
+    final metadata = _sessions.activeSession.value;
+    final careerLevel = metadata == null
+        ? null
+        : CareerCatalog.byId(metadata.puzzleId);
+    setState(() => _activeSession = careerLevel == null ? null : metadata);
+  }
+
   void _scheduleChallengeOpen() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_openChallenge());
@@ -120,17 +131,10 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
     } finally {
       if (mounted) {
         setState(() => _openingChallenge = false);
-        unawaited(_loadActiveSession());
+        unawaited(_sessions.latest());
         if (_push.openedChallengeId.value != null) _scheduleChallengeOpen();
       }
     }
-  }
-
-  Future<void> _loadActiveSession() async {
-    final metadata = await _sessions.latest();
-    if (!mounted) return;
-    final level = metadata == null ? null : CareerCatalog.byId(metadata.puzzleId);
-    setState(() => _activeSession = level == null ? null : metadata);
   }
 
   Future<void> _resumeCareer(CareerLevel level) async {
@@ -185,7 +189,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
         ),
       ),
     );
-    if (mounted) await _loadActiveSession();
+    if (mounted) unawaited(_sessions.latest());
   }
 
   Future<void> _claimEligibleAchievements() async {
