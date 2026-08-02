@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'config/release_configuration.dart';
 import 'data/local_progress_store.dart';
 import 'localization/app_strings.dart';
 import 'services/ads_service.dart';
@@ -16,6 +17,8 @@ import 'services/reminder_notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  ReleaseConfiguration.validate();
+
   final store = await LocalProgressStore.create();
   final strings = await AppStrings.load();
 
