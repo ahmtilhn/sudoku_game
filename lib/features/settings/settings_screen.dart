@@ -12,6 +12,7 @@ import '../../services/reminder_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../economy/coin_store_screen.dart';
 import '../economy/wallet_history_screen.dart';
+import 'account_protection_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.store});
@@ -82,6 +83,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onOpenStore: () => _open(const CoinStoreScreen()),
                         onOpenHistory: () => _open(const WalletHistoryScreen()),
                         onDiscoverabilityChanged: _setDiscoverability,
+                      ),
+                      const SizedBox(height: 10),
+                      Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.admin_panel_settings_outlined),
+                          title: const Text('Account & data'),
+                          subtitle: const Text(
+                            'Protect or recover the player account, sign out, and permanently delete the account and server data.',
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () =>
+                              _open(const AccountProtectionScreen()),
+                        ),
                       ),
                       const SizedBox(height: 22),
                       _sectionTitle(context, context.tr('appearance')),
