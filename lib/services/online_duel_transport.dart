@@ -5,7 +5,6 @@ import 'dart:math' as math;
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'online_duel_models.dart';
 import 'social_api_client.dart';
@@ -168,8 +167,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
       final event = OnlineDuelEvent.fromJson(
         decoded.cast<String, dynamic>(),
       );
-      if (
-          event.type == 'connected' ||
+      if (event.type == 'connected' ||
           event.type == 'snapshot' ||
           event.type == 'match_started' ||
           event.type == 'game_started') {
