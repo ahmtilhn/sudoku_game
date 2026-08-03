@@ -186,7 +186,7 @@ class MainActivity : FlutterActivity() {
             "installer" to installerPackageName(),
             "version" to installedVersion(),
             "playServicesStatus" to
-                "$playServicesCode (${ConnectionResult.getStatusString(playServicesCode)})",
+                "$playServicesCode (${GoogleApiAvailability.getInstance().getErrorString(playServicesCode)})",
             "apiStatusCode" to (apiException?.statusCode?.toString() ?: "none"),
             "apiStatusName" to (
                 apiException?.statusCode?.let(CommonStatusCodes::getStatusCodeString)
