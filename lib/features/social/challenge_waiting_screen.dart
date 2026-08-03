@@ -34,10 +34,11 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   bool _checking = false;
   bool _openingRoom = false;
   bool _ended = false;
-  int _missingPolls = 0;
+  bool _cancelling = false;
+  late SocialChallenge _challenge;
   String? _error;
 
-  int get _secondsLeft => widget.challenge.expiresAt
+  int get _secondsLeft => _challenge.expiresAt
       .difference(DateTime.now())
       .inSeconds
       .clamp(0, 24 * 60 * 60);
@@ -45,6 +46,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   @override
   void initState() {
     super.initState();
+    _challenge = widget.challenge;
     WidgetsBinding.instance.addObserver(this);
     _push.openedRoomId.addListener(_handlePushRoom);
     unawaited(_prepareNotifications());
@@ -96,41 +98,92 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   }
 
   Future<void> _checkStatus() async {
-    if (_checking || _openingRoom || _ended || !mounted) return;
+    if (_checking || _openingRoom || !mounted) return;
     _checking = true;
     try {
-      final active = await _social.activeMatch();
-      final roomId = active?['roomId']?.toString();
-      if (roomId != null && roomId.isNotEmpty) {
-        await _openRoom(roomId);
+      final challenge = await _social.loadChallenge(_challenge.id);
+      if (!mounted) return;
+      setState(() {
+        _challenge = challenge;
+        _error = null;
+      });
+
+      if (challenge.status == 'accepted') {
+        var roomId = challenge.roomId?.trim();
+        if (roomId == null || roomId.isEmpty) {
+          final active = await _social.activeMatch();
+          final activeChallengeId = active?['challengeId']?.toString();
+          if (activeChallengeId == challenge.id) {
+            roomId = active?['roomId']?.toString().trim();
+          }
+        }
+        if (roomId != null && roomId.isNotEmpty) {
+          await _openRoom(roomId);
+          return;
+        }
+        if (mounted) {
+          setState(() => _error = context.tr('matchmaking_start_failed'));
+        }
         return;
       }
 
-      final pending = await _social.loadPendingChallenges();
-      final stillPending = pending.any(
-        (challenge) => challenge.id == widget.challenge.id,
-      );
-      if (stillPending) {
-        _missingPolls = 0;
-        if (mounted && _error != null) setState(() => _error = null);
+      if (challenge.status == 'pending') {
+        if (_secondsLeft <= 0) {
+          setState(() {
+            _ended = true;
+            _error = context.tr('challenge_timed_out');
+          });
+          _pollTimer?.cancel();
+        }
         return;
       }
 
-      _missingPolls++;
-      if (_missingPolls < 2) return;
-      if (mounted) {
-        _pollTimer?.cancel();
-        setState(() {
-          _ended = true;
-          _error = context.tr('challenge_timed_out');
-        });
-      }
+      _pollTimer?.cancel();
+      setState(() {
+        _ended = true;
+        _error = switch (challenge.status) {
+          'declined' => context.tr('challenge_declined'),
+          'expired' => context.tr('challenge_timed_out'),
+          'cancelled' => context.tr('cancel_search'),
+          _ => context.tr('challenge_timed_out'),
+        };
+      });
     } on SocialApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) setState(() => _error = context.tr('try_again_when_connected'));
+      if (mounted) {
+        setState(() => _error = context.tr('try_again_when_connected'));
+      }
     } finally {
       _checking = false;
+    }
+  }
+
+  Future<void> _cancelChallenge() async {
+    if (_cancelling || _openingRoom || !mounted) return;
+    setState(() => _cancelling = true);
+    try {
+      await _social.cancelChallenge(_challenge.id);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } on SocialApiException catch (error) {
+      if (!mounted) return;
+      if (error.statusCode == 409) {
+        setState(() => _cancelling = false);
+        await _checkStatus();
+      } else {
+        setState(() {
+          _cancelling = false;
+          _error = error.message;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _cancelling = false;
+          _error = context.tr('try_again_when_connected');
+        });
+      }
     }
   }
 
@@ -149,11 +202,11 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   @override
   Widget build(BuildContext context) {
     final difficulty = SudokuDifficulty.values.firstWhere(
-      (value) => value.name == widget.challenge.difficulty,
+      (value) => value.name == _challenge.difficulty,
       orElse: () => SudokuDifficulty.easy,
     );
     final accent = _accent(difficulty);
-    final recipient = widget.challenge.recipient;
+    final recipient = _challenge.recipient;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
@@ -185,7 +238,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                           const SizedBox(height: 18),
                           Text(
                             _ended
-                                ? context.tr('challenge_timed_out')
+                                ? (_error ?? context.tr('challenge_timed_out'))
                                 : context.tr('finding_opponent_title'),
                             textAlign: TextAlign.center,
                             style: const TextStyle(
@@ -283,22 +336,25 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                             SizedBox(
                               width: double.infinity,
                               child: FilledButton.icon(
-                                onPressed: _checking ? null : _checkStatus,
-                                icon: const DuelAssetIcon(
-                                  DuelAsset.refresh,
-                                  size: 21,
-                                ),
-                                label: Text(context.tr('try_again')),
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const DuelAssetIcon(DuelAsset.home, size: 21),
+                                label: Text(context.tr('main_menu')),
                               ),
                             )
-                          else
+                          else ...[
                             const LinearProgressIndicator(minHeight: 6),
-                          const SizedBox(height: 8),
-                          TextButton.icon(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const DuelAssetIcon(DuelAsset.home, size: 20),
-                            label: Text(context.tr('main_menu')),
-                          ),
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: _cancelling ? null : _cancelChallenge,
+                              icon: _cancelling
+                                  ? const SizedBox.square(
+                                      dimension: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const DuelAssetIcon(DuelAsset.close, size: 20),
+                              label: Text(context.tr('cancel_search')),
+                            ),
+                          ],
                         ],
                       ),
                     ),

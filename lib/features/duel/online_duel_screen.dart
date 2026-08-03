@@ -18,6 +18,8 @@ import '../../widgets/number_pad.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/sudoku_board.dart';
 import '../economy/coin_store_screen.dart';
+import 'matchmaking_screen.dart';
+import 'pre_match_ready_screen.dart';
 
 class OnlineDuelScreen extends StatefulWidget {
   const OnlineDuelScreen({super.key, required this.roomId, this.controller});
@@ -43,7 +45,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   bool _screenLoadedSent = false;
   Timer? _feedbackTimer;
   Timer? _progressTimer;
+  Timer? _resultSettlementTimer;
   String? _shownResultFor;
+  int _resultSettlementAttempts = 0;
+  bool _forfeiting = false;
 
   @override
   void initState() {
@@ -58,6 +63,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     unawaited(_controller?.dispose());
     _feedbackTimer?.cancel();
     _progressTimer?.cancel();
+    _resultSettlementTimer?.cancel();
     super.dispose();
   }
 
@@ -79,6 +85,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
           _loading = false;
           _error = null;
           if (!snapshot.isLocalTurn) _selectedIndex = null;
+          if (snapshot.isFinished) _forfeiting = false;
         });
         if (!previousLocalTurn && snapshot.isLocalTurn) {
           unawaited(HapticFeedback.mediumImpact());
@@ -138,10 +145,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     }
   }
 
-  Future<bool> _confirmLeave() async {
+  Future<void> _requestForfeit() async {
     final snapshot = _snapshot;
-    if (snapshot == null || snapshot.isFinished) return true;
-    final leave = await showDialog<bool>(
+    if (snapshot == null || snapshot.isFinished || _forfeiting || !mounted) {
+      return;
+    }
+    final forfeit = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(context.tr('online_forfeit_title')),
@@ -158,8 +167,18 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         ],
       ),
     );
-    if (leave == true) _controller?.forfeit();
-    return leave == true;
+    if (forfeit != true || !mounted) return;
+    setState(() => _forfeiting = true);
+    _controller?.forfeit();
+    _controller?.requestSnapshot();
+    Timer(const Duration(seconds: 8), () {
+      if (!mounted || _snapshot?.isFinished == true) return;
+      setState(() => _forfeiting = false);
+      _controller?.requestSnapshot();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('connection_interrupted_retrying'))),
+      );
+    });
   }
 
   void _selectCell(int index) {
@@ -234,6 +253,22 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
 
   void _showResultOnce(OnlineDuelSnapshot snapshot) {
     if (!snapshot.isFinished || _shownResultFor == snapshot.matchId) return;
+    final needsSettlement =
+        (snapshot.status == OnlineDuelStatus.completed ||
+            snapshot.status == OnlineDuelStatus.forfeited) &&
+        snapshot.rating == null;
+    if (needsSettlement && _resultSettlementAttempts < 20) {
+      if (_resultSettlementTimer == null) {
+        _resultSettlementAttempts++;
+        _resultSettlementTimer = Timer(const Duration(milliseconds: 400), () {
+          _resultSettlementTimer = null;
+          _controller?.requestSnapshot();
+        });
+      }
+      return;
+    }
+    _resultSettlementTimer?.cancel();
+    _resultSettlementTimer = null;
     _shownResultFor = snapshot.matchId;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
@@ -250,8 +285,17 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         constraints: const BoxConstraints(maxWidth: 560),
         builder: (sheetContext) => _OnlineResultSheet(snapshot: snapshot),
       );
-      if (!mounted) return;
-      if (action == 'new_match' || action == 'menu') {
+      if (!mounted || action == null) return;
+      if (action.startsWith('rematch:')) {
+        final roomId = action.substring('rematch:'.length);
+        await Navigator.of(context).pushReplacement<void, void>(
+          MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
+        );
+      } else if (action == 'new_match') {
+        await Navigator.of(context).pushReplacement<void, void>(
+          MaterialPageRoute(builder: (_) => const MatchmakingScreen()),
+        );
+      } else if (action == 'menu') {
         Navigator.of(context).pop(action);
       }
     });
@@ -268,10 +312,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             _controller?.pendingMove == true);
     return PopScope(
       canPop: snapshot?.isFinished ?? true,
-      onPopInvokedWithResult: (didPop, _) async {
-        if (!didPop && await _confirmLeave() && context.mounted) {
-          Navigator.of(context).pop();
-        }
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_requestForfeit());
       },
       child: Scaffold(
         backgroundColor: activeArena ? const Color(0xFF0B1215) : null,
@@ -416,11 +458,15 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             snapshot: snapshot,
             compact: compact,
             board: board,
-            statusText: _controller?.pendingMove == true
+            statusText: _forfeiting
+                ? context.tr('connection_interrupted_retrying')
+                : _controller?.pendingMove == true
                 ? context.tr('sending_move')
                 : snapshot.isLocalTurn
                 ? context.tr('select_empty_cell_enter_number')
                 : context.tr('waiting_opponent_move'),
+            onForfeit: _requestForfeit,
+            forfeiting: _forfeiting,
           );
         }
         return Padding(
@@ -524,7 +570,6 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     final rating = snapshot.rating?[snapshot.youSeat];
     final won = snapshot.winnerSeat == snapshot.youSeat;
     final entryFee = _economy.entryFeeForDifficulty(snapshot.difficulty);
-    final winnerPot = _economy.winnerPotForDifficulty(snapshot.difficulty);
     final resultTitle = snapshot.winnerSeat == null
         ? context.tr('draw')
         : won
@@ -544,17 +589,24 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     final seconds = invite == null
         ? 0
         : invite.expiresAt.difference(DateTime.now()).inSeconds.clamp(0, 10);
-    final coinDelta = snapshot.coinSettlement?.deltas[snapshot.youSeat];
-    final coinValue = coinDelta == null
-        ? (won
-              ? '+${context.tr('coin_amount', <Object>[winnerPot])}'
-              : snapshot.winnerSeat == null
-              ? '+${context.tr('coin_amount', <Object>[entryFee])}'
-              : context.tr('coin_amount', const <Object>[0]))
-        : '${coinDelta >= 0 ? '+' : ''}${context.tr('coin_amount', <Object>[coinDelta])}';
+    final draw = snapshot.winnerSeat == null;
+    final localNetCoin = draw ? 0 : won ? entryFee : -entryFee;
+    final opponentNetCoin = -localNetCoin;
+    String coinLabel(int value) =>
+        '${value > 0 ? '+' : ''}${context.tr('coin_amount', <Object>[value])}';
     final footer = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (snapshot.mode == 'friendly') ...[
+          Text(
+            '${context.tr('challenge')} · ${context.tr('result_elo_change')}: 0',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .68),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
         if (_statusMessage != null) ...[
           const SizedBox(height: 12),
           Text(
@@ -660,8 +712,8 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
               ),
               _ResultMetric(
                 label: context.tr('coin_result'),
-                localValue: coinValue,
-                opponentValue: context.tr('coin_amount', const <Object>[0]),
+                localValue: coinLabel(localNetCoin),
+                opponentValue: coinLabel(opponentNetCoin),
                 asset: DuelAsset.coin,
               ),
             ],
@@ -748,10 +800,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
   Future<void> _openAcceptedRoom(String roomId) async {
     _pollTimer?.cancel();
     if (!mounted) return;
-    Navigator.of(context).pop();
-    await Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)),
-    );
+    Navigator.of(context).pop('rematch:$roomId');
   }
 
   Future<void> _addFriend() async {
@@ -1474,12 +1523,16 @@ class _ArenaMatchLayout extends StatelessWidget {
     required this.compact,
     required this.board,
     required this.statusText,
+    required this.onForfeit,
+    required this.forfeiting,
   });
 
   final OnlineDuelSnapshot snapshot;
   final bool compact;
   final Widget board;
   final String statusText;
+  final VoidCallback onForfeit;
+  final bool forfeiting;
 
   @override
   Widget build(BuildContext context) {
@@ -1501,7 +1554,25 @@ class _ArenaMatchLayout extends StatelessWidget {
         child: Column(
           children: [
             _MatchHeader(snapshot: snapshot, compact: compact),
-            SizedBox(height: compact ? 8 : 12),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: OutlinedButton.icon(
+                onPressed: forfeiting ? null : onForfeit,
+                icon: forfeiting
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.flag_rounded, size: 18),
+                label: Text(context.tr('forfeit_and_leave')),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFFFB4AB),
+                  visualDensity: VisualDensity.compact,
+                  minimumSize: const Size(48, 42),
+                ),
+              ),
+            ),
+            SizedBox(height: compact ? 4 : 8),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {

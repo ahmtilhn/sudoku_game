@@ -32,6 +32,7 @@ class _UxChallengeInvitationScreenState
 
   SocialChallenge? _challenge;
   Timer? _timer;
+  int _statusTicks = 0;
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -83,26 +84,26 @@ class _UxChallengeInvitationScreenState
     });
     try {
       await _economy.refresh(showLoading: false);
-      final pending = await _social.loadPendingChallenges();
-      SocialChallenge? match;
-      for (final challenge in pending) {
-        if (challenge.id == widget.challengeId) {
-          match = challenge;
-          break;
-        }
-      }
+      final challenge = await _social.loadChallenge(widget.challengeId);
       if (!mounted) return;
-      setState(() {
-        _challenge = match;
-        if (match == null) _error = context.tr('challenge_timed_out');
-      });
-      if (match != null) {
-        _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-          if (!mounted) return;
-          if (_secondsLeft <= 0) _timer?.cancel();
-          setState(() {});
-        });
+      setState(() => _challenge = challenge);
+      if (challenge.status == 'accepted') {
+        final roomId = await _resolveRoomId(challenge);
+        if (roomId != null && roomId.isNotEmpty && mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) unawaited(_openRoom(roomId));
+          });
+        }
+      } else if (challenge.status != 'pending') {
+        setState(() => _error = _statusMessage(challenge.status));
       }
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        _statusTicks++;
+        if (_secondsLeft <= 0) _timer?.cancel();
+        setState(() {});
+        if (_statusTicks.isEven) unawaited(_refreshStatus());
+      });
     } on SocialApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
@@ -112,6 +113,35 @@ class _UxChallengeInvitationScreenState
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _refreshStatus() async {
+    if (_busy || !mounted) return;
+    try {
+      final challenge = await _social.loadChallenge(widget.challengeId);
+      if (!mounted) return;
+      setState(() {
+        _challenge = challenge;
+        if (challenge.status != 'pending' && challenge.status != 'accepted') {
+          _error = _statusMessage(challenge.status);
+        }
+      });
+      if (challenge.status == 'accepted') {
+        final roomId = await _resolveRoomId(challenge);
+        if (roomId != null && roomId.isNotEmpty) await _openRoom(roomId);
+      }
+    } catch (_) {
+      // The explicit accept/decline actions still surface request failures.
+    }
+  }
+
+  String _statusMessage(String status) {
+    return switch (status) {
+      'declined' => context.tr('challenge_declined'),
+      'expired' => context.tr('challenge_timed_out'),
+      'cancelled' => context.tr('cancel_search'),
+      _ => context.tr('challenge_timed_out'),
+    };
   }
 
   Future<void> _respond(bool accept) async {
@@ -171,8 +201,13 @@ class _UxChallengeInvitationScreenState
     for (var attempt = 0; attempt < 12; attempt++) {
       await Future<void>.delayed(const Duration(milliseconds: 500));
       final active = await _social.activeMatch();
+      final activeChallengeId = active?['challengeId']?.toString();
       final roomId = active?['roomId']?.toString().trim();
-      if (roomId != null && roomId.isNotEmpty) return roomId;
+      if (activeChallengeId == widget.challengeId &&
+          roomId != null &&
+          roomId.isNotEmpty) {
+        return roomId;
+      }
     }
     return null;
   }
@@ -181,8 +216,11 @@ class _UxChallengeInvitationScreenState
     for (var attempt = 0; attempt < 12; attempt++) {
       try {
         final active = await _social.activeMatch();
+        final activeChallengeId = active?['challengeId']?.toString();
         final roomId = active?['roomId']?.toString().trim();
-        if (roomId != null && roomId.isNotEmpty) {
+        if (activeChallengeId == widget.challengeId &&
+            roomId != null &&
+            roomId.isNotEmpty) {
           await _openRoom(roomId);
           return true;
         }
@@ -197,6 +235,16 @@ class _UxChallengeInvitationScreenState
   Future<void> _openRoom(String roomId) async {
     await _economy.refresh(showLoading: false);
     if (!mounted) return;
+    await Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute(
+        builder: (_) => PreMatchReadyScreen(roomId: roomId),
+      ),
+    );
+  }
+
+  Future<void> _openRoom(String roomId) async {
+    if (!mounted) return;
+    _timer?.cancel();
     await Navigator.of(context).pushReplacement<void, void>(
       MaterialPageRoute(
         builder: (_) => PreMatchReadyScreen(roomId: roomId),

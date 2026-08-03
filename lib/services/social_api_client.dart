@@ -384,6 +384,22 @@ class SocialApiClient {
         .toList(growable: false);
   }
 
+  Future<SocialChallenge> loadChallenge(String challengeId) async {
+    final response = await _request(
+      'GET',
+      '/v1/challenges/${Uri.encodeComponent(challengeId)}',
+    );
+    return SocialChallenge.fromJson(response);
+  }
+
+  Future<SocialChallenge> cancelChallenge(String challengeId) async {
+    final response = await _request(
+      'DELETE',
+      '/v1/challenges/${Uri.encodeComponent(challengeId)}',
+    );
+    return SocialChallenge.fromJson(response);
+  }
+
   Future<SocialChallenge> respondToChallenge({
     required String challengeId,
     required bool accept,
