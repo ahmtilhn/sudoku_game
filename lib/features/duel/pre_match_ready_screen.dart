@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -8,7 +7,6 @@ import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
 import '../../widgets/app_backdrop.dart';
-import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
 import 'online_duel_screen.dart';
 
@@ -21,135 +19,119 @@ class PreMatchReadyScreen extends StatefulWidget {
   State<PreMatchReadyScreen> createState() => _PreMatchReadyScreenState();
 }
 
-class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
-    with TickerProviderStateMixin {
-  static const Duration _minimumSearchStage = Duration(milliseconds: 2600);
-
+class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   OnlineDuelController? _controller;
-  StreamSubscription<OnlineDuelSnapshot>? _subscription;
+  StreamSubscription<OnlineDuelSnapshot>? _snapshotSubscription;
+  StreamSubscription<OnlineDuelConnectionState>? _connectionSubscription;
   OnlineDuelSnapshot? _snapshot;
+  OnlineDuelConnectionState _connectionState =
+      OnlineDuelConnectionState.connecting;
   Object? _error;
-  bool _minimumElapsed = false;
+  bool _readyPressed = false;
   bool _screenLoadedSent = false;
   bool _handedOff = false;
-  bool _localReadyPressed = false;
-  bool _openingMatch = false;
-  Timer? _minimumTimer;
-  Timer? _clockTimer;
-  late final AnimationController _pulseController;
-  late final AnimationController _exitController;
+  bool _connecting = false;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat();
-    _exitController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 620),
-    );
-    _minimumTimer = Timer(_minimumSearchStage, () {
-      if (!mounted) return;
-      setState(() => _minimumElapsed = true);
-      _sendScreenLoaded();
-      final controller = _controller;
-      if (controller != null && _snapshot?.status == OnlineDuelStatus.active) {
-        unawaited(_openGame(controller));
-      }
-    });
-    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
     unawaited(_connect());
   }
 
   @override
   void dispose() {
-    _minimumTimer?.cancel();
-    _clockTimer?.cancel();
-    _pulseController.dispose();
-    _exitController.dispose();
-    unawaited(_subscription?.cancel());
-    if (!_handedOff) {
-      unawaited(_controller?.dispose());
-    }
+    unawaited(_snapshotSubscription?.cancel());
+    unawaited(_connectionSubscription?.cancel());
+    if (!_handedOff) unawaited(_controller?.dispose());
     super.dispose();
   }
 
   Future<void> _connect() async {
+    if (_connecting) return;
+    setState(() {
+      _connecting = true;
+      _error = null;
+      _connectionState = OnlineDuelConnectionState.connecting;
+    });
+
+    await _snapshotSubscription?.cancel();
+    await _connectionSubscription?.cancel();
+    await _controller?.dispose();
+    _controller = null;
+
     try {
-      final controller = OnlineDuelController(
-        await WebSocketOnlineDuelTransport.connect(widget.roomId),
-      )..start();
-      final subscription = controller.snapshots.listen((snapshot) {
+      final transport = await WebSocketOnlineDuelTransport.connect(widget.roomId);
+      final controller = OnlineDuelController(transport)..start();
+      final snapshotSubscription = controller.snapshots.listen((snapshot) {
         if (!mounted) return;
         setState(() {
-          _controller = controller;
           _snapshot = snapshot;
           _error = null;
           if (snapshot.players[snapshot.youSeat]?.ready == true) {
-            _localReadyPressed = true;
+            _readyPressed = true;
           }
         });
         _sendScreenLoaded();
         if (snapshot.status == OnlineDuelStatus.active) {
-          unawaited(_openGame(controller));
+          unawaited(_openMatch(controller));
         }
       });
+      final connectionSubscription = controller.connectionStates.listen((state) {
+        if (!mounted) return;
+        setState(() => _connectionState = state);
+      });
+
+      if (!mounted) {
+        await snapshotSubscription.cancel();
+        await connectionSubscription.cancel();
+        await controller.dispose();
+        return;
+      }
       setState(() {
         _controller = controller;
-        _subscription = subscription;
+        _snapshotSubscription = snapshotSubscription;
+        _connectionSubscription = connectionSubscription;
+        _connectionState = controller.connectionState;
       });
       controller.requestSnapshot();
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = error);
+      setState(() {
+        _error = error;
+        _connectionState = OnlineDuelConnectionState.failed;
+      });
+    } finally {
+      if (mounted) setState(() => _connecting = false);
     }
   }
 
   void _sendScreenLoaded() {
-    if (!_minimumElapsed || _screenLoadedSent || _snapshot == null) return;
-    _screenLoadedSent = true;
-    _controller?.screenLoaded();
+    if (_screenLoadedSent || _snapshot == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _screenLoadedSent) return;
+      _screenLoadedSent = true;
+      _controller?.screenLoaded();
+    });
   }
 
   void _ready() {
-    final you = _you;
-    if (you == null || you.ready) return;
-    setState(() => _localReadyPressed = true);
-    _controller?.ready();
+    if (_readyPressed || _controller == null) return;
+    setState(() => _readyPressed = true);
+    _controller!.ready();
   }
 
-  Future<void> _openGame(OnlineDuelController controller) async {
-    if (_handedOff || !_minimumElapsed) return;
+  Future<void> _openMatch(OnlineDuelController controller) async {
+    if (_handedOff || !mounted) return;
     _handedOff = true;
-    setState(() => _openingMatch = true);
-    await _exitController.forward();
+    await _snapshotSubscription?.cancel();
+    await _connectionSubscription?.cancel();
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 680),
-        reverseTransitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (_, _, _) =>
-            OnlineDuelScreen(roomId: widget.roomId, controller: controller),
-        transitionsBuilder: (_, animation, _, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutBack,
-          );
-          return ScaleTransition(
-            scale: Tween<double>(begin: .86, end: 1).animate(curved),
-            child: FadeTransition(
-              opacity: CurvedAnimation(
-                parent: animation,
-                curve: const Interval(.12, 1, curve: Curves.easeOut),
-              ),
-              child: child,
-            ),
-          );
-        },
+    await Navigator.of(context).pushReplacement<String?, void>(
+      MaterialPageRoute(
+        builder: (_) => OnlineDuelScreen(
+          roomId: widget.roomId,
+          controller: controller,
+        ),
       ),
     );
   }
@@ -169,470 +151,288 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen>
     return snapshot.players[seat];
   }
 
-  int get _secondsRemaining {
-    final deadline = _snapshot?.readyDeadline;
-    if (deadline == null) return 5;
-    final diff = deadline.difference(DateTime.now()).inSeconds;
-    return diff.clamp(0, 99);
+  bool get _readyStage {
+    final status = _snapshot?.status;
+    return status == OnlineDuelStatus.waiting ||
+        status == OnlineDuelStatus.readyWindow;
   }
+
+  bool get _youReady => _readyPressed || _you?.ready == true;
+  bool get _opponentReady => _opponent?.ready == true;
 
   @override
   Widget build(BuildContext context) {
-    final readyStage =
-        _minimumElapsed &&
-        (_snapshot?.status == OnlineDuelStatus.readyWindow ||
-            _snapshot?.status == OnlineDuelStatus.waiting);
-    final youReady = _you?.ready == true || _localReadyPressed;
-    final opponentReady = _opponent?.ready == true;
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            AppBackdrop(animation: _pulseController),
-            Positioned(
-              left: 12,
-              top: 8,
-              child: IconButton.filledTonal(
-                tooltip: context.tr('cancel_search'),
-                onPressed: () => Navigator.of(context).pop(),
-                icon: const DuelAssetIcon(DuelAsset.back, size: 22),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 36, 16, 16),
-              child: Column(
-                children: [
-                  Text(
-                    readyStage
-                        ? context.tr('ready_question')
-                        : context.tr('finding_opponent_title'),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
+      body: AppBackdrop(
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        IconButton.filledTonal(
+                          tooltip: context.tr('cancel_search'),
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _readyStage
+                                ? context.tr('ready_question')
+                                : context.tr('finding_opponent_title'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    readyStage
-                        ? context.tr('ready_when_opponent_ready')
-                        : context.tr('searching_similar_opponents'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .74),
+                    const SizedBox(height: 16),
+                    _ConnectionBanner(
+                      state: _connectionState,
+                      error: _error,
+                      onRetry: _connecting ? null : _connect,
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final compact = constraints.maxHeight < 560;
-                        final cardWidth = compact ? 126.0 : 142.0;
-                        final gap = constraints.maxWidth < 390 ? 46.0 : 62.0;
-                        final side = math.max(
-                          0.0,
-                          (constraints.maxWidth - (cardWidth * 2) - gap) / 2,
-                        );
-                        final top = compact ? 18.0 : 28.0;
-                        final bottom = top;
-                        return Stack(
-                          children: [
-                            AnimatedBuilder(
-                              animation: _exitController,
-                              builder: (context, child) {
-                                final value = Curves.easeInOutCubic.transform(
-                                  _exitController.value,
-                                );
-                                return Positioned(
-                                  left:
-                                      side -
-                                      (constraints.maxWidth * .52 * value),
-                                  top: top,
-                                  width: cardWidth,
-                                  child: Opacity(
-                                    opacity: 1 - (.55 * value),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: _PlayerReadyCard(
+                    const SizedBox(height: 18),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final vertical = constraints.maxWidth < 520;
+                          final cards = <Widget>[
+                            Expanded(
+                              child: _PlayerCard(
                                 player: _you,
                                 fallbackName: context.tr('you'),
-                                preferFallbackName: true,
-                                ready: youReady,
-                                highlighted: true,
-                                unknown: false,
-                                compact: compact,
+                                ready: _youReady,
+                                accent: const Color(0xFF29D398),
                               ),
                             ),
-                            AnimatedBuilder(
-                              animation: _exitController,
-                              builder: (context, child) {
-                                final value = Curves.easeInOutCubic.transform(
-                                  _exitController.value,
-                                );
-                                return Positioned(
-                                  right:
-                                      side -
-                                      (constraints.maxWidth * .52 * value),
-                                  bottom: bottom,
-                                  width: cardWidth,
-                                  child: Opacity(
-                                    opacity: 1 - (.55 * value),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: _PlayerReadyCard(
-                                player: readyStage ? _opponent : null,
-                                fallbackName: readyStage
-                                    ? context.tr('opponent')
-                                    : context.tr('searching_opponent_short'),
-                                ready: opponentReady,
-                                highlighted: false,
-                                unknown: !readyStage || _opponent == null,
-                                compact: compact,
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: vertical ? 0 : 12,
+                                vertical: vertical ? 10 : 0,
+                              ),
+                              child: const Icon(
+                                Icons.flash_on_rounded,
+                                color: Color(0xFFFFC94D),
+                                size: 34,
                               ),
                             ),
-                            Center(
-                              child: ScaleTransition(
-                                scale: Tween<double>(begin: 1, end: 1.28)
-                                    .animate(
-                                      CurvedAnimation(
-                                        parent: _exitController,
-                                        curve: Curves.easeOutCubic,
-                                      ),
-                                    ),
-                                child: FadeTransition(
-                                  opacity: Tween<double>(begin: 1, end: 0)
-                                      .animate(
-                                        CurvedAnimation(
-                                          parent: _exitController,
-                                          curve: Curves.easeIn,
-                                        ),
-                                      ),
-                                  child: _CenterBadge(
-                                    readyStage: readyStage,
-                                    bothReady: youReady && opponentReady,
-                                    animation: _pulseController,
-                                  ),
-                                ),
+                            Expanded(
+                              child: _PlayerCard(
+                                player: _opponent,
+                                fallbackName: context.tr('opponent'),
+                                ready: _opponentReady,
+                                accent: const Color(0xFF7A5CFF),
                               ),
                             ),
-                          ],
-                        );
-                      },
+                          ];
+                          return vertical
+                              ? Column(children: cards)
+                              : Row(children: cards);
+                        },
+                      ),
                     ),
-                  ),
-                  if (_error != null) ...[
-                    _StatusBar(
-                      asset: DuelAsset.cloud,
-                      text: context.tr('online_connection_failed', <Object>[
-                        _error!,
-                      ]),
+                    const SizedBox(height: 16),
+                    Text(
+                      _statusText(context),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .74),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                  ] else ...[
-                    _StatusBar(
-                      asset: readyStage ? DuelAsset.timer : DuelAsset.shield,
-                      text: readyStage
-                          ? _readyStatusText(context, youReady, opponentReady)
-                          : context.tr('elo_hint'),
-                      trailing: readyStage ? '$_secondsRemaining' : null,
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  if (readyStage)
+                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: youReady || _openingMatch ? null : _ready,
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF29D398),
-                          foregroundColor: const Color(0xFF08110E),
-                        ),
-                        icon: DuelAssetIcon(
-                          youReady ? DuelAsset.check : DuelAsset.shield,
-                          size: 22,
+                        onPressed: !_readyStage ||
+                                _youReady ||
+                                _controller == null ||
+                                _connectionState == OnlineDuelConnectionState.failed
+                            ? null
+                            : _ready,
+                        icon: Icon(
+                          _youReady
+                              ? Icons.check_circle_rounded
+                              : Icons.shield_outlined,
                         ),
                         label: Text(
-                          youReady
+                          _youReady
                               ? context.tr('ready')
                               : context.tr('i_am_ready'),
                         ),
                       ),
-                    )
-                  else
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Text(context.tr('cancel_search')),
-                      ),
                     ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  String _readyStatusText(
-    BuildContext context,
-    bool youReady,
-    bool opponentReady,
-  ) {
-    if (youReady && opponentReady) return context.tr('everyone_ready_starting');
-    if (youReady) return context.tr('you_ready_waiting_opponent');
-    if (opponentReady) return context.tr('opponent_ready_waiting_you');
+  String _statusText(BuildContext context) {
+    if (!_readyStage) return context.tr('searching_similar_opponents');
+    if (_youReady && _opponentReady) {
+      return context.tr('everyone_ready_starting');
+    }
+    if (_youReady) return context.tr('you_ready_waiting_opponent');
+    if (_opponentReady) return context.tr('opponent_ready_waiting_you');
     return context.tr('match_ready_prompt');
   }
 }
 
-class _PlayerReadyCard extends StatelessWidget {
-  const _PlayerReadyCard({
+class _ConnectionBanner extends StatelessWidget {
+  const _ConnectionBanner({
+    required this.state,
+    required this.error,
+    required this.onRetry,
+  });
+
+  final OnlineDuelConnectionState state;
+  final Object? error;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final failed = state == OnlineDuelConnectionState.failed || error != null;
+    final color = failed
+        ? Theme.of(context).colorScheme.error
+        : state == OnlineDuelConnectionState.connected
+            ? const Color(0xFF29D398)
+            : const Color(0xFFFFC94D);
+    return Container(
+      constraints: const BoxConstraints(minHeight: 52),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: .34)),
+      ),
+      child: Row(
+        children: [
+          Icon(_icon, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _label(context),
+              style: TextStyle(color: color, fontWeight: FontWeight.w900),
+            ),
+          ),
+          if (failed)
+            IconButton(
+              tooltip: context.tr('retry'),
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+        ],
+      ),
+    );
+  }
+
+  IconData get _icon {
+    return switch (state) {
+      OnlineDuelConnectionState.connected => Icons.cloud_done_outlined,
+      OnlineDuelConnectionState.reconnecting ||
+      OnlineDuelConnectionState.resyncing => Icons.sync_rounded,
+      OnlineDuelConnectionState.failed ||
+      OnlineDuelConnectionState.closed => Icons.cloud_off_outlined,
+      OnlineDuelConnectionState.connecting => Icons.cloud_sync_outlined,
+    };
+  }
+
+  String _label(BuildContext context) {
+    return switch (state) {
+      OnlineDuelConnectionState.connected => context.tr('connected'),
+      OnlineDuelConnectionState.reconnecting => context.tr('reconnecting'),
+      OnlineDuelConnectionState.resyncing =>
+        context.tr('connection_interrupted_retrying'),
+      OnlineDuelConnectionState.failed ||
+      OnlineDuelConnectionState.closed => context.tr('online_account_unavailable'),
+      OnlineDuelConnectionState.connecting =>
+        context.tr('connecting_players'),
+    };
+  }
+}
+
+class _PlayerCard extends StatelessWidget {
+  const _PlayerCard({
     required this.player,
     required this.fallbackName,
     required this.ready,
-    required this.highlighted,
-    required this.unknown,
-    required this.compact,
-    this.preferFallbackName = false,
+    required this.accent,
   });
 
   final OnlineDuelPlayer? player;
   final String fallbackName;
   final bool ready;
-  final bool highlighted;
-  final bool unknown;
-  final bool compact;
-  final bool preferFallbackName;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = highlighted
-        ? const Color(0xFF29D398)
-        : const Color(0xFF7A5CFF);
-    final name = preferFallbackName
-        ? fallbackName
-        : player?.displayName ?? fallbackName;
-    final radius = compact ? 30.0 : 36.0;
-    return Container(
-      width: compact ? 126 : 142,
-      padding: EdgeInsets.all(compact ? 12 : 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF18242B).withValues(alpha: .94),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: borderColor.withValues(alpha: .75)),
-        boxShadow: [
-          BoxShadow(
-            color: borderColor.withValues(alpha: .22),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
-          ),
-        ],
+    final name = player?.displayName ?? fallbackName;
+    return Card(
+      color: const Color(0xFF142126).withValues(alpha: .96),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: accent.withValues(alpha: .48)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          PlayerAvatar(
-            displayName: name,
-            avatarKey: player?.avatarKey ?? 'matchmaking-$name',
-            radius: radius,
-            semanticLabel: context.tr('player_avatar_semantics', <Object>[
-              name,
-            ]),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            unknown ? context.tr('world') : context.tr('elo_unknown'),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .58),
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const DuelAssetIcon(
-                DuelAsset.trophy,
-                color: Color(0xFFFFC94D),
-                size: 18,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                unknown ? '?' : '1000',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'ELO',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .48),
-              fontSize: 11,
-            ),
-          ),
-          if (ready) ...[
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0E8E60).withValues(alpha: .65),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const DuelAssetIcon(
-                    DuelAsset.check,
-                    color: Color(0xFF46F5A8),
-                    size: 15,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    context.tr('ready').toUpperCase(),
-                    style: const TextStyle(
-                      color: Color(0xFF46F5A8),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _CenterBadge extends StatelessWidget {
-  const _CenterBadge({
-    required this.readyStage,
-    required this.bothReady,
-    required this.animation,
-  });
-
-  final bool readyStage;
-  final bool bothReady;
-  final Animation<double> animation;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, _) {
-        final pulse = Curves.easeOut.transform(animation.value);
-        return Stack(
-          alignment: Alignment.center,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 58 + (pulse * 42),
-              height: 58 + (pulse * 42),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(
-                    0xFF29D398,
-                  ).withValues(alpha: .42 * (1 - pulse)),
-                ),
+            PlayerAvatar(
+              displayName: name,
+              avatarKey: player?.avatarKey ?? 'prematch-$name',
+              radius: 40,
+              semanticLabel: context.tr(
+                'player_avatar_semantics',
+                <Object>[name],
               ),
             ),
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF22313A),
-                border: Border.all(color: const Color(0xFF29D398), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF29D398).withValues(alpha: .30),
-                    blurRadius: 14,
-                  ),
-                ],
-              ),
-              child: DuelAssetIcon(
-                readyStage
-                    ? (bothReady ? DuelAsset.people : DuelAsset.check)
-                    : DuelAsset.search,
+            const SizedBox(height: 12),
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
                 color: Colors.white,
-                size: 30,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              player == null ? '—' : context.tr('elo_unknown'),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .58),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Chip(
+              avatar: Icon(
+                ready ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                color: ready ? const Color(0xFF29D398) : accent,
+              ),
+              label: Text(
+                ready ? context.tr('ready') : context.tr('waiting_opponent_ready'),
               ),
             ),
           ],
-        );
-      },
-    );
-  }
-}
-
-class _StatusBar extends StatelessWidget {
-  const _StatusBar({required this.asset, required this.text, this.trailing});
-
-  final String asset;
-  final String text;
-  final String? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF18242B).withValues(alpha: .90),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
-      ),
-      child: Row(
-        children: [
-          DuelAssetIcon(asset, color: const Color(0xFF29D398), size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(color: Colors.white.withValues(alpha: .72)),
-            ),
-          ),
-          if (trailing != null)
-            Container(
-              width: 38,
-              height: 38,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF29D398)),
-              ),
-              child: Text(
-                trailing!,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

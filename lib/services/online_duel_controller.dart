@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+import '../core/app_messenger.dart';
 import 'online_duel_models.dart';
 import 'online_duel_transport.dart';
 import 'platform_game_stats_service.dart';
@@ -112,9 +113,11 @@ class OnlineDuelController with WidgetsBindingObserver {
     await _transport.close();
     await _feedback.close();
     await _snapshots.close();
+    AppMessenger.resetOnlineConnectionState();
   }
 
   void _handleConnectionState(OnlineDuelConnectionState state) {
+    AppMessenger.showOnlineConnectionState(state);
     if (state == OnlineDuelConnectionState.resyncing) {
       final pendingMove = _pendingMoveEnvelope;
       if (pendingMove != null) {

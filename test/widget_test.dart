@@ -7,7 +7,6 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:sudoku_game/app.dart';
 import 'package:sudoku_game/data/local_progress_store.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
-import 'package:sudoku_game/widgets/duel_asset_icon.dart';
 import 'package:sudoku_game/widgets/player_avatar.dart';
 
 void main() {
@@ -31,7 +30,7 @@ void main() {
         .setMockMethodCallHandler(localizationChannel, null);
   });
 
-  testWidgets('home focuses on Career and Online Duel without tab shell', (
+  testWidgets('home exposes the unified primary UX without a tab shell', (
     tester,
   ) async {
     final store = await LocalProgressStore.createInMemory();
@@ -42,11 +41,12 @@ void main() {
 
     expect(find.text('Career'), findsOneWidget);
     expect(find.text('Online Duel'), findsOneWidget);
+    expect(find.text('Friends & challenges'), findsWidgets);
+    expect(find.text('Coin Store'), findsOneWidget);
     expect(find.text('Daily Sudoku'), findsNothing);
     expect(find.text('Ranked'), findsNothing);
     expect(find.text('Practice'), findsNothing);
     expect(find.text('Protect your player account'), findsNothing);
-    expect(find.byIcon(Icons.shield_outlined), findsNothing);
     expect(
       find.byWidgetPredicate(
         (widget) => widget is NavigationBar || widget is NavigationRail,
@@ -55,7 +55,8 @@ void main() {
     );
 
     expect(find.byType(PlayerAvatar), findsWidgets);
-    expect(find.image(const AssetImage(DuelAsset.settings)), findsOneWidget);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.people_outline_rounded), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
