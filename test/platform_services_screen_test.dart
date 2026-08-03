@@ -57,7 +57,22 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Global ELO'), findsOneWidget);
+
+    final scrollable = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('Beginner', skipOffstage: false),
+      220,
+      scrollable: scrollable,
+    );
     expect(find.text('Beginner'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.scrollUntilVisible(
+      find.text('Achievement Showcase', skipOffstage: false).last,
+      220,
+      scrollable: scrollable,
+    );
     expect(find.text('Achievement Showcase'), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 }
