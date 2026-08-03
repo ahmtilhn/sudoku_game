@@ -48,32 +48,68 @@ try {
   foreach ($file in $migrationFiles) {
     $lines = Get-Content $file.FullName
     $insideTrigger = $false
-    $cleanLines = foreach ($line in $lines) {
-      if ($insideTrigger) {
-        if ($line -match '^\s*END;\s*$') {
-          $insideTrigger = $false
+    $triggerBodyStarted = $false
+    $caseDepth = 0
+    $cleanLines = New-Object 'System.Collections.Generic.List[string]'
+
+    foreach ($line in $lines) {
+      if (-not $insideTrigger) {
+        if ($line -match '^\s*CREATE\s+TRIGGER\b') {
+          $insideTrigger = $true
+          $triggerBodyStarted = $false
+          $caseDepth = 0
+          continue
+        }
+
+        if ($line -match '^\s*--') {
+          continue
+        }
+
+        [void]$cleanLines.Add($line)
+        continue
+      }
+
+      $trimmed = $line.Trim()
+      if (-not $triggerBodyStarted) {
+        if ($trimmed -match '^BEGIN\s*$') {
+          $triggerBodyStarted = $true
         }
         continue
       }
 
-      if ($line -match '^\s*CREATE\s+TRIGGER\b') {
-        $insideTrigger = $true
+      # A CASE expression can also end with a standalone END; line. Only an
+      # END; encountered at CASE depth zero closes the CREATE TRIGGER body.
+      if ($trimmed -match '^END;\s*$' -and $caseDepth -eq 0) {
+        $insideTrigger = $false
+        $triggerBodyStarted = $false
+        $caseDepth = 0
         continue
       }
 
-      if ($line -match '^\s*--') {
-        continue
-      }
+      $scanLine = [regex]::Replace($line, "'(?:''|[^'])*'", "''")
+      $caseCount = [regex]::Matches(
+        $scanLine,
+        '\bCASE\b',
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+      ).Count
+      $endCount = [regex]::Matches(
+        $scanLine,
+        '\bEND\b',
+        [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+      ).Count
 
-      $line
+      $caseDepth += $caseCount
+      if ($endCount -gt 0) {
+        $caseDepth = [Math]::Max(0, $caseDepth - $endCount)
+      }
     }
 
     if ($insideTrigger) {
       throw "Kapanmayan CREATE TRIGGER bloğu bulundu: $($file.Name)"
     }
 
-    if (-not $cleanLines -or $cleanLines.Count -eq 0) {
-      $cleanLines = @('SELECT 1;')
+    if ($cleanLines.Count -eq 0) {
+      [void]$cleanLines.Add('SELECT 1;')
     }
 
     $destination = Join-Path $tempRoot $file.Name
