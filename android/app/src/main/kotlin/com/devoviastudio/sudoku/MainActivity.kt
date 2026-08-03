@@ -2,6 +2,12 @@ package com.devoviastudio.sudoku
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.games.AnnotatedData
 import com.google.android.gms.games.FriendsResolutionRequiredException
 import com.google.android.gms.games.PlayGames
@@ -10,6 +16,8 @@ import com.google.android.gms.tasks.Task
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.security.MessageDigest
+import java.util.Locale
 
 class MainActivity : FlutterActivity() {
     private val localizationChannel = "com.devovia.sudoku/localization"
@@ -60,6 +68,7 @@ class MainActivity : FlutterActivity() {
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "isConfigured" -> result.success(isPlayGamesConfigured)
+                "getDiagnostics" -> result.success(playGamesDiagnostics())
                 "isAuthenticated" -> checkAuthentication(result, prompt = false)
                 "authenticate" -> checkAuthentication(result, prompt = true)
                 "getLocalPlayer" -> getLocalPlayer(result)
@@ -98,7 +107,7 @@ class MainActivity : FlutterActivity() {
         result.error(
             "not_configured",
             "Replace the Play Games project and OAuth placeholders first.",
-            null,
+            playGamesDiagnostics(),
         )
         return false
     }
@@ -109,15 +118,142 @@ class MainActivity : FlutterActivity() {
         val task = if (prompt) client.signIn() else client.isAuthenticated
         task.addOnCompleteListener { completed ->
             if (!completed.isSuccessful) {
+                // isAuthenticated() is only a state probe. A failed probe must
+                // fall through to the explicit signIn() call in Flutter instead
+                // of aborting the entire connection flow.
+                if (!prompt) {
+                    result.success(false)
+                    return@addOnCompleteListener
+                }
+                val exception = completed.exception
                 result.error(
                     "authentication_failed",
-                    completed.exception?.localizedMessage ?: "Play Games authentication failed.",
-                    null,
+                    authenticationFailureMessage(exception),
+                    playGamesDiagnostics(exception),
                 )
                 return@addOnCompleteListener
             }
-            result.success(completed.result.isAuthenticated)
+
+            val authenticated = completed.result.isAuthenticated
+            if (authenticated || !prompt) {
+                result.success(authenticated)
+                return@addOnCompleteListener
+            }
+
+            result.error(
+                "not_authenticated",
+                "Play Games completed sign-in but returned isAuthenticated=false. " +
+                    diagnosticSummary(),
+                playGamesDiagnostics(),
+            )
         }
+    }
+
+    private fun authenticationFailureMessage(exception: Exception?): String {
+        val apiException = exception as? ApiException
+        val reason = exception?.localizedMessage?.takeIf { it.isNotBlank() }
+            ?: "Play Games authentication failed."
+        val status = apiException?.statusCode
+        val statusText = status?.let(CommonStatusCodes::getStatusCodeString)
+        return buildString {
+            append(reason)
+            if (status != null) {
+                append(" statusCode=")
+                append(status)
+                append(" (")
+                append(statusText)
+                append(')')
+            }
+            append(" | ")
+            append(diagnosticSummary())
+        }
+    }
+
+    private fun diagnosticSummary(): String {
+        return playGamesDiagnostics().entries.joinToString(", ") { (key, value) ->
+            "$key=$value"
+        }
+    }
+
+    private fun playGamesDiagnostics(exception: Exception? = null): Map<String, String> {
+        val playServicesCode = GoogleApiAvailability.getInstance()
+            .isGooglePlayServicesAvailable(this)
+        val apiException = exception as? ApiException
+        return linkedMapOf(
+            "packageName" to packageName,
+            "projectId" to getString(R.string.game_services_project_id).trim(),
+            "certificateSha1" to signingCertificateSha1(),
+            "installer" to installerPackageName(),
+            "version" to installedVersion(),
+            "playServicesStatus" to
+                "$playServicesCode (${ConnectionResult.getStatusString(playServicesCode)})",
+            "apiStatusCode" to (apiException?.statusCode?.toString() ?: "none"),
+            "apiStatusName" to (
+                apiException?.statusCode?.let(CommonStatusCodes::getStatusCodeString)
+                    ?: "none"
+                ),
+        )
+    }
+
+    private fun installedVersion(): String {
+        return runCatching {
+            val info = packageManager.getPackageInfo(packageName, 0)
+            val code = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                info.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                info.versionCode.toLong()
+            }
+            "${info.versionName ?: "unknown"} ($code)"
+        }.getOrDefault("unknown")
+    }
+
+    private fun installerPackageName(): String {
+        return runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                packageManager.getInstallSourceInfo(packageName)
+                    .installingPackageName
+                    ?: "manual_or_unknown"
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getInstallerPackageName(packageName)
+                    ?: "manual_or_unknown"
+            }
+        }.getOrDefault("unknown")
+    }
+
+    private fun signingCertificateSha1(): String {
+        return runCatching {
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageManager.getPackageInfo(
+                    packageName,
+                    PackageManager.GET_SIGNING_CERTIFICATES,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+            }
+
+            val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val signingInfo = packageInfo.signingInfo
+                    ?: return@runCatching "unavailable"
+                if (signingInfo.hasMultipleSigners()) {
+                    signingInfo.apkContentsSigners
+                } else {
+                    signingInfo.signingCertificateHistory
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.signatures
+            }
+            val signature = signatures?.firstOrNull()
+                ?: return@runCatching "unavailable"
+            val digest = MessageDigest.getInstance("SHA-1")
+                .digest(signature.toByteArray())
+            digest.joinToString(":") { byte ->
+                "%02X".format(Locale.US, byte.toInt() and 0xFF)
+            }
+        }.getOrDefault("unavailable")
     }
 
     private fun getLocalPlayer(result: MethodChannel.Result) {
@@ -134,7 +270,11 @@ class MainActivity : FlutterActivity() {
                 )
             }
             .addOnFailureListener { exception ->
-                result.error("player_unavailable", exception.localizedMessage, null)
+                result.error(
+                    "player_unavailable",
+                    exception.localizedMessage,
+                    playGamesDiagnostics(exception),
+                )
             }
     }
 
@@ -389,7 +529,7 @@ class MainActivity : FlutterActivity() {
         rawValue: Any,
     ) {
         if (propertyName.isBlank()) {
-            throw IllegalArgumentException("Game Stats property name is required.")
+            throw IllegalArgumentException("A Game Stats property name is required.")
         }
         val methods = builder.javaClass.methods.filter { method ->
             method.name == "addProperty" &&
@@ -454,7 +594,11 @@ class MainActivity : FlutterActivity() {
             .requestServerSideAccess(webClientId, false)
             .addOnSuccessListener(result::success)
             .addOnFailureListener { exception ->
-                result.error("server_auth_failed", exception.localizedMessage, null)
+                result.error(
+                    "server_auth_failed",
+                    exception.localizedMessage,
+                    playGamesDiagnostics(exception),
+                )
             }
     }
 
