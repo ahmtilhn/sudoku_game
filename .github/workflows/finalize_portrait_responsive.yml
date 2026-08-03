@@ -1,0 +1,37 @@
+name: Finalize portrait responsive transformations
+
+on:
+  push:
+    branches:
+      - agent/portrait-responsive-overhaul
+    paths:
+      - tool/apply_portrait_responsive_overhaul.py
+      - .github/workflows/finalize_portrait_responsive.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/portrait-responsive-overhaul
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply final responsive transformations
+        run: python tool/apply_portrait_responsive_overhaul.py
+      - name: Remove temporary transformation files
+        run: |
+          rm -f tool/apply_portrait_responsive_overhaul.py
+          rm -f .github/workflows/finalize_portrait_responsive.yml
+      - name: Commit final responsive code
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finalize portrait responsive overhaul"
+          git push origin HEAD:agent/portrait-responsive-overhaul
