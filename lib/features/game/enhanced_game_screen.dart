@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../widgets/responsive_layout.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
 import '../../data/local_progress_store.dart';

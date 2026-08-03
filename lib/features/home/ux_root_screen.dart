@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-
-import '../../widgets/responsive_layout.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+
+import '../../widgets/responsive_layout.dart';
 
 import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
@@ -466,6 +466,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
     if (!mounted) return;
     final wasCompleted = widget.store.isCompleted(level.id);
     await _legacySessions.clearAll();
+    if (!mounted) return;
     await Navigator.of(context).push<EnhancedGameExit>(
       MaterialPageRoute(
         builder: (gameContext) => EnhancedGameScreen(

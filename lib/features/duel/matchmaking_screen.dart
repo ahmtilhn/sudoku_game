@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../widgets/responsive_layout.dart';
-import 'package:intl/intl.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
