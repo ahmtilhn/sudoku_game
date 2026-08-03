@@ -176,25 +176,47 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
         }
 
         val appEnvironment = decodedDartDefines["APP_ENVIRONMENT"]?.trim()?.lowercase()
-        if (appEnvironment != "production") {
+        val internalTesting =
+            decodedDartDefines["INTERNAL_TESTING"]?.trim()?.lowercase() == "true"
+        val validEnvironment =
+            appEnvironment == "production" ||
+                (internalTesting && appEnvironment == "staging")
+        if (!validEnvironment) {
             throw GradleException(
-                "Release build requires --dart-define=APP_ENVIRONMENT=production.",
+                "Release build requires APP_ENVIRONMENT=production. " +
+                    "A Play internal-testing AAB may use APP_ENVIRONMENT=staging only together with INTERNAL_TESTING=true.",
             )
         }
 
         val backendUrl = decodedDartDefines["SOCIAL_BACKEND_URL"]?.trim().orEmpty()
         val backendUri = runCatching { URI(backendUrl) }.getOrNull()
         val backendHost = backendUri?.host?.lowercase().orEmpty()
+        val placeholderHost =
+            backendHost.contains("gercek-production-worker-adresi") ||
+                backendHost.contains("replace_with") ||
+                backendHost.contains("example")
         if (
             backendUri == null ||
             backendUri.scheme != "https" ||
             backendHost.isBlank() ||
-            backendHost.contains("staging") ||
             backendHost == "localhost" ||
-            backendHost == "127.0.0.1"
+            backendHost == "127.0.0.1" ||
+            placeholderHost
         ) {
             throw GradleException(
-                "Release build requires a production HTTPS SOCIAL_BACKEND_URL and rejects staging/localhost hosts.",
+                "Release build requires a real HTTPS SOCIAL_BACKEND_URL; placeholder and local hosts are rejected.",
+            )
+        }
+
+        val isStagingHost = backendHost.contains("staging")
+        if (appEnvironment == "production" && isStagingHost) {
+            throw GradleException(
+                "Production release builds cannot use a staging SOCIAL_BACKEND_URL.",
+            )
+        }
+        if (appEnvironment == "staging" && (!internalTesting || !isStagingHost)) {
+            throw GradleException(
+                "Internal staging release builds require INTERNAL_TESTING=true and a staging SOCIAL_BACKEND_URL.",
             )
         }
 
