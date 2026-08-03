@@ -2,7 +2,9 @@ name: Mobile CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - agent/challenge-system-hardening
     paths:
       - 'lib/**'
       - 'test/**'
@@ -32,7 +34,7 @@ concurrency:
 
 jobs:
   sync-latest-main:
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/challenge-system-hardening'
+    if: github.ref_name == 'agent/challenge-system-hardening' || github.head_ref == 'agent/challenge-system-hardening'
     runs-on: ubuntu-latest
     outputs:
       synced: ${{ steps.sync.outputs.synced }}
