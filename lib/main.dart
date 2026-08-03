@@ -48,6 +48,7 @@ Future<void> main() async {
             await push.requestPermissionAndRegister();
           }
         }
+        await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
       }, timeout: const Duration(seconds: 60)),
     );
     unawaited(

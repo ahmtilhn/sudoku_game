@@ -1956,20 +1956,24 @@ export class GameRoom {
       ).bind(duel.status, now, winnerId, duel.finishReason, rated ? 1 : 0, now, now, duel.matchId),
       this.matchPlayerStatement(duel, 'A', resultA, duel.ratingResult.A, now),
       this.matchPlayerStatement(duel, 'B', resultB, duel.ratingResult.B, now),
-      this.env.DB.prepare(
-        `INSERT INTO recent_opponents (
-           player_low_id, player_high_id, last_challenge_id, last_winner_id, last_played_at
-         ) VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT(player_low_id, player_high_id) DO UPDATE SET
-           last_challenge_id = excluded.last_challenge_id,
-           last_winner_id = excluded.last_winner_id,
-           last_played_at = excluded.last_played_at`,
-      ).bind(
-        ...orderedPair(duel.playerA.player.id, duel.playerB.player.id),
-        duel.challengeId,
-        winnerId,
-        now,
-      ),
+      ...(duel.startedAt !== null
+        ? [
+            this.env.DB.prepare(
+              `INSERT INTO recent_opponents (
+                 player_low_id, player_high_id, last_challenge_id, last_winner_id, last_played_at
+               ) VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(player_low_id, player_high_id) DO UPDATE SET
+                 last_challenge_id = excluded.last_challenge_id,
+                 last_winner_id = excluded.last_winner_id,
+                 last_played_at = excluded.last_played_at`,
+            ).bind(
+              ...orderedPair(duel.playerA.player.id, duel.playerB.player.id),
+              duel.challengeId,
+              winnerId,
+              now,
+            ),
+          ]
+        : []),
       ...this.ratingStatements(duel, 'A', resultA, duel.ratingResult.A, rated, now),
       ...this.ratingStatements(duel, 'B', resultB, duel.ratingResult.B, rated, now),
       this.env.DB.prepare(

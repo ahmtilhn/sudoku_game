@@ -30,6 +30,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   bool _readyPressed = false;
   bool _screenLoadedSent = false;
   bool _handedOff = false;
+  bool _allowPop = false;
   bool _connecting = false;
   bool _leaving = false;
   Timer? _retryTimer;
@@ -142,7 +143,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     setState(() => _leaving = true);
     final controller = _controller;
     if (controller == null) {
-      _handedOff = true;
+      setState(() => _allowPop = true);
       if (mounted) Navigator.of(context).pop();
       return;
     }
@@ -157,8 +158,14 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         break;
       }
     }
+    await _snapshotSubscription?.cancel();
+    await _connectionSubscription?.cancel();
+    await controller.dispose();
+    _controller = null;
+    _snapshotSubscription = null;
+    _connectionSubscription = null;
     if (!mounted) return;
-    _handedOff = true;
+    setState(() => _allowPop = true);
     Navigator.of(context).pop();
   }
 
@@ -211,7 +218,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _handedOff,
+      canPop: _handedOff || _allowPop,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_cancelAndLeave());
       },
