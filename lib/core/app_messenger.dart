@@ -12,7 +12,7 @@ class AppMessenger {
   static OnlineDuelConnectionState? _lastConnectionState;
 
   static void showOnlineConnectionState(OnlineDuelConnectionState state) {
-    if (_lastConnectionState == state) return;
+    if (!_bindingReady || _lastConnectionState == state) return;
     _lastConnectionState = state;
     final messenger = key.currentState;
     final context = key.currentContext;
@@ -56,6 +56,16 @@ class AppMessenger {
 
   static void resetOnlineConnectionState() {
     _lastConnectionState = null;
+    if (!_bindingReady) return;
     key.currentState?.clearMaterialBanners();
+  }
+
+  static bool get _bindingReady {
+    try {
+      WidgetsBinding.instance;
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 }
