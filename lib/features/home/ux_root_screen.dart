@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../../widgets/responsive_layout.dart';
+
 import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
 import '../../data/game_session_store.dart';
@@ -11,7 +13,6 @@ import '../../data/local_progress_store.dart';
 import '../../data/ux_game_session_store.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
-import '../../services/ads_service.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
@@ -26,8 +27,6 @@ import '../duel/matchmaking_screen.dart';
 import '../duel/online_duel_screen.dart';
 import '../economy/coin_store_screen.dart';
 import '../game/enhanced_game_screen.dart';
-import '../game/game_screen.dart';
-import '../game/hint_economy.dart';
 import '../settings/ux_settings_screen.dart';
 import '../social/profile_hub_screen.dart';
 import '../social/social_hub_screen.dart';
@@ -328,7 +327,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
         _snack(context.tr('challenge_timed_out'));
         return;
       }
-      final response = await showModalBottomSheet<bool>(
+      final response = await showAdaptiveBottomSheet<bool>(
         context: context,
         isDismissible: false,
         enableDrag: false,
@@ -466,21 +465,17 @@ class _UxRootScreenState extends State<UxRootScreen> {
     );
     if (!mounted) return;
     final wasCompleted = widget.store.isCompleted(level.id);
-    await Navigator.of(context).push<bool>(
+    await _legacySessions.clearAll();
+    if (!mounted) return;
+    await Navigator.of(context).push<EnhancedGameExit>(
       MaterialPageRoute(
-        builder: (gameContext) => GameScreen(
+        builder: (gameContext) => EnhancedGameScreen(
           puzzle: puzzle,
+          store: widget.store,
           completionTitle: gameContext.tr('level_title', <Object>[
             gameContext.strings.difficultyLabel(level.difficulty),
             level.number,
           ]),
-          mistakeLimit: 3,
-          coinContinueCost: 25,
-          onCoinContinue: (_) => _economy.spendCareerContinue(),
-          onRewardedContinue: AdsService.instance.showRewarded,
-          onConsumeHint: () =>
-              HintEconomy.consumeOrAcquire(gameContext, widget.store),
-          hintBalanceProvider: () => widget.store.hints,
           onCompleted:
               ({
                 required seconds,
@@ -736,6 +731,8 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = profile?.displayName ?? 'Sudoku Player';
+    final metrics = ResponsiveMetrics.of(context);
+    final compact = metrics.isTiny || metrics.hasLargeText;
     return Row(
       children: [
         Expanded(
@@ -753,18 +750,20 @@ class _TopBar extends StatelessWidget {
                     <Object>[name],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
+                if (!compact) ...[
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

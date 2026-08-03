@@ -112,6 +112,8 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                     : constraints.maxWidth >= 520
                     ? 2
                     : 1;
+                final largeText =
+                    MediaQuery.textScalerOf(context).scale(1) > 1.3;
                 return CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
@@ -228,7 +230,9 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                             crossAxisCount: columns,
                             mainAxisSpacing: 12,
                             crossAxisSpacing: 12,
-                            childAspectRatio: columns == 1 ? 2.2 : 1.12,
+                            mainAxisExtent: columns == 1
+                                ? (largeText ? 238 : 194)
+                                : (largeText ? 278 : 236),
                           ),
                           itemCount: _store.coinProducts.length,
                           itemBuilder: (context, index) {

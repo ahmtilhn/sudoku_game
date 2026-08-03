@@ -206,8 +206,8 @@ class _ActionButton extends StatelessWidget {
         backgroundColor: selected
             ? scheme.primaryContainer
             : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        minimumSize: const Size(48, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        minimumSize: const Size(48, 48),
         tapTargetSize: MaterialTapTargetSize.padded,
       ),
       child: Row(
@@ -218,7 +218,8 @@ class _ActionButton extends StatelessWidget {
           Flexible(
             child: Text(
               label,
-              maxLines: 1,
+              maxLines: 2,
+              textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
             ),
           ),

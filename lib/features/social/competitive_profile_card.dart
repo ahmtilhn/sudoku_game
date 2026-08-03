@@ -33,62 +33,87 @@ class CompetitiveProfileCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                PlayerAvatar(
-                  displayName: displayName,
-                  avatarKey: profile.avatarKey,
-                  remoteApprovedImageUrl: platformPlayer?.avatarUrl,
-                  radius: 28,
-                  semanticLabel: context.tr('player_avatar_semantics', <Object>[
-                    displayName,
-                  ]),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact =
+                    constraints.maxWidth < 430 ||
+                    MediaQuery.textScalerOf(context).scale(1) > 1.3;
+                final identity = Row(
+                  children: [
+                    PlayerAvatar(
+                      displayName: displayName,
+                      avatarKey: profile.avatarKey,
+                      remoteApprovedImageUrl: platformPlayer?.avatarUrl,
+                      radius: 28,
+                      semanticLabel: context.tr(
+                        'player_avatar_semantics',
+                        <Object>[displayName],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
-                            child: Text(
-                              displayName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  displayName,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
                               ),
+                              if (profile.privateProfile) ...[
+                                const SizedBox(width: 6),
+                                DuelAssetIcon(
+                                  DuelAsset.lock,
+                                  size: 16,
+                                  color: Colors.white.withValues(alpha: .62),
+                                ),
+                              ],
+                            ],
+                          ),
+                          Text(
+                            '@${profile.username} · ${profile.publicId}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .56),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          if (profile.privateProfile) ...[
-                            const SizedBox(width: 6),
-                            DuelAssetIcon(
-                              DuelAsset.lock,
-                              size: 16,
-                              color: Colors.white.withValues(alpha: .62),
-                            ),
-                          ],
                         ],
                       ),
-                      Text(
-                        '@${profile.username} · ${profile.publicId}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .56),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                    ),
+                  ],
+                );
+
+                if (compact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      identity,
+                      const SizedBox(height: 10),
+                      _RankBadge(label: profile.rankName),
                     ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _RankBadge(label: profile.rankName),
-              ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: identity),
+                    const SizedBox(width: 8),
+                    _RankBadge(label: profile.rankName),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -170,6 +195,8 @@ class _RankBadge extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: Text(
           label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Color(0xFF9FD4FF),
             fontWeight: FontWeight.w900,
@@ -209,28 +236,36 @@ class _ProfileChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .18),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: .24)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DuelAssetIcon(asset, size: 14, color: color),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
+    final maxWidth = MediaQuery.sizeOf(context).width - 64;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: .18),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: color.withValues(alpha: .24)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DuelAssetIcon(asset, size: 14, color: color),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

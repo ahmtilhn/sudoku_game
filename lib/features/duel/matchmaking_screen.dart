@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../widgets/responsive_layout.dart';
+
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
@@ -212,7 +214,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       await _findOpponent();
       return;
     }
-    await showModalBottomSheet<void>(
+    await showAdaptiveBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
@@ -759,6 +761,9 @@ class _FullScreenSearchingStageState extends State<_FullScreenSearchingStage>
                   const SizedBox(height: 6),
                   Text(
                     context.tr('searching_similar_opponents'),
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .62),
                     ),
@@ -775,6 +780,28 @@ class _FullScreenSearchingStageState extends State<_FullScreenSearchingStage>
                         );
                         final top = constraints.maxHeight < 560 ? 18.0 : 28.0;
                         final bottom = top;
+                        final compact =
+                            constraints.maxHeight < 390 ||
+                            MediaQuery.textScalerOf(context).scale(1) > 1.3;
+                        if (compact) {
+                          return SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                _SearchPreviewCard(
+                                  title: context.tr('you'),
+                                  known: true,
+                                ),
+                                const SizedBox(height: 12),
+                                const _SearchOrb(),
+                                const SizedBox(height: 12),
+                                _SearchPreviewCard(
+                                  title: context.tr('searching_opponent_short'),
+                                  known: false,
+                                ),
+                              ],
+                            ),
+                          );
+                        }
                         return Stack(
                           children: [
                             Positioned(
@@ -876,7 +903,7 @@ class _SearchPreviewCard extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                known ? '1000' : '?',
+                '?',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w800,

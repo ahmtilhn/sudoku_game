@@ -64,8 +64,8 @@ class _UxChallengeInvitationScreenState
   }
 
   int get _entryFee => _economy.entryFeeForDifficulty(
-        _challenge?.difficulty ?? 'beginner',
-      );
+    _challenge?.difficulty ?? 'beginner',
+  );
 
   bool get _expired =>
       _challenge == null ||
@@ -240,7 +240,8 @@ class _UxChallengeInvitationScreenState
                 const SizedBox(height: 12),
                 Text(
                   challenge.challenger.displayName,
-                  maxLines: 1,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
@@ -250,6 +251,9 @@ class _UxChallengeInvitationScreenState
                 ),
                 Text(
                   '@${challenge.challenger.username}',
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .6),
                     fontWeight: FontWeight.w700,
@@ -290,27 +294,43 @@ class _UxChallengeInvitationScreenState
                   color: Colors.black.withValues(alpha: .22),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _CoinValue(
-                            label: context.tr('current_balance'),
-                            value: _economy.balance,
-                          ),
-                        ),
-                        Expanded(
-                          child: _CoinValue(
-                            label: context.tr('entry_fee'),
-                            value: _entryFee,
-                          ),
-                        ),
-                        Expanded(
-                          child: _CoinValue(
-                            label: context.tr('winner_pot'),
-                            value: _entryFee * 2,
-                          ),
-                        ),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact =
+                            constraints.maxWidth < 440 ||
+                            MediaQuery.textScalerOf(context).scale(1) > 1.3;
+                        final itemWidth = compact
+                            ? (constraints.maxWidth - 8) / 2
+                            : constraints.maxWidth / 3;
+                        return Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: compact ? 8 : 0,
+                          runSpacing: 12,
+                          children: [
+                            SizedBox(
+                              width: itemWidth,
+                              child: _CoinValue(
+                                label: context.tr('current_balance'),
+                                value: _economy.balance,
+                              ),
+                            ),
+                            SizedBox(
+                              width: itemWidth,
+                              child: _CoinValue(
+                                label: context.tr('entry_fee'),
+                                value: _entryFee,
+                              ),
+                            ),
+                            SizedBox(
+                              width: itemWidth,
+                              child: _CoinValue(
+                                label: context.tr('winner_pot'),
+                                value: _entryFee * 2,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -361,7 +381,11 @@ class _UxChallengeInvitationScreenState
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.bolt_rounded),
-                    label: Text(context.tr('accept')),
+                    label: Text(
+                      context.tr('accept'),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                    ),
                   ),
                 ),
                 TextButton(
@@ -421,7 +445,10 @@ class _Metric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 48),
+      constraints: BoxConstraints(
+        minHeight: 48,
+        maxWidth: MediaQuery.sizeOf(context).width - 72,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .12),
@@ -433,12 +460,16 @@ class _Metric extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 19),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -456,6 +487,7 @@ class _CoinValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         const DuelAssetIcon(
           DuelAsset.coin,
@@ -472,6 +504,8 @@ class _CoinValue extends StatelessWidget {
         ),
         Text(
           label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white.withValues(alpha: .58),

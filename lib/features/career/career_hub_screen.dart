@@ -60,6 +60,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
 
   @override
   Widget build(BuildContext context) {
+    final compactHeader =
+        MediaQuery.sizeOf(context).width < 390 ||
+        MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
       appBar: AppBar(
@@ -69,24 +72,36 @@ class _CareerHubScreenState extends State<CareerHubScreen>
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: Wrap(
-              spacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Chip(
-                  avatar: const DuelAssetIcon(DuelAsset.lightbulb, size: 18),
-                  label: Text('${widget.store.hints}'),
-                ),
-                Chip(
-                  avatar: const DuelAssetIcon(
-                    DuelAsset.coin,
-                    size: 18,
-                    color: Color(0xFFFFC94D),
+            child: compactHeader
+                ? Chip(
+                    avatar: const DuelAssetIcon(
+                      DuelAsset.coin,
+                      size: 18,
+                      color: Color(0xFFFFC94D),
+                    ),
+                    label: Text('${widget.store.hints} · ${_economy.balance}'),
+                  )
+                : Wrap(
+                    spacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Chip(
+                        avatar: const DuelAssetIcon(
+                          DuelAsset.lightbulb,
+                          size: 18,
+                        ),
+                        label: Text('${widget.store.hints}'),
+                      ),
+                      Chip(
+                        avatar: const DuelAssetIcon(
+                          DuelAsset.coin,
+                          size: 18,
+                          color: Color(0xFFFFC94D),
+                        ),
+                        label: Text('${_economy.balance}'),
+                      ),
+                    ],
                   ),
-                  label: Text('${_economy.balance}'),
-                ),
-              ],
-            ),
           ),
         ],
         bottom: TabBar(
@@ -123,6 +138,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
         return LayoutBuilder(
           builder: (context, constraints) {
             final maxWidth = constraints.maxWidth >= 840 ? 760.0 : 680.0;
+            final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+            final cardExtent = largeText ? 190.0 : 142.0;
+            final cardMaxExtent = largeText ? 320.0 : 230.0;
             return Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxWidth),
@@ -160,6 +178,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                             children: [
                               Text(
                                 '${context.tr('career')} · $_chapter',
+                                maxLines: 2,
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -180,6 +201,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                                     ),
                                     nextNumber,
                                   ]),
+                                  maxLines: 2,
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -201,13 +225,12 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: levels.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 230,
-                            mainAxisExtent: 142,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                          ),
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: cardMaxExtent,
+                        mainAxisExtent: cardExtent,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                      ),
                       itemBuilder: (context, index) {
                         final level = levels[index];
                         return _LevelCard(
@@ -418,13 +441,17 @@ class _HeroPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact =
+        MediaQuery.sizeOf(context).width < 380 ||
+        MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return Card(
       color: const Color(0xFF101B20).withValues(alpha: .94),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DuelAssetIcon(icon, size: 58),
+            DuelAssetIcon(icon, size: compact ? 46 : 58),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -432,9 +459,11 @@ class _HeroPanel extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 23,
+                      fontSize: compact ? 20 : 23,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -515,6 +544,8 @@ class _NextLevelCard extends StatelessWidget {
                         context.strings.difficultyLabel(level.difficulty),
                         level.number,
                       ]),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 21,
@@ -553,6 +584,7 @@ class _LevelCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _difficultyAccent(level.difficulty);
+    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return Card(
       color: const Color(0xFF101B20).withValues(alpha: .95),
       shape: RoundedRectangleBorder(
@@ -595,15 +627,20 @@ class _LevelCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   if (progress != null)
-                    Row(
-                      children: List<Widget>.generate(
-                        3,
-                        (index) => Icon(
-                          index < progress!.stars
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          size: 17,
-                          color: const Color(0xFFFFC94D),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          children: List<Widget>.generate(
+                            3,
+                            (index) => Icon(
+                              index < progress!.stars
+                                  ? Icons.star_rounded
+                                  : Icons.star_border_rounded,
+                              size: 17,
+                              color: const Color(0xFFFFC94D),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -615,7 +652,7 @@ class _LevelCard extends StatelessWidget {
                   context.strings.difficultyLabel(level.difficulty),
                   level.number,
                 ]),
-                maxLines: 1,
+                maxLines: largeText ? 2 : 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: unlocked
@@ -634,7 +671,7 @@ class _LevelCard extends StatelessWidget {
                     : context.tr('best_time', <Object>[
                         formatDuration(progress!.bestSeconds),
                       ]),
-                maxLines: 1,
+                maxLines: largeText ? 2 : 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: unlocked
@@ -687,6 +724,8 @@ class _PracticeCard extends StatelessWidget {
         ),
         title: Text(
           title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w900,
@@ -694,6 +733,8 @@ class _PracticeCard extends StatelessWidget {
         ),
         subtitle: Text(
           subtitle,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(color: Colors.white.withValues(alpha: .66)),
         ),
         trailing: Icon(Icons.arrow_forward_rounded, color: accent),
