@@ -30,7 +30,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   bool _readyPressed = false;
   bool _screenLoadedSent = false;
   bool _handedOff = false;
+  bool _allowPop = false;
   bool _connecting = false;
+  bool _leaving = false;
   Timer? _retryTimer;
   int _connectAttempt = 0;
 
@@ -136,6 +138,37 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     });
   }
 
+  Future<void> _cancelAndLeave() async {
+    if (_leaving || _handedOff || !mounted) return;
+    setState(() => _leaving = true);
+    final controller = _controller;
+    if (controller == null) {
+      setState(() => _allowPop = true);
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+    controller.forfeit();
+    for (var attempt = 0; attempt < 24; attempt++) {
+      controller.requestSnapshot();
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      final snapshot = _snapshot;
+      if (snapshot != null &&
+          snapshot.isFinished &&
+          (snapshot.coinSettlement != null || attempt >= 10)) {
+        break;
+      }
+    }
+    await _snapshotSubscription?.cancel();
+    await _connectionSubscription?.cancel();
+    await controller.dispose();
+    _controller = null;
+    _snapshotSubscription = null;
+    _connectionSubscription = null;
+    if (!mounted) return;
+    setState(() => _allowPop = true);
+    Navigator.of(context).pop();
+  }
+
   void _ready() {
     if (_readyPressed || _controller == null) return;
     setState(() => _readyPressed = true);
@@ -184,7 +217,12 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: _handedOff || _allowPop,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_cancelAndLeave());
+      },
+      child: Scaffold(
       backgroundColor: const Color(0xFF0B1215),
       body: AppBackdrop(
         child: SafeArea(
@@ -203,7 +241,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
                           children: [
                             IconButton.filledTonal(
                               tooltip: context.tr('cancel_search'),
-                              onPressed: () => Navigator.of(context).pop(),
+                              onPressed: _leaving ? null : _cancelAndLeave,
                               icon: const Icon(Icons.arrow_back_rounded),
                             ),
                             const SizedBox(width: 10),
@@ -309,7 +347,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
                           width: double.infinity,
                           child: FilledButton.icon(
                             onPressed:
-                                !_readyStage ||
+                                _leaving ||
+                                    !_readyStage ||
                                     _youReady ||
                                     _controller == null ||
                                     _connectionState ==
@@ -339,7 +378,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   String _statusText(BuildContext context) {

@@ -5,6 +5,7 @@ import {
   jwtVerify,
 } from 'jose';
 import { AppCheckError, verifyAppCheckRequest } from './app_check';
+import { coinBalance, ensureStarterGrant, entryFeeForDifficulty } from './economy';
 import {
   nextAlarmAt,
   shouldPersistClientMessage,
@@ -165,6 +166,16 @@ export default {
         response = await createChallenge(request, env, ctx, player);
       } else if (url.pathname === '/v1/challenges' && request.method === 'GET') {
         response = await listChallenges(url, env, player);
+      } else if (
+        /^\/v1\/challenges\/[^/]+$/.test(url.pathname) &&
+        request.method === 'GET'
+      ) {
+        response = await getChallenge(env, player, url.pathname.split('/')[3]);
+      } else if (
+        /^\/v1\/challenges\/[^/]+$/.test(url.pathname) &&
+        request.method === 'DELETE'
+      ) {
+        response = await cancelChallenge(env, ctx, player, url.pathname.split('/')[3]);
       } else if (
         url.pathname === '/v1/matchmaking/queue' &&
         request.method === 'POST'
@@ -544,11 +555,53 @@ async function createChallenge(
     .first();
   if (blocked) throw new HttpError(403, 'This player is unavailable.');
 
-  const id = crypto.randomUUID();
+  if (await playerHasActiveMatch(env, current.id)) {
+    throw new HttpError(409, 'Finish or cancel your active online match first.');
+  }
+  if (await playerHasActiveMatch(env, recipient.id)) {
+    throw new HttpError(409, 'This player is already in an online match.');
+  }
+
+  await Promise.all([
+    ensureStarterGrant(env, current.id),
+    ensureStarterGrant(env, recipient.id),
+  ]);
+  const entryFee = entryFeeForDifficulty(difficulty);
+  const [senderBalance, recipientBalance] = await Promise.all([
+    coinBalance(env, current.id),
+    coinBalance(env, recipient.id),
+  ]);
+  if (senderBalance < entryFee) {
+    throw new HttpError(409, `You need at least ${entryFee} Coins to send this challenge.`);
+  }
+  if (recipientBalance < entryFee) {
+    throw new HttpError(409, `This player needs at least ${entryFee} Coins to accept.`);
+  }
+
   const now = new Date();
-  const expires = new Date(now.getTime() + 15 * 60 * 1000);
+  const nowIso = now.toISOString();
   await env.DB.prepare(
-    `INSERT INTO challenges (
+    `UPDATE challenges SET status = 'expired', updated_at = ?
+     WHERE status = 'pending' AND expires_at <= ?`,
+  )
+    .bind(nowIso, nowIso)
+    .run();
+
+  const reversePending = await env.DB.prepare(
+    `SELECT id FROM challenges
+     WHERE challenger_id = ? AND recipient_id = ? AND status = 'pending'
+     LIMIT 1`,
+  )
+    .bind(recipient.id, current.id)
+    .first<{ id: string }>();
+  if (reversePending) {
+    throw new HttpError(409, 'This player already sent you a pending challenge.');
+  }
+
+  const id = crypto.randomUUID();
+  const expires = new Date(now.getTime() + 15 * 60 * 1000);
+  const inserted = await env.DB.prepare(
+    `INSERT OR IGNORE INTO challenges (
       id, challenger_id, recipient_id, difficulty, status,
       created_at, updated_at, expires_at
     ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
@@ -558,11 +611,23 @@ async function createChallenge(
       current.id,
       recipient.id,
       difficulty,
-      now.toISOString(),
-      now.toISOString(),
+      nowIso,
+      nowIso,
       expires.toISOString(),
     )
     .run();
+
+  if ((inserted.meta.changes ?? 0) === 0) {
+    const existing = await env.DB.prepare(
+      `SELECT * FROM challenges
+       WHERE challenger_id = ? AND recipient_id = ? AND status = 'pending'
+       ORDER BY created_at DESC LIMIT 1`,
+    )
+      .bind(current.id, recipient.id)
+      .first<ChallengeRow>();
+    if (!existing) throw new HttpError(409, 'A challenge is already pending.');
+    return reply(env, await challengeJson(env, existing));
+  }
 
   ctx.waitUntil(
     sendPlayerNotification(env, recipient.id, {
@@ -606,6 +671,72 @@ async function listChallenges(
   return reply(env, { challenges });
 }
 
+async function getChallenge(
+  env: Env,
+  current: PlayerRow,
+  challengeId: string,
+): Promise<Response> {
+  const challenge = await challengeById(env, challengeId);
+  if (
+    challenge.challenger_id !== current.id &&
+    challenge.recipient_id !== current.id
+  ) {
+    throw new HttpError(403, 'You are not a participant in this challenge.');
+  }
+  if (
+    challenge.status === 'pending' &&
+    Date.parse(challenge.expires_at) <= Date.now()
+  ) {
+    await env.DB.prepare(
+      `UPDATE challenges SET status = 'expired', updated_at = ?
+       WHERE id = ? AND status = 'pending'`,
+    )
+      .bind(new Date().toISOString(), challenge.id)
+      .run();
+  }
+  return reply(env, await challengeJson(env, await challengeById(env, challenge.id)));
+}
+
+async function cancelChallenge(
+  env: Env,
+  ctx: ExecutionContext,
+  current: PlayerRow,
+  challengeId: string,
+): Promise<Response> {
+  const challenge = await challengeById(env, challengeId);
+  if (challenge.challenger_id !== current.id) {
+    throw new HttpError(403, 'Only the challenger can cancel this invitation.');
+  }
+  if (challenge.status === 'cancelled') {
+    return reply(env, await challengeJson(env, challenge));
+  }
+  if (challenge.status !== 'pending') {
+    throw new HttpError(409, 'This challenge can no longer be cancelled.');
+  }
+  const now = new Date().toISOString();
+  const updated = await env.DB.prepare(
+    `UPDATE challenges SET status = 'cancelled', room_id = NULL, updated_at = ?
+     WHERE id = ? AND status = 'pending'`,
+  )
+    .bind(now, challenge.id)
+    .run();
+  if ((updated.meta.changes ?? 0) > 0) {
+    ctx.waitUntil(
+      sendPlayerNotification(env, challenge.recipient_id, {
+        title: 'Challenge cancelled',
+        body: `${current.display_name} cancelled the Sudoku challenge.`,
+        data: {
+          type: 'challenge_response',
+          challengeId: challenge.id,
+          status: 'cancelled',
+          roomId: '',
+        },
+      }),
+    );
+  }
+  return reply(env, await challengeJson(env, await challengeById(env, challenge.id)));
+}
+
 async function respondChallenge(
   request: Request,
   env: Env,
@@ -619,7 +750,7 @@ async function respondChallenge(
     throw new HttpError(400, 'Challenge action must be accept or decline.');
   }
 
-  const challenge = await challengeById(env, challengeId);
+  let challenge = await challengeById(env, challengeId);
   if (challenge.recipient_id !== current.id) {
     throw new HttpError(403, 'Only the recipient can respond.');
   }
@@ -631,7 +762,7 @@ async function respondChallenge(
     if (challenge.status !== 'pending') {
       throw new HttpError(409, 'Challenge is no longer pending.');
     }
-    if (new Date(challenge.expires_at).getTime() <= Date.now()) {
+    if (Date.parse(challenge.expires_at) <= Date.now()) {
       await env.DB.prepare(
         `UPDATE challenges SET status = 'expired', updated_at = ? WHERE id = ?`,
       )
@@ -640,13 +771,19 @@ async function respondChallenge(
       throw new HttpError(409, 'Challenge expired.');
     }
 
-    const now = new Date().toISOString();
-    await env.DB.prepare(
+    const updated = await env.DB.prepare(
       `UPDATE challenges SET status = 'declined', room_id = NULL, updated_at = ?
        WHERE id = ? AND status = 'pending'`,
     )
-      .bind(now, challenge.id)
+      .bind(new Date().toISOString(), challenge.id)
       .run();
+    challenge = await challengeById(env, challenge.id);
+    if ((updated.meta.changes ?? 0) === 0) {
+      if (challenge.status === 'declined') {
+        return reply(env, await challengeJson(env, challenge));
+      }
+      throw new HttpError(409, 'Challenge response was already completed.');
+    }
     ctx.waitUntil(
       sendPlayerNotification(env, challenge.challenger_id, {
         title: 'Challenge declined',
@@ -659,17 +796,21 @@ async function respondChallenge(
         },
       }),
     );
-    const declined = await challengeById(env, challenge.id);
-    return reply(env, await challengeJson(env, declined));
+    return reply(env, await challengeJson(env, challenge));
   }
 
-  if (challenge.status !== 'pending' && challenge.status !== 'accepted') {
+  if (challenge.status === 'accepted') {
+    const roomId = await ensureAcceptedChallengeMatch(env, challenge);
+    const currentChallenge = await challengeById(env, challenge.id);
+    return reply(env, {
+      ...(await challengeJson(env, currentChallenge)),
+      roomId,
+    });
+  }
+  if (challenge.status !== 'pending') {
     throw new HttpError(409, 'Challenge is no longer available.');
   }
-  if (
-    challenge.status === 'pending' &&
-    new Date(challenge.expires_at).getTime() <= Date.now()
-  ) {
+  if (Date.parse(challenge.expires_at) <= Date.now()) {
     await env.DB.prepare(
       `UPDATE challenges SET status = 'expired', updated_at = ? WHERE id = ?`,
     )
@@ -678,23 +819,46 @@ async function respondChallenge(
     throw new HttpError(409, 'Challenge expired.');
   }
 
-  const transitionedToAccepted = challenge.status === 'pending';
-  if (transitionedToAccepted) {
+  if (await playerHasActiveMatch(env, challenge.challenger_id)) {
+    throw new HttpError(409, 'The challenger is already in an online match.');
+  }
+  if (await playerHasActiveMatch(env, challenge.recipient_id)) {
+    throw new HttpError(409, 'Finish or cancel your active online match first.');
+  }
+
+  await Promise.all([
+    ensureStarterGrant(env, challenge.challenger_id),
+    ensureStarterGrant(env, challenge.recipient_id),
+  ]);
+  const entryFee = entryFeeForDifficulty(challenge.difficulty);
+  const [challengerBalance, recipientBalance] = await Promise.all([
+    coinBalance(env, challenge.challenger_id),
+    coinBalance(env, challenge.recipient_id),
+  ]);
+  if (challengerBalance < entryFee || recipientBalance < entryFee) {
     await env.DB.prepare(
-      `UPDATE challenges SET status = 'accepted', room_id = COALESCE(room_id, ?), updated_at = ?
+      `UPDATE challenges SET status = 'cancelled', room_id = NULL, updated_at = ?
        WHERE id = ? AND status = 'pending'`,
     )
-      .bind(crypto.randomUUID(), new Date().toISOString(), challenge.id)
+      .bind(new Date().toISOString(), challenge.id)
       .run();
+    throw new HttpError(409, `Both players need at least ${entryFee} Coins.`);
   }
 
-  const accepted = await challengeById(env, challenge.id);
-  if (accepted.status !== 'accepted') {
-    throw new HttpError(409, 'Challenge could not be accepted.');
+  const candidateRoomId = challenge.room_id || crypto.randomUUID();
+  const transitioned = await env.DB.prepare(
+    `UPDATE challenges SET status = 'accepted', room_id = ?, updated_at = ?
+     WHERE id = ? AND status = 'pending'`,
+  )
+    .bind(candidateRoomId, new Date().toISOString(), challenge.id)
+    .run();
+  challenge = await challengeById(env, challenge.id);
+  if (challenge.status !== 'accepted') {
+    throw new HttpError(409, 'Challenge response was already completed.');
   }
-  const roomId = await ensureAcceptedChallengeMatch(env, accepted);
 
-  if (transitionedToAccepted) {
+  const roomId = await ensureAcceptedChallengeMatch(env, challenge);
+  if ((transitioned.meta.changes ?? 0) > 0) {
     ctx.waitUntil(
       sendPlayerNotification(env, challenge.challenger_id, {
         title: 'Challenge accepted',
@@ -797,15 +961,7 @@ async function cancelRankedQueue(env: Env, current: PlayerRow): Promise<Response
 }
 
 async function activeMatch(env: Env, current: PlayerRow): Promise<Response> {
-  let match = await env.DB.prepare(
-    `SELECT * FROM matches
-     WHERE (player_a_id = ? OR player_b_id = ?)
-       AND status IN ('waiting', 'countdown', 'active', 'paused')
-     ORDER BY created_at DESC
-     LIMIT 1`,
-  )
-    .bind(current.id, current.id)
-    .first<Record<string, unknown>>();
+  let match = await activeMatchForPlayer(env, current.id);
 
   if (!match) {
     const acceptedChallenge = await env.DB.prepare(
@@ -818,16 +974,39 @@ async function activeMatch(env: Env, current: PlayerRow): Promise<Response> {
       .bind(current.id, current.id)
       .first<ChallengeRow>();
     if (acceptedChallenge) {
-      const roomId = await ensureAcceptedChallengeMatch(env, acceptedChallenge);
-      match = await env.DB.prepare(
-        `SELECT * FROM matches WHERE room_id = ? LIMIT 1`,
-      )
-        .bind(roomId)
-        .first<Record<string, unknown>>();
+      try {
+        const roomId = await ensureAcceptedChallengeMatch(env, acceptedChallenge);
+        match = await env.DB.prepare(
+          `SELECT * FROM matches WHERE room_id = ? LIMIT 1`,
+        )
+          .bind(roomId)
+          .first<Record<string, unknown>>();
+      } catch (error) {
+        if (!(error instanceof HttpError) || error.status >= 500) throw error;
+      }
     }
   }
 
   return reply(env, { match: match ? publicMatch(match, current.id) : null });
+}
+
+async function activeMatchForPlayer(
+  env: Env,
+  playerId: string,
+): Promise<Record<string, unknown> | null> {
+  return env.DB.prepare(
+    `SELECT * FROM matches
+     WHERE (player_a_id = ? OR player_b_id = ?)
+       AND status IN ('waiting', 'ready_window', 'countdown', 'active', 'paused')
+     ORDER BY created_at DESC
+     LIMIT 1`,
+  )
+    .bind(playerId, playerId)
+    .first<Record<string, unknown>>();
+}
+
+async function playerHasActiveMatch(env: Env, playerId: string): Promise<boolean> {
+  return (await activeMatchForPlayer(env, playerId)) !== null;
 }
 
 async function matchHistory(
@@ -942,11 +1121,28 @@ async function ensureAcceptedChallengeMatch(
   challenge: ChallengeRow,
 ): Promise<string> {
   const existing = await env.DB.prepare(
-    `SELECT room_id FROM matches WHERE challenge_id = ? LIMIT 1`,
+    `SELECT id, room_id, status FROM matches WHERE challenge_id = ? LIMIT 1`,
   )
     .bind(challenge.id)
-    .first<{ room_id: string }>();
+    .first<{ id: string; room_id: string; status: string }>();
   if (existing?.room_id) {
+    const funded = await env.DB.prepare(
+      `SELECT status FROM match_coin_escrow WHERE match_id = ? LIMIT 1`,
+    )
+      .bind(existing.id)
+      .first<{ status: string }>();
+    if (
+      !['waiting', 'ready_window', 'countdown', 'active', 'paused'].includes(existing.status) ||
+      funded?.status !== 'funded'
+    ) {
+      await env.DB.prepare(
+        `UPDATE challenges SET status = 'cancelled', room_id = NULL, updated_at = ?
+         WHERE id = ? AND status = 'accepted'`,
+      )
+        .bind(new Date().toISOString(), challenge.id)
+        .run();
+      throw new HttpError(409, 'The accepted challenge room is no longer playable.');
+    }
     if (challenge.room_id !== existing.room_id || challenge.status !== 'accepted') {
       await env.DB.prepare(
         `UPDATE challenges SET status = 'accepted', room_id = ?, updated_at = ? WHERE id = ?`,
@@ -970,15 +1166,28 @@ async function ensureAcceptedChallengeMatch(
   });
 
   const created = await env.DB.prepare(
-    `SELECT room_id FROM matches
+    `SELECT id, room_id, status FROM matches
      WHERE challenge_id = ? OR room_id = ?
      ORDER BY CASE WHEN challenge_id = ? THEN 0 ELSE 1 END
      LIMIT 1`,
   )
     .bind(challenge.id, roomId, challenge.id)
-    .first<{ room_id: string }>();
-  if (!created?.room_id) {
-    throw new HttpError(500, 'Unable to create the accepted challenge room.');
+    .first<{ id: string; room_id: string; status: string }>();
+  const funded = created
+    ? await env.DB.prepare(
+        `SELECT status FROM match_coin_escrow WHERE match_id = ? LIMIT 1`,
+      )
+        .bind(created.id)
+        .first<{ status: string }>()
+    : null;
+  if (!created?.room_id || created.status !== 'waiting' || funded?.status !== 'funded') {
+    await env.DB.prepare(
+      `UPDATE challenges SET status = 'cancelled', room_id = NULL, updated_at = ?
+       WHERE id = ?`,
+    )
+      .bind(now, challenge.id)
+      .run();
+    throw new HttpError(409, 'Both players need enough Coin to create the challenge room.');
   }
 
   await env.DB.prepare(
@@ -1059,6 +1268,7 @@ function publicMatch(row: Record<string, unknown>, currentPlayerId: string): Rec
     roomId: row.room_id,
     mode: row.mode,
     difficulty: row.difficulty,
+    challengeId: row.challenge_id ?? null,
     status: row.status,
     youSeat: currentPlayerId === playerAId ? 'A' : currentPlayerId === playerBId ? 'B' : null,
     winnerSeat:
@@ -1089,7 +1299,9 @@ async function connectRoom(
   }
   const match = await env.DB.prepare(
     `SELECT * FROM matches
-     WHERE room_id = ? LIMIT 1`,
+     WHERE room_id = ?
+       AND status IN ('waiting', 'ready_window', 'countdown', 'active', 'paused')
+     LIMIT 1`,
   )
     .bind(roomId)
     .first<{
@@ -1385,6 +1597,7 @@ function corsResponse(env: Env, response: Response): Response {
 
 export class GameRoom {
   private roomState: DuelState | null = null;
+  private persistedMatchStatus: string | null = null;
 
   constructor(
     private readonly state: DurableObjectState,
@@ -1580,6 +1793,7 @@ export class GameRoom {
        JOIN players a ON a.id = m.player_a_id
        JOIN players b ON b.id = m.player_b_id
        WHERE m.room_id = ?
+         AND m.status IN ('waiting', 'ready_window', 'countdown', 'active', 'paused')
        LIMIT 1`,
     )
       .bind(roomId)
@@ -1612,6 +1826,18 @@ export class GameRoom {
   private async persist(): Promise<void> {
     if (!this.roomState) return;
     await this.state.storage.put('duelState', this.roomState);
+    const activeStatuses = new Set(['waiting', 'ready_window', 'countdown', 'active', 'paused']);
+    if (
+      activeStatuses.has(this.roomState.status) &&
+      this.persistedMatchStatus !== this.roomState.status
+    ) {
+      await this.env.DB.prepare(
+        `UPDATE matches SET status = ?, updated_at = ? WHERE id = ?`,
+      )
+        .bind(this.roomState.status, new Date().toISOString(), this.roomState.matchId)
+        .run();
+      this.persistedMatchStatus = this.roomState.status;
+    }
     await this.scheduleAlarm();
   }
 
@@ -1621,6 +1847,7 @@ export class GameRoom {
     const desiredAlarmAt = nextAlarmAt(
       {
         status: duel.status,
+        lobbyDeadline: duel.lobbyDeadline ?? null,
         readyDeadline: duel.readyDeadline,
         turnDeadline: duel.turnDeadline,
         playerADisconnectDeadline: duel.playerA.disconnectDeadline,
@@ -1729,6 +1956,24 @@ export class GameRoom {
       ).bind(duel.status, now, winnerId, duel.finishReason, rated ? 1 : 0, now, now, duel.matchId),
       this.matchPlayerStatement(duel, 'A', resultA, duel.ratingResult.A, now),
       this.matchPlayerStatement(duel, 'B', resultB, duel.ratingResult.B, now),
+      ...(duel.startedAt !== null
+        ? [
+            this.env.DB.prepare(
+              `INSERT INTO recent_opponents (
+                 player_low_id, player_high_id, last_challenge_id, last_winner_id, last_played_at
+               ) VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(player_low_id, player_high_id) DO UPDATE SET
+                 last_challenge_id = excluded.last_challenge_id,
+                 last_winner_id = excluded.last_winner_id,
+                 last_played_at = excluded.last_played_at`,
+            ).bind(
+              ...orderedPair(duel.playerA.player.id, duel.playerB.player.id),
+              duel.challengeId,
+              winnerId,
+              now,
+            ),
+          ]
+        : []),
       ...this.ratingStatements(duel, 'A', resultA, duel.ratingResult.A, rated, now),
       ...this.ratingStatements(duel, 'B', resultB, duel.ratingResult.B, rated, now),
       this.env.DB.prepare(

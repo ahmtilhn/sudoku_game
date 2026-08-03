@@ -62,9 +62,13 @@ PushNotificationDestination? parsePushNotificationDestination(
       id: challengeId,
       defaultTitle: status == 'declined'
           ? 'Challenge declined'
+          : status == 'cancelled'
+          ? 'Challenge cancelled'
           : 'Challenge updated',
       defaultBody: status == 'declined'
           ? 'Your opponent declined the Sudoku challenge.'
+          : status == 'cancelled'
+          ? 'The pending Sudoku challenge was cancelled.'
           : 'Your Sudoku challenge status changed.',
     );
   }

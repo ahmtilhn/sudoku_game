@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import 'online_duel_models.dart';
 import 'platform_game_services.dart';
+import 'social_api_client.dart';
 
 enum PlatformLeaderboardScope {
   global,
@@ -93,6 +94,7 @@ typedef PlatformScoreSubmitter = Future<bool> Function({
 typedef PlatformLeaderboardPresenter = Future<bool> Function({
   String? leaderboardId,
 });
+typedef PlatformRatingsLoader = Future<Map<String, dynamic>> Function();
 
 class PlatformLeaderboardService implements PlatformLeaderboardMirror {
   factory PlatformLeaderboardService({
@@ -103,6 +105,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     PlatformAuthenticationRequest? authenticate,
     PlatformScoreSubmitter? submitScore,
     PlatformLeaderboardPresenter? showLeaderboard,
+    PlatformRatingsLoader? loadRatings,
   }) {
     return PlatformLeaderboardService._(
       ids,
@@ -113,6 +116,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       authenticate ?? PlatformGameServices.instance.authenticate,
       submitScore ?? PlatformGameServices.instance.submitScore,
       showLeaderboard ?? PlatformGameServices.instance.showLeaderboard,
+      loadRatings ?? SocialApiClient.instance.loadRatings,
     );
   }
 
@@ -124,6 +128,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     this._authenticate,
     this._submitScore,
     this._showLeaderboard,
+    this._loadRatings,
   );
 
   static final PlatformLeaderboardService instance =
@@ -136,6 +141,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
   final PlatformAuthenticationRequest _authenticate;
   final PlatformScoreSubmitter _submitScore;
   final PlatformLeaderboardPresenter _showLeaderboard;
+  final PlatformRatingsLoader _loadRatings;
   final Set<String> _processedMatchIds = <String>{};
 
   TargetPlatform? get _resolvedPlatform {
@@ -229,6 +235,67 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       );
     } catch (error) {
       _processedMatchIds.remove(snapshot.matchId);
+      return PlatformLeaderboardMirrorResult(
+        status: PlatformLeaderboardMirrorStatus.failed,
+        error: error,
+      );
+    }
+  }
+
+  Future<PlatformLeaderboardMirrorResult> syncAuthoritativeRatings() async {
+    final platform = _resolvedPlatform;
+    if (platform == null ||
+        (platform != TargetPlatform.android &&
+            platform != TargetPlatform.iOS)) {
+      return const PlatformLeaderboardMirrorResult(
+        status: PlatformLeaderboardMirrorStatus.skipped,
+      );
+    }
+    if (!await _isConfigured()) {
+      return const PlatformLeaderboardMirrorResult(
+        status: PlatformLeaderboardMirrorStatus.notConfigured,
+      );
+    }
+    var authenticated = await _refreshAuthentication();
+    if (!authenticated) authenticated = await _authenticate();
+    if (!authenticated) {
+      return const PlatformLeaderboardMirrorResult(
+        status: PlatformLeaderboardMirrorStatus.notAuthenticated,
+      );
+    }
+
+    try {
+      final response = await _loadRatings();
+      final values = response['ratings'];
+      if (values is! List) {
+        return const PlatformLeaderboardMirrorResult(
+          status: PlatformLeaderboardMirrorStatus.failed,
+        );
+      }
+      final submitted = <PlatformLeaderboardScope>[];
+      for (final value in values.whereType<Map>()) {
+        final row = value.cast<String, dynamic>();
+        final scopeName = row['scope']?.toString();
+        final score = (row['rating'] as num?)?.toInt();
+        final scope = scopeName == 'global'
+            ? PlatformLeaderboardScope.global
+            : scopeName == null
+            ? null
+            : scopeForDifficulty(scopeName);
+        if (scope == null || score == null) continue;
+        final leaderboardId = _ids.idFor(platform, scope);
+        if (leaderboardId == null) continue;
+        if (await _submitScore(score: score, leaderboardId: leaderboardId)) {
+          submitted.add(scope);
+        }
+      }
+      return PlatformLeaderboardMirrorResult(
+        status: submitted.isEmpty
+            ? PlatformLeaderboardMirrorStatus.notConfigured
+            : PlatformLeaderboardMirrorStatus.submitted,
+        submittedScopes: submitted,
+      );
+    } catch (error) {
       return PlatformLeaderboardMirrorResult(
         status: PlatformLeaderboardMirrorStatus.failed,
         error: error,

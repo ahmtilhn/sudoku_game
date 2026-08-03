@@ -13,6 +13,7 @@ import 'services/economy_service.dart';
 import 'services/firebase_services.dart';
 import 'services/platform_game_services.dart';
 import 'services/platform_game_stats_service.dart';
+import 'services/platform_leaderboard_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/reminder_notification_service.dart';
 
@@ -47,6 +48,7 @@ Future<void> main() async {
             await push.requestPermissionAndRegister();
           }
         }
+        await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
       }, timeout: const Duration(seconds: 60)),
     );
     unawaited(
@@ -91,6 +93,7 @@ Future<void> _initializeGooglePlayGames() async {
   if (!authenticated) return;
 
   await PlatformGameStatsService.instance.initialize();
+  await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
 }
 
 Future<void> _initializeOptionalService(

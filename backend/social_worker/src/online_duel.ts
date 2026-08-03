@@ -18,6 +18,7 @@ export const TURN_DURATION_SECONDS = 30;
 export const TURN_DURATION_MS = TURN_DURATION_SECONDS * 1_000;
 export const READY_WINDOW_SECONDS = 10;
 export const READY_DEADLINE_MS = READY_WINDOW_SECONDS * 1_000;
+export const LOBBY_DEADLINE_MS = 2 * 60 * 1_000;
 export const DISCONNECT_GRACE_MS = 45_000;
 export const MAX_GRACE_BUDGET_MS = 60_000;
 export const MAX_MATCH_DURATION_MS = 30 * 60 * 1_000;
@@ -67,6 +68,7 @@ export type DuelState = {
   difficulty: DuelDifficulty;
   status: MatchStatus;
   createdAt: number;
+  lobbyDeadline?: number | null;
   readyDeadline: number | null;
   startedAt: number | null;
   finishedAt: number | null;
@@ -135,6 +137,7 @@ export function createInitialDuelState(input: {
     difficulty: input.difficulty,
     status: 'waiting',
     createdAt: input.now,
+    lobbyDeadline: input.now + LOBBY_DEADLINE_MS,
     readyDeadline: null,
     startedAt: null,
     finishedAt: null,
@@ -290,6 +293,21 @@ export function applyForfeit(
 
 export function applyDueDeadlines(state: DuelState, now: number): PublicEvent[] {
   const events: PublicEvent[] = [];
+  const lobbyDeadline = state.lobbyDeadline ?? (state.createdAt + LOBBY_DEADLINE_MS);
+  state.lobbyDeadline = lobbyDeadline;
+  if (
+    state.status === 'waiting' &&
+    state.startedAt === null &&
+    now >= lobbyDeadline
+  ) {
+    state.status = 'cancelled';
+    state.finishedAt = now;
+    state.winnerSeat = null;
+    state.finishReason = 'lobby_timeout';
+    state.revision++;
+    events.push(event(state, 'match_completed', now, publicResult(state)));
+    return events;
+  }
   if (state.status === 'ready_window' && state.readyDeadline !== null && now >= state.readyDeadline) {
     if (canStartMatch(state)) {
       events.push(...startMatch(state, now));
@@ -408,6 +426,7 @@ export function snapshot(state: DuelState, youSeat: Seat, now: number): Record<s
     currentTurnSeat: state.currentTurnSeat,
     turnNumber: state.turnNumber,
     turnDeadline: state.turnDeadline,
+    lobbyDeadline: state.lobbyDeadline ?? null,
     readyDeadline: state.readyDeadline,
     matchDeadline:
       state.startedAt === null ? null : state.startedAt + MAX_MATCH_DURATION_MS,
@@ -424,10 +443,10 @@ export function snapshot(state: DuelState, youSeat: Seat, now: number): Record<s
     revision: state.revision,
     winnerSeat: state.winnerSeat,
     finishReason: state.finishReason,
-    rating: state.status === 'completed' || state.status === 'forfeited'
+    rating: state.settled && isTerminalStatus(state.status)
       ? state.ratingResult
       : null,
-    coinSettlement: state.status === 'completed' || state.status === 'forfeited'
+    coinSettlement: state.settled && isTerminalStatus(state.status)
       ? state.coinResult
       : null,
   };
@@ -488,6 +507,7 @@ function maybeOpenReadyWindow(state: DuelState, now: number): PublicEvent[] {
   if (state.startedAt !== null || state.finishedAt !== null || state.readyDeadline !== null) return [];
   if (!bothConnectedAndLoaded(state)) return [];
   state.status = 'ready_window';
+  state.lobbyDeadline = null;
   state.readyDeadline = now + READY_DEADLINE_MS;
   state.revision++;
   return [event(state, 'ready_window_started', now, readinessPayload(state))];
@@ -509,6 +529,7 @@ function bothConnectedAndLoaded(state: DuelState): boolean {
 function startMatch(state: DuelState, now: number): PublicEvent[] {
   if (state.startedAt !== null) return [];
   state.status = 'active';
+  state.lobbyDeadline = null;
   state.startedAt = now;
   state.readyDeadline = null;
   state.turnStartedAt = now;
@@ -550,6 +571,10 @@ function turnPayload(state: DuelState): Record<string, unknown> {
     turnNumber: state.turnNumber,
     turnDeadline: state.turnDeadline,
   };
+}
+
+function isTerminalStatus(status: MatchStatus): boolean {
+  return status === 'completed' || status === 'forfeited' || status === 'cancelled' || status === 'abandoned';
 }
 
 function publicResult(state: DuelState): Record<string, unknown> {

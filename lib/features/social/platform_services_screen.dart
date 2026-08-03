@@ -50,6 +50,9 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
       if (configured) {
         authenticated = await _games.refreshAuthentication();
         player = authenticated ? _games.localPlayer.value : null;
+        if (authenticated) {
+          await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
+        }
       }
       if (!mounted) return;
       setState(() {
@@ -96,6 +99,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
           'Platform authentication could not be completed.',
         );
       }
+      await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
     } on PlatformGameServicesException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (error) {
