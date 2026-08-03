@@ -31,6 +31,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   bool _screenLoadedSent = false;
   bool _handedOff = false;
   bool _connecting = false;
+  Timer? _retryTimer;
+  int _connectAttempt = 0;
 
   @override
   void initState() {
@@ -40,6 +42,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     unawaited(_snapshotSubscription?.cancel());
     unawaited(_connectionSubscription?.cancel());
     if (!_handedOff) unawaited(_controller?.dispose());
@@ -47,7 +50,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   }
 
   Future<void> _connect() async {
-    if (_connecting) return;
+    if (_connecting || _handedOff || !mounted) return;
+    _retryTimer?.cancel();
+    _retryTimer = null;
     setState(() {
       _connecting = true;
       _error = null;
@@ -87,6 +92,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         await controller.dispose();
         return;
       }
+      _connectAttempt = 0;
       setState(() {
         _controller = controller;
         _snapshotSubscription = snapshotSubscription;
@@ -100,9 +106,25 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         _error = error;
         _connectionState = OnlineDuelConnectionState.failed;
       });
+      _scheduleReconnect();
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
+  }
+
+  void _scheduleReconnect() {
+    if (!mounted || _handedOff || _retryTimer != null) return;
+    _connectAttempt++;
+    final seconds = switch (_connectAttempt) {
+      <= 1 => 1,
+      2 => 2,
+      3 => 4,
+      _ => 6,
+    };
+    _retryTimer = Timer(Duration(seconds: seconds), () {
+      _retryTimer = null;
+      if (mounted && !_handedOff) unawaited(_connect());
+    });
   }
 
   void _sendScreenLoaded() {
