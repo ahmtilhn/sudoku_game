@@ -7,6 +7,7 @@ on:
     paths:
       - tool/apply_challenge_client_hardening.py
       - tool/apply_challenge_client_hardening_v2.py
+      - tool/apply_challenge_client_hardening_v3.py
       - .github/workflows/apply_challenge_client_hardening.yml
   pull_request:
     branches:
@@ -29,7 +30,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python tool/apply_challenge_client_hardening_v2.py > tool/client_patch_diagnostic.txt 2>&1
+          python tool/apply_challenge_client_hardening_v3.py > tool/client_patch_diagnostic.txt 2>&1
           status=$?
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
           exit 0
@@ -40,6 +41,7 @@ jobs:
           if [ "${{ steps.patch.outputs.exit_code }}" = "0" ]; then
             rm tool/apply_challenge_client_hardening.py
             rm tool/apply_challenge_client_hardening_v2.py
+            rm tool/apply_challenge_client_hardening_v3.py
             rm tool/client_patch_diagnostic.txt
             rm .github/workflows/apply_challenge_client_hardening.yml
             git add -A
