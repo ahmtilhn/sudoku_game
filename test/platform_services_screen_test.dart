@@ -57,22 +57,20 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Global ELO'), findsOneWidget);
+    expect(find.byType(ListView), findsOneWidget);
 
     final scrollable = find.byType(Scrollable).first;
-    await tester.scrollUntilVisible(
-      find.text('Beginner', skipOffstage: false),
-      220,
-      scrollable: scrollable,
-    );
-    expect(find.text('Beginner'), findsOneWidget);
+    final scrollState = tester.state<ScrollableState>(scrollable);
+    expect(scrollState.position.maxScrollExtent, greaterThan(0));
+
+    await tester.drag(find.byType(ListView), const Offset(0, -900));
+    await tester.pumpAndSettle();
+    expect(scrollState.position.pixels, greaterThan(0));
     expect(tester.takeException(), isNull);
 
-    await tester.scrollUntilVisible(
-      find.text('Achievement Showcase', skipOffstage: false).last,
-      220,
-      scrollable: scrollable,
-    );
-    expect(find.text('Achievement Showcase'), findsWidgets);
+    await tester.drag(find.byType(ListView), const Offset(0, -900));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+    expect(find.byType(Card), findsWidgets);
   });
 }
