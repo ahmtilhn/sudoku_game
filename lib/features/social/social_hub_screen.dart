@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/player_profile_service.dart';
+import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/responsive_layout.dart';
+import 'challenge_waiting_screen.dart';
 import 'ux_challenge_invitation_screen.dart';
 
 class SocialHubScreen extends StatefulWidget {
@@ -21,6 +24,7 @@ class SocialHubScreen extends StatefulWidget {
 class _SocialHubScreenState extends State<SocialHubScreen>
     with SingleTickerProviderStateMixin {
   final SocialApiClient _social = SocialApiClient.instance;
+  final PushNotificationService _push = PushNotificationService.instance;
   final TextEditingController _search = TextEditingController();
   late final TabController _tabs;
 
@@ -32,6 +36,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   List<SocialPlayer> _results = const [];
   bool _loading = true;
   bool _searching = false;
+  bool _pushBusy = false;
   String? _error;
   String? _busyId;
 
@@ -40,6 +45,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     super.initState();
     _tabs = TabController(length: 4, vsync: this);
     unawaited(_load());
+    unawaited(_prepareNotifications());
   }
 
   @override
@@ -58,6 +64,32 @@ class _SocialHubScreenState extends State<SocialHubScreen>
               challenge.recipient.publicId == id,
         )
         .toList(growable: false);
+  }
+
+  Future<void> _prepareNotifications() async {
+    await _push.initialize();
+    if (!_push.userDisabled.value) {
+      await _push.refreshRegistration();
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<bool> _enableNotifications() async {
+    if (_pushBusy) return _push.enabled.value;
+    setState(() => _pushBusy = true);
+    try {
+      final enabled = await _push.requestPermissionAndRegister();
+      if (!mounted) return enabled;
+      if (!enabled) {
+        _showSnack(
+          _push.lastRegistrationError.value ??
+              context.tr('challenge_notification_permission_denied'),
+        );
+      }
+      return enabled;
+    } finally {
+      if (mounted) setState(() => _pushBusy = false);
+    }
   }
 
   Future<void> _load() async {
@@ -109,6 +141,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   Future<void> _findPlayers() async {
     final query = _search.text.trim();
     if (query.length < 3 || _searching) return;
+    FocusScope.of(context).unfocus();
     setState(() {
       _searching = true;
       _error = null;
@@ -163,8 +196,12 @@ class _SocialHubScreenState extends State<SocialHubScreen>
             const SizedBox(height: 10),
             for (final item in SudokuDifficulty.values)
               ListTile(
-                minTileHeight: 52,
-                leading: const Icon(Icons.grid_4x4_rounded),
+                minTileHeight: 54,
+                leading: DuelAssetIcon(
+                  DuelAsset.grid,
+                  size: 24,
+                  color: _accent(item),
+                ),
                 title: Text(context.strings.difficultyLabel(item)),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => Navigator.of(sheetContext).pop(item),
@@ -173,15 +210,34 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         ),
       ),
     );
-    if (difficulty == null) return;
-    await _perform('challenge-${player.publicId}', () async {
-      await _social.createChallenge(
+    if (difficulty == null || _busyId != null) return;
+
+    if (!_push.enabled.value && !_push.userDisabled.value) {
+      await _enableNotifications();
+      if (!mounted) return;
+    }
+
+    setState(() {
+      _busyId = 'challenge-${player.publicId}';
+      _error = null;
+    });
+    try {
+      final challenge = await _social.createChallenge(
         recipientPublicId: player.publicId,
         difficulty: difficulty.name,
       );
-    });
-    if (!mounted || _error != null) return;
-    _showSnack(context.tr('rematch_invitation_sent'));
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => ChallengeWaitingScreen(challenge: challenge),
+        ),
+      );
+      if (mounted) await _load();
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
   }
 
   Future<void> _openChallenge(SocialChallenge challenge) async {
@@ -192,7 +248,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         ),
       ),
     );
-    await _load();
+    if (mounted) await _load();
   }
 
   void _showSnack(String message) {
@@ -205,8 +261,8 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   Widget build(BuildContext context) {
     final metrics = ResponsiveMetrics.of(context);
     final searchMaxHeight = metrics.keyboardVisible
-        ? (metrics.height * 0.38).clamp(150.0, 270.0)
-        : (metrics.height * 0.46).clamp(180.0, 410.0);
+        ? (metrics.height * 0.48).clamp(190.0, 330.0)
+        : (metrics.height * 0.54).clamp(220.0, 460.0);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
@@ -218,7 +274,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
           IconButton(
             tooltip: context.tr('refresh'),
             onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const DuelAssetIcon(DuelAsset.refresh, size: 22),
           ),
         ],
         bottom: TabBar(
@@ -252,6 +308,22 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                     ),
                     child: Column(
                       children: [
+                        ValueListenableBuilder<bool>(
+                          valueListenable: _push.enabled,
+                          builder: (context, enabled, _) {
+                            if (!_push.configured || enabled) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _NotificationActivationCard(
+                                busy: _pushBusy,
+                                error: _push.lastRegistrationError.value,
+                                onEnable: _enableNotifications,
+                              ),
+                            );
+                          },
+                        ),
                         TextField(
                           controller: _search,
                           enabled: !_searching,
@@ -279,7 +351,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                         if (_results.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           for (final player in _results.take(5))
-                            _PlayerRow(
+                            _PlayerCard(
                               player: player,
                               busy: _busyId == 'friend-${player.publicId}',
                               primaryLabel: context.tr('add_friend'),
@@ -291,7 +363,10 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                           Card(
                             color: Theme.of(context).colorScheme.errorContainer,
                             child: ListTile(
-                              leading: const Icon(Icons.error_outline),
+                              leading: const DuelAssetIcon(
+                                DuelAsset.cloud,
+                                size: 24,
+                              ),
                               title: Text(_error!),
                               trailing: IconButton(
                                 tooltip: context.tr('dismiss'),
@@ -332,7 +407,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     }
     return _scroll([
       for (final player in _requests)
-        _PlayerRow(
+        _PlayerCard(
           player: player,
           busy: _busyId == 'request-${player.publicId}',
           primaryLabel: context.tr('accept'),
@@ -349,7 +424,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     }
     return _scroll([
       for (final player in players)
-        _PlayerRow(
+        _PlayerCard(
           player: player,
           busy: _busyId == 'challenge-${player.publicId}',
           primaryLabel: context.tr('challenge'),
@@ -364,24 +439,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     }
     return _scroll([
       for (final challenge in _incoming)
-        Card(
-          child: ListTile(
-            minTileHeight: 76,
-            leading: PlayerAvatar(
-              displayName: challenge.challenger.displayName,
-              avatarKey: 'social-${challenge.challenger.publicId}',
-              radius: 24,
-            ),
-            title: Text(
-              challenge.challenger.displayName,
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-            subtitle: Text(
-              '${context.strings.difficultyLabel(_difficulty(challenge.difficulty))} · ${context.tr('rating_value', <Object>[challenge.challenger.rating])}',
-            ),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => _openChallenge(challenge),
-          ),
+        _ChallengeCard(
+          challenge: challenge,
+          onTap: () => _openChallenge(challenge),
         ),
     ]);
   }
@@ -406,8 +466,110 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 }
 
-class _PlayerRow extends StatelessWidget {
-  const _PlayerRow({
+class _NotificationActivationCard extends StatelessWidget {
+  const _NotificationActivationCard({
+    required this.busy,
+    required this.error,
+    required this.onEnable,
+  });
+
+  final bool busy;
+  final String? error;
+  final Future<bool> Function() onEnable;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = Color(0xFF3AA9FF);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF101B20).withValues(alpha: .97),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: .38)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact =
+              constraints.maxWidth < 440 ||
+              MediaQuery.textScalerOf(context).scale(1) > 1.3;
+          final message = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: .13),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.notifications_active_outlined,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('online_challenge_notifications'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      error ??
+                          context.tr(
+                            'online_challenge_notifications_subtitle',
+                          ),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .64),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+          final button = FilledButton.icon(
+            onPressed: busy ? null : () => onEnable(),
+            icon: busy
+                ? const SizedBox.square(
+                    dimension: 17,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.notifications_rounded),
+            label: Text(context.tr('continue_action')),
+          );
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                message,
+                const SizedBox(height: 10),
+                button,
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: message),
+              const SizedBox(width: 12),
+              button,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PlayerCard extends StatelessWidget {
+  const _PlayerCard({
     required this.player,
     required this.busy,
     required this.primaryLabel,
@@ -427,6 +589,7 @@ class _PlayerRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final metrics = ResponsiveMetrics.of(context);
     return Card(
+      color: const Color(0xFF101B20).withValues(alpha: .95),
       child: Padding(
         padding: EdgeInsets.all(metrics.isTiny ? 10 : 12),
         child: LayoutBuilder(
@@ -447,37 +610,36 @@ class _PlayerRow extends StatelessWidget {
                     children: [
                       Text(
                         player.displayName,
-                        maxLines: compact ? 2 : 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                       Text(
                         context.tr('player_rating_summary', <Object>[
                           player.username,
                           player.rating,
                         ]),
-                        maxLines: compact ? 2 : 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .6),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ],
             );
-
             final actions = <Widget>[
               if (secondaryLabel != null)
                 TextButton(
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(0, 48),
-                  ),
                   onPressed: busy ? null : onSecondary,
                   child: Text(secondaryLabel!),
                 ),
               FilledButton.tonal(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 48),
-                ),
                 onPressed: busy ? null : onPrimary,
                 child: busy
                     ? const SizedBox.square(
@@ -487,7 +649,6 @@ class _PlayerRow extends StatelessWidget {
                     : Text(primaryLabel, textAlign: TextAlign.center),
               ),
             ];
-
             if (compact) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -498,7 +659,6 @@ class _PlayerRow extends StatelessWidget {
                 ],
               );
             }
-
             return Row(
               children: [
                 Expanded(child: identity),
@@ -511,6 +671,54 @@ class _PlayerRow extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ChallengeCard extends StatelessWidget {
+  const _ChallengeCard({required this.challenge, required this.onTap});
+
+  final SocialChallenge challenge;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final difficulty = SudokuDifficulty.values.firstWhere(
+      (value) => value.name == challenge.difficulty,
+      orElse: () => SudokuDifficulty.easy,
+    );
+    final accent = _accent(difficulty);
+    return Card(
+      color: const Color(0xFF101B20).withValues(alpha: .96),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: accent.withValues(alpha: .3)),
+      ),
+      child: ListTile(
+        minTileHeight: 82,
+        leading: PlayerAvatar(
+          displayName: challenge.challenger.displayName,
+          avatarKey: 'social-${challenge.challenger.publicId}',
+          radius: 25,
+        ),
+        title: Text(
+          challenge.challenger.displayName,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        subtitle: Text(
+          '${context.strings.difficultyLabel(difficulty)} · ${context.tr('rating_value', <Object>[challenge.challenger.rating])}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: Colors.white.withValues(alpha: .6)),
+        ),
+        trailing: Icon(Icons.chevron_right_rounded, color: accent),
+        onTap: onTap,
       ),
     );
   }
@@ -529,13 +737,13 @@ class _Empty extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.people_outline_rounded,
-              size: 54,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            const DuelAssetIcon(DuelAsset.people, size: 54),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white.withValues(alpha: .72)),
+            ),
           ],
         ),
       ),
@@ -543,9 +751,12 @@ class _Empty extends StatelessWidget {
   }
 }
 
-SudokuDifficulty _difficulty(String value) {
-  return SudokuDifficulty.values.firstWhere(
-    (difficulty) => difficulty.name == value,
-    orElse: () => SudokuDifficulty.easy,
-  );
+Color _accent(SudokuDifficulty difficulty) {
+  return switch (difficulty) {
+    SudokuDifficulty.beginner => const Color(0xFF29D398),
+    SudokuDifficulty.easy => const Color(0xFF3AA9FF),
+    SudokuDifficulty.medium => const Color(0xFFFFC94D),
+    SudokuDifficulty.hard => const Color(0xFFFF8A3D),
+    SudokuDifficulty.expert => const Color(0xFFFF5C7A),
+  };
 }

@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/app_messenger.dart';
 import 'core/app_theme.dart';
 import 'data/local_progress_store.dart';
+import 'features/home/push_room_navigation_gate.dart';
 import 'features/home/ux_root_screen.dart';
 import 'localization/app_strings.dart';
 
@@ -48,7 +49,9 @@ class SudokuApp extends StatelessWidget {
               }
               return const Locale('en');
             },
-            home: UxRootScreen(store: store),
+            home: PushRoomNavigationGate(
+              child: UxRootScreen(store: store),
+            ),
           ),
         );
       },

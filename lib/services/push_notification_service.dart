@@ -16,6 +16,82 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await FirebaseRuntimeConfig.initializeIfConfigured();
 }
 
+enum PushNotificationDestinationType {
+  challenge,
+  rematch,
+  room,
+  informational,
+}
+
+@immutable
+class PushNotificationDestination {
+  const PushNotificationDestination({
+    required this.type,
+    required this.id,
+    required this.defaultTitle,
+    required this.defaultBody,
+  });
+
+  final PushNotificationDestinationType type;
+  final String id;
+  final String defaultTitle;
+  final String defaultBody;
+
+  String get payload => '${type.name}:$id';
+}
+
+@visibleForTesting
+PushNotificationDestination? parsePushNotificationDestination(
+  Map<String, dynamic> data,
+) {
+  final messageType = data['type']?.toString();
+  if (messageType == 'challenge_response') {
+    final status = data['status']?.toString();
+    final roomId = data['roomId']?.toString();
+    if (status == 'accepted' && roomId != null && roomId.isNotEmpty) {
+      return PushNotificationDestination(
+        type: PushNotificationDestinationType.room,
+        id: roomId,
+        defaultTitle: 'Challenge accepted',
+        defaultBody: 'Your opponent accepted. The duel room is ready.',
+      );
+    }
+    final challengeId = data['challengeId']?.toString() ?? 'challenge';
+    return PushNotificationDestination(
+      type: PushNotificationDestinationType.informational,
+      id: challengeId,
+      defaultTitle: status == 'declined'
+          ? 'Challenge declined'
+          : 'Challenge updated',
+      defaultBody: status == 'declined'
+          ? 'Your opponent declined the Sudoku challenge.'
+          : 'Your Sudoku challenge status changed.',
+    );
+  }
+
+  final rematchId = data['rematchId']?.toString();
+  if (rematchId != null && rematchId.isNotEmpty) {
+    return PushNotificationDestination(
+      type: PushNotificationDestinationType.rematch,
+      id: rematchId,
+      defaultTitle: 'Rematch invitation',
+      defaultBody:
+          'A player wants to play again. Open Sudoku Duel to respond.',
+    );
+  }
+
+  final challengeId = data['challengeId']?.toString();
+  if (challengeId != null && challengeId.isNotEmpty) {
+    return PushNotificationDestination(
+      type: PushNotificationDestinationType.challenge,
+      id: challengeId,
+      defaultTitle: 'New Sudoku challenge',
+      defaultBody: 'A player challenged you. Open Sudoku Duel to respond.',
+    );
+  }
+  return null;
+}
+
 class PushNotificationService {
   PushNotificationService._();
 
@@ -31,10 +107,12 @@ class PushNotificationService {
   final ValueNotifier<bool> initialized = ValueNotifier<bool>(false);
   final ValueNotifier<bool> enabled = ValueNotifier<bool>(false);
   final ValueNotifier<bool> permissionGranted = ValueNotifier<bool>(false);
-  final ValueNotifier<String?> openedChallengeId =
-      _ConsumableValueNotifier<String>();
-  final ValueNotifier<String?> openedRematchId =
-      _ConsumableValueNotifier<String>();
+  final ValueNotifier<bool> userDisabled = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> lastRegistrationError =
+      ValueNotifier<String?>(null);
+  final ValueNotifier<String?> openedChallengeId = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> openedRematchId = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> openedRoomId = ValueNotifier<String?>(null);
 
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _messageSubscription;
@@ -42,6 +120,11 @@ class PushNotificationService {
   Future<void>? _initialization;
 
   bool get configured => FirebaseRuntimeConfig.configured;
+
+  bool get hasPendingNavigation =>
+      openedRoomId.value?.isNotEmpty == true ||
+      openedChallengeId.value?.isNotEmpty == true ||
+      openedRematchId.value?.isNotEmpty == true;
 
   Future<void> initialize() {
     if (!configured || initialized.value) return Future<void>.value();
@@ -58,7 +141,8 @@ class PushNotificationService {
       final signedIn = await _ensureAnonymousSession();
       if (!signedIn) return;
 
-      enabled.value = await _preferences.getBool(_enabledKey) ?? false;
+      final savedEnabled = await _preferences.getBool(_enabledKey);
+      userDisabled.value = savedEnabled == false;
 
       await _initializeLocalNotifications();
       await FirebaseMessaging.instance
@@ -79,7 +163,7 @@ class PushNotificationService {
         _handleOpenedMessage,
       );
       _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
-        _registerToken,
+        (token) => unawaited(_registerToken(token)),
       );
 
       final initialMessage = await FirebaseMessaging.instance
@@ -88,15 +172,18 @@ class PushNotificationService {
 
       final settings = await FirebaseMessaging.instance
           .getNotificationSettings();
-      permissionGranted.value = _isAuthorized(settings.authorizationStatus);
-      if (enabled.value && permissionGranted.value) {
-        final token = await FirebaseMessaging.instance.getToken();
-        if (token != null) await _registerToken(token);
+      final authorized = _isAuthorized(settings.authorizationStatus);
+      permissionGranted.value = authorized;
+      enabled.value = (savedEnabled ?? authorized) && authorized;
+      if (savedEnabled == null && authorized) {
+        await _preferences.setBool(_enabledKey, true);
       }
+      if (enabled.value) await _registerCurrentToken();
 
       initialized.value = true;
     } catch (error, stackTrace) {
       initialized.value = false;
+      lastRegistrationError.value = error.toString();
       debugPrint('Challenge push initialization failed: $error');
       debugPrintStack(stackTrace: stackTrace);
       await FirebaseServices.instance.recordNonFatal(error, stackTrace);
@@ -122,22 +209,39 @@ class PushNotificationService {
       permissionGranted.value = allowed;
       if (!allowed) {
         enabled.value = false;
+        userDisabled.value = true;
+        lastRegistrationError.value = 'Notification permission was denied.';
         await _preferences.setBool(_enabledKey, false);
         return false;
       }
 
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token == null || token.isEmpty) return false;
-
       enabled.value = true;
+      userDisabled.value = false;
+      lastRegistrationError.value = null;
       await _preferences.setBool(_enabledKey, true);
-      await _registerToken(token);
-      return true;
+      return _registerCurrentToken();
     } catch (error, stackTrace) {
+      lastRegistrationError.value = error.toString();
       debugPrint('Challenge notification permission failed: $error');
       await FirebaseServices.instance.recordNonFatal(error, stackTrace);
       return false;
     }
+  }
+
+  Future<bool> refreshRegistration() async {
+    if (!configured) return false;
+    if (!initialized.value) await initialize();
+    if (!initialized.value || userDisabled.value) return false;
+
+    final settings = await FirebaseMessaging.instance.getNotificationSettings();
+    final allowed = _isAuthorized(settings.authorizationStatus);
+    permissionGranted.value = allowed;
+    if (!allowed) {
+      enabled.value = false;
+      return false;
+    }
+    enabled.value = true;
+    return _registerCurrentToken();
   }
 
   Future<void> disableChallengeNotifications() async {
@@ -145,6 +249,8 @@ class PushNotificationService {
     if (!initialized.value) await initialize();
 
     enabled.value = false;
+    userDisabled.value = true;
+    lastRegistrationError.value = null;
     await _preferences.setBool(_enabledKey, false);
 
     try {
@@ -215,8 +321,12 @@ class PushNotificationService {
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     if (!enabled.value) return;
-    final target = _notificationTarget(message.data);
+    final target = parsePushNotificationDestination(message.data);
     if (target == null) return;
+
+    if (target.type == PushNotificationDestinationType.room) {
+      _openTarget(target);
+    }
 
     if (!kIsWeb && Platform.isAndroid) {
       await _localNotifications.show(
@@ -233,13 +343,13 @@ class PushNotificationService {
             priority: Priority.high,
           ),
         ),
-        payload: '${target.type}:${target.id}',
+        payload: target.payload,
       );
     }
   }
 
   void _handleOpenedMessage(RemoteMessage message) {
-    final target = _notificationTarget(message.data);
+    final target = parsePushNotificationDestination(message.data);
     if (target == null) return;
     _openTarget(target);
   }
@@ -251,48 +361,61 @@ class PushNotificationService {
       openedChallengeId.value = payload;
       return;
     }
-    final type = payload.substring(0, separator);
+    final typeName = payload.substring(0, separator);
     final id = payload.substring(separator + 1);
     if (id.isEmpty) return;
-    _openTarget(_PushTarget(type: type, id: id));
+    final type = PushNotificationDestinationType.values.where(
+      (value) => value.name == typeName,
+    );
+    if (type.isEmpty) return;
+    _openTarget(
+      PushNotificationDestination(
+        type: type.first,
+        id: id,
+        defaultTitle: 'Online invitation',
+        defaultBody: 'Open Sudoku Duel to continue.',
+      ),
+    );
   }
 
-  _PushTarget? _notificationTarget(Map<String, dynamic> data) {
-    final rematchId = data['rematchId']?.toString();
-    if (rematchId != null && rematchId.isNotEmpty) {
-      return _PushTarget(
-        type: 'rematch',
-        id: rematchId,
-        defaultTitle: 'Rematch invitation',
-        defaultBody:
-            'A player wants to play again. Open Sudoku Duel to respond.',
-      );
-    }
-    final challengeId = data['challengeId']?.toString();
-    if (challengeId != null && challengeId.isNotEmpty) {
-      return _PushTarget(
-        type: 'challenge',
-        id: challengeId,
-        defaultTitle: 'New Sudoku challenge',
-        defaultBody: 'A player challenged you. Open Sudoku Duel to respond.',
-      );
-    }
-    return null;
-  }
-
-  void _openTarget(_PushTarget target) {
-    if (target.type == 'rematch') {
-      openedRematchId.value = target.id;
-    } else {
-      openedChallengeId.value = target.id;
+  void _openTarget(PushNotificationDestination target) {
+    switch (target.type) {
+      case PushNotificationDestinationType.room:
+        openedRoomId.value = target.id;
+      case PushNotificationDestinationType.rematch:
+        openedRematchId.value = target.id;
+      case PushNotificationDestinationType.challenge:
+        openedChallengeId.value = target.id;
+      case PushNotificationDestinationType.informational:
+        break;
     }
   }
 
-  Future<void> _registerToken(String token) async {
+  Future<bool> _registerCurrentToken() async {
+    final token = await _loadMessagingToken();
+    if (token == null || token.isEmpty) {
+      lastRegistrationError.value = 'FCM registration token is unavailable.';
+      return false;
+    }
+    return _registerToken(token);
+  }
+
+  Future<String?> _loadMessagingToken() async {
+    if (!kIsWeb && Platform.isIOS) {
+      for (var attempt = 0; attempt < 12; attempt++) {
+        final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+        if (apnsToken != null && apnsToken.isNotEmpty) break;
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+      }
+    }
+    return FirebaseMessaging.instance.getToken();
+  }
+
+  Future<bool> _registerToken(String token) async {
     if (!enabled.value ||
         !SocialApiClient.instance.configured ||
         token.isEmpty) {
-      return;
+      return false;
     }
     final platform = !kIsWeb && Platform.isIOS ? 'ios' : 'android';
     try {
@@ -300,9 +423,17 @@ class PushNotificationService {
         token: token,
         platform: platform,
       );
+      lastRegistrationError.value = null;
+      return true;
     } on SocialApiException catch (error, stackTrace) {
+      lastRegistrationError.value = error.message;
       debugPrint('Push token registration failed: $error');
       await FirebaseServices.instance.recordNonFatal(error, stackTrace);
+      return false;
+    } catch (error, stackTrace) {
+      lastRegistrationError.value = error.toString();
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
+      return false;
     }
   }
 
@@ -316,43 +447,4 @@ class PushNotificationService {
     await _messageSubscription?.cancel();
     await _openedSubscription?.cancel();
   }
-}
-
-class _ConsumableValueNotifier<T> extends ValueNotifier<T?> {
-  _ConsumableValueNotifier() : super(null);
-
-  bool _clearScheduled = false;
-
-  @override
-  T? get value {
-    final current = super.value;
-    if (current != null && !_clearScheduled) {
-      _clearScheduled = true;
-      scheduleMicrotask(() {
-        _clearScheduled = false;
-        if (identical(super.value, current)) super.value = null;
-      });
-    }
-    return current;
-  }
-
-  @override
-  set value(T? next) {
-    _clearScheduled = false;
-    super.value = next;
-  }
-}
-
-class _PushTarget {
-  const _PushTarget({
-    required this.type,
-    required this.id,
-    this.defaultTitle = 'Online invitation',
-    this.defaultBody = 'Open Sudoku Duel to respond.',
-  });
-
-  final String type;
-  final String id;
-  final String defaultTitle;
-  final String defaultBody;
 }

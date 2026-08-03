@@ -38,7 +38,15 @@ Future<void> main() async {
     unawaited(
       _initializeOptionalService('Firebase and push', () async {
         await FirebaseServices.instance.initialize();
-        await PushNotificationService.instance.initialize();
+        final push = PushNotificationService.instance;
+        await push.initialize();
+        if (!push.userDisabled.value) {
+          if (push.permissionGranted.value) {
+            await push.refreshRegistration();
+          } else {
+            await push.requestPermissionAndRegister();
+          }
+        }
       }, timeout: const Duration(seconds: 60)),
     );
     unawaited(
