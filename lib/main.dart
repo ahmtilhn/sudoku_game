@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
-import 'config/release_configuration.dart';
 import 'data/local_progress_store.dart';
 import 'localization/app_strings.dart';
 import 'services/ads_service.dart';
@@ -22,7 +21,6 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.portraitUp,
   ]);
-  ReleaseConfiguration.validate();
 
   final store = await LocalProgressStore.create();
   final strings = await AppStrings.load();
