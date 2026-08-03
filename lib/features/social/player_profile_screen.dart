@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
+import '../../services/platform_game_services.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/player_avatar.dart';
 import 'competitive_profile_card.dart';
 import 'google_play_games_screen.dart';
 
@@ -15,6 +17,7 @@ class PlayerProfileScreen extends StatefulWidget {
 }
 
 class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
+  final PlatformGameServices _games = PlatformGameServices.instance;
   bool _loading = true;
   String? _error;
   CompetitiveProfile? _profile;
@@ -22,7 +25,18 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _games.localPlayer.addListener(_onPlatformPlayerChanged);
     _load();
+  }
+
+  @override
+  void dispose() {
+    _games.localPlayer.removeListener(_onPlatformPlayerChanged);
+    super.dispose();
+  }
+
+  void _onPlatformPlayerChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -34,9 +48,18 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
       final profile = await SocialApiClient.instance.loadCompetitiveProfile();
       if (!mounted) return;
       setState(() => _profile = profile);
-    } catch (_) {
+    } on SocialApiException catch (error) {
       if (!mounted) return;
-      setState(() => _error = context.tr('online_account_unavailable'));
+      setState(() {
+        _profile = null;
+        _error = 'Backend ${error.statusCode}: ${error.message}';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _profile = null;
+        _error = error.toString();
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -52,6 +75,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final platformPlayer = _games.localPlayer.value;
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
       appBar: AppBar(
@@ -90,20 +114,92 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
                           ],
                         ),
                       )
-                    : ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: [
-                          _ProfileUnavailablePanel(
-                            message:
-                                _error ??
-                                context.tr('try_again_when_connected'),
-                            onRetry: _load,
-                          ),
-                        ],
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            if (platformPlayer != null) ...[
+                              _GooglePlayIdentityPanel(player: platformPlayer),
+                              const SizedBox(height: 12),
+                            ],
+                            _ProfileUnavailablePanel(
+                              message:
+                                  _error ??
+                                  context.tr('try_again_when_connected'),
+                              onRetry: _load,
+                            ),
+                          ],
+                        ),
                       ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GooglePlayIdentityPanel extends StatelessWidget {
+  const _GooglePlayIdentityPanel({required this.player});
+
+  final PlatformPlayer player;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF071014).withValues(alpha: .78),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFF29D398).withValues(alpha: .34),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            PlayerAvatar(
+              displayName: player.displayName,
+              avatarKey: 'google-play-${player.playerId}',
+              remoteApprovedImageUrl: player.avatarUrl,
+              radius: 27,
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Google Play Games connected',
+                    style: TextStyle(
+                      color: Color(0xFF29D398),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    player.displayName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    'Player ID: ${player.playerId}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .58),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -152,7 +248,7 @@ class _ProfileUnavailablePanel extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  SelectableText(
                     message,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .66),
