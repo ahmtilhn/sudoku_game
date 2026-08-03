@@ -3,33 +3,41 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('accepted challenge responses are idempotent and repair room rows', () {
+  test('accepted challenge responses are idempotent and require funded rooms', () {
     final worker = File(
       'backend/social_worker/src/index.ts',
     ).readAsStringSync();
 
+    expect(worker, contains("if (challenge.status === 'accepted')"));
+    expect(worker, contains('ensureAcceptedChallengeMatch(env, challenge)'));
     expect(
       worker,
-      contains("challenge.status !== 'pending' && challenge.status !== 'accepted'"),
+      contains(
+        "WHERE (challenger_id = ? OR recipient_id = ?)\n         AND status = 'accepted'",
+      ),
     );
-    expect(worker, contains('ensureAcceptedChallengeMatch(env, accepted)'));
+    expect(worker, contains("funded?.status !== 'funded'"));
     expect(
       worker,
-      contains("WHERE (challenger_id = ? OR recipient_id = ?)\n         AND status = 'accepted'"),
+      contains('The accepted challenge room is no longer playable.'),
     );
     expect(
       worker,
-      contains("Unable to create the accepted challenge room."),
+      contains('Both players need enough Coin to create the challenge room.'),
     );
   });
 
-  test('challenge accept UI recovers an authoritative active room', () {
+  test('challenge accept UI recovers only its authoritative active room', () {
     final invitation = File(
       'lib/features/social/ux_challenge_invitation_screen.dart',
     ).readAsStringSync();
 
     expect(invitation, contains('_recoverAcceptedChallenge()'));
     expect(invitation, contains('for (var attempt = 0; attempt < 12; attempt++)'));
+    expect(
+      invitation,
+      contains('activeChallengeId == widget.challengeId'),
+    );
     expect(invitation, contains('await _openRoom(roomId)'));
   });
 
