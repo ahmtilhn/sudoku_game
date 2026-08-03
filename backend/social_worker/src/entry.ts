@@ -25,6 +25,7 @@ import {
   verifyAndGrantProductionPurchase,
 } from './production_purchase_verification_v2';
 import { sendPlayerPush } from './push_notifications';
+import { ensureRuntimeSchema } from './runtime_schema';
 import {
   StoreNotificationError,
   handleAppleServerNotification,
@@ -61,6 +62,16 @@ export default {
       return new Response(null, {
         status: 204,
         headers: corsHeaders(env),
+      });
+    }
+
+    try {
+      await ensureRuntimeSchema(env);
+    } catch (error) {
+      console.error('runtime_schema_install_failed', error);
+      return json(env, 503, {
+        error: 'The database schema is not ready.',
+        code: 'runtime_schema_install_failed',
       });
     }
 
@@ -138,6 +149,13 @@ export default {
     ctx: ExecutionContext,
   ): Promise<void> {
     void event;
+    try {
+      await ensureRuntimeSchema(env);
+    } catch (error) {
+      console.error('runtime_schema_install_failed', error);
+      return;
+    }
+
     ctx.waitUntil(
       runRetentionCleanup(env)
         .then((results) => {
