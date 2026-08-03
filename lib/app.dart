@@ -3,7 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/app_theme.dart';
 import 'data/local_progress_store.dart';
-import 'features/social/challenge_navigation_gate.dart';
+import 'features/home/ux_root_screen.dart';
 import 'localization/app_strings.dart';
 
 class SudokuApp extends StatelessWidget {
@@ -22,9 +22,9 @@ class SudokuApp extends StatelessWidget {
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
             onGenerateTitle: (context) => context.tr('app_name'),
-            theme: AppTheme.light(highContrast: store.highContrast),
+            theme: AppTheme.dark(highContrast: store.highContrast),
             darkTheme: AppTheme.dark(highContrast: store.highContrast),
-            themeMode: store.themeMode,
+            themeMode: ThemeMode.dark,
             localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -32,9 +32,7 @@ class SudokuApp extends StatelessWidget {
             ],
             supportedLocales: AppStrings.supportedLocales,
             localeResolutionCallback: (deviceLocale, supportedLocales) {
-              if (deviceLocale == null) {
-                return const Locale('en');
-              }
+              if (deviceLocale == null) return const Locale('en');
               for (final locale in supportedLocales) {
                 if (locale.languageCode == deviceLocale.languageCode &&
                     locale.scriptCode == deviceLocale.scriptCode) {
@@ -48,7 +46,7 @@ class SudokuApp extends StatelessWidget {
               }
               return const Locale('en');
             },
-            home: ChallengeNavigationGate(store: store),
+            home: UxRootScreen(store: store),
           ),
         );
       },
