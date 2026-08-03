@@ -76,10 +76,7 @@ try {
   if ($configText -notmatch 'migrations_dir\s*=\s*"migrations"') {
     throw 'wrangler.staging.toml içindeki migrations_dir beklenen biçimde değil.'
   }
-  $configText = $configText -replace (
-    'migrations_dir\s*=\s*"migrations"',
-    'migrations_dir = ".wrangler/staging-migrations-clean"'
-  )
+  $configText = $configText -replace 'migrations_dir\s*=\s*"migrations"', 'migrations_dir = ".wrangler/staging-migrations-clean"'
   [System.IO.File]::WriteAllText(
     $tempConfigPath,
     $configText,
