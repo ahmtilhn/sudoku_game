@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../widgets/responsive_layout.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
@@ -328,7 +330,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     await _saveNow();
     if (!mounted) return;
 
-    final action = await showModalBottomSheet<_LossAction>(
+    final action = await showAdaptiveBottomSheet<_LossAction>(
       context: context,
       isDismissible: false,
       enableDrag: false,
@@ -497,7 +499,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
         : _totalMistakes <= 2 && _hintsUsed <= 1
             ? 2
             : 1;
-    final action = await showModalBottomSheet<_ResultAction>(
+    final action = await showAdaptiveBottomSheet<_ResultAction>(
       context: context,
       isDismissible: false,
       enableDrag: false,
