@@ -32,8 +32,8 @@ class ResponsiveMetrics {
   bool get isTablet => width >= 600;
   bool get isLargeTablet => width >= 800;
   bool get isShort => height < 620;
-  bool get hasLargeText => textScale > 1.3;
-  bool get hasVeryLargeText => textScale > 1.7;
+  bool get hasLargeText => textScale >= 1.3;
+  bool get hasVeryLargeText => textScale >= 1.7;
   bool get keyboardVisible => viewInsets.bottom > 0;
 
   double get pagePadding => isTiny ? 12 : isTablet ? 24 : 16;
@@ -109,7 +109,9 @@ class AdaptiveActionGroup extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact =
-            constraints.maxWidth < 390 || metrics.hasLargeText || metrics.isTiny;
+            constraints.maxWidth < 480 ||
+            metrics.hasLargeText ||
+            metrics.isTiny;
         if (!compact) {
           return Row(
             mainAxisSize: MainAxisSize.min,
