@@ -3,8 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  // This suite also guards the combined PR #38 + latest-main challenge flow.
-  test('challenge polling is exact and challenge-aware', () {
+  test('challenge waiting terminates and room recovery stays challenge-aware', () {
     final waiting = File(
       'lib/features/social/challenge_waiting_screen.dart',
     ).readAsStringSync();
@@ -17,7 +16,8 @@ void main() {
 
     expect(api, contains('Future<SocialChallenge> loadChallenge'));
     expect(api, contains('Future<SocialChallenge> cancelChallenge'));
-    expect(waiting, contains('activeChallengeId == challenge.id'));
+    expect(waiting, contains('inferMissingChallengeEndReason'));
+    expect(waiting, contains('ChallengeWaitingEndReason.declined'));
     expect(invitation, contains('activeChallengeId == widget.challengeId'));
   });
 
