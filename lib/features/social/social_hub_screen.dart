@@ -8,6 +8,7 @@ import '../../services/player_profile_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/player_avatar.dart';
+import '../../widgets/responsive_layout.dart';
 import 'ux_challenge_invitation_screen.dart';
 
 class SocialHubScreen extends StatefulWidget {
@@ -144,42 +145,31 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 
   Future<void> _challenge(SocialPlayer player) async {
-    final difficulty = await showModalBottomSheet<SudokuDifficulty>(
+    final difficulty = await showAdaptiveBottomSheet<SudokuDifficulty>(
       context: context,
-      showDragHandle: true,
-      useSafeArea: true,
-      isScrollControlled: true,
-      builder: (sheetContext) => FractionallySizedBox(
-        heightFactor: 0.92,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            4,
-            16,
-            20 + MediaQuery.viewInsetsOf(sheetContext).bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                context.tr('choose_duel_difficulty'),
-                textAlign: TextAlign.center,
-                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              context.tr('choose_duel_difficulty'),
+              textAlign: TextAlign.center,
+              style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: 10),
+            for (final item in SudokuDifficulty.values)
+              ListTile(
+                minTileHeight: 52,
+                leading: const Icon(Icons.grid_4x4_rounded),
+                title: Text(context.strings.difficultyLabel(item)),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(sheetContext).pop(item),
               ),
-              const SizedBox(height: 10),
-              for (final item in SudokuDifficulty.values)
-                ListTile(
-                  minTileHeight: 52,
-                  leading: const Icon(Icons.grid_4x4_rounded),
-                  title: Text(context.strings.difficultyLabel(item)),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => Navigator.of(sheetContext).pop(item),
-                ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -197,18 +187,27 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   Future<void> _openChallenge(SocialChallenge challenge) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => UxChallengeInvitationScreen(challengeId: challenge.id),
+        builder: (_) => UxChallengeInvitationScreen(
+          challengeId: challenge.id,
+        ),
       ),
     );
     await _load();
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final metrics = ResponsiveMetrics.of(context);
+    final searchMaxHeight = metrics.keyboardVisible
+        ? (metrics.height * 0.38).clamp(150.0, 270.0)
+        : (metrics.height * 0.46).clamp(180.0, 410.0);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
       appBar: AppBar(
@@ -238,81 +237,71 @@ class _SocialHubScreenState extends State<SocialHubScreen>
           top: false,
           child: Column(
             children: [
-              Flexible(
-                fit: FlexFit.loose,
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 680),
-                    child: SingleChildScrollView(
-                      keyboardDismissBehavior:
-                          ScrollViewKeyboardDismissBehavior.onDrag,
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                      child: Column(
-                        children: [
-                          TextField(
-                            controller: _search,
-                            enabled: !_searching,
-                            textInputAction: TextInputAction.search,
-                            autocorrect: false,
-                            decoration: InputDecoration(
-                              labelText:
-                                  '${context.tr('unique_username')} / ${context.tr('friend_id')}',
-                              prefixIcon: const Icon(Icons.search_rounded),
-                              suffixIcon: IconButton(
-                                tooltip: context.tr('try_again'),
-                                onPressed: _searching ? null : _findPlayers,
-                                icon: _searching
-                                    ? const Padding(
-                                        padding: EdgeInsets.all(12),
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.arrow_forward_rounded),
-                              ),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: searchMaxHeight),
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: ResponsiveConstrainedContent(
+                    maxWidth: 680,
+                    padding: EdgeInsets.fromLTRB(
+                      metrics.pagePadding,
+                      12,
+                      metrics.pagePadding,
+                      8,
+                    ),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _search,
+                          enabled: !_searching,
+                          textInputAction: TextInputAction.search,
+                          autocorrect: false,
+                          decoration: InputDecoration(
+                            labelText:
+                                '${context.tr('unique_username')} / ${context.tr('friend_id')}',
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            suffixIcon: IconButton(
+                              tooltip: context.tr('try_again'),
+                              onPressed: _searching ? null : _findPlayers,
+                              icon: _searching
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.arrow_forward_rounded),
                             ),
-                            onSubmitted: (_) => _findPlayers(),
                           ),
-                          if (_results.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Card(
-                              clipBehavior: Clip.antiAlias,
-                              child: Column(
-                                children: [
-                                  for (final player in _results.take(5))
-                                    _PlayerRow(
-                                      player: player,
-                                      busy:
-                                          _busyId ==
-                                          'friend-${player.publicId}',
-                                      primaryLabel: context.tr('add_friend'),
-                                      onPrimary: () =>
-                                          _sendFriendRequest(player),
-                                    ),
-                                ],
-                              ),
+                          onSubmitted: (_) => _findPlayers(),
+                        ),
+                        if (_results.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          for (final player in _results.take(5))
+                            _PlayerRow(
+                              player: player,
+                              busy: _busyId == 'friend-${player.publicId}',
+                              primaryLabel: context.tr('add_friend'),
+                              onPrimary: () => _sendFriendRequest(player),
                             ),
-                          ],
-                          if (_error != null) ...[
-                            const SizedBox(height: 8),
-                            Card(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.errorContainer,
-                              child: ListTile(
-                                leading: const Icon(Icons.error_outline),
-                                title: Text(_error!),
-                                trailing: IconButton(
-                                  tooltip: context.tr('dismiss'),
-                                  onPressed: () =>
-                                      setState(() => _error = null),
-                                  icon: const Icon(Icons.close_rounded),
-                                ),
-                              ),
-                            ),
-                          ],
                         ],
-                      ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 8),
+                          Card(
+                            color: Theme.of(context).colorScheme.errorContainer,
+                            child: ListTile(
+                              leading: const Icon(Icons.error_outline),
+                              title: Text(_error!),
+                              trailing: IconButton(
+                                tooltip: context.tr('dismiss'),
+                                onPressed: () => setState(() => _error = null),
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
@@ -398,12 +387,18 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 
   Widget _scroll(List<Widget> children) {
+    final metrics = ResponsiveMetrics.of(context);
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 680),
         child: ListView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          padding: EdgeInsets.fromLTRB(
+            metrics.pagePadding,
+            8,
+            metrics.pagePadding,
+            32,
+          ),
           children: children,
         ),
       ),
@@ -428,102 +423,90 @@ class _PlayerRow extends StatelessWidget {
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
 
-  Widget _primaryButton({required bool expanded}) {
-    final button = FilledButton.tonal(
-      onPressed: busy ? null : onPrimary,
-      child: busy
-          ? const SizedBox.square(
-              dimension: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Text(primaryLabel, textAlign: TextAlign.center, maxLines: 2),
-    );
-    return expanded ? SizedBox(width: double.infinity, child: button) : button;
-  }
-
-  Widget _secondaryButton({required bool expanded}) {
-    final button = OutlinedButton(
-      onPressed: busy ? null : onSecondary,
-      child: Text(secondaryLabel!, textAlign: TextAlign.center, maxLines: 2),
-    );
-    return expanded ? SizedBox(width: double.infinity, child: button) : button;
-  }
-
-  Widget _identity() {
-    return Row(
-      children: [
-        PlayerAvatar(
-          displayName: player.displayName,
-          avatarKey: 'player-${player.publicId}',
-          radius: 24,
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                player.displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              Builder(
-                builder: (context) => Text(
-                  context.tr('player_rating_summary', <Object>[
-                    player.username,
-                    player.rating,
-                  ]),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final scale = MediaQuery.textScalerOf(context).scale(1);
+    final metrics = ResponsiveMetrics.of(context);
     return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+        padding: EdgeInsets.all(metrics.isTiny ? 10 : 12),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxWidth < 460 || scale > 1.3;
-            if (!compact) {
-              return Row(
+            final compact =
+                constraints.maxWidth < 430 || metrics.hasLargeText;
+            final identity = Row(
+              children: [
+                PlayerAvatar(
+                  displayName: player.displayName,
+                  avatarKey: 'player-${player.publicId}',
+                  radius: compact ? 22 : 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        player.displayName,
+                        maxLines: compact ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        context.tr('player_rating_summary', <Object>[
+                          player.username,
+                          player.rating,
+                        ]),
+                        maxLines: compact ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+
+            final actions = <Widget>[
+              if (secondaryLabel != null)
+                TextButton(
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                  ),
+                  onPressed: busy ? null : onSecondary,
+                  child: Text(secondaryLabel!),
+                ),
+              FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                ),
+                onPressed: busy ? null : onPrimary,
+                child: busy
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(primaryLabel, textAlign: TextAlign.center),
+              ),
+            ];
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: _identity()),
-                  const SizedBox(width: 8),
-                  if (secondaryLabel != null) ...[
-                    _secondaryButton(expanded: false),
-                    const SizedBox(width: 8),
-                  ],
-                  _primaryButton(expanded: false),
+                  identity,
+                  const SizedBox(height: 12),
+                  AdaptiveActionGroup(children: actions),
                 ],
               );
             }
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            return Row(
               children: [
-                _identity(),
-                const SizedBox(height: 10),
-                if (secondaryLabel == null)
-                  _primaryButton(expanded: true)
-                else
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _secondaryButton(expanded: true)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _primaryButton(expanded: true)),
-                    ],
-                  ),
+                Expanded(child: identity),
+                const SizedBox(width: 12),
+                AdaptiveActionGroup(
+                  stretchOnCompact: false,
+                  children: actions,
+                ),
               ],
             );
           },
@@ -541,7 +524,7 @@ class _Empty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
