@@ -68,16 +68,20 @@ replace_once(
     'duplicate invitation room helper',
 )
 
-# Explicitly promote nullable platform before passing it to the ID resolver.
+# Explicitly promote the nullable platform only in authoritative resync.
 replace_once(
     'lib/services/platform_leaderboard_service.dart',
-    """    if (platform != TargetPlatform.android && platform != TargetPlatform.iOS) {
+    """  Future<PlatformLeaderboardMirrorResult> syncAuthoritativeRatings() async {
+    final platform = _resolvedPlatform;
+    if (platform != TargetPlatform.android && platform != TargetPlatform.iOS) {
       return const PlatformLeaderboardMirrorResult(
         status: PlatformLeaderboardMirrorStatus.skipped,
       );
     }
 """,
-    """    if (platform == null ||
+    """  Future<PlatformLeaderboardMirrorResult> syncAuthoritativeRatings() async {
+    final platform = _resolvedPlatform;
+    if (platform == null ||
         (platform != TargetPlatform.android &&
             platform != TargetPlatform.iOS)) {
       return const PlatformLeaderboardMirrorResult(
@@ -85,7 +89,7 @@ replace_once(
       );
     }
 """,
-    'nullable platform promotion',
+    'nullable authoritative platform promotion',
 )
 
 print('Challenge analyze errors fixed.')
