@@ -378,7 +378,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   String _statusText(BuildContext context) {

@@ -244,7 +244,9 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
 
   Future<PlatformLeaderboardMirrorResult> syncAuthoritativeRatings() async {
     final platform = _resolvedPlatform;
-    if (platform != TargetPlatform.android && platform != TargetPlatform.iOS) {
+    if (platform == null ||
+        (platform != TargetPlatform.android &&
+            platform != TargetPlatform.iOS)) {
       return const PlatformLeaderboardMirrorResult(
         status: PlatformLeaderboardMirrorStatus.skipped,
       );

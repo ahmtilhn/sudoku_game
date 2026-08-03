@@ -233,18 +233,9 @@ class _UxChallengeInvitationScreenState
   }
 
   Future<void> _openRoom(String roomId) async {
+    _timer?.cancel();
     await _economy.refresh(showLoading: false);
     if (!mounted) return;
-    await Navigator.of(context).pushReplacement<void, void>(
-      MaterialPageRoute(
-        builder: (_) => PreMatchReadyScreen(roomId: roomId),
-      ),
-    );
-  }
-
-  Future<void> _openRoom(String roomId) async {
-    if (!mounted) return;
-    _timer?.cancel();
     await Navigator.of(context).pushReplacement<void, void>(
       MaterialPageRoute(
         builder: (_) => PreMatchReadyScreen(roomId: roomId),
