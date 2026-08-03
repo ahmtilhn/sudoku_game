@@ -19,16 +19,27 @@ jobs:
         with:
           ref: agent/challenge-system-hardening
           fetch-depth: 0
-      - name: Apply client hardening
-        run: python tool/apply_challenge_client_hardening.py
-      - name: Remove temporary transformer
+      - name: Apply client hardening with diagnostics
+        id: patch
+        shell: bash
         run: |
-          rm tool/apply_challenge_client_hardening.py
-          rm .github/workflows/apply_challenge_client_hardening.yml
-      - name: Commit generated client changes
+          set +e
+          python tool/apply_challenge_client_hardening.py > tool/client_patch_diagnostic.txt 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Commit result or diagnostic
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Harden challenge client and surrender flow"
+          if [ "${{ steps.patch.outputs.exit_code }}" = "0" ]; then
+            rm tool/apply_challenge_client_hardening.py
+            rm tool/client_patch_diagnostic.txt
+            rm .github/workflows/apply_challenge_client_hardening.yml
+            git add -A
+            git commit -m "Harden challenge client and surrender flow"
+          else
+            git add tool/client_patch_diagnostic.txt
+            git commit -m "Record challenge client patch diagnostic"
+          fi
           git push origin HEAD:agent/challenge-system-hardening
