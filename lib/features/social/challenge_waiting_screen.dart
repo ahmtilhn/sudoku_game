@@ -11,6 +11,16 @@ import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
 import '../duel/pre_match_ready_screen.dart';
 
+enum ChallengeWaitingEndReason { none, declined, expired }
+
+ChallengeWaitingEndReason inferMissingChallengeEndReason({
+  required int secondsLeft,
+}) {
+  return secondsLeft > 0
+      ? ChallengeWaitingEndReason.declined
+      : ChallengeWaitingEndReason.expired;
+}
+
 class ChallengeWaitingScreen extends StatefulWidget {
   const ChallengeWaitingScreen({
     super.key,
@@ -33,20 +43,20 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   Timer? _clockTimer;
   bool _checking = false;
   bool _openingRoom = false;
-  bool _ended = false;
-  bool _cancelling = false;
-  late SocialChallenge _challenge;
+  int _missingPolls = 0;
+  ChallengeWaitingEndReason _endReason = ChallengeWaitingEndReason.none;
   String? _error;
 
-  int get _secondsLeft => _challenge.expiresAt
+  int get _secondsLeft => widget.challenge.expiresAt
       .difference(DateTime.now())
       .inSeconds
       .clamp(0, 24 * 60 * 60);
 
+  bool get _ended => _endReason != ChallengeWaitingEndReason.none;
+
   @override
   void initState() {
     super.initState();
-    _challenge = widget.challenge;
     WidgetsBinding.instance.addObserver(this);
     _push.openedRoomId.addListener(_handlePushRoom);
     unawaited(_prepareNotifications());
@@ -56,10 +66,9 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       (_) => unawaited(_checkStatus()),
     );
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
+      if (!mounted || _ended) return;
       if (_secondsLeft <= 0 && !_openingRoom) {
-        _pollTimer?.cancel();
-        setState(() => _ended = true);
+        _finish(ChallengeWaitingEndReason.expired);
       } else {
         setState(() {});
       }
@@ -68,7 +77,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && !_ended) {
       unawaited(_push.refreshRegistration());
       unawaited(_checkStatus());
     }
@@ -98,93 +107,48 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   }
 
   Future<void> _checkStatus() async {
-    if (_checking || _openingRoom || !mounted) return;
+    if (_checking || _openingRoom || _ended || !mounted) return;
     _checking = true;
     try {
-      final challenge = await _social.loadChallenge(_challenge.id);
-      if (!mounted) return;
-      setState(() {
-        _challenge = challenge;
-        _error = null;
-      });
-
-      if (challenge.status == 'accepted') {
-        var roomId = challenge.roomId?.trim();
-        if (roomId == null || roomId.isEmpty) {
-          final active = await _social.activeMatch();
-          final activeChallengeId = active?['challengeId']?.toString();
-          if (activeChallengeId == challenge.id) {
-            roomId = active?['roomId']?.toString().trim();
-          }
-        }
-        if (roomId != null && roomId.isNotEmpty) {
-          await _openRoom(roomId);
-          return;
-        }
-        if (mounted) {
-          setState(() => _error = context.tr('matchmaking_start_failed'));
-        }
+      final active = await _social.activeMatch();
+      final roomId = active?['roomId']?.toString();
+      if (roomId != null && roomId.isNotEmpty) {
+        await _openRoom(roomId);
         return;
       }
 
-      if (challenge.status == 'pending') {
-        if (_secondsLeft <= 0) {
-          setState(() {
-            _ended = true;
-            _error = context.tr('challenge_timed_out');
-          });
-          _pollTimer?.cancel();
-        }
+      final pending = await _social.loadPendingChallenges();
+      final stillPending = pending.any(
+        (challenge) => challenge.id == widget.challenge.id,
+      );
+      if (stillPending) {
+        _missingPolls = 0;
+        if (mounted && _error != null) setState(() => _error = null);
         return;
       }
 
-      _pollTimer?.cancel();
-      setState(() {
-        _ended = true;
-        _error = switch (challenge.status) {
-          'declined' => context.tr('challenge_declined'),
-          'expired' => context.tr('challenge_timed_out'),
-          'cancelled' => context.tr('cancel_search'),
-          _ => context.tr('challenge_timed_out'),
-        };
-      });
+      _missingPolls++;
+      if (_missingPolls < 2) return;
+      _finish(
+        inferMissingChallengeEndReason(secondsLeft: _secondsLeft),
+      );
     } on SocialApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) {
-        setState(() => _error = context.tr('try_again_when_connected'));
-      }
+      if (mounted) setState(() => _error = context.tr('try_again_when_connected'));
     } finally {
       _checking = false;
     }
   }
 
-  Future<void> _cancelChallenge() async {
-    if (_cancelling || _openingRoom || !mounted) return;
-    setState(() => _cancelling = true);
-    try {
-      await _social.cancelChallenge(_challenge.id);
-      if (!mounted) return;
-      Navigator.of(context).pop();
-    } on SocialApiException catch (error) {
-      if (!mounted) return;
-      if (error.statusCode == 409) {
-        setState(() => _cancelling = false);
-        await _checkStatus();
-      } else {
-        setState(() {
-          _cancelling = false;
-          _error = error.message;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _cancelling = false;
-          _error = context.tr('try_again_when_connected');
-        });
-      }
-    }
+  void _finish(ChallengeWaitingEndReason reason) {
+    if (!mounted || _ended) return;
+    _pollTimer?.cancel();
+    _clockTimer?.cancel();
+    setState(() {
+      _endReason = reason;
+      _error = null;
+    });
   }
 
   Future<void> _openRoom(String roomId) async {
@@ -199,14 +163,31 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     );
   }
 
+  String _title(BuildContext context) {
+    return switch (_endReason) {
+      ChallengeWaitingEndReason.declined => context.tr('challenge_declined'),
+      ChallengeWaitingEndReason.expired => context.tr('challenge_timed_out'),
+      ChallengeWaitingEndReason.none => context.tr('finding_opponent_title'),
+    };
+  }
+
+  String _subtitle(BuildContext context) {
+    return switch (_endReason) {
+      ChallengeWaitingEndReason.declined => context.tr('try_again'),
+      ChallengeWaitingEndReason.expired => context.tr('try_again'),
+      ChallengeWaitingEndReason.none =>
+        context.tr('searching_similar_opponents'),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final difficulty = SudokuDifficulty.values.firstWhere(
-      (value) => value.name == _challenge.difficulty,
+      (value) => value.name == widget.challenge.difficulty,
       orElse: () => SudokuDifficulty.easy,
     );
     final accent = _accent(difficulty);
-    final recipient = _challenge.recipient;
+    final recipient = widget.challenge.recipient;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
@@ -234,12 +215,13 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
                       child: Column(
                         children: [
-                          _StatusOrb(accent: accent, ended: _ended),
+                          _StatusOrb(
+                            accent: accent,
+                            endReason: _endReason,
+                          ),
                           const SizedBox(height: 18),
                           Text(
-                            _ended
-                                ? (_error ?? context.tr('challenge_timed_out'))
-                                : context.tr('finding_opponent_title'),
+                            _title(context),
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.white,
@@ -249,9 +231,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            _ended
-                                ? context.tr('try_again')
-                                : context.tr('searching_similar_opponents'),
+                            _subtitle(context),
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: .68),
@@ -302,11 +282,12 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                                 ]),
                                 accent: const Color(0xFFFFC94D),
                               ),
-                              _InfoChip(
-                                asset: DuelAsset.timer,
-                                label: '${_secondsLeft}s',
-                                accent: const Color(0xFF3AA9FF),
-                              ),
+                              if (!_ended)
+                                _InfoChip(
+                                  asset: DuelAsset.timer,
+                                  label: '${_secondsLeft}s',
+                                  accent: const Color(0xFF3AA9FF),
+                                ),
                             ],
                           ),
                           if (_error != null) ...[
@@ -337,7 +318,10 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                               width: double.infinity,
                               child: FilledButton.icon(
                                 onPressed: () => Navigator.of(context).pop(),
-                                icon: const DuelAssetIcon(DuelAsset.home, size: 21),
+                                icon: const DuelAssetIcon(
+                                  DuelAsset.home,
+                                  size: 21,
+                                ),
                                 label: Text(context.tr('main_menu')),
                               ),
                             )
@@ -345,14 +329,12 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                             const LinearProgressIndicator(minHeight: 6),
                             const SizedBox(height: 8),
                             TextButton.icon(
-                              onPressed: _cancelling ? null : _cancelChallenge,
-                              icon: _cancelling
-                                  ? const SizedBox.square(
-                                      dimension: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : const DuelAssetIcon(DuelAsset.close, size: 20),
-                              label: Text(context.tr('cancel_search')),
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const DuelAssetIcon(
+                                DuelAsset.home,
+                                size: 20,
+                              ),
+                              label: Text(context.tr('main_menu')),
                             ),
                           ],
                         ],
@@ -370,13 +352,14 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
 }
 
 class _StatusOrb extends StatelessWidget {
-  const _StatusOrb({required this.accent, required this.ended});
+  const _StatusOrb({required this.accent, required this.endReason});
 
   final Color accent;
-  final bool ended;
+  final ChallengeWaitingEndReason endReason;
 
   @override
   Widget build(BuildContext context) {
+    final ended = endReason != ChallengeWaitingEndReason.none;
     return Container(
       width: 104,
       height: 104,
@@ -390,7 +373,12 @@ class _StatusOrb extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: ended
-          ? const DuelAssetIcon(DuelAsset.timer, size: 48)
+          ? DuelAssetIcon(
+              endReason == ChallengeWaitingEndReason.declined
+                  ? DuelAsset.close
+                  : DuelAsset.timer,
+              size: 48,
+            )
           : SizedBox.square(
               dimension: 48,
               child: CircularProgressIndicator(
