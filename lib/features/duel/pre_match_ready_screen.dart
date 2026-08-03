@@ -171,108 +171,146 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
               constraints: const BoxConstraints(maxWidth: 680),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                child: Column(
-                  children: [
-                    Row(
+                child: LayoutBuilder(
+                  builder: (context, viewport) {
+                    final textScale = MediaQuery.textScalerOf(context).scale(1);
+                    final compact = viewport.maxHeight < 680 || textScale > 1.3;
+                    return Column(
                       children: [
-                        IconButton.filledTonal(
-                          tooltip: context.tr('cancel_search'),
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.arrow_back_rounded),
+                        Row(
+                          children: [
+                            IconButton.filledTonal(
+                              tooltip: context.tr('cancel_search'),
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _readyStage
+                                    ? context.tr('ready_question')
+                                    : context.tr('finding_opponent_title'),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: compact ? 19 : 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(height: compact ? 10 : 16),
+                        _ConnectionBanner(
+                          state: _connectionState,
+                          error: _error,
+                          onRetry: _connecting ? null : _connect,
+                        ),
+                        SizedBox(height: compact ? 10 : 18),
                         Expanded(
-                          child: Text(
-                            _readyStage
-                                ? context.tr('ready_question')
-                                : context.tr('finding_opponent_title'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
+                          child: SingleChildScrollView(
+                            keyboardDismissBehavior:
+                                ScrollViewKeyboardDismissBehavior.onDrag,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final vertical =
+                                    constraints.maxWidth < 520 || textScale > 1.3;
+                                final youCard = _PlayerCard(
+                                  player: _you,
+                                  fallbackName: context.tr('you'),
+                                  ready: _youReady,
+                                  accent: const Color(0xFF29D398),
+                                  compact: compact,
+                                );
+                                final opponentCard = _PlayerCard(
+                                  player: _opponent,
+                                  fallbackName: context.tr('opponent'),
+                                  ready: _opponentReady,
+                                  accent: const Color(0xFF7A5CFF),
+                                  compact: compact,
+                                );
+                                return Column(
+                                  children: [
+                                    if (vertical) ...[
+                                      youCard,
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: compact ? 6 : 10,
+                                        ),
+                                        child: const Icon(
+                                          Icons.flash_on_rounded,
+                                          color: Color(0xFFFFC94D),
+                                          size: 34,
+                                        ),
+                                      ),
+                                      opponentCard,
+                                    ] else
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Expanded(child: youCard),
+                                          const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                            ),
+                                            child: Icon(
+                                              Icons.flash_on_rounded,
+                                              color: Color(0xFFFFC94D),
+                                              size: 34,
+                                            ),
+                                          ),
+                                          Expanded(child: opponentCard),
+                                        ],
+                                      ),
+                                    SizedBox(height: compact ? 10 : 16),
+                                    Text(
+                                      _statusText(context),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: .74,
+                                        ),
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed:
+                                !_readyStage ||
+                                    _youReady ||
+                                    _controller == null ||
+                                    _connectionState ==
+                                        OnlineDuelConnectionState.failed
+                                ? null
+                                : _ready,
+                            icon: Icon(
+                              _youReady
+                                  ? Icons.check_circle_rounded
+                                  : Icons.shield_outlined,
+                            ),
+                            label: Text(
+                              _youReady
+                                  ? context.tr('ready')
+                                  : context.tr('i_am_ready'),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
                             ),
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 16),
-                    _ConnectionBanner(
-                      state: _connectionState,
-                      error: _error,
-                      onRetry: _connecting ? null : _connect,
-                    ),
-                    const SizedBox(height: 18),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final vertical = constraints.maxWidth < 520;
-                          final cards = <Widget>[
-                            Expanded(
-                              child: _PlayerCard(
-                                player: _you,
-                                fallbackName: context.tr('you'),
-                                ready: _youReady,
-                                accent: const Color(0xFF29D398),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: vertical ? 0 : 12,
-                                vertical: vertical ? 10 : 0,
-                              ),
-                              child: const Icon(
-                                Icons.flash_on_rounded,
-                                color: Color(0xFFFFC94D),
-                                size: 34,
-                              ),
-                            ),
-                            Expanded(
-                              child: _PlayerCard(
-                                player: _opponent,
-                                fallbackName: context.tr('opponent'),
-                                ready: _opponentReady,
-                                accent: const Color(0xFF7A5CFF),
-                              ),
-                            ),
-                          ];
-                          return vertical
-                              ? Column(children: cards)
-                              : Row(children: cards);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _statusText(context),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .74),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: !_readyStage ||
-                                _youReady ||
-                                _controller == null ||
-                                _connectionState == OnlineDuelConnectionState.failed
-                            ? null
-                            : _ready,
-                        icon: Icon(
-                          _youReady
-                              ? Icons.check_circle_rounded
-                              : Icons.shield_outlined,
-                        ),
-                        label: Text(
-                          _youReady
-                              ? context.tr('ready')
-                              : context.tr('i_am_ready'),
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -310,8 +348,8 @@ class _ConnectionBanner extends StatelessWidget {
     final color = failed
         ? Theme.of(context).colorScheme.error
         : state == OnlineDuelConnectionState.connected
-            ? const Color(0xFF29D398)
-            : const Color(0xFFFFC94D);
+        ? const Color(0xFF29D398)
+        : const Color(0xFFFFC94D);
     return Container(
       constraints: const BoxConstraints(minHeight: 52),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -327,6 +365,8 @@ class _ConnectionBanner extends StatelessWidget {
           Expanded(
             child: Text(
               _label(context),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(color: color, fontWeight: FontWeight.w900),
             ),
           ),
@@ -359,9 +399,9 @@ class _ConnectionBanner extends StatelessWidget {
       OnlineDuelConnectionState.resyncing =>
         context.tr('connection_interrupted_retrying'),
       OnlineDuelConnectionState.failed ||
-      OnlineDuelConnectionState.closed => context.tr('online_account_unavailable'),
-      OnlineDuelConnectionState.connecting =>
-        context.tr('connecting_players'),
+      OnlineDuelConnectionState.closed =>
+        context.tr('online_account_unavailable'),
+      OnlineDuelConnectionState.connecting => context.tr('connecting_players'),
     };
   }
 }
@@ -372,12 +412,14 @@ class _PlayerCard extends StatelessWidget {
     required this.fallbackName,
     required this.ready,
     required this.accent,
+    required this.compact,
   });
 
   final OnlineDuelPlayer? player;
   final String fallbackName;
   final bool ready;
   final Color accent;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -389,27 +431,29 @@ class _PlayerCard extends StatelessWidget {
         side: BorderSide(color: accent.withValues(alpha: .48)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(compact ? 12 : 18),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             PlayerAvatar(
               displayName: name,
               avatarKey: player?.avatarKey ?? 'prematch-$name',
-              radius: 40,
+              radius: compact ? 30 : 40,
               semanticLabel: context.tr(
                 'player_avatar_semantics',
                 <Object>[name],
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 8 : 12),
             Text(
               name,
-              maxLines: 1,
+              maxLines: 2,
+              textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 17,
+                fontSize: compact ? 15 : 17,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -421,14 +465,19 @@ class _PlayerCard extends StatelessWidget {
                 fontSize: 13,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 8 : 12),
             Chip(
               avatar: Icon(
                 ready ? Icons.check_circle_rounded : Icons.schedule_rounded,
                 color: ready ? const Color(0xFF29D398) : accent,
               ),
               label: Text(
-                ready ? context.tr('ready') : context.tr('waiting_opponent_ready'),
+                ready
+                    ? context.tr('ready')
+                    : context.tr('waiting_opponent_ready'),
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
