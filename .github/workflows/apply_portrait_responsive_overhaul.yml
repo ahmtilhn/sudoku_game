@@ -1,0 +1,37 @@
+name: Apply portrait responsive overhaul
+
+on:
+  push:
+    branches:
+      - agent/portrait-responsive-overhaul
+    paths:
+      - tool/apply_portrait_responsive_overhaul.py
+      - .github/workflows/apply_portrait_responsive_overhaul.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/portrait-responsive-overhaul
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply responsive transformations
+        run: python tool/apply_portrait_responsive_overhaul.py
+      - name: Commit generated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No responsive changes generated."
+            exit 1
+          fi
+          git commit -m "Complete portrait responsive overhaul"
+          git push origin HEAD:agent/portrait-responsive-overhaul
