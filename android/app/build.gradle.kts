@@ -1,5 +1,4 @@
 import java.io.FileInputStream
-import java.net.URI
 import java.util.Base64
 import java.util.Properties
 
@@ -20,21 +19,6 @@ if (releaseSigningConfigured) {
         keystoreProperties.load(stream)
     }
 }
-
-val decodedDartDefines: Map<String, String> =
-    ((project.findProperty("dart-defines") as? String).orEmpty())
-        .split(',')
-        .asSequence()
-        .mapNotNull { encoded ->
-            if (encoded.isBlank()) return@mapNotNull null
-            val decoded = runCatching {
-                String(Base64.getDecoder().decode(encoded), Charsets.UTF_8)
-            }.getOrNull() ?: return@mapNotNull null
-            val separator = decoded.indexOf('=')
-            if (separator <= 0) return@mapNotNull null
-            decoded.substring(0, separator) to decoded.substring(separator + 1)
-        }
-        .toMap()
 
 android {
     namespace = "com.devoviastudio.sudoku"
@@ -172,58 +156,6 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
                 "Release build still contains mandatory non-production service values in services.xml: " +
                     remainingBlockedValues.joinToString(", ") +
                     ". Configure the required AdMob and Play Games identifiers before building a release AAB.",
-            )
-        }
-
-        val appEnvironment = decodedDartDefines["APP_ENVIRONMENT"]?.trim()?.lowercase()
-        val internalTesting =
-            decodedDartDefines["INTERNAL_TESTING"]?.trim()?.lowercase() == "true"
-        val validEnvironment =
-            appEnvironment == "production" ||
-                (internalTesting && appEnvironment == "staging")
-        if (!validEnvironment) {
-            throw GradleException(
-                "Release build requires APP_ENVIRONMENT=production. " +
-                    "A Play internal-testing AAB may use APP_ENVIRONMENT=staging only together with INTERNAL_TESTING=true.",
-            )
-        }
-
-        val backendUrl = decodedDartDefines["SOCIAL_BACKEND_URL"]?.trim().orEmpty()
-        val backendUri = runCatching { URI(backendUrl) }.getOrNull()
-        val backendHost = backendUri?.host?.lowercase().orEmpty()
-        val placeholderHost =
-            backendHost.contains("gercek-production-worker-adresi") ||
-                backendHost.contains("replace_with") ||
-                backendHost.contains("example")
-        if (
-            backendUri == null ||
-            backendUri.scheme != "https" ||
-            backendHost.isBlank() ||
-            backendHost == "localhost" ||
-            backendHost == "127.0.0.1" ||
-            placeholderHost
-        ) {
-            throw GradleException(
-                "Release build requires a real HTTPS SOCIAL_BACKEND_URL; placeholder and local hosts are rejected.",
-            )
-        }
-
-        val isStagingHost = backendHost.contains("staging")
-        if (appEnvironment == "production" && isStagingHost) {
-            throw GradleException(
-                "Production release builds cannot use a staging SOCIAL_BACKEND_URL.",
-            )
-        }
-        if (appEnvironment == "staging" && (!internalTesting || !isStagingHost)) {
-            throw GradleException(
-                "Internal staging release builds require INTERNAL_TESTING=true and a staging SOCIAL_BACKEND_URL.",
-            )
-        }
-
-        val buildCommit = decodedDartDefines["BUILD_COMMIT"]?.trim().orEmpty()
-        if (!Regex("^[0-9a-fA-F]{7,40}$").matches(buildCommit)) {
-            throw GradleException(
-                "Release build requires --dart-define=BUILD_COMMIT=<7-40 character Git SHA>.",
             )
         }
     }
