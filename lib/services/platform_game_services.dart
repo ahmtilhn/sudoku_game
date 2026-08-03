@@ -115,6 +115,7 @@ class PlatformGameServices {
   final ValueNotifier<bool> authenticated = ValueNotifier<bool>(false);
   final ValueNotifier<PlatformPlayer?> localPlayer =
       ValueNotifier<PlatformPlayer?>(null);
+  final ValueNotifier<String?> lastError = ValueNotifier<String?>(null);
 
   Future<bool> isConfigured() => _invokeBool('isConfigured');
 
@@ -133,6 +134,10 @@ class PlatformGameServices {
     final value = await _invokeBool('authenticate');
     authenticated.value = value;
     localPlayer.value = value ? await getLocalPlayer() : null;
+    if (!value) {
+      lastError.value =
+          'authentication_failed: Google Play Games did not authenticate the current account.';
+    }
     return value;
   }
 
@@ -216,17 +221,26 @@ class PlatformGameServices {
     Map<String, Object?>? arguments,
   ]) async {
     try {
-      return await _channel.invokeMethod<T>(method, arguments);
+      final value = await _channel.invokeMethod<T>(method, arguments);
+      lastError.value = null;
+      return value;
     } on MissingPluginException {
-      throw const PlatformGameServicesException(
+      const exception = PlatformGameServicesException(
         'unsupported_platform',
         'Platform game services are unavailable on this device.',
       );
+      lastError.value = exception.toString();
+      throw exception;
     } on PlatformException catch (error) {
-      throw PlatformGameServicesException(
+      final exception = PlatformGameServicesException(
         error.code,
         error.message ?? 'Platform game services request failed.',
       );
+      lastError.value = exception.toString();
+      throw exception;
+    } catch (error) {
+      lastError.value = 'unexpected_error: $error';
+      rethrow;
     }
   }
 }
