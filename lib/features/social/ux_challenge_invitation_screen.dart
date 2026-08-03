@@ -9,7 +9,7 @@ import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
-import '../duel/online_duel_screen.dart';
+import '../duel/pre_match_ready_screen.dart';
 import '../economy/coin_store_screen.dart';
 
 class UxChallengeInvitationScreen extends StatefulWidget {
@@ -29,6 +29,7 @@ class _UxChallengeInvitationScreenState
     extends State<UxChallengeInvitationScreen> {
   final SocialApiClient _social = SocialApiClient.instance;
   final EconomyService _economy = EconomyService.instance;
+
   SocialChallenge? _challenge;
   Timer? _timer;
   bool _loading = true;
@@ -60,12 +61,12 @@ class _UxChallengeInvitationScreenState
     return challenge.expiresAt
         .difference(DateTime.now())
         .inSeconds
-        .clamp(0, 86400);
+        .clamp(0, 24 * 60 * 60);
   }
 
   int get _entryFee => _economy.entryFeeForDifficulty(
-    _challenge?.difficulty ?? 'beginner',
-  );
+        _challenge?.difficulty ?? 'beginner',
+      );
 
   bool get _expired =>
       _challenge == null ||
@@ -120,6 +121,7 @@ class _UxChallengeInvitationScreenState
       await _openStore();
       return;
     }
+
     setState(() {
       _busy = true;
       _error = null;
@@ -130,6 +132,7 @@ class _UxChallengeInvitationScreenState
         accept: accept,
       );
       if (!mounted) return;
+
       if (!accept) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr('challenge_declined'))),
@@ -137,15 +140,20 @@ class _UxChallengeInvitationScreenState
         Navigator.of(context).pop();
         return;
       }
-      final roomId = result.roomId;
+
+      final roomId = await _resolveRoomId(result);
+      if (!mounted) return;
       if (roomId == null || roomId.isEmpty) {
         setState(() => _error = context.tr('matchmaking_start_failed'));
         return;
       }
+
       await _economy.refresh(showLoading: false);
       if (!mounted) return;
       await Navigator.of(context).pushReplacement<void, void>(
-        MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)),
+        MaterialPageRoute(
+          builder: (_) => PreMatchReadyScreen(roomId: roomId),
+        ),
       );
     } on SocialApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -156,6 +164,21 @@ class _UxChallengeInvitationScreenState
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<String?> _resolveRoomId(SocialChallenge result) async {
+    final directRoomId = result.roomId?.trim();
+    if (directRoomId != null && directRoomId.isNotEmpty) {
+      return directRoomId;
+    }
+
+    for (var attempt = 0; attempt < 5; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      final active = await _social.activeMatch();
+      final roomId = active?['roomId']?.toString().trim();
+      if (roomId != null && roomId.isNotEmpty) return roomId;
+    }
+    return null;
   }
 
   Future<void> _openStore() async {
@@ -184,11 +207,12 @@ class _UxChallengeInvitationScreenState
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _challenge == null
-                  ? _Unavailable(
-                      message: _error ?? context.tr('challenge_timed_out'),
-                      onRetry: _load,
-                    )
-                  : _content(_challenge!),
+                      ? _Unavailable(
+                          message:
+                              _error ?? context.tr('challenge_timed_out'),
+                          onRetry: _load,
+                        )
+                      : _content(_challenge!),
             ),
           ),
         ),
@@ -203,6 +227,7 @@ class _UxChallengeInvitationScreenState
     );
     final accent = _accent(difficulty);
     final missing = (_entryFee - _economy.balance).clamp(0, _entryFee);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
@@ -217,8 +242,9 @@ class _UxChallengeInvitationScreenState
             child: Column(
               children: [
                 Chip(
-                  avatar: Icon(
-                    _expired ? Icons.timer_off_outlined : Icons.timer_outlined,
+                  avatar: DuelAssetIcon(
+                    _expired ? DuelAsset.close : DuelAsset.timer,
+                    size: 19,
                     color: _expired ? Colors.redAccent : accent,
                   ),
                   label: Text(
@@ -232,10 +258,6 @@ class _UxChallengeInvitationScreenState
                   displayName: challenge.challenger.displayName,
                   avatarKey: 'challenge-${challenge.challenger.publicId}',
                   radius: 48,
-                  semanticLabel: context.tr(
-                    'player_avatar_semantics',
-                    <Object>[challenge.challenger.displayName],
-                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -276,12 +298,12 @@ class _UxChallengeInvitationScreenState
                   runSpacing: 8,
                   children: [
                     _Metric(
-                      icon: Icons.grid_4x4_rounded,
+                      asset: DuelAsset.grid,
                       label: context.strings.difficultyLabel(difficulty),
                       color: accent,
                     ),
                     _Metric(
-                      icon: Icons.emoji_events_outlined,
+                      asset: DuelAsset.trophy,
                       label: context.tr('rating_value', <Object>[
                         challenge.challenger.rating,
                       ]),
@@ -290,56 +312,16 @@ class _UxChallengeInvitationScreenState
                   ],
                 ),
                 const SizedBox(height: 14),
-                Card(
-                  color: Colors.black.withValues(alpha: .22),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final compact =
-                            constraints.maxWidth < 440 ||
-                            MediaQuery.textScalerOf(context).scale(1) > 1.3;
-                        final itemWidth = compact
-                            ? (constraints.maxWidth - 8) / 2
-                            : constraints.maxWidth / 3;
-                        return Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: compact ? 8 : 0,
-                          runSpacing: 12,
-                          children: [
-                            SizedBox(
-                              width: itemWidth,
-                              child: _CoinValue(
-                                label: context.tr('current_balance'),
-                                value: _economy.balance,
-                              ),
-                            ),
-                            SizedBox(
-                              width: itemWidth,
-                              child: _CoinValue(
-                                label: context.tr('entry_fee'),
-                                value: _entryFee,
-                              ),
-                            ),
-                            SizedBox(
-                              width: itemWidth,
-                              child: _CoinValue(
-                                label: context.tr('winner_pot'),
-                                value: _entryFee * 2,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
+                _EconomySummary(
+                  balance: _economy.balance,
+                  entryFee: _entryFee,
                 ),
                 if (!_canAccept && !_expired) ...[
                   const SizedBox(height: 12),
                   Card(
                     color: Theme.of(context).colorScheme.errorContainer,
                     child: ListTile(
-                      leading: const Icon(Icons.lock_outline),
+                      leading: const DuelAssetIcon(DuelAsset.lock, size: 24),
                       title: Text(
                         context.tr('not_enough_coins_online', <Object>[
                           _entryFee,
@@ -348,7 +330,7 @@ class _UxChallengeInvitationScreenState
                       subtitle: Text(
                         '${context.tr('coin_amount', <Object>[missing])} · ${context.tr('open_coin_store')}',
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: _openStore,
                     ),
                   ),
@@ -367,9 +349,8 @@ class _UxChallengeInvitationScreenState
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: _busy || !_canAccept
-                        ? null
-                        : () => _respond(true),
+                    onPressed:
+                        _busy || !_canAccept ? null : () => _respond(true),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(54),
                       backgroundColor: accent,
@@ -380,16 +361,13 @@ class _UxChallengeInvitationScreenState
                             dimension: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.bolt_rounded),
-                    label: Text(
-                      context.tr('accept'),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                    ),
+                        : const DuelAssetIcon(DuelAsset.swords, size: 23),
+                    label: Text(context.tr('accept')),
                   ),
                 ),
                 TextButton(
-                  onPressed: _busy || _expired ? null : () => _respond(false),
+                  onPressed:
+                      _busy || _expired ? null : () => _respond(false),
                   child: Text(context.tr('decline')),
                 ),
               ],
@@ -410,18 +388,18 @@ class _Unavailable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const DuelAssetIcon(DuelAsset.timer, size: 50),
+            const DuelAssetIcon(DuelAsset.timer, size: 54),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 14),
             FilledButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const DuelAssetIcon(DuelAsset.refresh, size: 20),
               label: Text(context.tr('try_again')),
             ),
           ],
@@ -433,12 +411,12 @@ class _Unavailable extends StatelessWidget {
 
 class _Metric extends StatelessWidget {
   const _Metric({
-    required this.icon,
+    required this.asset,
     required this.label,
     required this.color,
   });
 
-  final IconData icon;
+  final String asset;
   final String label;
   final Color color;
 
@@ -458,7 +436,7 @@ class _Metric extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 19),
+          DuelAssetIcon(asset, color: color, size: 19),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
@@ -478,41 +456,74 @@ class _Metric extends StatelessWidget {
   }
 }
 
-class _CoinValue extends StatelessWidget {
-  const _CoinValue({required this.label, required this.value});
+class _EconomySummary extends StatelessWidget {
+  const _EconomySummary({
+    required this.balance,
+    required this.entryFee,
+  });
 
-  final String label;
-  final int value;
+  final int balance;
+  final int entryFee;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const DuelAssetIcon(
-          DuelAsset.coin,
-          size: 18,
-          color: Color(0xFFFFC94D),
+    final values = <({String label, int value})>[
+      (label: context.tr('current_balance'), value: balance),
+      (label: context.tr('entry_fee'), value: entryFee),
+      (label: context.tr('winner_pot'), value: entryFee * 2),
+    ];
+    return Card(
+      color: Colors.black.withValues(alpha: .22),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact =
+                constraints.maxWidth < 440 ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.3;
+            return Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 12,
+              children: [
+                for (final item in values)
+                  SizedBox(
+                    width: compact
+                        ? (constraints.maxWidth - 8) / 2
+                        : constraints.maxWidth / 3 - 6,
+                    child: Column(
+                      children: [
+                        const DuelAssetIcon(
+                          DuelAsset.coin,
+                          size: 18,
+                          color: Color(0xFFFFC94D),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${item.value}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          item.label,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .58),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
-        const SizedBox(height: 4),
-        Text(
-          '$value',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        Text(
-          label,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: .58),
-            fontSize: 12,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
