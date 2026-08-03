@@ -11,6 +11,7 @@ def replace_once(path: str, old: str, new: str, label: str) -> None:
         raise RuntimeError(f'{label}: expected one match, found {count}')
     target.write_text(source.replace(old, new, 1), encoding='utf-8')
 
+
 # Close Scaffold and PopScope independently.
 replace_once(
     'lib/features/duel/pre_match_ready_screen.dart',
