@@ -111,6 +111,7 @@ class NumberPad extends StatelessWidget {
                             style: FilledButton.styleFrom(
                               padding: EdgeInsets.zero,
                               minimumSize: const Size(48, 48),
+                              tapTargetSize: MaterialTapTargetSize.padded,
                               backgroundColor: scheme.secondaryContainer,
                               foregroundColor: scheme.onSecondaryContainer,
                             ),
@@ -205,20 +206,23 @@ class _ActionButton extends StatelessWidget {
         backgroundColor: selected
             ? scheme.primaryContainer
             : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        minimumSize: const Size(44, 36),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        minimumSize: const Size(48, 44),
+        tapTargetSize: MaterialTapTargetSize.padded,
       ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18),
-            const SizedBox(width: 5),
-            Text(label, maxLines: 1),
-          ],
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
