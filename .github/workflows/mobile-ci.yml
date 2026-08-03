@@ -21,50 +21,16 @@ on:
       - 'assets/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
-      - 'tool/fix_challenge_analyze_errors.py'
-      - '.github/workflows/mobile-ci.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: mobile-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  apply-challenge-fixer:
-    runs-on: ubuntu-latest
-    outputs:
-      changed: ${{ steps.apply.outputs.changed }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: agent/challenge-system-hardening
-          fetch-depth: 0
-      - name: Apply one-time challenge analyzer fixes
-        id: apply
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ ! -f tool/fix_challenge_analyze_errors.py ]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          python tool/fix_challenge_analyze_errors.py
-          rm tool/fix_challenge_analyze_errors.py
-          rm -f .github/workflows/fix_challenge_analyze_errors.yml
-          git fetch origin main
-          git checkout origin/main -- .github/workflows/mobile-ci.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Fix challenge hardening analyzer errors"
-          git push origin HEAD:agent/challenge-system-hardening
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-
   flutter-static:
-    needs: apply-challenge-fixer
-    if: needs.apply-challenge-fixer.outputs.changed != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
