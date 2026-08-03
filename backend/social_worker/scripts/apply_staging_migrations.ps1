@@ -113,8 +113,7 @@ try {
     Invoke-NativeChecked {
       npx wrangler@latest d1 migrations apply DB `
         --remote `
-        --config $tempConfigPath `
-        --yes
+        --config $tempConfigPath
     } 'Uzak D1 migration işlemi başarısız.'
 
     if (-not $SkipDeploy) {
