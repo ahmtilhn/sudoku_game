@@ -7,12 +7,16 @@ on:
     paths:
       - tool/apply_challenge_client_hardening.py
       - .github/workflows/apply_challenge_client_hardening.yml
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: github.head_ref == 'agent/challenge-system-hardening' || github.ref_name == 'agent/challenge-system-hardening'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
