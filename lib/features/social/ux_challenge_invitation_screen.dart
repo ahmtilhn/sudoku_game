@@ -148,16 +148,12 @@ class _UxChallengeInvitationScreenState
         return;
       }
 
-      await _economy.refresh(showLoading: false);
-      if (!mounted) return;
-      await Navigator.of(context).pushReplacement<void, void>(
-        MaterialPageRoute(
-          builder: (_) => PreMatchReadyScreen(roomId: roomId),
-        ),
-      );
+      await _openRoom(roomId);
     } on SocialApiException catch (error) {
+      if (accept && await _recoverAcceptedChallenge()) return;
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
+      if (accept && await _recoverAcceptedChallenge()) return;
       if (mounted) {
         setState(() => _error = context.tr('matchmaking_start_failed'));
       }
@@ -172,13 +168,40 @@ class _UxChallengeInvitationScreenState
       return directRoomId;
     }
 
-    for (var attempt = 0; attempt < 5; attempt++) {
-      await Future<void>.delayed(const Duration(milliseconds: 400));
+    for (var attempt = 0; attempt < 12; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
       final active = await _social.activeMatch();
       final roomId = active?['roomId']?.toString().trim();
       if (roomId != null && roomId.isNotEmpty) return roomId;
     }
     return null;
+  }
+
+  Future<bool> _recoverAcceptedChallenge() async {
+    for (var attempt = 0; attempt < 12; attempt++) {
+      try {
+        final active = await _social.activeMatch();
+        final roomId = active?['roomId']?.toString().trim();
+        if (roomId != null && roomId.isNotEmpty) {
+          await _openRoom(roomId);
+          return true;
+        }
+      } catch (_) {
+        // The backend may still be completing or repairing the accepted room.
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    return false;
+  }
+
+  Future<void> _openRoom(String roomId) async {
+    await _economy.refresh(showLoading: false);
+    if (!mounted) return;
+    await Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute(
+        builder: (_) => PreMatchReadyScreen(roomId: roomId),
+      ),
+    );
   }
 
   Future<void> _openStore() async {

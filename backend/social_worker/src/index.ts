@@ -620,9 +620,56 @@ async function respondChallenge(
   }
 
   const challenge = await challengeById(env, challengeId);
-  if (challenge.recipient_id !== current.id) throw new HttpError(403, 'Only the recipient can respond.');
-  if (challenge.status !== 'pending') throw new HttpError(409, 'Challenge is no longer pending.');
-  if (new Date(challenge.expires_at).getTime() <= Date.now()) {
+  if (challenge.recipient_id !== current.id) {
+    throw new HttpError(403, 'Only the recipient can respond.');
+  }
+
+  if (action === 'decline') {
+    if (challenge.status === 'declined') {
+      return reply(env, await challengeJson(env, challenge));
+    }
+    if (challenge.status !== 'pending') {
+      throw new HttpError(409, 'Challenge is no longer pending.');
+    }
+    if (new Date(challenge.expires_at).getTime() <= Date.now()) {
+      await env.DB.prepare(
+        `UPDATE challenges SET status = 'expired', updated_at = ? WHERE id = ?`,
+      )
+        .bind(new Date().toISOString(), challenge.id)
+        .run();
+      throw new HttpError(409, 'Challenge expired.');
+    }
+
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      `UPDATE challenges SET status = 'declined', room_id = NULL, updated_at = ?
+       WHERE id = ? AND status = 'pending'`,
+    )
+      .bind(now, challenge.id)
+      .run();
+    ctx.waitUntil(
+      sendPlayerNotification(env, challenge.challenger_id, {
+        title: 'Challenge declined',
+        body: `${current.display_name} declined your Sudoku challenge.`,
+        data: {
+          type: 'challenge_response',
+          challengeId: challenge.id,
+          status: 'declined',
+          roomId: '',
+        },
+      }),
+    );
+    const declined = await challengeById(env, challenge.id);
+    return reply(env, await challengeJson(env, declined));
+  }
+
+  if (challenge.status !== 'pending' && challenge.status !== 'accepted') {
+    throw new HttpError(409, 'Challenge is no longer available.');
+  }
+  if (
+    challenge.status === 'pending' &&
+    new Date(challenge.expires_at).getTime() <= Date.now()
+  ) {
     await env.DB.prepare(
       `UPDATE challenges SET status = 'expired', updated_at = ? WHERE id = ?`,
     )
@@ -631,42 +678,36 @@ async function respondChallenge(
     throw new HttpError(409, 'Challenge expired.');
   }
 
-  const roomId = action === 'accept' ? crypto.randomUUID() : null;
-  const status = action === 'accept' ? 'accepted' : 'declined';
-  const now = new Date().toISOString();
-  await env.DB.prepare(
-    `UPDATE challenges SET status = ?, room_id = ?, updated_at = ?
-     WHERE id = ? AND status = 'pending'`,
-  )
-    .bind(status, roomId, now, challenge.id)
-    .run();
-  if (action === 'accept' && roomId) {
-    await createMatchRow(env, {
-      roomId,
-      challengeId: challenge.id,
-      mode: 'friendly',
-      difficulty: challenge.difficulty,
-      playerAId: challenge.challenger_id,
-      playerBId: challenge.recipient_id,
-      now,
-    });
+  const transitionedToAccepted = challenge.status === 'pending';
+  if (transitionedToAccepted) {
+    await env.DB.prepare(
+      `UPDATE challenges SET status = 'accepted', room_id = COALESCE(room_id, ?), updated_at = ?
+       WHERE id = ? AND status = 'pending'`,
+    )
+      .bind(crypto.randomUUID(), new Date().toISOString(), challenge.id)
+      .run();
   }
 
-  ctx.waitUntil(
-    sendPlayerNotification(env, challenge.challenger_id, {
-      title: status === 'accepted' ? 'Challenge accepted' : 'Challenge declined',
-      body:
-        status === 'accepted'
-          ? `${current.display_name} accepted your Sudoku challenge.`
-          : `${current.display_name} declined your Sudoku challenge.`,
-      data: {
-        type: 'challenge_response',
-        challengeId: challenge.id,
-        status,
-        roomId: roomId ?? '',
-      },
-    }),
-  );
+  const accepted = await challengeById(env, challenge.id);
+  if (accepted.status !== 'accepted') {
+    throw new HttpError(409, 'Challenge could not be accepted.');
+  }
+  const roomId = await ensureAcceptedChallengeMatch(env, accepted);
+
+  if (transitionedToAccepted) {
+    ctx.waitUntil(
+      sendPlayerNotification(env, challenge.challenger_id, {
+        title: 'Challenge accepted',
+        body: `${current.display_name} accepted your Sudoku challenge.`,
+        data: {
+          type: 'challenge_response',
+          challengeId: challenge.id,
+          status: 'accepted',
+          roomId,
+        },
+      }),
+    );
+  }
 
   const updated = await challengeById(env, challenge.id);
   return reply(env, await challengeJson(env, updated));
@@ -756,7 +797,7 @@ async function cancelRankedQueue(env: Env, current: PlayerRow): Promise<Response
 }
 
 async function activeMatch(env: Env, current: PlayerRow): Promise<Response> {
-  const match = await env.DB.prepare(
+  let match = await env.DB.prepare(
     `SELECT * FROM matches
      WHERE (player_a_id = ? OR player_b_id = ?)
        AND status IN ('waiting', 'countdown', 'active', 'paused')
@@ -765,6 +806,27 @@ async function activeMatch(env: Env, current: PlayerRow): Promise<Response> {
   )
     .bind(current.id, current.id)
     .first<Record<string, unknown>>();
+
+  if (!match) {
+    const acceptedChallenge = await env.DB.prepare(
+      `SELECT * FROM challenges
+       WHERE (challenger_id = ? OR recipient_id = ?)
+         AND status = 'accepted'
+       ORDER BY updated_at DESC
+       LIMIT 1`,
+    )
+      .bind(current.id, current.id)
+      .first<ChallengeRow>();
+    if (acceptedChallenge) {
+      const roomId = await ensureAcceptedChallengeMatch(env, acceptedChallenge);
+      match = await env.DB.prepare(
+        `SELECT * FROM matches WHERE room_id = ? LIMIT 1`,
+      )
+        .bind(roomId)
+        .first<Record<string, unknown>>();
+    }
+  }
+
   return reply(env, { match: match ? publicMatch(match, current.id) : null });
 }
 
@@ -873,6 +935,58 @@ async function leaderboard(
     currentPlayer: { rank: rank?.rank ?? null, rating: currentRating },
     nextCursor: null,
   });
+}
+
+async function ensureAcceptedChallengeMatch(
+  env: Env,
+  challenge: ChallengeRow,
+): Promise<string> {
+  const existing = await env.DB.prepare(
+    `SELECT room_id FROM matches WHERE challenge_id = ? LIMIT 1`,
+  )
+    .bind(challenge.id)
+    .first<{ room_id: string }>();
+  if (existing?.room_id) {
+    if (challenge.room_id !== existing.room_id || challenge.status !== 'accepted') {
+      await env.DB.prepare(
+        `UPDATE challenges SET status = 'accepted', room_id = ?, updated_at = ? WHERE id = ?`,
+      )
+        .bind(existing.room_id, new Date().toISOString(), challenge.id)
+        .run();
+    }
+    return existing.room_id;
+  }
+
+  const roomId = challenge.room_id || crypto.randomUUID();
+  const now = new Date().toISOString();
+  await createMatchRow(env, {
+    roomId,
+    challengeId: challenge.id,
+    mode: 'friendly',
+    difficulty: challenge.difficulty,
+    playerAId: challenge.challenger_id,
+    playerBId: challenge.recipient_id,
+    now,
+  });
+
+  const created = await env.DB.prepare(
+    `SELECT room_id FROM matches
+     WHERE challenge_id = ? OR room_id = ?
+     ORDER BY CASE WHEN challenge_id = ? THEN 0 ELSE 1 END
+     LIMIT 1`,
+  )
+    .bind(challenge.id, roomId, challenge.id)
+    .first<{ room_id: string }>();
+  if (!created?.room_id) {
+    throw new HttpError(500, 'Unable to create the accepted challenge room.');
+  }
+
+  await env.DB.prepare(
+    `UPDATE challenges SET status = 'accepted', room_id = ?, updated_at = ? WHERE id = ?`,
+  )
+    .bind(created.room_id, now, challenge.id)
+    .run();
+  return created.room_id;
 }
 
 async function createMatchRow(
