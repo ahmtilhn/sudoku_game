@@ -20,10 +20,8 @@ function Add-Warning([string]$Message) { $warnings.Add($Message) }
 
 function Get-TomlString {
     param([string]$Content, [string]$Key)
-    $match = [regex]::Match(
-        $Content,
-        "(?m)^\s*$([regex]::Escape($Key))\s*=\s*\"([^\"]*)\"\s*$"
-    )
+    $pattern = '(?m)^\s*{0}\s*=\s*"([^"]*)"\s*$' -f [regex]::Escape($Key)
+    $match = [regex]::Match($Content, $pattern)
     if (-not $match.Success) { return $null }
     return $match.Groups[1].Value.Trim()
 }
