@@ -98,6 +98,30 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('responsive metrics detect keyboard insets', (tester) async {
+    late ResponsiveMetrics metrics;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            viewInsets: const EdgeInsets.only(bottom: 280),
+          ),
+          child: child!,
+        ),
+        home: Builder(
+          builder: (context) {
+            metrics = ResponsiveMetrics.of(context);
+            return const Scaffold(body: SizedBox.shrink());
+          },
+        ),
+      ),
+    );
+
+    expect(metrics.keyboardVisible, isTrue);
+    expect(metrics.viewInsets.bottom, 280);
+  });
+
   testWidgets('bottom sheet scrolls at 320x568 with 2x text', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(320, 568);
