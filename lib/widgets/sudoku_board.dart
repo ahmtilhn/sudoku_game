@@ -57,179 +57,205 @@ class SudokuBoard extends StatelessWidget {
       scheme.secondaryContainer.withAlpha(105),
       scheme.surface,
     );
+    final visualTextScale = MediaQuery.textScalerOf(
+      context,
+    ).scale(1).clamp(1.0, 1.3).toDouble();
 
     return Semantics(
       label: context.tr('board_label', <Object>[puzzle.size]),
       child: AspectRatio(
         aspectRatio: 1,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerLow,
-            border: Border.all(color: scheme.outline, width: 1.4),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.shadow.withAlpha(18),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: puzzle.size,
-              ),
-              itemCount: puzzle.cellCount,
-              itemBuilder: (context, index) {
-                final value = board[index];
-                final row = index ~/ puzzle.size;
-                final column = index % puzzle.size;
-                final selected = selectedIndex == index;
-                final hinted = hintedIndexes.contains(index);
-                final localMove = localMoveIndexes.contains(index);
-                final opponentMove = opponentMoveIndexes.contains(index);
-                final fixed = puzzle.isFixed(index);
-                final locked = fixed || hinted;
-                final related =
-                    selectedIndex != null &&
-                    (selectedIndex! ~/ puzzle.size == row ||
-                        selectedIndex! % puzzle.size == column ||
-                        SudokuEngine.relatedBoxIndex(puzzle, selectedIndex!) ==
-                            SudokuEngine.relatedBoxIndex(puzzle, index));
-                final sameValue = selectedValue != 0 && value == selectedValue;
-                final background = errorIndex == index
-                    ? scheme.errorContainer
-                    : selected
-                    ? scheme.primaryContainer
-                    : localMove
-                    ? Color.alphaBlend(
-                        scheme.primary.withAlpha(45),
-                        scheme.surface,
-                      )
-                    : opponentMove
-                    ? Color.alphaBlend(
-                        scheme.tertiary.withAlpha(45),
-                        scheme.surface,
-                      )
-                    : hinted
-                    ? scheme.tertiaryContainer
-                    : sameValue
-                    ? matchingValueBackground
-                    : related
-                    ? scheme.surfaceContainerHighest
-                    : scheme.surface;
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final cellSize = constraints.biggest.shortestSide / puzzle.size;
+            final numberFontSize = (cellSize * 0.52)
+                .clamp(14.0, 28.0)
+                .toDouble();
+            final noteFontSize = (cellSize * 0.22)
+                .clamp(7.0, 12.0)
+                .toDouble();
+            final markerSize = (cellSize * 0.25)
+                .clamp(10.0, 16.0)
+                .toDouble();
 
-                return Semantics(
-                  button: !locked,
-                  selected: selected,
-                  label: context.tr('cell_label', <Object>[
-                    row + 1,
-                    column + 1,
-                    value == 0 ? context.tr('empty') : value,
-                  ]),
-                  child: InkWell(
-                    key: ValueKey<String>('sudoku-cell-$index'),
-                    onTap: enabled ? () => onCellTap(index) : null,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: background,
-                            border: Border(
-                              top: selected || errorIndex == index
-                                  ? BorderSide(
-                                      color: errorIndex == index
-                                          ? scheme.error
-                                          : scheme.primary,
-                                      width: 1.4,
-                                    )
-                                  : BorderSide.none,
-                              left: selected || errorIndex == index
-                                  ? BorderSide(
-                                      color: errorIndex == index
-                                          ? scheme.error
-                                          : scheme.primary,
-                                      width: 1.4,
-                                    )
-                                  : BorderSide.none,
-                              right: BorderSide(
-                                color: scheme.outline,
-                                width:
-                                    (column + 1) % puzzle.boxColumns == 0 &&
-                                        column != puzzle.size - 1
-                                    ? 1.8
-                                    : 0.35,
-                              ),
-                              bottom: BorderSide(
-                                color: scheme.outline,
-                                width:
-                                    (row + 1) % puzzle.boxRows == 0 &&
-                                        row != puzzle.size - 1
-                                    ? 1.8
-                                    : 0.35,
-                              ),
-                            ),
-                          ),
-                          child: value == 0
-                              ? _NotesCell(
-                                  values: notes[index] ?? const <int>{},
-                                  size: puzzle.size,
-                                  color: scheme.onSurfaceVariant,
-                                )
-                              : Center(
-                                  child: Text(
-                                    '$value',
-                                    style: TextStyle(
-                                      fontSize: puzzle.size == 9 ? 25 : 34,
-                                      fontWeight: locked
-                                          ? FontWeight.w800
-                                          : FontWeight.w600,
-                                      fontFeatures: const [
-                                        FontFeature.tabularFigures(),
-                                      ],
-                                      color: hinted
-                                          ? scheme.onTertiaryContainer
-                                          : fixed
-                                          ? scheme.onSurface
-                                          : scheme.primary,
-                                    ),
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerLow,
+                border: Border.all(color: scheme.outline, width: 1.4),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: scheme.shadow.withAlpha(18),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: puzzle.size,
+                  ),
+                  itemCount: puzzle.cellCount,
+                  itemBuilder: (context, index) {
+                    final value = board[index];
+                    final row = index ~/ puzzle.size;
+                    final column = index % puzzle.size;
+                    final selected = selectedIndex == index;
+                    final hinted = hintedIndexes.contains(index);
+                    final localMove = localMoveIndexes.contains(index);
+                    final opponentMove = opponentMoveIndexes.contains(index);
+                    final fixed = puzzle.isFixed(index);
+                    final locked = fixed || hinted;
+                    final related =
+                        selectedIndex != null &&
+                        (selectedIndex! ~/ puzzle.size == row ||
+                            selectedIndex! % puzzle.size == column ||
+                            SudokuEngine.relatedBoxIndex(
+                                  puzzle,
+                                  selectedIndex!,
+                                ) ==
+                                SudokuEngine.relatedBoxIndex(puzzle, index));
+                    final sameValue = selectedValue != 0 && value == selectedValue;
+                    final background = errorIndex == index
+                        ? scheme.errorContainer
+                        : selected
+                        ? scheme.primaryContainer
+                        : localMove
+                        ? Color.alphaBlend(
+                            scheme.primary.withAlpha(45),
+                            scheme.surface,
+                          )
+                        : opponentMove
+                        ? Color.alphaBlend(
+                            scheme.tertiary.withAlpha(45),
+                            scheme.surface,
+                          )
+                        : hinted
+                        ? scheme.tertiaryContainer
+                        : sameValue
+                        ? matchingValueBackground
+                        : related
+                        ? scheme.surfaceContainerHighest
+                        : scheme.surface;
+
+                    return Semantics(
+                      button: !locked,
+                      selected: selected,
+                      label: context.tr('cell_label', <Object>[
+                        row + 1,
+                        column + 1,
+                        value == 0 ? context.tr('empty') : value,
+                      ]),
+                      child: InkWell(
+                        key: ValueKey<String>('sudoku-cell-$index'),
+                        onTap: enabled ? () => onCellTap(index) : null,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: background,
+                                border: Border(
+                                  top: selected || errorIndex == index
+                                      ? BorderSide(
+                                          color: errorIndex == index
+                                              ? scheme.error
+                                              : scheme.primary,
+                                          width: 1.4,
+                                        )
+                                      : BorderSide.none,
+                                  left: selected || errorIndex == index
+                                      ? BorderSide(
+                                          color: errorIndex == index
+                                              ? scheme.error
+                                              : scheme.primary,
+                                          width: 1.4,
+                                        )
+                                      : BorderSide.none,
+                                  right: BorderSide(
+                                    color: scheme.outline,
+                                    width:
+                                        (column + 1) % puzzle.boxColumns == 0 &&
+                                            column != puzzle.size - 1
+                                        ? 1.8
+                                        : 0.35,
+                                  ),
+                                  bottom: BorderSide(
+                                    color: scheme.outline,
+                                    width:
+                                        (row + 1) % puzzle.boxRows == 0 &&
+                                            row != puzzle.size - 1
+                                        ? 1.8
+                                        : 0.35,
                                   ),
                                 ),
+                              ),
+                              child: value == 0
+                                  ? _NotesCell(
+                                      values: notes[index] ?? const <int>{},
+                                      size: puzzle.size,
+                                      color: scheme.onSurfaceVariant,
+                                      fontSize: noteFontSize,
+                                      textScale: visualTextScale,
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        '$value',
+                                        textScaler: TextScaler.linear(
+                                          visualTextScale,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: numberFontSize,
+                                          fontWeight: locked
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures(),
+                                          ],
+                                          color: hinted
+                                              ? scheme.onTertiaryContainer
+                                              : fixed
+                                              ? scheme.onSurface
+                                              : scheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                            if (errorIndex == index)
+                              Align(
+                                alignment: Alignment.topRight,
+                                child: Icon(
+                                  Icons.error_rounded,
+                                  size: markerSize,
+                                  color: scheme.error,
+                                ),
+                              )
+                            else if (localMove || opponentMove)
+                              Align(
+                                alignment: Alignment.topRight,
+                                child: Icon(
+                                  localMove
+                                      ? Icons.check_circle_rounded
+                                      : Icons.north_east_rounded,
+                                  size: markerSize,
+                                  color: localMove
+                                      ? scheme.primary
+                                      : scheme.tertiary,
+                                ),
+                              ),
+                          ],
                         ),
-                        if (errorIndex == index)
-                          Align(
-                            alignment: Alignment.topRight,
-                            child: Icon(
-                              Icons.error_rounded,
-                              size: puzzle.size == 9 ? 12 : 16,
-                              color: scheme.error,
-                            ),
-                          )
-                        else if (localMove || opponentMove)
-                          Align(
-                            alignment: Alignment.topRight,
-                            child: Icon(
-                              localMove
-                                  ? Icons.check_circle_rounded
-                                  : Icons.north_east_rounded,
-                              size: puzzle.size == 9 ? 11 : 15,
-                              color: localMove
-                                  ? scheme.primary
-                                  : scheme.tertiary,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -241,11 +267,15 @@ class _NotesCell extends StatelessWidget {
     required this.values,
     required this.size,
     required this.color,
+    required this.fontSize,
+    required this.textScale,
   });
 
   final Set<int> values;
   final int size;
   final Color color;
+  final double fontSize;
+  final double textScale;
 
   @override
   Widget build(BuildContext context) {
@@ -260,10 +290,8 @@ class _NotesCell extends StatelessWidget {
             Center(
               child: Text(
                 values.contains(value) ? '$value' : '',
-                style: TextStyle(
-                  fontSize: size == 9 ? 9 : 12,
-                  color: color,
-                ),
+                textScaler: TextScaler.linear(textScale),
+                style: TextStyle(fontSize: fontSize, color: color),
               ),
             ),
         ],
