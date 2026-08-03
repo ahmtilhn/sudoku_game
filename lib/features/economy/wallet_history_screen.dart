@@ -121,7 +121,7 @@ class _LedgerTile extends StatelessWidget {
         ),
       ),
       title: Text(
-        _reasonLabel(context, entry.reason),
+        _reasonLabel(context, entry),
         style: const TextStyle(fontWeight: FontWeight.w700),
       ),
       subtitle: Text(
@@ -140,19 +140,25 @@ class _LedgerTile extends StatelessWidget {
     );
   }
 
-  String _reasonLabel(BuildContext context, String reason) => switch (reason) {
-    'starter_grant' => context.tr('ledger_starter_grant'),
-    'match_entry' => context.tr('ledger_match_entry'),
-    'match_payout' => context.tr('ledger_match_payout'),
-    'match_refund' => context.tr('ledger_match_refund'),
-    'daily_login' => context.tr('ledger_daily_login'),
-    'daily_rewarded_ad' => context.tr('ledger_daily_rewarded_ad'),
-    'career_rewarded_ad' => context.tr('ledger_career_rewarded_ad'),
-    'achievement_reward' => context.tr('ledger_achievement_reward'),
-    'career_continue' => context.tr('ledger_career_continue'),
-    'hint_purchase' => context.tr('ledger_hint_purchase'),
-    'store_purchase' => context.tr('ledger_store_purchase'),
-    'purchase_refund' => context.tr('ledger_purchase_refund'),
-    _ => reason.replaceAll('_', ' '),
-  };
+  String _reasonLabel(BuildContext context, CoinLedgerEntry entry) {
+    if (entry.reason == 'career_continue' &&
+        entry.referenceId?.startsWith('hint:') == true) {
+      return context.tr('ledger_hint_purchase');
+    }
+    return switch (entry.reason) {
+      'starter_grant' => context.tr('ledger_starter_grant'),
+      'match_entry' => context.tr('ledger_match_entry'),
+      'match_payout' => context.tr('ledger_match_payout'),
+      'match_refund' => context.tr('ledger_match_refund'),
+      'daily_login' => context.tr('ledger_daily_login'),
+      'daily_rewarded_ad' => context.tr('ledger_daily_rewarded_ad'),
+      'career_rewarded_ad' => context.tr('ledger_career_rewarded_ad'),
+      'achievement_reward' => context.tr('ledger_achievement_reward'),
+      'career_continue' => context.tr('ledger_career_continue'),
+      'hint_purchase' => context.tr('ledger_hint_purchase'),
+      'store_purchase' => context.tr('ledger_store_purchase'),
+      'purchase_refund' => context.tr('ledger_purchase_refund'),
+      _ => entry.reason.replaceAll('_', ' '),
+    };
+  }
 }
