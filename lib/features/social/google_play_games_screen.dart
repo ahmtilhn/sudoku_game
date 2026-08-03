@@ -15,13 +15,102 @@ class GooglePlayGamesScreen extends StatefulWidget {
 class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
   final PlatformGameServices _games = PlatformGameServices.instance;
   bool _busy = false;
+  bool? _configured;
+  bool _authenticated = false;
+  PlatformPlayer? _player;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _games.authenticated.addListener(_onPlatformStateChanged);
+    _games.localPlayer.addListener(_onPlatformStateChanged);
+    _games.lastError.addListener(_onPlatformStateChanged);
+    _refreshConnection(prompt: false);
+  }
+
+  @override
+  void dispose() {
+    _games.authenticated.removeListener(_onPlatformStateChanged);
+    _games.localPlayer.removeListener(_onPlatformStateChanged);
+    _games.lastError.removeListener(_onPlatformStateChanged);
+    super.dispose();
+  }
+
+  void _onPlatformStateChanged() {
+    if (!mounted) return;
+    setState(() {
+      _authenticated = _games.authenticated.value;
+      _player = _games.localPlayer.value;
+      _error = _games.lastError.value;
+    });
+  }
+
+  Future<void> _refreshConnection({required bool prompt}) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      final configured = await _games.isConfigured();
+      if (!configured) {
+        throw const PlatformGameServicesException(
+          'not_configured',
+          'The Google Play Games project ID is not configured in the Android app.',
+        );
+      }
+
+      var authenticated = await _games.refreshAuthentication();
+      if (!authenticated && prompt) {
+        authenticated = await _games.authenticate();
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _configured = configured;
+        _authenticated = authenticated;
+        _player = _games.localPlayer.value;
+        if (!authenticated && prompt) {
+          _error =
+              _games.lastError.value ??
+              'authentication_failed: Google Play Games did not authenticate the current account.';
+        }
+      });
+    } on PlatformGameServicesException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _configured = error.code == 'not_configured' ? false : _configured;
+        _authenticated = false;
+        _player = null;
+        _error = '${error.code}: ${error.message}';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _authenticated = false;
+        _player = null;
+        _error = error.toString();
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   Future<bool> _ensureAuthenticated() async {
     if (!await _games.isConfigured()) return false;
     var authenticated = await _games.refreshAuthentication();
     if (!authenticated) {
       authenticated = await _games.authenticate();
+    }
+    if (mounted) {
+      setState(() {
+        _configured = true;
+        _authenticated = authenticated;
+        _player = _games.localPlayer.value;
+        _error = _games.lastError.value;
+      });
     }
     return authenticated;
   }
@@ -39,6 +128,7 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
           'The Google Play leaderboard could not be opened.',
         );
       }
+      await _games.refreshAuthentication();
     } on PlatformGameServicesException catch (error) {
       if (mounted) setState(() => _error = '${error.code}: ${error.message}');
     } catch (error) {
@@ -78,6 +168,13 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final statusText = switch ((_configured, _authenticated)) {
+      (false, _) => 'Not configured',
+      (true, true) => 'Connected',
+      (true, false) => 'Not connected',
+      _ => 'Checking connection',
+    };
+
     return Scaffold(
       appBar: AppBar(title: const Text('Google Play Games')),
       body: AppBackdrop(
@@ -93,13 +190,68 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
                       padding: EdgeInsets.only(bottom: 12),
                       child: LinearProgressIndicator(),
                     ),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                _authenticated
+                                    ? Icons.check_circle_outline
+                                    : Icons.cloud_off_outlined,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  statusText,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Check again',
+                                onPressed: _busy
+                                    ? null
+                                    : () => _refreshConnection(prompt: false),
+                                icon: const Icon(Icons.refresh),
+                              ),
+                            ],
+                          ),
+                          if (_player != null) ...[
+                            const SizedBox(height: 8),
+                            Text('Player: ${_player!.displayName}'),
+                            Text(
+                              'Player ID: ${_player!.playerId}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                          if (!_authenticated) ...[
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: _busy
+                                    ? null
+                                    : () => _refreshConnection(prompt: true),
+                                icon: const Icon(Icons.login),
+                                label: const Text('Connect / retry'),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                   if (_error != null) ...[
+                    const SizedBox(height: 12),
                     Card(
                       color: Theme.of(context).colorScheme.errorContainer,
                       child: ListTile(
                         leading: const Icon(Icons.error_outline),
                         title: const Text('Play Games error'),
-                        subtitle: Text(_error!),
+                        subtitle: SelectableText(_error!),
                       ),
                     ),
                     const SizedBox(height: 12),
