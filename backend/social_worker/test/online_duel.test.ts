@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  LOBBY_DEADLINE_MS,
   MAX_CONSECUTIVE_TIMEOUTS,
   MAX_MATCH_DURATION_MS,
   applyForfeit,
@@ -160,6 +161,26 @@ describe('authoritative online duel engine', () => {
     expect(events.at(-1)?.type).toBe('protocol_error');
     expect(events.at(-1)?.payload.code).toBe('stale_revision');
     expect(events.at(-1)?.payload.snapshot).toBeTruthy();
+  });
+
+  it('cancels and refunds a room forfeited before the match starts', () => {
+    const duel = state();
+
+    applyForfeit(duel, 'A', 'cancel-before-start', 1_003);
+
+    expect(duel.status).toBe('cancelled');
+    expect(duel.winnerSeat).toBeNull();
+    expect(duel.finishReason).toBe('cancelled_before_start');
+  });
+
+  it('cancels an abandoned lobby after the server deadline', () => {
+    const duel = state();
+
+    const events = applyDueDeadlines(duel, duel.createdAt + LOBBY_DEADLINE_MS);
+
+    expect(duel.status).toBe('cancelled');
+    expect(duel.finishReason).toBe('lobby_timeout');
+    expect(events.map((event) => event.type)).toContain('match_completed');
   });
 
   it('settles explicit forfeit with the opponent as winner', () => {

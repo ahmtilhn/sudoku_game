@@ -36,6 +36,7 @@ export function shouldUpdateAlarm(
 export function nextAlarmAt(
   input: {
     status: string;
+    lobbyDeadline?: number | null;
     readyDeadline: number | null;
     turnDeadline: number | null;
     playerADisconnectDeadline: number | null;
@@ -46,6 +47,7 @@ export function nextAlarmAt(
   nowMs: number,
 ): number | null {
   const deadlines = [
+    input.status === 'waiting' ? input.lobbyDeadline ?? null : null,
     input.status === 'ready_window' ? input.readyDeadline : null,
     input.status === 'active' ? input.turnDeadline : null,
     input.playerADisconnectDeadline,

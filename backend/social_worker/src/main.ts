@@ -500,13 +500,14 @@ async function connectRoomWithoutResponseWrapping(
 
     const roomId = url.pathname.split('/')[3];
     const match = await env.DB.prepare(
-      `SELECT player_a_id, player_b_id
+      `SELECT player_a_id, player_b_id, status
        FROM matches
        WHERE room_id = ?
+         AND status IN ('waiting', 'ready_window', 'countdown', 'active', 'paused')
        LIMIT 1`,
     )
       .bind(roomId)
-      .first<{ player_a_id: string; player_b_id: string }>();
+      .first<{ player_a_id: string; player_b_id: string; status: string }>();
     if (!match) return json(env, 404, { error: 'Game room not found.' });
     if (
       match.player_a_id !== player.id &&

@@ -3,7 +3,7 @@ export interface RuntimeSchemaEnv {
 }
 
 const RUNTIME_TRIGGER_SCHEMA_KEY = 'runtime_triggers';
-const RUNTIME_TRIGGER_SCHEMA_VERSION = 1;
+const RUNTIME_TRIGGER_SCHEMA_VERSION = 2;
 
 let installation: Promise<void> | null = null;
 
@@ -32,6 +32,23 @@ async function installRuntimeSchema(env: RuntimeSchemaEnv): Promise<void> {
     .bind(RUNTIME_TRIGGER_SCHEMA_KEY)
     .first<{ version: number }>();
   if (current?.version === RUNTIME_TRIGGER_SCHEMA_VERSION) return;
+
+  await env.DB.prepare(
+    `UPDATE challenges SET status = 'cancelled', updated_at = ?
+     WHERE status = 'pending'
+       AND rowid NOT IN (
+         SELECT MAX(rowid) FROM challenges
+         WHERE status = 'pending'
+         GROUP BY challenger_id, recipient_id
+       )`,
+  )
+    .bind(new Date().toISOString())
+    .run();
+  await env.DB.prepare(
+    `CREATE UNIQUE INDEX IF NOT EXISTS challenges_unique_pending_direction_idx
+     ON challenges(challenger_id, recipient_id)
+     WHERE status = 'pending'`,
+  ).run();
 
   for (const name of RUNTIME_TRIGGER_NAMES) {
     await env.DB.prepare(`DROP TRIGGER IF EXISTS ${name}`).run();
@@ -108,19 +125,9 @@ const RUNTIME_TRIGGER_STATEMENTS: readonly string[] = [
   `CREATE TRIGGER IF NOT EXISTS validate_match_entry_ledger_before_insert
    BEFORE INSERT ON coin_ledger
    WHEN NEW.reason = 'match_entry'
-     AND NEW.amount = -100
+     AND NEW.amount < 0
      AND NEW.balance_after != (
-       COALESCE(
-         (
-           SELECT balance_after
-           FROM coin_ledger
-           WHERE player_id = NEW.player_id
-             AND balance_after IS NOT NULL
-           ORDER BY created_at DESC, rowid DESC
-           LIMIT 1
-         ),
-         (SELECT online_coins + 100 FROM players WHERE id = NEW.player_id)
-       ) - 100
+       SELECT online_coins FROM players WHERE id = NEW.player_id
      )
    BEGIN
      SELECT RAISE(ABORT, 'match_entry_balance_invariant');
