@@ -53,11 +53,13 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
               child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: EdgeInsets.fromLTRB(
                   constraints.maxWidth < 360 ? 12 : 20,
                   12,
                   constraints.maxWidth < 360 ? 12 : 20,
-                  32,
+                  32 + MediaQuery.viewInsetsOf(context).bottom,
                 ),
                 children: [
                   _StatusCard(user: _user),
@@ -117,6 +119,15 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
     );
   }
 
+  void _changeMode(bool signIn) {
+    setState(() {
+      _signInMode = signIn;
+      _error = null;
+      _notice = null;
+      _confirm.clear();
+    });
+  }
+
   Widget _accountForm(BuildContext context) {
     final validEmail = RegExp(
       r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
@@ -147,28 +158,10 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   : 'Link email/password without changing the current Firebase UID, wallet, Friend ID, friends or rating.',
             ),
             const SizedBox(height: 16),
-            SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(
-                  value: false,
-                  icon: Icon(Icons.shield_outlined),
-                  label: Text('Protect current'),
-                ),
-                ButtonSegment(
-                  value: true,
-                  icon: Icon(Icons.login_outlined),
-                  label: Text('Sign in'),
-                ),
-              ],
-              selected: <bool>{_signInMode},
-              onSelectionChanged: _busy
-                  ? null
-                  : (values) => setState(() {
-                      _signInMode = values.first;
-                      _error = null;
-                      _notice = null;
-                      _confirm.clear();
-                    }),
+            _AccountModeSelector(
+              signInMode: _signInMode,
+              enabled: !_busy,
+              onChanged: _changeMode,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -250,6 +243,8 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                     : _signInMode
                     ? 'Sign in'
                     : 'Protect this player account',
+                maxLines: 2,
+                textAlign: TextAlign.center,
               ),
             ),
             if (_signInMode) ...[
@@ -551,6 +546,119 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
         _notice = null;
       }
     });
+  }
+}
+
+class _AccountModeSelector extends StatelessWidget {
+  const _AccountModeSelector({
+    required this.signInMode,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final bool signInMode;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            constraints.maxWidth < 390 ||
+            MediaQuery.textScalerOf(context).scale(1) > 1.3;
+        if (!compact) {
+          return SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(
+                value: false,
+                icon: Icon(Icons.shield_outlined),
+                label: Text('Protect current'),
+              ),
+              ButtonSegment(
+                value: true,
+                icon: Icon(Icons.login_outlined),
+                label: Text('Sign in'),
+              ),
+            ],
+            selected: <bool>{signInMode},
+            onSelectionChanged: enabled
+                ? (values) => onChanged(values.first)
+                : null,
+          );
+        }
+
+        return Column(
+          children: [
+            _ModeTile(
+              selected: !signInMode,
+              enabled: enabled,
+              icon: Icons.shield_outlined,
+              label: 'Protect current',
+              onTap: () => onChanged(false),
+            ),
+            const SizedBox(height: 8),
+            _ModeTile(
+              selected: signInMode,
+              enabled: enabled,
+              icon: Icons.login_outlined,
+              label: 'Sign in',
+              onTap: () => onChanged(true),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ModeTile extends StatelessWidget {
+  const _ModeTile({
+    required this.selected,
+    required this.enabled,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final bool enabled;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: selected ? scheme.secondaryContainer : scheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
