@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'core/app_messenger.dart';
 import 'core/app_theme.dart';
 import 'data/local_progress_store.dart';
 import 'features/home/ux_root_screen.dart';
@@ -21,6 +22,7 @@ class SudokuApp extends StatelessWidget {
           strings: strings,
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
+            scaffoldMessengerKey: AppMessenger.key,
             onGenerateTitle: (context) => context.tr('app_name'),
             theme: AppTheme.dark(highContrast: store.highContrast),
             darkTheme: AppTheme.dark(highContrast: store.highContrast),
