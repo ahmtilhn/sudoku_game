@@ -26,6 +26,7 @@ import {
 } from './production_purchase_verification_v2';
 import { sendPlayerPush } from './push_notifications';
 import { ensureRuntimeSchema } from './runtime_schema';
+import { ensureTestEconomySchema } from './test_economy_schema';
 import {
   StoreNotificationError,
   handleAppleServerNotification,
@@ -39,6 +40,7 @@ export { GameRoom, MatchmakingQueue };
 
 type RuntimeEnv = Env & {
   ALLOW_TEST_PURCHASE_GRANTS?: string;
+  TEST_STARTER_COINS?: string;
   GOOGLE_PLAY_CLIENT_EMAIL?: string;
   GOOGLE_PLAY_PRIVATE_KEY?: string;
   GOOGLE_PLAY_PACKAGE_NAME?: string;
@@ -67,6 +69,7 @@ export default {
 
     try {
       await ensureRuntimeSchema(env);
+      await ensureTestEconomySchema(env);
     } catch (error) {
       console.error('runtime_schema_install_failed', error);
       return json(env, 503, {
@@ -151,6 +154,7 @@ export default {
     void event;
     try {
       await ensureRuntimeSchema(env);
+      await ensureTestEconomySchema(env);
     } catch (error) {
       console.error('runtime_schema_install_failed', error);
       return;
