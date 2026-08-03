@@ -2,9 +2,7 @@ name: Mobile CI
 
 on:
   push:
-    branches:
-      - main
-      - agent/challenge-system-hardening
+    branches: [main]
     paths:
       - 'lib/**'
       - 'test/**'
@@ -23,287 +21,52 @@ on:
       - 'assets/**'
       - 'pubspec.yaml'
       - 'pubspec.lock'
-      - '.github/workflows/mobile-ci.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: mobile-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  sync-latest-main:
-    if: github.ref_name == 'agent/challenge-system-hardening' || github.head_ref == 'agent/challenge-system-hardening'
-    runs-on: ubuntu-latest
-    outputs:
-      synced: ${{ steps.sync.outputs.synced }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: agent/challenge-system-hardening
-          fetch-depth: 0
-      - name: Merge latest main and preserve complete challenge behavior
-        id: sync
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch origin main
-          set +e
-          git merge --no-commit --no-ff origin/main
-          merge_status=$?
-          set -e
-
-          if [ "$merge_status" -ne 0 ]; then
-            conflicts="$(git diff --name-only --diff-filter=U)"
-            unexpected="$(printf '%s\n' "$conflicts" | grep -v '^lib/features/social/challenge_waiting_screen.dart$' || true)"
-            if [ -n "$unexpected" ]; then
-              echo "Unexpected merge conflicts:"
-              printf '%s\n' "$unexpected"
-              exit 1
-            fi
-            git checkout --ours lib/features/social/challenge_waiting_screen.dart
-            git add lib/features/social/challenge_waiting_screen.dart
-          fi
-
-          python3 <<'PY'
-          from pathlib import Path
-
-          path = Path('lib/features/social/challenge_waiting_screen.dart')
-          source = path.read_text(encoding='utf-8')
-
-          def replace_once(old: str, new: str, label: str) -> None:
-              global source
-              count = source.count(old)
-              if count != 1:
-                  raise RuntimeError(f'{label}: expected one match, found {count}')
-              source = source.replace(old, new, 1)
-
-          enum_block = """enum ChallengeWaitingEndReason { declined, expired, cancelled }
-
-ChallengeWaitingEndReason? challengeWaitingEndReasonForStatus(String status) {
-  return switch (status) {
-    'declined' => ChallengeWaitingEndReason.declined,
-    'expired' => ChallengeWaitingEndReason.expired,
-    'cancelled' => ChallengeWaitingEndReason.cancelled,
-    _ => null,
-  };
-}
-
-"""
-          if 'enum ChallengeWaitingEndReason' not in source:
-              replace_once(
-                  "import '../duel/pre_match_ready_screen.dart';\n\n",
-                  "import '../duel/pre_match_ready_screen.dart';\n\n" + enum_block,
-                  'end reason enum',
-              )
-
-          if 'ChallengeWaitingEndReason? _endReason;' not in source:
-              replace_once(
-                  '  bool _ended = false;\n  bool _cancelling = false;\n',
-                  '  bool _ended = false;\n  ChallengeWaitingEndReason? _endReason;\n  bool _cancelling = false;\n',
-                  'end reason field',
-              )
-
-          replace_once(
-              """      if (_secondsLeft <= 0 && !_openingRoom) {
-        _pollTimer?.cancel();
-        setState(() => _ended = true);
-      } else {
-""",
-              """      if (_secondsLeft <= 0 && !_openingRoom) {
-        _pollTimer?.cancel();
-        setState(() {
-          _ended = true;
-          _endReason = ChallengeWaitingEndReason.expired;
-          _error = context.tr('challenge_timed_out');
-        });
-      } else {
-""",
-              'clock expiry state',
-          )
-
-          replace_once(
-              """          setState(() {
-            _ended = true;
-            _error = context.tr('challenge_timed_out');
-          });
-""",
-              """          setState(() {
-            _ended = true;
-            _endReason = ChallengeWaitingEndReason.expired;
-            _error = context.tr('challenge_timed_out');
-          });
-""",
-              'server expiry state',
-          )
-
-          replace_once(
-              """      setState(() {
-        _ended = true;
-        _error = switch (challenge.status) {
-""",
-              """      setState(() {
-        _ended = true;
-        _endReason = challengeWaitingEndReasonForStatus(challenge.status);
-        _error = switch (challenge.status) {
-""",
-              'terminal exact status',
-          )
-
-          replace_once(
-              '                          _StatusOrb(accent: accent, ended: _ended),\n',
-              """                          _StatusOrb(
-                            accent: accent,
-                            ended: _ended,
-                            endReason: _endReason,
-                          ),
-""",
-              'status orb call',
-          )
-
-          replace_once(
-              """                            _ended
-                                ? context.tr('try_again')
-                                : context.tr('searching_similar_opponents'),
-""",
-              """                            _ended
-                                ? context.tr('main_menu')
-                                : context.tr('searching_similar_opponents'),
-""",
-              'terminal subtitle',
-          )
-
-          replace_once(
-              """                              _InfoChip(
-                                asset: DuelAsset.timer,
-                                label: '${_secondsLeft}s',
-                                accent: const Color(0xFF3AA9FF),
-                              ),
-""",
-              """                              if (!_ended)
-                                _InfoChip(
-                                  asset: DuelAsset.timer,
-                                  label: '${_secondsLeft}s',
-                                  accent: const Color(0xFF3AA9FF),
-                                ),
-""",
-              'hide terminal countdown',
-          )
-
-          replace_once(
-              """class _StatusOrb extends StatelessWidget {
-  const _StatusOrb({required this.accent, required this.ended});
-
-  final Color accent;
-  final bool ended;
-""",
-              """class _StatusOrb extends StatelessWidget {
-  const _StatusOrb({
-    required this.accent,
-    required this.ended,
-    required this.endReason,
-  });
-
-  final Color accent;
-  final bool ended;
-  final ChallengeWaitingEndReason? endReason;
-""",
-              'status orb contract',
-          )
-
-          replace_once(
-              """      child: ended
-          ? const DuelAssetIcon(DuelAsset.timer, size: 48)
-          : SizedBox.square(
-""",
-              """      child: ended
-          ? DuelAssetIcon(
-              endReason == ChallengeWaitingEndReason.expired
-                  ? DuelAsset.timer
-                  : DuelAsset.close,
-              size: 48,
-            )
-          : SizedBox.square(
-""",
-              'status orb terminal icon',
-          )
-
-          path.write_text(source, encoding='utf-8')
-          PY
-
-          cat > test/challenge_waiting_decline_state_test.dart <<'EOF'
-          import 'package:flutter_test/flutter_test.dart';
-          import 'package:sudoku_game/features/social/challenge_waiting_screen.dart';
-
-          void main() {
-            test('exact declined challenge status has a declined terminal state', () {
-              expect(
-                challengeWaitingEndReasonForStatus('declined'),
-                ChallengeWaitingEndReason.declined,
-              );
-            });
-
-            test('exact expired challenge status remains separate', () {
-              expect(
-                challengeWaitingEndReasonForStatus('expired'),
-                ChallengeWaitingEndReason.expired,
-              );
-            });
-
-            test('challenger cancellation has its own terminal state', () {
-              expect(
-                challengeWaitingEndReasonForStatus('cancelled'),
-                ChallengeWaitingEndReason.cancelled,
-              );
-            });
-
-            test('pending and accepted statuses are not terminal reasons', () {
-              expect(challengeWaitingEndReasonForStatus('pending'), isNull);
-              expect(challengeWaitingEndReasonForStatus('accepted'), isNull);
-            });
-          }
-          EOF
-
-          git checkout origin/main -- .github/workflows/mobile-ci.yml
-          git add -A
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Merge latest main into challenge hardening"
-          git push origin HEAD:agent/challenge-system-hardening
-          echo "synced=true" >> "$GITHUB_OUTPUT"
-
   flutter-static:
-    needs: sync-latest-main
-    if: needs.sync-latest-main.outputs.synced != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
+
       - name: Flutter environment
         run: flutter doctor -v
+
       - name: Resolve packages
         run: flutter pub get
+
       - name: Validate localization catalog
         run: python3 tool/validate_localizations.py
+
       - name: Analyze
         run: flutter analyze --fatal-infos
+
       - name: Test
         shell: bash
         run: |
           set -euo pipefail
           timeout --signal=TERM 8m \
             flutter test --coverage --reporter expanded --concurrency=1
+
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4
