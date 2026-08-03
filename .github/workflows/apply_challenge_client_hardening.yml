@@ -1,0 +1,34 @@
+name: Apply challenge client hardening
+
+on:
+  push:
+    branches:
+      - agent/challenge-system-hardening
+    paths:
+      - tool/apply_challenge_client_hardening.py
+      - .github/workflows/apply_challenge_client_hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/challenge-system-hardening
+          fetch-depth: 0
+      - name: Apply client hardening
+        run: python tool/apply_challenge_client_hardening.py
+      - name: Remove temporary transformer
+        run: |
+          rm tool/apply_challenge_client_hardening.py
+          rm .github/workflows/apply_challenge_client_hardening.yml
+      - name: Commit generated client changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Harden challenge client and surrender flow"
+          git push origin HEAD:agent/challenge-system-hardening
