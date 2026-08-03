@@ -97,7 +97,7 @@ export async function verifyAppleStoreKitJws(
   }
   const leafKey = await crypto.subtle.importKey(
     'spki',
-    certificates[0].subjectPublicKeyInfo,
+    toArrayBuffer(certificates[0].subjectPublicKeyInfo),
     { name: 'ECDSA', namedCurve: 'P-256' },
     false,
     ['verify'],
@@ -105,8 +105,8 @@ export async function verifyAppleStoreKitJws(
   const signatureValid = await crypto.subtle.verify(
     { name: 'ECDSA', hash: 'SHA-256' },
     leafKey,
-    jwsSignature,
-    signingInput,
+    toArrayBuffer(jwsSignature),
+    toArrayBuffer(signingInput),
   );
   if (!signatureValid) {
     throw new AppleJwsVerificationError(
@@ -173,7 +173,7 @@ async function verifyCertificateSignature(
   if (certificate.signatureAlgorithmOid === OID_SHA256_WITH_RSA) {
     key = await crypto.subtle.importKey(
       'spki',
-      issuer.subjectPublicKeyInfo,
+      toArrayBuffer(issuer.subjectPublicKeyInfo),
       { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
       false,
       ['verify'],
@@ -182,7 +182,7 @@ async function verifyCertificateSignature(
   } else if (certificate.signatureAlgorithmOid === OID_ECDSA_WITH_SHA256) {
     key = await crypto.subtle.importKey(
       'spki',
-      issuer.subjectPublicKeyInfo,
+      toArrayBuffer(issuer.subjectPublicKeyInfo),
       { name: 'ECDSA', namedCurve: 'P-256' },
       false,
       ['verify'],
@@ -198,8 +198,8 @@ async function verifyCertificateSignature(
   const valid = await crypto.subtle.verify(
     algorithm,
     key,
-    signature,
-    certificate.tbs,
+    toArrayBuffer(signature),
+    toArrayBuffer(certificate.tbs),
   );
   if (!valid) {
     throw new AppleJwsVerificationError(
@@ -444,6 +444,12 @@ function base64Decode(value: string): Uint8Array {
   } catch {
     throw new AppleJwsVerificationError('Invalid Base64 certificate data.');
   }
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
 }
 
 function equalBytes(left: Uint8Array, right: Uint8Array): boolean {
