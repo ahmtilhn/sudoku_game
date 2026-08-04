@@ -42,7 +42,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | game | `GameScreen`<br>`lib/features/game/game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
 | home | `HomeScreen`<br>`lib/features/home/home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | home | `UxRootScreen`<br>`lib/features/home/ux_root_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | — | No localization call detected |
+| settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | settings | `SettingsScreen`<br>`lib/features/settings/settings_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
 | social | `ChallengeInvitationScreen`<br>`lib/features/social/challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
@@ -61,7 +61,6 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 
 - `lib/features/daily/daily_screen.dart`: No explicit responsive primitive detected
 - `lib/features/game/game_screen.dart`: Outcome content does not use shared outcome component
-- `lib/features/settings/account_protection_screen.dart`: No localization call detected
 
 Static warnings are not automatically defects. Confirmation dialogs, short setup screens and game canvases may intentionally omit a list or common state panel. They remain listed so visual/device tests do not silently skip them.
 
