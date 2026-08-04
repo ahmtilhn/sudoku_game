@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sudoku_game/localization/app_strings.dart';
 import 'package:sudoku_game/widgets/number_pad.dart';
 import 'package:sudoku_game/widgets/ux_feedback.dart';
 
@@ -13,28 +14,31 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: MediaQuery(
-          data: const MediaQueryData(
-            size: Size(320, 568),
-            textScaler: TextScaler.linear(2),
-          ),
-          child: Scaffold(
-            body: UxOutcomeSheet(
-              icon: Icons.emoji_events_rounded,
-              title: 'Match completed',
-              subtitle: 'Your result and rewards are ready.',
-              metrics: const <Widget>[
-                UxMetricTile(label: 'Rating', value: '+24'),
-                UxMetricTile(label: 'Coins', value: '+50'),
-                UxMetricTile(label: 'Mistakes', value: '1'),
-              ],
-              primaryLabel: 'Continue',
-              onPrimary: _noop,
-              secondaryLabel: 'Play again',
-              onSecondary: _noop,
-              tertiaryLabel: 'Main menu',
-              onTertiary: _noop,
+      AppStringsScope(
+        strings: AppStrings.forTesting(),
+        child: MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(320, 568),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: Scaffold(
+              body: UxOutcomeSheet(
+                icon: Icons.emoji_events_rounded,
+                title: 'Match completed',
+                subtitle: 'Your result and rewards are ready.',
+                metrics: const <Widget>[
+                  UxMetricTile(label: 'Rating', value: '+24'),
+                  UxMetricTile(label: 'Coins', value: '+50'),
+                  UxMetricTile(label: 'Mistakes', value: '1'),
+                ],
+                primaryLabel: 'Continue',
+                onPrimary: _noop,
+                secondaryLabel: 'Play again',
+                onSecondary: _noop,
+                tertiaryLabel: 'Main menu',
+                onTertiary: _noop,
+              ),
             ),
           ),
         ),
@@ -58,24 +62,27 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: MediaQuery(
-          data: const MediaQueryData(
-            size: Size(320, 568),
-            textScaler: TextScaler.linear(1.5),
-          ),
-          child: Scaffold(
-            bottomNavigationBar: NumberPadDock(
-              child: NumberPad(
-                maxValue: 16,
-                onNumber: (_) {},
-                onErase: _noop,
-                onToggleNotes: _noop,
-                onUndo: _noop,
-                onHint: _noop,
-              ),
+      AppStringsScope(
+        strings: AppStrings.forTesting(),
+        child: MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(320, 568),
+              textScaler: TextScaler.linear(1.5),
             ),
-            body: const SizedBox.expand(),
+            child: Scaffold(
+              bottomNavigationBar: NumberPadDock(
+                child: NumberPad(
+                  maxValue: 16,
+                  onNumber: (_) {},
+                  onErase: _noop,
+                  onToggleNotes: _noop,
+                  onUndo: _noop,
+                  onHint: _noop,
+                ),
+              ),
+              body: const SizedBox.expand(),
+            ),
           ),
         ),
       ),
