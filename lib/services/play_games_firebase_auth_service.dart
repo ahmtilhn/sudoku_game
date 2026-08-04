@@ -88,9 +88,9 @@ class PlayGamesFirebaseAuthService {
       if (existing != null) return;
     }
 
-    final operation = _authenticate(prompt: false).whenComplete(
-      () => _inFlight = null,
-    );
+    final operation = _authenticate(
+      prompt: false,
+    ).whenComplete(() => _inFlight = null);
     _inFlight = operation;
 
     try {
@@ -124,9 +124,9 @@ class PlayGamesFirebaseAuthService {
       if (existing != null) return existing;
     }
 
-    final operation = _authenticate(prompt: true).whenComplete(
-      () => _inFlight = null,
-    );
+    final operation = _authenticate(
+      prompt: true,
+    ).whenComplete(() => _inFlight = null);
     _inFlight = operation;
 
     try {
@@ -145,10 +145,7 @@ class PlayGamesFirebaseAuthService {
     } on FirebaseAuthException catch (error) {
       throw _mapFirebaseError(error);
     } on PlatformGameServicesException catch (error) {
-      throw PlayGamesFirebaseAuthException(
-        error.toString(),
-        code: error.code,
-      );
+      throw PlayGamesFirebaseAuthException(error.toString(), code: error.code);
     } on TimeoutException {
       throw const PlayGamesFirebaseAuthException(
         'Google Play Games account connection timed out.',
@@ -236,9 +233,7 @@ class PlayGamesFirebaseAuthService {
     return user;
   }
 
-  Future<OAuthCredential> _freshCredential(
-    PlatformGameServices games,
-  ) async {
+  Future<OAuthCredential> _freshCredential(PlatformGameServices games) async {
     final code = await games.requestServerAuthCode().timeout(_timeout);
     if (code == null || code.trim().isEmpty) {
       throw const PlayGamesFirebaseAuthException(
