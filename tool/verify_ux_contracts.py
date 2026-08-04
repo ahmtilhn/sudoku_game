@@ -26,6 +26,13 @@ def require(relative: str, *needles: str) -> None:
             raise ContractFailure(f"{relative}: missing UX contract {needle!r}")
 
 
+def forbid(relative: str, *needles: str) -> None:
+    source = read(relative)
+    for needle in needles:
+        if needle in source:
+            raise ContractFailure(f"{relative}: forbidden legacy UX contract {needle!r}")
+
+
 def require_any(relative: str, needles: tuple[str, ...]) -> None:
     source = read(relative)
     if not any(needle in source for needle in needles):
@@ -64,6 +71,20 @@ def main() -> int:
             "UxOutcomeSheet",
         )
         require(
+            "lib/features/career/career_screen.dart",
+            "EnhancedGameScreen(",
+            "mistakeLimit: 3",
+            "_showCareerRewardOffer",
+        )
+        forbid("lib/features/career/career_screen.dart", "GameScreen(")
+        require(
+            "lib/features/daily/daily_screen.dart",
+            "EnhancedGameScreen(",
+            "showNextAction: false",
+            "today_puzzle_completed",
+        )
+        forbid("lib/features/daily/daily_screen.dart", "GameScreen(")
+        require(
             "lib/widgets/sudoku_board.dart",
             "scheme.onPrimaryContainer",
             "sudokuSymbol(value)",
@@ -101,7 +122,14 @@ def main() -> int:
             "lib/widgets/ux_feedback.dart",
             "class UxStatePanel",
             "class UxMetricTile",
+            "class UxOutcomeHeader",
             "class UxOutcomeSheet",
+        )
+        require(
+            "lib/features/duel/online_duel_screen.dart",
+            "UxOutcomeHeader(",
+            "_ResultPlayersRow(",
+            "_ResultEloBar(",
         )
 
         safe_network_screens = (
@@ -147,11 +175,16 @@ def main() -> int:
             "selected user value uses readable white foreground",
             "pause stops interaction",
         )
+        require(
+            "test/responsive_feedback_ux_test.dart",
+            "shared outcome remains scrollable at 320px and 2x text",
+            "16x16 number pad remains usable on a compact phone",
+        )
     except ContractFailure as error:
         print(f"UX contract verification failed: {error}")
         return 1
 
-    print("Gameplay, profile, safe-message, and common-feedback UX contracts are wired.")
+    print("Gameplay, profile, safe-message, route, and common-feedback UX contracts are wired.")
     return 0
 
 
