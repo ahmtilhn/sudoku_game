@@ -3,17 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../widgets/responsive_layout.dart';
-
 import '../../core/formatters.dart';
 import '../../data/local_progress_store.dart';
 import '../../data/ux_game_session_store.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../localization/ux_copy.dart';
 import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
+import '../../widgets/ux_feedback.dart';
 import 'hint_economy.dart';
 
 typedef EnhancedGameCompleted = Future<void> Function({
@@ -23,6 +23,10 @@ typedef EnhancedGameCompleted = Future<void> Function({
 });
 
 enum EnhancedGameExit { next, menu }
+
+enum _PauseAction { resume, restart, menu }
+enum _LossAction { coin, rewarded, restart, exit }
+enum _ResultAction { next, restart, menu }
 
 class EnhancedGameScreen extends StatefulWidget {
   const EnhancedGameScreen({
@@ -76,9 +80,14 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   bool _roundLost = false;
   bool _lossVisible = false;
   bool _hintBusy = false;
+  bool _paused = false;
+  bool _pauseVisible = false;
+  bool _allowExit = false;
 
-  bool get _canUndo =>
-      _ready && !_completed && !_roundLost && _history.isNotEmpty;
+  bool get _inputEnabled =>
+      _ready && !_completed && !_roundLost && !_paused;
+
+  bool get _canUndo => _inputEnabled && _history.isNotEmpty;
 
   @override
   void initState() {
@@ -91,7 +100,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _startClock();
+      if (!_paused) _startClock();
     } else {
       _pauseClock();
       unawaited(_saveNow());
@@ -145,7 +154,13 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   }
 
   void _startClock() {
-    if (!_ready || _completed || _roundLost || _stopwatch.isRunning) return;
+    if (!_ready ||
+        _completed ||
+        _roundLost ||
+        _paused ||
+        _stopwatch.isRunning) {
+      return;
+    }
     _stopwatch.start();
     _clockTimer ??= Timer.periodic(const Duration(milliseconds: 250), (_) {
       if (!mounted || !_stopwatch.isRunning) return;
@@ -168,8 +183,108 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     _clockTimer = null;
   }
 
+  Future<void> _showPauseMenu() async {
+    if (!mounted ||
+        !_ready ||
+        _completed ||
+        _roundLost ||
+        _pauseVisible) {
+      return;
+    }
+    _pauseClock();
+    setState(() {
+      _paused = true;
+      _pauseVisible = true;
+    });
+    await _saveNow();
+    if (!mounted) return;
+
+    final action = await showAdaptiveBottomSheet<_PauseAction>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      useSafeArea: true,
+      showDragHandle: false,
+      builder: (sheetContext) => UxOutcomeSheet(
+        icon: Icons.pause_circle_filled_rounded,
+        title: UxCopy.pausedTitle(sheetContext),
+        subtitle: UxCopy.pausedBody(sheetContext),
+        metrics: <Widget>[
+          UxMetricTile(
+            label: sheetContext.tr('time'),
+            value: formatDuration(_elapsedSeconds),
+            icon: Icons.timer_outlined,
+          ),
+          UxMetricTile(
+            label: sheetContext.tr('mistakes'),
+            value: '$_mistakes${widget.mistakeLimit == null ? '' : '/${widget.mistakeLimit}'}',
+            icon: Icons.error_outline_rounded,
+          ),
+        ],
+        primaryLabel: sheetContext.tr('continue_action'),
+        onPrimary: () =>
+            Navigator.of(sheetContext).pop(_PauseAction.resume),
+        secondaryLabel: sheetContext.tr('restart_puzzle'),
+        onSecondary: () =>
+            Navigator.of(sheetContext).pop(_PauseAction.restart),
+        tertiaryLabel: sheetContext.tr('main_menu'),
+        onTertiary: () => Navigator.of(sheetContext).pop(_PauseAction.menu),
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() => _pauseVisible = false);
+
+    if (action == _PauseAction.resume) {
+      setState(() => _paused = false);
+      _startClock();
+      return;
+    }
+    if (action == _PauseAction.restart) {
+      final confirmed = await _confirmRestart();
+      if (!mounted) return;
+      if (confirmed) {
+        _restartPuzzle();
+      } else {
+        unawaited(_showPauseMenu());
+      }
+      return;
+    }
+    await _exitToMenu();
+  }
+
+  Future<bool> _confirmRestart() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(UxCopy.restartTitle(dialogContext)),
+            content: Text(UxCopy.restartBody(dialogContext)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(dialogContext.tr('cancel')),
+              ),
+              FilledButton.icon(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                icon: const Icon(Icons.restart_alt_rounded),
+                label: Text(dialogContext.tr('restart_puzzle')),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _exitToMenu() async {
+    _pauseClock();
+    await _saveNow();
+    if (!mounted) return;
+    setState(() => _allowExit = true);
+    Navigator.of(context).pop(EnhancedGameExit.menu);
+  }
+
   void _selectCell(int index) {
-    if (!_ready || _completed || _roundLost) return;
+    if (!_inputEnabled) return;
     setState(() {
       _selectedIndex = index;
       _errorIndex = null;
@@ -180,9 +295,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   void _enterNumber(int value) {
     final index = _selectedIndex;
     if (index == null ||
-        !_ready ||
-        _completed ||
-        _roundLost ||
+        !_inputEnabled ||
         widget.puzzle.isFixed(index) ||
         _hintedIndexes.contains(index)) {
       return;
@@ -239,9 +352,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   void _erase() {
     final index = _selectedIndex;
     if (index == null ||
-        !_ready ||
-        _completed ||
-        _roundLost ||
+        !_inputEnabled ||
         widget.puzzle.isFixed(index) ||
         _hintedIndexes.contains(index)) {
       return;
@@ -277,19 +388,13 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   }
 
   void _toggleNotes() {
-    if (!_ready || _completed || _roundLost) return;
+    if (!_inputEnabled) return;
     setState(() => _notesMode = !_notesMode);
     _scheduleSave();
   }
 
   Future<void> _hint() async {
-    if (!widget.allowHints ||
-        !_ready ||
-        _completed ||
-        _roundLost ||
-        _hintBusy) {
-      return;
-    }
+    if (!widget.allowHints || !_inputEnabled || _hintBusy) return;
     var index = _selectedIndex ?? -1;
     if (index < 0 ||
         widget.puzzle.isFixed(index) ||
@@ -336,98 +441,77 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       enableDrag: false,
       useSafeArea: true,
       showDragHandle: false,
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.flag_outlined, size: 48),
-            const SizedBox(height: 10),
-            Text(
-              context.tr('round_lost'),
-              textAlign: TextAlign.center,
-              style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              context.tr('mistake_limit_reached', <Object>[
-                widget.mistakeLimit ?? 3,
-              ]),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: EconomyService.instance.balance >= _continueCost
-                  ? () => Navigator.of(sheetContext).pop(_LossAction.coin)
-                  : null,
-              icon: const Icon(Icons.monetization_on_outlined),
-              label: Text(
-                context.tr('continue_with_coins', const <Object>[_continueCost]),
-              ),
-            ),
-            if (!AdsService.instance.noAds) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () =>
-                    Navigator.of(sheetContext).pop(_LossAction.rewarded),
-                icon: const Icon(Icons.ondemand_video_outlined),
-                label: Text(context.tr('watch_rewarded_ad')),
-              ),
-            ],
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () =>
-                  Navigator.of(sheetContext).pop(_LossAction.restart),
-              icon: const Icon(Icons.restart_alt_rounded),
-              label: Text(context.tr('restart_puzzle')),
-            ),
-            const SizedBox(height: 4),
-            TextButton.icon(
-              onPressed: () => Navigator.of(sheetContext).pop(_LossAction.exit),
-              icon: const Icon(Icons.save_outlined),
-              label: Text(context.tr('main_menu')),
-            ),
-          ],
+      builder: (sheetContext) => UxOutcomeSheet(
+        icon: Icons.flag_rounded,
+        title: sheetContext.tr('round_lost'),
+        subtitle: sheetContext.tr('mistake_limit_reached', <Object>[
+          widget.mistakeLimit ?? 3,
+        ]),
+        accent: Theme.of(sheetContext).colorScheme.error,
+        metrics: <Widget>[
+          UxMetricTile(
+            label: sheetContext.tr('time'),
+            value: formatDuration(_elapsedSeconds),
+            icon: Icons.timer_outlined,
+          ),
+          UxMetricTile(
+            label: sheetContext.tr('mistakes'),
+            value: '$_totalMistakes',
+            icon: Icons.error_outline_rounded,
+          ),
+        ],
+        primaryLabel: sheetContext.tr(
+          'continue_with_coins',
+          const <Object>[_continueCost],
         ),
+        onPrimary: () => Navigator.of(sheetContext).pop(_LossAction.coin),
+        secondaryLabel: AdsService.instance.noAds
+            ? sheetContext.tr('restart_puzzle')
+            : sheetContext.tr('watch_rewarded_ad'),
+        onSecondary: () => Navigator.of(sheetContext).pop(
+          AdsService.instance.noAds
+              ? _LossAction.restart
+              : _LossAction.rewarded,
+        ),
+        tertiaryLabel: sheetContext.tr('main_menu'),
+        onTertiary: () => Navigator.of(sheetContext).pop(_LossAction.exit),
       ),
     );
 
     if (!mounted) return;
     setState(() => _lossVisible = false);
 
-    switch (action) {
-      case _LossAction.coin:
-        final continued = await EconomyService.instance.spendCareerContinue();
-        if (!mounted) return;
-        if (continued) {
-          _resumeAfterLoss();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.tr('not_enough_coins'))),
-          );
-          await _showLossSheet();
-        }
-      case _LossAction.rewarded:
-        final continued = await AdsService.instance.showRewarded();
-        if (!mounted) return;
-        if (continued) {
-          _resumeAfterLoss();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
-          );
-          await _showLossSheet();
-        }
-      case _LossAction.restart:
-        _restartPuzzle();
-      case _LossAction.exit:
-      case null:
-        await _saveNow();
-        if (mounted) Navigator.of(context).pop(EnhancedGameExit.menu);
+    if (action == _LossAction.coin) {
+      final continued = await EconomyService.instance.spendCareerContinue();
+      if (!mounted) return;
+      if (continued) {
+        _resumeAfterLoss();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('not_enough_coins'))),
+        );
+        await _showLossSheet();
+      }
+      return;
     }
+    if (action == _LossAction.rewarded) {
+      final continued = await AdsService.instance.showRewarded();
+      if (!mounted) return;
+      if (continued) {
+        _resumeAfterLoss();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
+        );
+        await _showLossSheet();
+      }
+      return;
+    }
+    if (action == _LossAction.restart) {
+      _restartPuzzle();
+      return;
+    }
+    await _exitToMenu();
   }
 
   void _resumeAfterLoss() {
@@ -435,6 +519,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _mistakes = 0;
       _roundLost = false;
       _errorIndex = null;
+      _paused = false;
     });
     _startClock();
     _scheduleSave(immediate: true);
@@ -457,6 +542,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _notesMode = false;
       _completed = false;
       _roundLost = false;
+      _paused = false;
     });
     _startClock();
     _scheduleSave(immediate: true);
@@ -476,8 +562,8 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
         if (entry.value.isEmpty) empty.add(noteIndex);
       }
     }
-    for (final index in empty) {
-      _notes.remove(index);
+    for (final noteIndex in empty) {
+      _notes.remove(noteIndex);
     }
   }
 
@@ -505,8 +591,9 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       enableDrag: false,
       isScrollControlled: true,
       useSafeArea: true,
+      showDragHandle: false,
       builder: (sheetContext) => _GameResultSheet(
-        title: widget.completionTitle ?? context.tr('congratulations'),
+        title: widget.completionTitle ?? sheetContext.tr('congratulations'),
         stars: stars,
         seconds: _elapsedSeconds,
         mistakes: _totalMistakes,
@@ -519,6 +606,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _restartPuzzle();
       return;
     }
+    setState(() => _allowExit = true);
     Navigator.of(context).pop(
       action == _ResultAction.next
           ? EnhancedGameExit.next
@@ -565,7 +653,6 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
   @override
   Widget build(BuildContext context) {
-    final enabled = _ready && !_completed && !_roundLost;
     final mistakeLabel = widget.mistakeLimit == null
         ? context.tr('mistakes_count', <Object>[_mistakes])
         : context.tr('mistakes_limit_count', <Object>[
@@ -573,14 +660,17 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
             widget.mistakeLimit!,
           ]);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(context.strings.puzzleTitle(widget.puzzle)),
-        actions: [
-          Semantics(
-            label: context.tr('time'),
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16),
+    return PopScope<EnhancedGameExit>(
+      canPop: _allowExit || _completed,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) unawaited(_showPauseMenu());
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(context.strings.puzzleTitle(widget.puzzle)),
+          actions: [
+            Semantics(
+              label: context.tr('time'),
               child: Center(
                 child: Text(
                   formatDuration(_elapsedSeconds),
@@ -588,98 +678,153 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: NumberPadDock(
-        child: NumberPad(
-          maxValue: widget.puzzle.size,
-          completedValues: completedSudokuNumbers(
-            board: _board,
-            maxValue: widget.puzzle.size,
-          ),
-          enabled: enabled,
-          notesEnabled: _notesMode,
-          hintCount: widget.store.hints,
-          onNumber: _enterNumber,
-          onErase: _erase,
-          onToggleNotes: widget.allowNotes ? _toggleNotes : null,
-          onUndo: _canUndo ? _undo : null,
-          onHint: widget.allowHints ? _hint : null,
+            IconButton(
+              key: const ValueKey<String>('action-pause'),
+              tooltip: UxCopy.pause(context),
+              onPressed: _inputEnabled ? _showPauseMenu : null,
+              icon: const Icon(Icons.pause_circle_outline_rounded),
+            ),
+            const SizedBox(width: 4),
+          ],
         ),
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth > 620
-                ? 560.0
-                : constraints.maxWidth;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: Center(
-                child: SizedBox(
-                  width: width,
-                  child: Column(
-                    children: [
-                      if (!_ready) ...[
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 12),
-                      ],
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          Chip(
-                            avatar: const Icon(Icons.error_outline, size: 18),
-                            label: Text(mistakeLabel),
+        bottomNavigationBar: NumberPadDock(
+          child: NumberPad(
+            maxValue: widget.puzzle.size,
+            completedValues: completedSudokuNumbers(
+              board: _board,
+              maxValue: widget.puzzle.size,
+            ),
+            enabled: _inputEnabled,
+            notesEnabled: _notesMode,
+            hintCount: widget.store.hints,
+            onNumber: _enterNumber,
+            onErase: _erase,
+            onToggleNotes: widget.allowNotes ? _toggleNotes : null,
+            onUndo: _canUndo ? _undo : null,
+            onHint: widget.allowHints ? _hint : null,
+          ),
+        ),
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final boardWidget = SudokuBoard(
+                puzzle: widget.puzzle,
+                board: _board,
+                selectedIndex: _selectedIndex,
+                notes: _notes,
+                errorIndex: _errorIndex,
+                hintedIndexes: _hintedIndexes,
+                enabled: _inputEnabled,
+                onCellTap: _selectCell,
+              );
+              final availableWidth = constraints.maxWidth - 32;
+              final normalWidth = availableWidth > 560 ? 560.0 : availableWidth;
+              final boardArea = widget.puzzle.size == 16
+                  ? SizedBox(
+                      key: const ValueKey<String>('fantasy-board-viewport'),
+                      height: (availableWidth * .94).clamp(300.0, 620.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: InteractiveViewer(
+                          minScale: .55,
+                          maxScale: 3,
+                          boundaryMargin: const EdgeInsets.all(120),
+                          constrained: false,
+                          child: SizedBox.square(
+                            dimension: 640,
+                            child: boardWidget,
                           ),
-                          Chip(
-                            avatar: const Icon(
-                              Icons.lightbulb_outline,
-                              size: 18,
+                        ),
+                      ),
+                    )
+                  : SizedBox(width: normalWidth, child: boardWidget);
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 700),
+                    child: Column(
+                      children: [
+                        if (!_ready) ...[
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 12),
+                        ],
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            Chip(
+                              avatar: const Icon(Icons.error_outline, size: 18),
+                              label: Text(mistakeLabel),
                             ),
-                            label: Text(
-                              context.tr('hints_count', <Object>[
-                                widget.store.hints,
-                              ]),
-                            ),
-                          ),
-                          Chip(
-                            avatar: const Icon(Icons.grid_4x4, size: 18),
-                            label: Text(
-                              context.strings.difficultyLabel(
-                                widget.puzzle.difficulty,
+                            Chip(
+                              avatar: const Icon(
+                                Icons.lightbulb_outline,
+                                size: 18,
+                              ),
+                              label: Text(
+                                context.tr('hints_count', <Object>[
+                                  widget.store.hints,
+                                ]),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SudokuBoard(
-                        puzzle: widget.puzzle,
-                        board: _board,
-                        selectedIndex: _selectedIndex,
-                        notes: _notes,
-                        errorIndex: _errorIndex,
-                        hintedIndexes: _hintedIndexes,
-                        enabled: enabled,
-                        onCellTap: _selectCell,
-                      ),
-                    ],
+                            Chip(
+                              avatar: Icon(
+                                widget.puzzle.size == 16
+                                    ? Icons.auto_awesome_rounded
+                                    : Icons.grid_4x4,
+                                size: 18,
+                              ),
+                              label: Text(
+                                widget.puzzle.size == 16
+                                    ? '16×16 · A–G'
+                                    : context.strings.difficultyLabel(
+                                        widget.puzzle.difficulty,
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            AnimatedOpacity(
+                              opacity: _paused ? 0 : 1,
+                              duration: const Duration(milliseconds: 180),
+                              child: IgnorePointer(
+                                ignoring: _paused,
+                                child: boardArea,
+                              ),
+                            ),
+                            if (_paused)
+                              SizedBox(
+                                width: normalWidth,
+                                height: normalWidth,
+                                child: UxStatePanel(
+                                  icon: Icons.pause_circle_filled_rounded,
+                                  title: UxCopy.pausedTitle(context),
+                                  message: UxCopy.pausedBody(context),
+                                  actionLabel: context.tr('continue_action'),
+                                  onAction: _showPauseMenu,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
   }
 }
-
-enum _LossAction { coin, rewarded, restart, exit }
-enum _ResultAction { next, restart, menu }
 
 class _GameResultSheet extends StatefulWidget {
   const _GameResultSheet({
@@ -713,8 +858,8 @@ class _GameResultSheetState extends State<_GameResultSheet> {
       _rewardBusy = true;
       _message = null;
     });
-    final claimed = await EconomyService.instance
-        .claimCareerRewardedInterstitial();
+    final claimed =
+        await EconomyService.instance.claimCareerRewardedInterstitial();
     if (!mounted) return;
     setState(() {
       _rewardBusy = false;
@@ -727,118 +872,112 @@ class _GameResultSheetState extends State<_GameResultSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            widget.title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(
+              Icons.emoji_events_rounded,
+              size: 62,
+              color: Color(0xFFFFC94D),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              widget.title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List<Widget>.generate(
+                3,
+                (index) => Icon(
+                  index < widget.stars
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
+                  size: 44,
+                  color: const Color(0xFFFFC94D),
                 ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List<Widget>.generate(
-              3,
-              (index) => Icon(
-                index < widget.stars
-                    ? Icons.star_rounded
-                    : Icons.star_border_rounded,
-                size: 46,
-                color: Theme.of(context).colorScheme.tertiary,
               ),
             ),
-          ),
-          const SizedBox(height: 18),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _ResultRow(
-                    label: context.tr('time'),
-                    value: formatDuration(widget.seconds),
-                  ),
-                  _ResultRow(
-                    label: context.tr('mistakes'),
-                    value: '${widget.mistakes}',
-                  ),
-                  _ResultRow(
-                    label: context.tr('hints'),
-                    value: '${widget.hints}',
-                  ),
-                ],
-              ),
+            const SizedBox(height: 18),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                UxMetricTile(
+                  label: context.tr('time'),
+                  value: formatDuration(widget.seconds),
+                  icon: Icons.timer_outlined,
+                ),
+                UxMetricTile(
+                  label: context.tr('mistakes'),
+                  value: '${widget.mistakes}',
+                  icon: Icons.error_outline_rounded,
+                ),
+                UxMetricTile(
+                  label: context.tr('hints'),
+                  value: '${widget.hints}',
+                  icon: Icons.lightbulb_outline_rounded,
+                ),
+              ],
             ),
-          ),
-          if (!AdsService.instance.noAds && !_rewardClaimed) ...[
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _rewardBusy ? null : _claimReward,
-              icon: _rewardBusy
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.ondemand_video_outlined),
+            if (!AdsService.instance.noAds && !_rewardClaimed) ...[
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                onPressed: _rewardBusy ? null : _claimReward,
+                icon: _rewardBusy
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.ondemand_video_outlined),
+                label: Text(
+                  context.tr('watch_and_earn_coin', const <Object>[25]),
+                ),
+              ),
+            ],
+            if (_message != null) ...[
+              const SizedBox(height: 8),
+              Text(_message!, textAlign: TextAlign.center),
+            ],
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(
+                widget.showNextAction
+                    ? _ResultAction.next
+                    : _ResultAction.menu,
+              ),
+              icon: const Icon(Icons.arrow_forward_rounded),
               label: Text(
-                context.tr('watch_and_earn_coin', const <Object>[25]),
+                widget.showNextAction
+                    ? context.tr('continue_action')
+                    : context.tr('main_menu'),
               ),
             ),
-          ],
-          if (_message != null) ...[
             const SizedBox(height: 8),
-            Text(_message!, textAlign: TextAlign.center),
+            OutlinedButton.icon(
+              onPressed: () =>
+                  Navigator.of(context).pop(_ResultAction.restart),
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: Text(context.tr('restart_puzzle')),
+            ),
+            if (widget.showNextAction)
+              TextButton(
+                onPressed: () =>
+                    Navigator.of(context).pop(_ResultAction.menu),
+                child: Text(context.tr('main_menu')),
+              ),
           ],
-          const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(context).pop(
-              widget.showNextAction ? _ResultAction.next : _ResultAction.menu,
-            ),
-            icon: const Icon(Icons.arrow_forward_rounded),
-            label: Text(
-              widget.showNextAction
-                  ? context.tr('continue_action')
-                  : context.tr('main_menu'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.of(context).pop(_ResultAction.restart),
-            icon: const Icon(Icons.restart_alt_rounded),
-            label: Text(context.tr('restart_puzzle')),
-          ),
-          if (widget.showNextAction)
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(_ResultAction.menu),
-              child: Text(context.tr('main_menu')),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ResultRow extends StatelessWidget {
-  const _ResultRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
-        ],
+        ),
       ),
     );
   }
