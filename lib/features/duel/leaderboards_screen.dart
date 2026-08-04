@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/ux_feedback.dart';
 
 class LeaderboardsScreen extends StatefulWidget {
   const LeaderboardsScreen({super.key});
@@ -83,6 +85,10 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
   @override
   void initState() {
     super.initState();
+    _reload();
+  }
+
+  void _reload() {
     _future = SocialApiClient.instance.loadCompetitiveLeaderboard(
       widget.scope,
       mode: widget.scope == 'friends' ? 'friends' : 'top',
@@ -107,7 +113,21 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasError) {
-          return Center(child: Text(snapshot.error.toString()));
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
+              children: [
+                const SizedBox(height: 72),
+                UxStatePanel.error(
+                  context,
+                  message: UserSafeError.message(context, snapshot.error),
+                  onRetry: () => setState(_reload),
+                ),
+              ],
+            ),
+          );
         }
         final data = snapshot.data ?? const <String, dynamic>{};
         final entries = (data['entries'] as List?) ?? const <Object?>[];
@@ -116,9 +136,15 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
             onRefresh: _refresh,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20),
               children: [
-                const SizedBox(height: 120),
-                Center(child: Text(context.tr('leaderboard_empty'))),
+                const SizedBox(height: 72),
+                UxStatePanel.empty(
+                  context,
+                  title: context.tr('leaderboard_empty'),
+                  message: context.tr('leaderboard_empty'),
+                  icon: Icons.leaderboard_outlined,
+                ),
               ],
             ),
           );
@@ -137,10 +163,16 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
                   ((entry['winRate'] as num?)?.toDouble() ?? 0) * 100;
               return Card(
                 child: ListTile(
+                  minTileHeight: 72,
                   leading: CircleAvatar(
                     child: Text('${entry['rank'] ?? index + 1}'),
                   ),
-                  title: Text(entry['displayName']?.toString() ?? 'Player'),
+                  title: Text(
+                    entry['displayName']?.toString() ?? 'Player',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
                   subtitle: Text(
                     context.tr('leaderboard_row', <Object>[
                       games,
@@ -164,10 +196,7 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
   void didUpdateWidget(covariant _LeaderboardTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.scope != widget.scope) {
-      _future = SocialApiClient.instance.loadCompetitiveLeaderboard(
-        widget.scope,
-        mode: widget.scope == 'friends' ? 'friends' : 'top',
-      );
+      _reload();
     }
   }
 }
