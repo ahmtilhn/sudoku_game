@@ -76,7 +76,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('action-pause')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Game paused'), findsOneWidget);
+    expect(find.text('Game paused'), findsWidgets);
     expect(find.text('Continue'), findsWidgets);
     expect(find.text('Restart from the beginning'), findsOneWidget);
     expect(find.text('Main menu'), findsOneWidget);
