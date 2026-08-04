@@ -76,14 +76,22 @@ def main() -> int:
             "mistakeLimit: 3",
             "_showCareerRewardOffer",
         )
-        forbid("lib/features/career/career_screen.dart", "GameScreen(")
+        forbid(
+            "lib/features/career/career_screen.dart",
+            "import '../game/game_screen.dart';",
+            "=> GameScreen(",
+        )
         require(
             "lib/features/daily/daily_screen.dart",
             "EnhancedGameScreen(",
             "showNextAction: false",
             "today_puzzle_completed",
         )
-        forbid("lib/features/daily/daily_screen.dart", "GameScreen(")
+        forbid(
+            "lib/features/daily/daily_screen.dart",
+            "import '../game/game_screen.dart';",
+            "=> GameScreen(",
+        )
         require(
             "lib/widgets/sudoku_board.dart",
             "scheme.onPrimaryContainer",
