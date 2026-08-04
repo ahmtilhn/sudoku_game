@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/firebase_runtime_config.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/ux_feedback.dart';
 
 class FriendRequestsScreen extends StatefulWidget {
   const FriendRequestsScreen({super.key});
@@ -34,7 +36,7 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
     if (!_configured) {
       setState(() {
         _loading = false;
-        _error = context.tr('friend_requests_setup_required');
+        _error = context.tr('online_account_unavailable');
       });
       return;
     }
@@ -44,20 +46,15 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
       _error = null;
     });
     try {
-      // Friend requests require an authenticated Firebase ID token. Push
-      // notification registration is optional and must not be used as the gate
-      // for loading the social inbox.
       await FirebaseSessionService.ensureAnonymousSession();
       await _push.initialize();
       await _social.ensureProfile();
       final requests = await _social.loadIncomingFriendRequests();
       if (mounted) setState(() => _requests = requests);
-    } on FirebaseSessionException catch (error) {
-      if (mounted) setState(() => _error = error.message);
-    } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -82,11 +79,11 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
         ),
       );
       await _load();
-    } on SocialApiException catch (error) {
+    } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(UserSafeError.message(context, error))),
+      );
     }
   }
 
@@ -112,18 +109,17 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
                   if (_error != null)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Text(_error!),
-                      ),
+                    UxStatePanel.error(
+                      context,
+                      message: _error!,
+                      onRetry: _load,
                     )
                   else if (_requests.isEmpty)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Text(context.tr('friend_requests_empty')),
-                      ),
+                    UxStatePanel.empty(
+                      context,
+                      title: context.tr('friend_requests_empty'),
+                      message: context.tr('friend_requests_empty'),
+                      icon: Icons.mark_email_read_outlined,
                     )
                   else
                     for (final player in _requests)
