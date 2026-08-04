@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/android-release-services.yml"
       - "android/**"
+      - "assets/**"
       - "backend/**"
       - "docs/**"
       - "lib/**"
@@ -35,6 +36,7 @@ jobs:
           path: |
             .github
             android
+            assets
             backend
             docs
             lib
