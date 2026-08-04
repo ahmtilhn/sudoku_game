@@ -38,10 +38,8 @@ if ($androidClient.client_info.mobilesdk_app_id -ne $expectedAppId) {
 
 $servicesText = Get-Content -LiteralPath $servicesXmlPath -Raw
 function Read-XmlString([string]$Name) {
-  $match = [regex]::Match(
-    $servicesText,
-    "<string\s+name=[`\"']$([regex]::Escape($Name))[`\"'][^>]*>([^<]+)</string>"
-  )
+  $pattern = '<string\s+name="' + [regex]::Escape($Name) + '"[^>]*>([^<]+)</string>'
+  $match = [regex]::Match($servicesText, $pattern)
   if (!$match.Success) {
     throw "Missing Android string resource: $Name"
   }
