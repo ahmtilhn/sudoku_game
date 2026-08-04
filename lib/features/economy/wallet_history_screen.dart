@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
+import '../../widgets/ux_feedback.dart';
 
 class WalletHistoryScreen extends StatefulWidget {
   const WalletHistoryScreen({super.key});
@@ -49,29 +51,28 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, size: 42),
-                      const SizedBox(height: 12),
-                      Text(
-                        snapshot.error.toString(),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: _reload,
-                        child: Text(context.tr('try_again')),
-                      ),
-                    ],
+                  padding: const EdgeInsets.all(20),
+                  child: UxStatePanel.error(
+                    context,
+                    message: UserSafeError.message(context, snapshot.error),
+                    onRetry: _reload,
                   ),
                 ),
               );
             }
             final entries = snapshot.data ?? const <CoinLedgerEntry>[];
             if (entries.isEmpty) {
-              return Center(child: Text(context.tr('coin_history_empty')));
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: UxStatePanel.empty(
+                    context,
+                    title: context.tr('coin_history_empty'),
+                    message: context.tr('coin_history_empty'),
+                    icon: Icons.receipt_long_outlined,
+                  ),
+                ),
+              );
             }
             return LayoutBuilder(
               builder: (context, constraints) {
