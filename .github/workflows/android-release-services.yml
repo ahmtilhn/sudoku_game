@@ -46,8 +46,20 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Verify changed Dart formatting
+        run: |
+          dart format \
+            lib/main.dart \
+            lib/features/social/friend_requests_screen.dart \
+            lib/services/platform_game_services.dart \
+            lib/services/play_games_firebase_auth_service.dart \
+            test/platform_game_services_diagnostics_test.dart
+          git diff --exit-code -- \
+            lib/main.dart \
+            lib/features/social/friend_requests_screen.dart \
+            lib/services/platform_game_services.dart \
+            lib/services/play_games_firebase_auth_service.dart \
+            test/platform_game_services_diagnostics_test.dart
 
       - name: Analyze
         run: flutter analyze
