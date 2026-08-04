@@ -74,35 +74,35 @@ class UxGameSession {
   }
 
   Map<String, Object?> toJson() => <String, Object?>{
-    'schemaVersion': schemaVersion,
-    'puzzle': <String, Object>{
-      'id': puzzle.id,
-      'title': puzzle.title,
-      'difficulty': puzzle.difficulty.name,
-      'size': puzzle.size,
-      'boxRows': puzzle.boxRows,
-      'boxColumns': puzzle.boxColumns,
-      'clues': puzzle.puzzle,
-      'solution': puzzle.solution,
-    },
-    'board': board,
-    'notes': notes.map(
-      (index, values) => MapEntry(
-        index.toString(),
-        values.toList()..sort(),
-      ),
-    ),
-    'history': history.map((move) => move.toJson()).toList(),
-    'hintedIndexes': hintedIndexes.toList()..sort(),
-    'selectedIndex': selectedIndex,
-    'elapsedSeconds': elapsedSeconds,
-    'mistakes': mistakes,
-    'totalMistakes': totalMistakes,
-    'hintsUsed': hintsUsed,
-    'notesMode': notesMode,
-    'roundLost': roundLost,
-    'savedAt': savedAt.toUtc().toIso8601String(),
-  };
+        'schemaVersion': schemaVersion,
+        'puzzle': <String, Object>{
+          'id': puzzle.id,
+          'title': puzzle.title,
+          'difficulty': puzzle.difficulty.name,
+          'size': puzzle.size,
+          'boxRows': puzzle.boxRows,
+          'boxColumns': puzzle.boxColumns,
+          'clues': puzzle.puzzle,
+          'solution': puzzle.solution,
+        },
+        'board': board,
+        'notes': notes.map(
+          (index, values) => MapEntry(
+            index.toString(),
+            values.toList()..sort(),
+          ),
+        ),
+        'history': history.map((move) => move.toJson()).toList(),
+        'hintedIndexes': hintedIndexes.toList()..sort(),
+        'selectedIndex': selectedIndex,
+        'elapsedSeconds': elapsedSeconds,
+        'mistakes': mistakes,
+        'totalMistakes': totalMistakes,
+        'hintsUsed': hintsUsed,
+        'notesMode': notesMode,
+        'roundLost': roundLost,
+        'savedAt': savedAt.toUtc().toIso8601String(),
+      };
 
   factory UxGameSession.fromJson(Map<String, dynamic> json) {
     final rawPuzzle = json['puzzle'];
@@ -162,7 +162,7 @@ class UxGameSession {
       roundLost: json['roundLost'] == true,
       savedAt:
           DateTime.tryParse(json['savedAt']?.toString() ?? '')?.toUtc() ??
-          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+              DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
     );
   }
 
@@ -203,18 +203,26 @@ class UxGameSession {
 }
 
 class UxGameSessionStore {
-  UxGameSessionStore._();
+  UxGameSessionStore._({SharedPreferencesAsync? preferences})
+      : _preferences = preferences ?? SharedPreferencesAsync();
+
+  UxGameSessionStore.inMemory() : _preferences = null;
 
   static final UxGameSessionStore instance = UxGameSessionStore._();
   static const String _key = 'ux_active_game_session_v2';
 
-  final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
+  final SharedPreferencesAsync? _preferences;
+  UxGameSession? _memorySession;
   final ValueNotifier<UxGameSession?> activeSession =
       ValueNotifier<UxGameSession?>(null);
 
   Future<UxGameSession?> initialize() => latest();
 
   Future<UxGameSession?> latest() async {
+    if (_preferences == null) {
+      _publish(_memorySession);
+      return _memorySession;
+    }
     final raw = await _preferences.getString(_key);
     if (raw == null || raw.isEmpty) {
       _publish(null);
@@ -247,12 +255,20 @@ class UxGameSessionStore {
 
   Future<void> save(UxGameSession session) async {
     if (!session.isValid) return;
-    await _preferences.setString(_key, jsonEncode(session.toJson()));
+    if (_preferences == null) {
+      _memorySession = session;
+    } else {
+      await _preferences.setString(_key, jsonEncode(session.toJson()));
+    }
     _publish(session);
   }
 
   Future<void> clear() async {
-    await _preferences.remove(_key);
+    if (_preferences == null) {
+      _memorySession = null;
+    } else {
+      await _preferences.remove(_key);
+    }
     _publish(null);
   }
 
