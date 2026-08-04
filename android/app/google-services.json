@@ -14,14 +14,6 @@
       },
       "oauth_client": [
         {
-          "client_id": "31445697560-je35cv393qqb01v45j2f3edilmcp5g4l.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.devoviastudio.sudoku",
-            "certificate_hash": "ca1b9fbbbaa03cd29e85a57b6d758022c7b030a4"
-          }
-        },
-        {
           "client_id": "31445697560-srkgbb34irg821mamsq0tnd6hvr4j8li.apps.googleusercontent.com",
           "client_type": 3
         }
