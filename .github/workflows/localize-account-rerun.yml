@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: finish-localized-account-main-v4
+  group: finish-localized-account-main-v5
   cancel-in-progress: false
 
 jobs:
