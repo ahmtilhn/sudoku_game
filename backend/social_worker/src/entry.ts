@@ -24,6 +24,7 @@ import {
   reconcilePendingGooglePurchases,
   verifyAndGrantProductionPurchase,
 } from './production_purchase_verification_v2';
+import { ensureProfileNameLockSchema } from './profile_name_lock_schema';
 import { sendPlayerPush } from './push_notifications';
 import { ensureRuntimeSchema } from './runtime_schema';
 import { ensureTestEconomySchema } from './test_economy_schema';
@@ -70,6 +71,7 @@ export default {
     try {
       await ensureRuntimeSchema(env);
       await ensureTestEconomySchema(env);
+      await ensureProfileNameLockSchema(env);
     } catch (error) {
       console.error('runtime_schema_install_failed', error);
       return json(env, 503, {
@@ -155,6 +157,7 @@ export default {
     try {
       await ensureRuntimeSchema(env);
       await ensureTestEconomySchema(env);
+      await ensureProfileNameLockSchema(env);
     } catch (error) {
       console.error('runtime_schema_install_failed', error);
       return;
