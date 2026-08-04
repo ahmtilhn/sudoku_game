@@ -4,7 +4,7 @@ This document separates the settings that are verified in source code from the s
 
 ## Supported release command
 
-The Android project embeds the staging social backend in `android/gradle.properties`, so the standard Flutter command is supported:
+The Android release Flutter task injects the public staging social-backend endpoint when no explicit `SOCIAL_BACKEND_URL` override is supplied. The standard Flutter command is therefore supported:
 
 ```powershell
 flutter clean
@@ -12,7 +12,9 @@ flutter pub get
 flutter build appbundle --release
 ```
 
-The Gradle `preReleaseBuild` validation stops the build when the Firebase project, Android package, Firebase App ID, Play Games server OAuth client, or `SOCIAL_BACKEND_URL` is missing or inconsistent.
+Flutter supplies its own Gradle `dart-defines` project property on every build. The project merges the staging endpoint into the release task itself instead of relying on `android/gradle.properties`, which can be overridden by the Flutter CLI.
+
+The Gradle `preReleaseBuild` validation stops the build when the Firebase project, Android package, Firebase App ID, Play Games server OAuth client, or effective `SOCIAL_BACKEND_URL` is missing or inconsistent.
 
 The backend URL is a public service endpoint, not a secret. Production builds can override it with `--dart-define=SOCIAL_BACKEND_URL=https://...` when a production worker is available.
 
