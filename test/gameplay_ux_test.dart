@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sudoku_game/data/local_progress_store.dart';
 import 'package:sudoku_game/domain/sudoku.dart';
 import 'package:sudoku_game/features/game/enhanced_game_screen.dart';
@@ -10,6 +12,8 @@ import 'package:sudoku_game/widgets/sudoku_board.dart';
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
   });
 
   testWidgets('selected user value uses readable white foreground', (
@@ -93,20 +97,44 @@ void main() {
 
 SudokuPuzzle _miniPuzzle() {
   const solution = <int>[
-    1, 2, 3, 4,
-    3, 4, 1, 2,
-    2, 1, 4, 3,
-    4, 3, 2, 1,
+    1,
+    2,
+    3,
+    4,
+    3,
+    4,
+    1,
+    2,
+    2,
+    1,
+    4,
+    3,
+    4,
+    3,
+    2,
+    1,
   ];
   return const SudokuPuzzle(
     id: 'ux-test-mini',
     title: 'Mini',
     difficulty: SudokuDifficulty.easy,
     puzzle: <int>[
-      1, 0, 3, 4,
-      3, 4, 1, 2,
-      2, 1, 4, 3,
-      4, 3, 2, 1,
+      1,
+      0,
+      3,
+      4,
+      3,
+      4,
+      1,
+      2,
+      2,
+      1,
+      4,
+      3,
+      4,
+      3,
+      2,
+      1,
     ],
     solution: solution,
     size: 4,
