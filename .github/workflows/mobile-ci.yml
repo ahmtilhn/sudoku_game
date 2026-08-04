@@ -30,6 +30,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  branch-audit:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare every remote branch with main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --all --prune
+          printf 'branch\tahead\tbehind\tancestor_of_main\tunique_patches\tlatest_commit\n' > branch-audit.tsv
+          while IFS= read -r ref; do
+            branch="${ref#refs/remotes/origin/}"
+            case "$branch" in
+              HEAD|main) continue ;;
+            esac
+            ahead="$(git rev-list --count origin/main.."$ref")"
+            behind="$(git rev-list --count "$ref"..origin/main)"
+            if git merge-base --is-ancestor "$ref" origin/main; then
+              ancestor=yes
+            else
+              ancestor=no
+            fi
+            unique="$(git cherry origin/main "$ref" | awk '$1 == "+" {count++} END {print count+0}')"
+            latest="$(git log -1 --format='%h %s' "$ref" | tr '\t\r\n' '   ')"
+            printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+              "$branch" "$ahead" "$behind" "$ancestor" "$unique" "$latest" \
+              >> branch-audit.tsv
+          done < <(git for-each-ref --format='%(refname)' refs/remotes/origin | sort)
+          column -t -s $'\t' branch-audit.tsv || cat branch-audit.tsv
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: branch-audit
+          path: branch-audit.tsv
+          if-no-files-found: error
+          retention-days: 14
+
   flutter-static:
     runs-on: ubuntu-latest
     timeout-minutes: 30
