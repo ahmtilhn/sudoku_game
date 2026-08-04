@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../widgets/responsive_layout.dart';
+import '../../core/user_safe_error.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
@@ -13,6 +13,7 @@ import '../../services/firebase_session_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/ux_feedback.dart';
 import '../economy/coin_store_screen.dart';
 import 'duel_screen.dart';
 import 'pre_match_ready_screen.dart';
@@ -38,11 +39,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   int _pollAttempt = 0;
   DateTime? _lastQueueRefresh;
 
-  int get _selectedEntryFee =>
-      _economy.entryFeeForDifficulty(_difficulty.name);
+  int get _selectedEntryFee => _economy.entryFeeForDifficulty(_difficulty.name);
 
-  bool get _canEnterSelectedDifficulty =>
-      _economy.balance >= _selectedEntryFee;
+  bool get _canEnterSelectedDifficulty => _economy.balance >= _selectedEntryFee;
 
   @override
   void initState() {
@@ -347,12 +346,12 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       _lastQueueRefresh = DateTime.now();
       _startPollingForMatch();
     } on FirebaseSessionException catch (error) {
-      _stopSearchWithError(error.message);
+      _stopSearchWithError(UserSafeError.message(context, error));
     } on SocialApiException catch (error) {
       if (error.statusCode == 409) {
         await _economy.refresh(showLoading: false);
       }
-      _stopSearchWithError(error.message);
+      _stopSearchWithError(UserSafeError.message(context, error));
     } catch (_) {
       _stopSearchWithError(context.tr('matchmaking_start_failed'));
     }
@@ -454,13 +453,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         _pollTimer = null;
         setState(() {
           _searching = false;
-          _error = error.message;
+          _error = UserSafeError.message(context, error);
           _lastQueueRefresh = null;
           _pollAttempt = 0;
         });
         await _economy.refresh(showLoading: false);
       } else {
-        setState(() => _error = error.message);
+        setState(() => _error = UserSafeError.message(context, error));
       }
     } catch (_) {
       if (mounted) {

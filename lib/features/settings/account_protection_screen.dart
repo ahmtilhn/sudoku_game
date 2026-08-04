@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../services/account_deletion_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
@@ -353,7 +354,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
       _password.clear();
       _confirm.clear();
     } on FirebaseSessionException catch (error) {
-      _error = error.message;
+      _error = UserSafeError.message(context, error);
     } finally {
       _setBusy(false);
     }
@@ -509,7 +510,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
         ),
       );
     } on AccountDeletionException catch (error) {
-      _error = error.message;
+      _error = UserSafeError.message(context, error);
     } finally {
       _setBusy(false);
     }
@@ -522,7 +523,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
       await action();
       _notice = success;
     } on FirebaseSessionException catch (error) {
-      _error = error.message;
+      _error = UserSafeError.message(context, error);
     } finally {
       _setBusy(false);
     }

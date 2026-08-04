@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
+import '../../localization/ux_copy.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
@@ -43,7 +45,9 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
     setState(() {
       _authenticated = _games.authenticated.value;
       _player = _games.localPlayer.value;
-      _error = _games.lastError.value;
+      _error = _games.lastError.value == null
+          ? null
+          : UserSafeError.message(context, _games.lastError.value);
     });
   }
 
@@ -81,9 +85,7 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
         _authenticated = authenticated;
         _player = _games.localPlayer.value;
         if (!authenticated && prompt) {
-          _error =
-              _games.lastError.value ??
-              'authentication_failed: Google Play Games did not authenticate the current account.';
+          _error = UxCopy.accountError(context);
         }
       });
     } on FirebaseSessionException catch (error) {
@@ -92,7 +94,7 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
         _configured = true;
         _authenticated = _games.authenticated.value;
         _player = _games.localPlayer.value;
-        _error = '${error.code ?? 'firebase_play_games'}: ${error.message}';
+        _error = UserSafeError.message(context, error);
       });
     } on PlatformGameServicesException catch (error) {
       if (!mounted) return;
@@ -100,14 +102,14 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
         _configured = error.code == 'not_configured' ? false : _configured;
         _authenticated = false;
         _player = null;
-        _error = '${error.code}: ${error.message}';
+        _error = UserSafeError.message(context, error);
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
         _authenticated = false;
         _player = null;
-        _error = error.toString();
+        _error = UserSafeError.message(context, error);
       });
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -128,7 +130,9 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
         _configured = true;
         _authenticated = authenticated;
         _player = _games.localPlayer.value;
-        _error = _games.lastError.value;
+        _error = _games.lastError.value == null
+            ? null
+            : UserSafeError.message(context, _games.lastError.value);
       });
     }
     return authenticated;
@@ -149,9 +153,11 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
       }
       await _games.refreshAuthentication();
     } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = '${error.code}: ${error.message}');
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -178,14 +184,14 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
       }
     } on FirebaseSessionException catch (error) {
       if (mounted) {
-        setState(
-          () => _error = '${error.code ?? 'firebase_play_games'}: ${error.message}',
-        );
+        setState(() => _error = UserSafeError.message(context, error));
       }
     } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = '${error.code}: ${error.message}');
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -232,7 +238,9 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
                               Expanded(
                                 child: Text(
                                   statusText,
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
                                 ),
                               ),
                               IconButton(
@@ -275,8 +283,8 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
                       color: Theme.of(context).colorScheme.errorContainer,
                       child: ListTile(
                         leading: const Icon(Icons.error_outline),
-                        title: const Text('Play Games error'),
-                        subtitle: SelectableText(_error!),
+                        title: Text(context.tr('online_account_unavailable')),
+                        subtitle: Text(_error!),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -291,9 +299,8 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
                     title: context.tr('global_elo'),
                     onTap: _busy
                         ? null
-                        : () => _openLeaderboard(
-                            PlatformLeaderboardScope.global,
-                          ),
+                        : () =>
+                              _openLeaderboard(PlatformLeaderboardScope.global),
                   ),
                   _LeaderboardTile(
                     icon: Icons.looks_one_outlined,
@@ -309,36 +316,30 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
                     title: context.tr('difficulty_easy'),
                     onTap: _busy
                         ? null
-                        : () => _openLeaderboard(
-                            PlatformLeaderboardScope.easy,
-                          ),
+                        : () => _openLeaderboard(PlatformLeaderboardScope.easy),
                   ),
                   _LeaderboardTile(
                     icon: Icons.looks_3_outlined,
                     title: context.tr('difficulty_medium'),
                     onTap: _busy
                         ? null
-                        : () => _openLeaderboard(
-                            PlatformLeaderboardScope.medium,
-                          ),
+                        : () =>
+                              _openLeaderboard(PlatformLeaderboardScope.medium),
                   ),
                   _LeaderboardTile(
                     icon: Icons.looks_4_outlined,
                     title: context.tr('difficulty_hard'),
                     onTap: _busy
                         ? null
-                        : () => _openLeaderboard(
-                            PlatformLeaderboardScope.hard,
-                          ),
+                        : () => _openLeaderboard(PlatformLeaderboardScope.hard),
                   ),
                   _LeaderboardTile(
                     icon: Icons.workspace_premium_outlined,
                     title: context.tr('difficulty_expert'),
                     onTap: _busy
                         ? null
-                        : () => _openLeaderboard(
-                            PlatformLeaderboardScope.expert,
-                          ),
+                        : () =>
+                              _openLeaderboard(PlatformLeaderboardScope.expert),
                   ),
                   const SizedBox(height: 10),
                   Card(

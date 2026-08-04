@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
@@ -39,9 +40,9 @@ class HintEconomy {
             Text(
               context.tr('hints'),
               textAlign: TextAlign.center,
-              style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                sheetContext,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -101,7 +102,7 @@ class HintEconomy {
       } on EconomyApiException catch (error) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error.message)),
+            SnackBar(content: Text(UserSafeError.message(context, error))),
           );
         }
         return false;

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/player_profile_service.dart';
@@ -116,7 +117,8 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         _opponents = values[4] as List<SocialPlayer>;
       });
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -132,7 +134,8 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       await action();
       await _load();
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busyId = null);
     }
@@ -150,7 +153,8 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       final results = await _social.searchPlayers(query);
       if (mounted) setState(() => _results = results);
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -189,9 +193,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
             Text(
               context.tr('choose_duel_difficulty'),
               textAlign: TextAlign.center,
-              style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                sheetContext,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 10),
             for (final item in SudokuDifficulty.values)
@@ -234,7 +238,8 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       );
       if (mounted) await _load();
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busyId = null);
     }
@@ -243,18 +248,16 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   Future<void> _openChallenge(SocialChallenge challenge) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => UxChallengeInvitationScreen(
-          challengeId: challenge.id,
-        ),
+        builder: (_) => UxChallengeInvitationScreen(challengeId: challenge.id),
       ),
     );
     if (mounted) await _load();
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -523,9 +526,7 @@ class _NotificationActivationCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       error ??
-                          context.tr(
-                            'online_challenge_notifications_subtitle',
-                          ),
+                          context.tr('online_challenge_notifications_subtitle'),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: .64),
                       ),
@@ -548,11 +549,7 @@ class _NotificationActivationCard extends StatelessWidget {
           if (compact) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                message,
-                const SizedBox(height: 10),
-                button,
-              ],
+              children: [message, const SizedBox(height: 10), button],
             );
           }
           return Row(
@@ -594,8 +591,7 @@ class _PlayerCard extends StatelessWidget {
         padding: EdgeInsets.all(metrics.isTiny ? 10 : 12),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final compact =
-                constraints.maxWidth < 430 || metrics.hasLargeText;
+            final compact = constraints.maxWidth < 430 || metrics.hasLargeText;
             final identity = Row(
               children: [
                 PlayerAvatar(
@@ -663,10 +659,7 @@ class _PlayerCard extends StatelessWidget {
               children: [
                 Expanded(child: identity),
                 const SizedBox(width: 12),
-                AdaptiveActionGroup(
-                  stretchOnCompact: false,
-                  children: actions,
-                ),
+                AdaptiveActionGroup(stretchOnCompact: false, children: actions),
               ],
             );
           },

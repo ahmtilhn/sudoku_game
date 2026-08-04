@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
@@ -67,7 +68,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     _controller = null;
 
     try {
-      final transport = await WebSocketOnlineDuelTransport.connect(widget.roomId);
+      final transport = await WebSocketOnlineDuelTransport.connect(
+        widget.roomId,
+      );
       final controller = OnlineDuelController(transport)..start();
       final snapshotSubscription = controller.snapshots.listen((snapshot) {
         if (!mounted) return;
@@ -83,7 +86,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           unawaited(_openMatch(controller));
         }
       });
-      final connectionSubscription = controller.connectionStates.listen((state) {
+      final connectionSubscription = controller.connectionStates.listen((
+        state,
+      ) {
         if (!mounted) return;
         setState(() => _connectionState = state);
       });
@@ -105,7 +110,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = error;
+        _error = UserSafeError.message(context, error);
         _connectionState = OnlineDuelConnectionState.failed;
       });
       _scheduleReconnect();
@@ -183,10 +188,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     if (!mounted) return;
     await Navigator.of(context).pushReplacement<String?, void>(
       MaterialPageRoute(
-        builder: (_) => OnlineDuelScreen(
-          roomId: widget.roomId,
-          controller: controller,
-        ),
+        builder: (_) =>
+            OnlineDuelScreen(roomId: widget.roomId, controller: controller),
       ),
     );
   }
@@ -223,163 +226,167 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         if (!didPop) unawaited(_cancelAndLeave());
       },
       child: Scaffold(
-      backgroundColor: const Color(0xFF0B1215),
-      body: AppBackdrop(
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 680),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                child: LayoutBuilder(
-                  builder: (context, viewport) {
-                    final textScale = MediaQuery.textScalerOf(context).scale(1);
-                    final compact = viewport.maxHeight < 680 || textScale > 1.3;
-                    return Column(
-                      children: [
-                        Row(
-                          children: [
-                            IconButton.filledTonal(
-                              tooltip: context.tr('cancel_search'),
-                              onPressed: _leaving ? null : _cancelAndLeave,
-                              icon: const Icon(Icons.arrow_back_rounded),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _readyStage
-                                    ? context.tr('ready_question')
-                                    : context.tr('finding_opponent_title'),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: compact ? 19 : 22,
-                                  fontWeight: FontWeight.w900,
+        backgroundColor: const Color(0xFF0B1215),
+        body: AppBackdrop(
+          child: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                  child: LayoutBuilder(
+                    builder: (context, viewport) {
+                      final textScale = MediaQuery.textScalerOf(
+                        context,
+                      ).scale(1);
+                      final compact =
+                          viewport.maxHeight < 680 || textScale > 1.3;
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              IconButton.filledTonal(
+                                tooltip: context.tr('cancel_search'),
+                                onPressed: _leaving ? null : _cancelAndLeave,
+                                icon: const Icon(Icons.arrow_back_rounded),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _readyStage
+                                      ? context.tr('ready_question')
+                                      : context.tr('finding_opponent_title'),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: compact ? 19 : 22,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: compact ? 10 : 16),
-                        _ConnectionBanner(
-                          state: _connectionState,
-                          error: _error,
-                          onRetry: _connecting ? null : _connect,
-                        ),
-                        SizedBox(height: compact ? 10 : 18),
-                        Expanded(
-                          child: SingleChildScrollView(
-                            keyboardDismissBehavior:
-                                ScrollViewKeyboardDismissBehavior.onDrag,
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final vertical =
-                                    constraints.maxWidth < 520 || textScale > 1.3;
-                                final youCard = _PlayerCard(
-                                  player: _you,
-                                  fallbackName: context.tr('you'),
-                                  ready: _youReady,
-                                  accent: const Color(0xFF29D398),
-                                  compact: compact,
-                                );
-                                final opponentCard = _PlayerCard(
-                                  player: _opponent,
-                                  fallbackName: context.tr('opponent'),
-                                  ready: _opponentReady,
-                                  accent: const Color(0xFF7A5CFF),
-                                  compact: compact,
-                                );
-                                return Column(
-                                  children: [
-                                    if (vertical) ...[
-                                      youCard,
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: compact ? 6 : 10,
-                                        ),
-                                        child: const Icon(
-                                          Icons.flash_on_rounded,
-                                          color: Color(0xFFFFC94D),
-                                          size: 34,
-                                        ),
-                                      ),
-                                      opponentCard,
-                                    ] else
-                                      Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          Expanded(child: youCard),
-                                          const Padding(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                            ),
-                                            child: Icon(
-                                              Icons.flash_on_rounded,
-                                              color: Color(0xFFFFC94D),
-                                              size: 34,
-                                            ),
+                            ],
+                          ),
+                          SizedBox(height: compact ? 10 : 16),
+                          _ConnectionBanner(
+                            state: _connectionState,
+                            error: _error,
+                            onRetry: _connecting ? null : _connect,
+                          ),
+                          SizedBox(height: compact ? 10 : 18),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              keyboardDismissBehavior:
+                                  ScrollViewKeyboardDismissBehavior.onDrag,
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final vertical =
+                                      constraints.maxWidth < 520 ||
+                                      textScale > 1.3;
+                                  final youCard = _PlayerCard(
+                                    player: _you,
+                                    fallbackName: context.tr('you'),
+                                    ready: _youReady,
+                                    accent: const Color(0xFF29D398),
+                                    compact: compact,
+                                  );
+                                  final opponentCard = _PlayerCard(
+                                    player: _opponent,
+                                    fallbackName: context.tr('opponent'),
+                                    ready: _opponentReady,
+                                    accent: const Color(0xFF7A5CFF),
+                                    compact: compact,
+                                  );
+                                  return Column(
+                                    children: [
+                                      if (vertical) ...[
+                                        youCard,
+                                        Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            vertical: compact ? 6 : 10,
                                           ),
-                                          Expanded(child: opponentCard),
-                                        ],
-                                      ),
-                                    SizedBox(height: compact ? 10 : 16),
-                                    Text(
-                                      _statusText(context),
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Colors.white.withValues(
-                                          alpha: .74,
+                                          child: const Icon(
+                                            Icons.flash_on_rounded,
+                                            color: Color(0xFFFFC94D),
+                                            size: 34,
+                                          ),
                                         ),
-                                        fontWeight: FontWeight.w700,
+                                        opponentCard,
+                                      ] else
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
+                                            Expanded(child: youCard),
+                                            const Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                              ),
+                                              child: Icon(
+                                                Icons.flash_on_rounded,
+                                                color: Color(0xFFFFC94D),
+                                                size: 34,
+                                              ),
+                                            ),
+                                            Expanded(child: opponentCard),
+                                          ],
+                                        ),
+                                      SizedBox(height: compact ? 10 : 16),
+                                      Text(
+                                        _statusText(context),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(
+                                            alpha: .74,
+                                          ),
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                  ],
-                                );
-                              },
+                                      const SizedBox(height: 8),
+                                    ],
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed:
-                                _leaving ||
-                                    !_readyStage ||
-                                    _youReady ||
-                                    _controller == null ||
-                                    _connectionState ==
-                                        OnlineDuelConnectionState.failed
-                                ? null
-                                : _ready,
-                            icon: Icon(
-                              _youReady
-                                  ? Icons.check_circle_rounded
-                                  : Icons.shield_outlined,
-                            ),
-                            label: Text(
-                              _youReady
-                                  ? context.tr('ready')
-                                  : context.tr('i_am_ready'),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed:
+                                  _leaving ||
+                                      !_readyStage ||
+                                      _youReady ||
+                                      _controller == null ||
+                                      _connectionState ==
+                                          OnlineDuelConnectionState.failed
+                                  ? null
+                                  : _ready,
+                              icon: Icon(
+                                _youReady
+                                    ? Icons.check_circle_rounded
+                                    : Icons.shield_outlined,
+                              ),
+                              label: Text(
+                                _youReady
+                                    ? context.tr('ready')
+                                    : context.tr('i_am_ready'),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    );
-                  },
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   String _statusText(BuildContext context) {
@@ -458,10 +465,10 @@ class _ConnectionBanner extends StatelessWidget {
     return switch (state) {
       OnlineDuelConnectionState.connected => context.tr('connected'),
       OnlineDuelConnectionState.reconnecting => context.tr('reconnecting'),
-      OnlineDuelConnectionState.resyncing =>
-        context.tr('connection_interrupted_retrying'),
-      OnlineDuelConnectionState.failed ||
-      OnlineDuelConnectionState.closed =>
+      OnlineDuelConnectionState.resyncing => context.tr(
+        'connection_interrupted_retrying',
+      ),
+      OnlineDuelConnectionState.failed || OnlineDuelConnectionState.closed =>
         context.tr('online_account_unavailable'),
       OnlineDuelConnectionState.connecting => context.tr('connecting_players'),
     };
@@ -502,10 +509,9 @@ class _PlayerCard extends StatelessWidget {
               displayName: name,
               avatarKey: player?.avatarKey ?? 'prematch-$name',
               radius: compact ? 30 : 40,
-              semanticLabel: context.tr(
-                'player_avatar_semantics',
-                <Object>[name],
-              ),
+              semanticLabel: context.tr('player_avatar_semantics', <Object>[
+                name,
+              ]),
             ),
             SizedBox(height: compact ? 8 : 12),
             Text(

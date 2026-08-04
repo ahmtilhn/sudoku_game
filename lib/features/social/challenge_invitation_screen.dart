@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
@@ -21,8 +22,7 @@ class ChallengeInvitationScreen extends StatefulWidget {
       _ChallengeInvitationScreenState();
 }
 
-class _ChallengeInvitationScreenState
-    extends State<ChallengeInvitationScreen> {
+class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
   final SocialApiClient _social = SocialApiClient.instance;
   final EconomyService _economy = EconomyService.instance;
 
@@ -98,7 +98,8 @@ class _ChallengeInvitationScreenState
         setState(() {});
       });
     } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -142,7 +143,8 @@ class _ChallengeInvitationScreenState
         MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)),
       );
     } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('matchmaking_start_failed'));
@@ -548,16 +550,10 @@ class _EconomyBar extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: _CoinStat(
-              label: context.tr('entry_fee'),
-              value: entryFee,
-            ),
+            child: _CoinStat(label: context.tr('entry_fee'), value: entryFee),
           ),
           Expanded(
-            child: _CoinStat(
-              label: context.tr('winner_pot'),
-              value: winnerPot,
-            ),
+            child: _CoinStat(label: context.tr('winner_pot'), value: winnerPot),
           ),
         ],
       ),

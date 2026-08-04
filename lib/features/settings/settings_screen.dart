@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
@@ -87,14 +88,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 10),
                       Card(
                         child: ListTile(
-                          leading: const Icon(Icons.admin_panel_settings_outlined),
+                          leading: const Icon(
+                            Icons.admin_panel_settings_outlined,
+                          ),
                           title: const Text('Account & data'),
                           subtitle: const Text(
                             'Protect or recover the player account, sign out, and permanently delete the account and server data.',
                           ),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () =>
-                              _open(const AccountProtectionScreen()),
+                          onTap: () => _open(const AccountProtectionScreen()),
                         ),
                       ),
                       const SizedBox(height: 22),
@@ -313,10 +315,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _profile = profile);
     } on PlayerProfileException catch (error) {
       if (!mounted) return;
-      setState(() => _profileError = error.message);
+      setState(() => _profileError = UserSafeError.message(context, error));
     } catch (error) {
       if (!mounted) return;
-      setState(() => _profileError = error.toString());
+      setState(() => _profileError = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _loadingProfile = false);
     }
@@ -439,10 +441,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) setState(() => _profile = updated);
     } on PlayerProfileException catch (error) {
       if (!mounted) return;
-      setState(() => _profileError = error.message);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      setState(() => _profileError = UserSafeError.message(context, error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(UserSafeError.message(context, error))),
+      );
     } finally {
       if (mounted) setState(() => _loadingProfile = false);
     }

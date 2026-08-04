@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
@@ -13,10 +14,7 @@ import '../duel/pre_match_ready_screen.dart';
 import '../economy/coin_store_screen.dart';
 
 class UxChallengeInvitationScreen extends StatefulWidget {
-  const UxChallengeInvitationScreen({
-    super.key,
-    required this.challengeId,
-  });
+  const UxChallengeInvitationScreen({super.key, required this.challengeId});
 
   final String challengeId;
 
@@ -65,9 +63,8 @@ class _UxChallengeInvitationScreenState
         .clamp(0, 24 * 60 * 60);
   }
 
-  int get _entryFee => _economy.entryFeeForDifficulty(
-        _challenge?.difficulty ?? 'beginner',
-      );
+  int get _entryFee =>
+      _economy.entryFeeForDifficulty(_challenge?.difficulty ?? 'beginner');
 
   bool get _expired =>
       _challenge == null ||
@@ -105,7 +102,8 @@ class _UxChallengeInvitationScreenState
         if (_statusTicks.isEven) unawaited(_refreshStatus());
       });
     } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -181,7 +179,8 @@ class _UxChallengeInvitationScreenState
       await _openRoom(roomId);
     } on SocialApiException catch (error) {
       if (accept && await _recoverAcceptedChallenge()) return;
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (_) {
       if (accept && await _recoverAcceptedChallenge()) return;
       if (mounted) {
@@ -237,16 +236,14 @@ class _UxChallengeInvitationScreenState
     await _economy.refresh(showLoading: false);
     if (!mounted) return;
     await Navigator.of(context).pushReplacement<void, void>(
-      MaterialPageRoute(
-        builder: (_) => PreMatchReadyScreen(roomId: roomId),
-      ),
+      MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
     );
   }
 
   Future<void> _openStore() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const CoinStoreScreen()));
     await _economy.refresh(showLoading: false);
     if (mounted) setState(() {});
   }
@@ -269,12 +266,11 @@ class _UxChallengeInvitationScreenState
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _challenge == null
-                      ? _Unavailable(
-                          message:
-                              _error ?? context.tr('challenge_timed_out'),
-                          onRetry: _load,
-                        )
-                      : _content(_challenge!),
+                  ? _Unavailable(
+                      message: _error ?? context.tr('challenge_timed_out'),
+                      onRetry: _load,
+                    )
+                  : _content(_challenge!),
             ),
           ),
         ),
@@ -349,9 +345,7 @@ class _UxChallengeInvitationScreenState
                     challenge.challenger.displayName,
                   ]),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .76),
-                  ),
+                  style: TextStyle(color: Colors.white.withValues(alpha: .76)),
                 ),
                 const SizedBox(height: 18),
                 Wrap(
@@ -374,10 +368,7 @@ class _UxChallengeInvitationScreenState
                   ],
                 ),
                 const SizedBox(height: 14),
-                _EconomySummary(
-                  balance: _economy.balance,
-                  entryFee: _entryFee,
-                ),
+                _EconomySummary(balance: _economy.balance, entryFee: _entryFee),
                 if (!_canAccept && !_expired) ...[
                   const SizedBox(height: 12),
                   Card(
@@ -411,8 +402,9 @@ class _UxChallengeInvitationScreenState
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed:
-                        _busy || !_canAccept ? null : () => _respond(true),
+                    onPressed: _busy || !_canAccept
+                        ? null
+                        : () => _respond(true),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(54),
                       backgroundColor: accent,
@@ -428,8 +420,7 @@ class _UxChallengeInvitationScreenState
                   ),
                 ),
                 TextButton(
-                  onPressed:
-                      _busy || _expired ? null : () => _respond(false),
+                  onPressed: _busy || _expired ? null : () => _respond(false),
                   child: Text(context.tr('decline')),
                 ),
               ],
@@ -519,10 +510,7 @@ class _Metric extends StatelessWidget {
 }
 
 class _EconomySummary extends StatelessWidget {
-  const _EconomySummary({
-    required this.balance,
-    required this.entryFee,
-  });
+  const _EconomySummary({required this.balance, required this.entryFee});
 
   final int balance;
   final int entryFee;

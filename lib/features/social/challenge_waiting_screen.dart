@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/push_notification_service.dart';
@@ -31,16 +32,12 @@ ChallengeWaitingEndReason inferMissingChallengeEndReason({
 }
 
 class ChallengeWaitingScreen extends StatefulWidget {
-  const ChallengeWaitingScreen({
-    super.key,
-    required this.challenge,
-  });
+  const ChallengeWaitingScreen({super.key, required this.challenge});
 
   final SocialChallenge challenge;
 
   @override
-  State<ChallengeWaitingScreen> createState() =>
-      _ChallengeWaitingScreenState();
+  State<ChallengeWaitingScreen> createState() => _ChallengeWaitingScreenState();
 }
 
 class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
@@ -158,7 +155,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       if (error.statusCode == 404) {
         await _checkLegacyStatusFallback();
       } else if (mounted) {
-        setState(() => _error = error.message);
+        setState(() => _error = UserSafeError.message(context, error));
       }
     } catch (_) {
       if (mounted) {
@@ -234,7 +231,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       } else {
         setState(() {
           _cancelling = false;
-          _error = error.message;
+          _error = UserSafeError.message(context, error);
         });
       }
     } catch (_) {
@@ -264,9 +261,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     _pollTimer?.cancel();
     _clockTimer?.cancel();
     await Navigator.of(context).pushReplacement<void, void>(
-      MaterialPageRoute(
-        builder: (_) => PreMatchReadyScreen(roomId: roomId),
-      ),
+      MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
     );
   }
 
@@ -284,8 +279,9 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       ChallengeWaitingEndReason.declined ||
       ChallengeWaitingEndReason.expired ||
       ChallengeWaitingEndReason.cancelled => context.tr('try_again'),
-      ChallengeWaitingEndReason.none =>
-        context.tr('searching_similar_opponents'),
+      ChallengeWaitingEndReason.none => context.tr(
+        'searching_similar_opponents',
+      ),
     };
   }
 
@@ -323,18 +319,13 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                       color: const Color(0xFF101B20).withValues(alpha: .96),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
-                        side: BorderSide(
-                          color: accent.withValues(alpha: .48),
-                        ),
+                        side: BorderSide(color: accent.withValues(alpha: .48)),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
                         child: Column(
                           children: [
-                            _StatusOrb(
-                              accent: accent,
-                              endReason: _endReason,
-                            ),
+                            _StatusOrb(accent: accent, endReason: _endReason),
                             const SizedBox(height: 18),
                             Text(
                               _title(context),
@@ -356,8 +347,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                             const SizedBox(height: 22),
                             PlayerAvatar(
                               displayName: recipient.displayName,
-                              avatarKey:
-                                  'challenge-wait-${recipient.publicId}',
+                              avatarKey: 'challenge-wait-${recipient.publicId}',
                               radius: 45,
                             ),
                             const SizedBox(height: 10),
@@ -415,18 +405,18 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .errorContainer,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.errorContainer,
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(
                                   _error!,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onErrorContainer,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onErrorContainer,
                                   ),
                                 ),
                               ),
@@ -510,10 +500,7 @@ class _StatusOrb extends StatelessWidget {
             )
           : SizedBox.square(
               dimension: 48,
-              child: CircularProgressIndicator(
-                strokeWidth: 4,
-                color: accent,
-              ),
+              child: CircularProgressIndicator(strokeWidth: 4, color: accent),
             ),
     );
   }

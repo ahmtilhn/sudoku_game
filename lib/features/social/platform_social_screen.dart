@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../localization/ux_copy.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
@@ -95,7 +97,8 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         _platformFriends = friends;
       });
     } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     }
   }
 
@@ -122,7 +125,8 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         _pendingChallenges = pendingChallenges;
       });
     } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -159,7 +163,8 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       await _refreshPlatform();
       await _refreshSocial(showLoading: false);
     } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -187,7 +192,8 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       final results = await _social.searchPlayers(query);
       if (mounted) setState(() => _searchResults = results);
     } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -304,11 +310,10 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
 
   Widget _buildBackendStatus() {
     if (!_backendReady) {
-      return const _MessageCard(
+      return _MessageCard(
         icon: Icons.cloud_off_outlined,
-        title: 'Cross-platform social setup required',
-        body:
-            'Deploy the included Cloudflare worker and supply Firebase plus SOCIAL_BACKEND_URL build values to activate username search, friends, challenges, and push notifications.',
+        title: context.tr('online_account_unavailable'),
+        body: UxCopy.accountError(context),
       );
     }
     return const _MessageCard(
@@ -321,11 +326,10 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
 
   Widget _buildPlatformStatus() {
     if (!_platformConfigured) {
-      return const _MessageCard(
+      return _MessageCard(
         icon: Icons.sports_esports_outlined,
-        title: 'Platform game setup required',
-        body:
-            'Replace the Play Games or Game Center console placeholders to enable platform friends, profiles, leaderboards, and achievements.',
+        title: context.tr('online_account_unavailable'),
+        body: UxCopy.platformNotConnected(context),
       );
     }
     if (!_platformAuthenticated) {
@@ -450,7 +454,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
     try {
       await _platform.showPlayerProfile(player.playerId);
     } on PlatformGameServicesException catch (error) {
-      _showMessage(error.message);
+      _showMessage(UserSafeError.message(context, error));
     }
   }
 
@@ -460,7 +464,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       _showMessage('Friend request sent to ${player.displayName}.');
       await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
-      _showMessage(error.message);
+      _showMessage(UserSafeError.message(context, error));
     }
   }
 
@@ -491,7 +495,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       _showMessage('Challenge sent to ${player.displayName}.');
       await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
-      _showMessage(error.message);
+      _showMessage(UserSafeError.message(context, error));
     }
   }
 
@@ -513,7 +517,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       }
       await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
-      _showMessage(error.message);
+      _showMessage(UserSafeError.message(context, error));
     }
   }
 
@@ -638,9 +642,9 @@ class _PlatformActions extends StatelessWidget {
       await action();
     } on PlatformGameServicesException catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(UserSafeError.message(context, error))),
+      );
     }
   }
 }

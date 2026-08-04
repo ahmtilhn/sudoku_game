@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/local_progress_store.dart';
+import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
@@ -119,9 +120,9 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
         }
       } on EconomyApiException catch (error) {
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.message)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(UserSafeError.message(context, error))),
+        );
       }
     } catch (_) {
       if (mounted) {

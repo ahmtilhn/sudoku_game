@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../core/app_theme.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
@@ -139,7 +140,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = error;
+        _error = UserSafeError.message(context, error);
         _loading = false;
       });
     }
@@ -289,7 +290,9 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       if (action.startsWith('rematch:')) {
         final roomId = action.substring('rematch:'.length);
         await Navigator.of(context).pushReplacement<void, void>(
-          MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
+          MaterialPageRoute(
+            builder: (_) => PreMatchReadyScreen(roomId: roomId),
+          ),
         );
       } else if (action == 'new_match') {
         await Navigator.of(context).pushReplacement<void, void>(
@@ -590,7 +593,11 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
         ? 0
         : invite.expiresAt.difference(DateTime.now()).inSeconds.clamp(0, 10);
     final draw = snapshot.winnerSeat == null;
-    final localNetCoin = draw ? 0 : won ? entryFee : -entryFee;
+    final localNetCoin = draw
+        ? 0
+        : won
+        ? entryFee
+        : -entryFee;
     final opponentNetCoin = -localNetCoin;
     String coinLabel(int value) =>
         '${value > 0 ? '+' : ''}${context.tr('coin_amount', <Object>[value])}';
@@ -737,7 +744,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       });
     } on EconomyApiException catch (error) {
       if (!mounted) return;
-      setState(() => _statusMessage = error.message);
+      setState(() => _statusMessage = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -762,7 +769,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       }
     } on EconomyApiException catch (error) {
       if (!mounted) return;
-      setState(() => _statusMessage = error.message);
+      setState(() => _statusMessage = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -814,7 +821,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       setState(() => _statusMessage = context.tr('friend_request_sent'));
     } on SocialApiException catch (error) {
       if (!mounted) return;
-      setState(() => _statusMessage = error.message);
+      setState(() => _statusMessage = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

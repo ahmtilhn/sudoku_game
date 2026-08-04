@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
@@ -14,8 +15,7 @@ class PlatformServicesScreen extends StatefulWidget {
   const PlatformServicesScreen({super.key});
 
   @override
-  State<PlatformServicesScreen> createState() =>
-      _PlatformServicesScreenState();
+  State<PlatformServicesScreen> createState() => _PlatformServicesScreenState();
 }
 
 class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
@@ -61,9 +61,11 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
         _player = player;
       });
     } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -101,9 +103,11 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
       }
       await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
     } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -130,9 +134,11 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
         );
       }
     } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted)
+        setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -223,7 +229,8 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final twoColumns =
-                          constraints.maxWidth >= 560 && !metrics.hasVeryLargeText;
+                          constraints.maxWidth >= 560 &&
+                          !metrics.hasVeryLargeText;
                       final width = twoColumns
                           ? (constraints.maxWidth - 12) / 2
                           : constraints.maxWidth;
@@ -270,9 +277,8 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                                 item: item,
                                 enabled: !_busy && _configured,
                                 onTap: () => _run(
-                                  () => PlatformLeaderboardService.instance.show(
-                                    item.scope,
-                                  ),
+                                  () => PlatformLeaderboardService.instance
+                                      .show(item.scope),
                                 ),
                               ),
                             ),
@@ -411,20 +417,14 @@ class _PlatformHero extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 identity,
-                if (!connected) ...[
-                  const SizedBox(height: 14),
-                  connectButton,
-                ],
+                if (!connected) ...[const SizedBox(height: 14), connectButton],
               ],
             );
           }
           return Row(
             children: [
               Expanded(child: identity),
-              if (!connected) ...[
-                const SizedBox(width: 12),
-                connectButton,
-              ],
+              if (!connected) ...[const SizedBox(width: 12), connectButton],
             ],
           );
         },
@@ -597,11 +597,7 @@ class _DifficultyLeaderboardCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 alignment: Alignment.center,
-                child: DuelAssetIcon(
-                  item.asset,
-                  size: 31,
-                  color: item.accent,
-                ),
+                child: DuelAssetIcon(item.asset, size: 31, color: item.accent),
               ),
               const SizedBox(width: 12),
               Expanded(
