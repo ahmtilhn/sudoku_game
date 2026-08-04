@@ -18,6 +18,7 @@ import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/sudoku_board.dart';
+import '../../widgets/ux_feedback.dart';
 import '../economy/coin_store_screen.dart';
 import 'matchmaking_screen.dart';
 import 'pre_match_ready_screen.dart';
@@ -878,173 +879,65 @@ class _ResultShowcaseCard extends StatelessWidget {
     final accent = draw
         ? const Color(0xFF8DA2BE)
         : won
-        ? const Color(0xFF1E9B63)
-        : const Color(0xFFC15B55);
-    final banner = draw
-        ? const Color(0xFF4D627E)
+        ? const Color(0xFF29D398)
+        : Theme.of(context).colorScheme.error;
+    final icon = draw
+        ? Icons.handshake_outlined
         : won
-        ? const Color(0xFF128151)
-        : const Color(0xFF9E403B);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF172235),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent.withValues(alpha: .42)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .24),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Stack(
+        ? Icons.emoji_events_rounded
+        : Icons.flag_rounded;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Positioned.fill(
-              child: CustomPaint(painter: _ResultSurfacePainter(accent)),
+            UxOutcomeHeader(
+              icon: icon,
+              title: title,
+              subtitle: subtitle,
+              accent: accent,
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _ResultCrown(accent: accent),
-                  const SizedBox(height: 4),
-                  _ResultBanner(title: title, color: banner),
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .86),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  _ResultPlayersRow(
-                    localPlayer: localPlayer,
-                    opponent: opponent,
-                    localScore: localScore,
-                    opponentScore: opponentScore,
-                    localRating: localRating,
-                    opponentRating: opponentRating,
-                    accent: accent,
-                  ),
-                  const SizedBox(height: 12),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: .06),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: .08),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      child: Column(
-                        children: [
-                          for (final row in rows) _ResultCompareRow(row: row),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (rating != null) ...[
-                    const SizedBox(height: 12),
-                    _ResultEloBar(rating: rating!, color: accent),
+            const SizedBox(height: 18),
+            _ResultPlayersRow(
+              localPlayer: localPlayer,
+              opponent: opponent,
+              localScore: localScore,
+              opponentScore: opponentScore,
+              localRating: localRating,
+              opponentRating: opponentRating,
+              accent: accent,
+            ),
+            const SizedBox(height: 12),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                child: Column(
+                  children: [
+                    for (final row in rows) _ResultCompareRow(row: row),
                   ],
-                  footer,
-                ],
+                ),
               ),
             ),
+            if (rating != null) ...[
+              const SizedBox(height: 12),
+              _ResultEloBar(rating: rating!, color: accent),
+            ],
+            const SizedBox(height: 4),
+            footer,
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultSurfacePainter extends CustomPainter {
-  const _ResultSurfacePainter(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(0, -1),
-        radius: .9,
-        colors: [color.withValues(alpha: .08), Colors.transparent],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, paint);
-
-    final line = Paint()
-      ..color = Colors.white.withValues(alpha: .05)
-      ..strokeWidth = 1;
-    for (var i = 0; i < 4; i++) {
-      final y = size.height * (.18 + i * .16);
-      canvas.drawLine(Offset(12, y), Offset(size.width - 12, y), line);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ResultSurfacePainter oldDelegate) {
-    return oldDelegate.color != color;
-  }
-}
-
-class _ResultCrown extends StatelessWidget {
-  const _ResultCrown({required this.accent});
-
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return DuelAssetIcon(
-      DuelAsset.shield,
-      color: const Color(0xFFFFC94D),
-      size: 52,
-    );
-  }
-}
-
-class _ResultBanner extends StatelessWidget {
-  const _ResultBanner({required this.title, required this.color});
-
-  final String title;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .22),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 7),
-        child: Text(
-          title.toUpperCase(),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Color(0xFFFFEAA6),
-            fontSize: 25,
-            fontWeight: FontWeight.w900,
-          ),
         ),
       ),
     );
