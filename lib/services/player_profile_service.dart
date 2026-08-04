@@ -96,11 +96,12 @@ class PlayerProfileService {
   Future<PlayerProfilePreferences> load() async {
     final player = await _loadPlatformPlayer();
     final platformName = player?.displayName.trim();
+    final platformSource = player?.platform ?? 'google_play_games';
 
     PlayerProfilePreferences preferences;
     try {
       preferences = await _loadRemotePreferences();
-    } catch (firstError) {
+    } catch (firstError, firstStackTrace) {
       if (platformName != null &&
           platformName.isNotEmpty &&
           SocialApiClient.instance.configured) {
@@ -114,7 +115,7 @@ class PlayerProfileService {
             displayName: platformName,
             profileConfirmed: false,
             discoverable: true,
-            nameSource: player!.platform,
+            nameSource: platformSource,
             rating: 1000,
             gamesPlayed: 0,
             wins: 0,
@@ -123,7 +124,7 @@ class PlayerProfileService {
           return fallback;
         }
       } else {
-        Error.throwWithStackTrace(firstError, StackTrace.current);
+        Error.throwWithStackTrace(firstError, firstStackTrace);
       }
     }
 
@@ -141,24 +142,24 @@ class PlayerProfileService {
 
     if (preferences.username.trim().isNotEmpty &&
         (preferences.displayName != platformName ||
-            preferences.nameSource != player!.platform)) {
+            preferences.nameSource != platformSource)) {
       try {
         preferences = await update(
           username: preferences.username,
           displayName: platformName,
           discoverable: preferences.discoverable,
-          nameSource: player.platform,
+          nameSource: platformSource,
         );
       } catch (_) {
         preferences = preferences.copyWith(
           displayName: platformName,
-          nameSource: player.platform,
+          nameSource: platformSource,
         );
       }
     } else {
       preferences = preferences.copyWith(
         displayName: platformName,
-        nameSource: player!.platform,
+        nameSource: platformSource,
       );
     }
 
