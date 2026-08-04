@@ -162,6 +162,62 @@ class UxMetricTile extends StatelessWidget {
   }
 }
 
+class UxOutcomeHeader extends StatelessWidget {
+  const UxOutcomeHeader({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.accent,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color? accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = accent ?? scheme.primary;
+    return Semantics(
+      liveRegion: true,
+      header: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: .16),
+                border: Border.all(color: color.withValues(alpha: .45)),
+              ),
+              child: Icon(icon, size: 42, color: color),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class UxOutcomeSheet extends StatelessWidget {
   const UxOutcomeSheet({
     super.key,
@@ -196,8 +252,6 @@ class UxOutcomeSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = accent ?? scheme.primary;
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
@@ -206,31 +260,11 @@ class UxOutcomeSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color.withValues(alpha: .16),
-                  border: Border.all(color: color.withValues(alpha: .45)),
-                ),
-                child: Icon(icon, size: 42, color: color),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.onSurfaceVariant),
+            UxOutcomeHeader(
+              icon: icon,
+              title: title,
+              subtitle: subtitle,
+              accent: accent,
             ),
             if (metrics.isNotEmpty) ...[
               const SizedBox(height: 18),
