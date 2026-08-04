@@ -18,16 +18,19 @@ void main() {
       expect(diagnostics.conciseSummary, contains('com.devoviastudio.sudoku'));
     });
 
-    test('reports a certificate mismatch without treating it as configured', () {
-      final diagnostics = PlayGamesDiagnostics.fromMap(<Object?, Object?>{
-        'certificateSha1':
-            'D4:EA:36:D4:6C:F9:58:07:45:6B:A3:6D:28:1D:6A:DC:6D:2C:E9:48',
-        'installer': 'com.android.vending',
-      });
+    test(
+      'reports a certificate mismatch without treating it as configured',
+      () {
+        final diagnostics = PlayGamesDiagnostics.fromMap(<Object?, Object?>{
+          'certificateSha1':
+              'D4:EA:36:D4:6C:F9:58:07:45:6B:A3:6D:28:1D:6A:DC:6D:2C:E9:48',
+          'installer': 'com.android.vending',
+        });
 
-      expect(diagnostics.installedFromGooglePlay, isTrue);
-      expect(diagnostics.certificateMatchesPlayAppSigning, isFalse);
-    });
+        expect(diagnostics.installedFromGooglePlay, isTrue);
+        expect(diagnostics.certificateMatchesPlayAppSigning, isFalse);
+      },
+    );
   });
 
   test('platform exceptions retain native diagnostic details', () {
