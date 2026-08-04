@@ -6,13 +6,16 @@ on:
     paths:
       - '.github/workflows/generate-ux-audit-main.yml'
       - 'tool/generate_ux_audit.py'
+      - 'lib/features/**'
+      - 'lib/widgets/**'
+      - 'lib/core/user_safe_error.dart'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: generate-ux-audit-main
+  group: generate-ux-audit-main-v2
   cancel-in-progress: false
 
 jobs:
