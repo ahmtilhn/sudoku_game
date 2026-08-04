@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_runtime_config.dart';
+import 'play_games_firebase_auth_service.dart';
 
 class FirebaseSessionException implements Exception {
   const FirebaseSessionException(this.message, {this.code});
@@ -30,13 +31,23 @@ class FirebaseSessionService {
     return user != null && !user.isAnonymous;
   }
 
-  static Future<User> ensureAnonymousSession() async {
+  /// Returns the current permanent player, restores the Play Games-linked
+  /// Firebase account when possible, and creates a guest only as a fallback.
+  static Future<User> ensureAnonymousSession({
+    bool restorePlayGames = true,
+  }) async {
     final configured = await FirebaseRuntimeConfig.initializeIfConfigured();
     if (!configured) {
       throw const FirebaseSessionException(
         'Firebase is not configured for this device.',
         code: 'firebase_not_configured',
       );
+    }
+
+    if (restorePlayGames) {
+      final restored =
+          await PlayGamesFirebaseAuthService.instance.restoreSilently();
+      if (restored != null) return restored;
     }
 
     final existing = _auth.currentUser;
@@ -61,6 +72,14 @@ class FirebaseSessionService {
       );
     } on FirebaseAuthException catch (error) {
       throw _mapAuthError(error);
+    }
+  }
+
+  static Future<User> connectPlayGamesAccount() async {
+    try {
+      return await PlayGamesFirebaseAuthService.instance.connect();
+    } on PlayGamesFirebaseAuthException catch (error) {
+      throw FirebaseSessionException(error.message, code: error.code);
     }
   }
 
@@ -199,7 +218,7 @@ class FirebaseSessionService {
   static Future<User> signOutToGuest() async {
     try {
       await _auth.signOut();
-      return ensureAnonymousSession();
+      return ensureAnonymousSession(restorePlayGames: false);
     } on FirebaseAuthException catch (error) {
       throw _mapAuthError(error);
     }
@@ -246,7 +265,7 @@ class FirebaseSessionService {
       'network-request-failed' =>
         'The account service could not be reached. Check your connection.',
       'operation-not-allowed' =>
-        'Email account protection is not enabled for this app yet.',
+        'This account sign-in method is not enabled for the app yet.',
       'requires-recent-login' => 'Sign in again before changing this account.',
       _ => error.message ?? 'The player account request failed.',
     };
