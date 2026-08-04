@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: finish-localized-account-main-v3
+  group: finish-localized-account-main-v4
   cancel-in-progress: false
 
 jobs:
@@ -104,9 +104,23 @@ jobs:
       - run: python3 tool/verify_user_facing_messages.py
       - run: python3 tool/verify_ux_contracts.py
       - run: flutter analyze --fatal-infos
+
       - name: Test
         shell: bash
-        run: timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
+        run: |
+          set -o pipefail
+          timeout --signal=TERM 10m \
+            flutter test --reporter expanded --concurrency=1 2>&1 \
+            | tee account-localization-test.log
+
+      - name: Upload account localization test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: account-localization-test-log
+          path: account-localization-test.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Commit directly to main
         shell: bash
