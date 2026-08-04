@@ -86,7 +86,7 @@ int _countSolutions(SudokuPuzzle puzzle, {required int limit}) {
       final box = boxIndex(row, column);
       final mask =
           fullMask & ~(rowMasks[row] | columnMasks[column] | boxMasks[box]);
-      final count = mask.bitCount;
+      final count = _bitCount(mask);
       if (count == 0) return;
       if (count < bestCount) {
         bestIndex = index;
@@ -123,4 +123,14 @@ int _countSolutions(SudokuPuzzle puzzle, {required int limit}) {
 
   solve();
   return solutions;
+}
+
+int _bitCount(int value) {
+  var count = 0;
+  var remaining = value;
+  while (remaining != 0) {
+    remaining &= remaining - 1;
+    count++;
+  }
+  return count;
 }
