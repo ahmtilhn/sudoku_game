@@ -1,4 +1,6 @@
+import groovy.json.JsonSlurper
 import java.io.FileInputStream
+import java.net.URI
 import java.util.Base64
 import java.util.Properties
 
@@ -8,6 +10,27 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
+}
+
+fun xmlStringResource(xml: String, name: String): String {
+    val pattern = Regex(
+        """<string\s+name=[\"']${Regex.escape(name)}[\"'][^>]*>([^<]+)</string>""",
+    )
+    return pattern.find(xml)?.groupValues?.get(1)?.trim().orEmpty()
+}
+
+fun decodeDartDefines(rawValue: String): Map<String, String> {
+    if (rawValue.isBlank()) return emptyMap()
+    return rawValue.split(',')
+        .filter { it.isNotBlank() }
+        .associate { encoded ->
+            val decoded = String(Base64.getDecoder().decode(encoded.trim()), Charsets.UTF_8)
+            val separator = decoded.indexOf('=')
+            if (separator <= 0) {
+                throw GradleException("Invalid dart-define entry in Gradle properties: $decoded")
+            }
+            decoded.substring(0, separator) to decoded.substring(separator + 1)
+        }
 }
 
 val keystoreProperties = Properties()
@@ -139,6 +162,11 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
             )
         }
 
+        val expectedPackageName = "com.devoviastudio.sudoku"
+        val expectedFirebaseProjectId = "focus-sweep-503417-d7"
+        val expectedFirebaseProjectNumber = "31445697560"
+        val expectedFirebaseAppId = "1:31445697560:android:ed951eabf51d75800b2f6d"
+
         val servicesXml = rootProject.file("app/src/main/res/values/services.xml")
         val servicesText = servicesXml.takeIf { it.exists() }?.readText()
             ?: throw GradleException("Missing ${servicesXml.path}; release service identifiers cannot be verified.")
@@ -158,5 +186,101 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
                     ". Configure the required AdMob and Play Games identifiers before building a release AAB.",
             )
         }
+
+        val playGamesProjectId = xmlStringResource(servicesText, "game_services_project_id")
+        if (!playGamesProjectId.matches(Regex("^[0-9]{10,20}$"))) {
+            throw GradleException("game_services_project_id must be a 10-20 digit Play Games application ID.")
+        }
+        val playGamesWebClientId = xmlStringResource(servicesText, "game_services_web_client_id")
+        if (!playGamesWebClientId.matches(
+                Regex("^[0-9]+-[a-zA-Z0-9_-]+\\.apps\\.googleusercontent\\.com$"),
+            )
+        ) {
+            throw GradleException("game_services_web_client_id is missing or malformed.")
+        }
+
+        val googleServicesFile = rootProject.file("app/google-services.json")
+        if (!googleServicesFile.exists()) {
+            throw GradleException("Missing ${googleServicesFile.path}.")
+        }
+        val googleServices = JsonSlurper().parse(googleServicesFile) as? Map<*, *>
+            ?: throw GradleException("google-services.json must contain a JSON object.")
+        val projectInfo = googleServices["project_info"] as? Map<*, *>
+            ?: throw GradleException("google-services.json is missing project_info.")
+        if (projectInfo["project_id"]?.toString() != expectedFirebaseProjectId ||
+            projectInfo["project_number"]?.toString() != expectedFirebaseProjectNumber
+        ) {
+            throw GradleException(
+                "google-services.json belongs to a different Firebase project. " +
+                    "Expected $expectedFirebaseProjectId ($expectedFirebaseProjectNumber).",
+            )
+        }
+
+        val clients = googleServices["client"] as? List<*>
+            ?: throw GradleException("google-services.json is missing client entries.")
+        val androidClient = clients
+            .mapNotNull { it as? Map<*, *> }
+            .firstOrNull { client ->
+                val clientInfo = client["client_info"] as? Map<*, *> ?: return@firstOrNull false
+                val androidInfo = clientInfo["android_client_info"] as? Map<*, *>
+                    ?: return@firstOrNull false
+                androidInfo["package_name"]?.toString() == expectedPackageName
+            }
+            ?: throw GradleException(
+                "google-services.json has no Android client for $expectedPackageName.",
+            )
+        val clientInfo = androidClient["client_info"] as? Map<*, *>
+            ?: throw GradleException("The Android Firebase client is missing client_info.")
+        if (clientInfo["mobilesdk_app_id"]?.toString() != expectedFirebaseAppId) {
+            throw GradleException(
+                "The Android Firebase App ID does not match $expectedFirebaseAppId.",
+            )
+        }
+
+        val oauthClients = androidClient["oauth_client"] as? List<*> ?: emptyList<Any?>()
+        val webClientIds = oauthClients
+            .mapNotNull { it as? Map<*, *> }
+            .filter { it["client_type"]?.toString() == "3" }
+            .mapNotNull { it["client_id"]?.toString() }
+            .toSet()
+        if (playGamesWebClientId !in webClientIds) {
+            throw GradleException(
+                "The Play Games server OAuth client in services.xml is not present as a web client " +
+                    "in google-services.json.",
+            )
+        }
+        // A client_type=1 entry is intentionally not required here. The Android
+        // OAuth credential used by Play Games is associated with the game in the
+        // Play Console and is not guaranteed to be emitted in google-services.json.
+
+        val dartDefines = try {
+            decodeDartDefines(project.findProperty("dart-defines")?.toString().orEmpty())
+        } catch (error: IllegalArgumentException) {
+            throw GradleException("Unable to decode dart-defines for release validation.", error)
+        }
+        val socialBackendUrl = dartDefines["SOCIAL_BACKEND_URL"]?.trim().orEmpty()
+        val socialUri = runCatching { URI(socialBackendUrl) }.getOrNull()
+        val blockedBackend = listOf("localhost", "127.0.0.1", "replace_with", "example")
+            .any { socialBackendUrl.lowercase().contains(it) }
+        if (socialUri == null ||
+            socialUri.scheme != "https" ||
+            socialUri.host.isNullOrBlank() ||
+            socialUri.userInfo != null ||
+            socialUri.query != null ||
+            socialUri.fragment != null ||
+            blockedBackend
+        ) {
+            throw GradleException(
+                "SOCIAL_BACKEND_URL must be embedded as a real HTTPS endpoint. " +
+                    "The normal 'flutter build appbundle --release' command reads it from android/gradle.properties.",
+            )
+        }
+
+        logger.lifecycle(
+            "Verified release services: Firebase={}, PlayGames={}, backend={}",
+            expectedFirebaseProjectId,
+            playGamesProjectId,
+            socialUri.host,
+        )
     }
 }
