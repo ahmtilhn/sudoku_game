@@ -1,0 +1,87 @@
+name: Android release services
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/android-release-services.yml"
+      - "android/**"
+      - "lib/**"
+      - "test/**"
+      - "tool/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Show tool versions
+        run: |
+          flutter --version
+          java -version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test --concurrency=1 --timeout=120s
+
+      - name: Verify release configuration
+        shell: pwsh
+        run: ./tool/verify_android_release_config.ps1
+
+      - name: Create ephemeral CI upload key
+        run: |
+          keytool -genkeypair \
+            -keystore android/ci-upload.jks \
+            -storepass changeit \
+            -keypass changeit \
+            -alias ci-upload \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 2 \
+            -dname "CN=Sudoku Duel CI, OU=CI, O=Devovia, L=CI, ST=CI, C=NL"
+          cat > android/key.properties <<'EOF'
+          storeFile=ci-upload.jks
+          storePassword=changeit
+          keyAlias=ci-upload
+          keyPassword=changeit
+          EOF
+
+      - name: Build release app bundle
+        run: flutter build appbundle --release
+
+      - name: Inspect release app bundle
+        shell: pwsh
+        run: |
+          ./tool/verify_online_aab.ps1 `
+            -Path "./build/app/outputs/bundle/release/app-release.aab"
