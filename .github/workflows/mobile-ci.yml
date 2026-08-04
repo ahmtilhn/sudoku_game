@@ -7,6 +7,7 @@ on:
       - 'lib/**'
       - 'test/**'
       - 'tool/**'
+      - 'docs/ux_audit.md'
       - 'android/**'
       - 'ios/**'
       - 'assets/**'
@@ -18,6 +19,7 @@ on:
       - 'lib/**'
       - 'test/**'
       - 'tool/**'
+      - 'docs/ux_audit.md'
       - 'android/**'
       - 'ios/**'
       - 'assets/**'
@@ -106,6 +108,9 @@ jobs:
 
       - name: Verify UX contracts
         run: python3 tool/verify_ux_contracts.py
+
+      - name: Verify complete UX audit is current
+        run: python3 tool/generate_ux_audit.py --check
 
       - name: Analyze
         run: flutter analyze --fatal-infos
