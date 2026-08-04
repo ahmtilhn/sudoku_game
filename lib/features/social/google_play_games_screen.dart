@@ -153,11 +153,13 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
       }
       await _games.refreshAuthentication();
     } on PlatformGameServicesException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -187,11 +189,13 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
         setState(() => _error = UserSafeError.message(context, error));
       }
     } on PlatformGameServicesException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

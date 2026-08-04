@@ -156,7 +156,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
             Text(
               _signInMode
                   ? 'Open the same server wallet, Friend ID and rating on this device.'
-                  : 'Link email/password without changing the current Firebase UID, wallet, Friend ID, friends or rating.',
+                  : 'Link email and password without changing the current Player ID, wallet, Friend ID, friends or rating.',
             ),
             const SizedBox(height: 16),
             _AccountModeSelector(
@@ -354,6 +354,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
       _password.clear();
       _confirm.clear();
     } on FirebaseSessionException catch (error) {
+      if (!mounted) return;
       _error = UserSafeError.message(context, error);
     } finally {
       _setBusy(false);
@@ -510,6 +511,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
         ),
       );
     } on AccountDeletionException catch (error) {
+      if (!mounted) return;
       _error = UserSafeError.message(context, error);
     } finally {
       _setBusy(false);
@@ -523,6 +525,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
       await action();
       _notice = success;
     } on FirebaseSessionException catch (error) {
+      if (!mounted) return;
       _error = UserSafeError.message(context, error);
     } finally {
       _setBusy(false);

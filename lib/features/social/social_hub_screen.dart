@@ -117,8 +117,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         _opponents = values[4] as List<SocialPlayer>;
       });
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -134,8 +135,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       await action();
       await _load();
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busyId = null);
     }
@@ -153,8 +155,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       final results = await _social.searchPlayers(query);
       if (mounted) setState(() => _results = results);
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -238,8 +241,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       );
       if (mounted) await _load();
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busyId = null);
     }

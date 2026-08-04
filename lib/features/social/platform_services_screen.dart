@@ -61,11 +61,13 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
         _player = player;
       });
     } on PlatformGameServicesException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -103,11 +105,13 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
       }
       await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
     } on PlatformGameServicesException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -134,11 +138,13 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
         );
       }
     } on PlatformGameServicesException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

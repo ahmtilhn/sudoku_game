@@ -102,8 +102,9 @@ class _UxChallengeInvitationScreenState
         if (_statusTicks.isEven) unawaited(_refreshStatus());
       });
     } on SocialApiException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -179,8 +180,9 @@ class _UxChallengeInvitationScreenState
       await _openRoom(roomId);
     } on SocialApiException catch (error) {
       if (accept && await _recoverAcceptedChallenge()) return;
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (accept && await _recoverAcceptedChallenge()) return;
       if (mounted) {

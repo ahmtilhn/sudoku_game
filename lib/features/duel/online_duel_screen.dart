@@ -406,7 +406,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
               const DuelAssetIcon(DuelAsset.cloud, size: 44),
               const SizedBox(height: 12),
               Text(
-                context.tr('online_connection_failed', <Object>[_error!]),
+                UserSafeError.message(context, _error),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 14),

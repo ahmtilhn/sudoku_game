@@ -97,8 +97,9 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         _platformFriends = friends;
       });
     } on PlatformGameServicesException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     }
   }
 
@@ -125,8 +126,9 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         _pendingChallenges = pendingChallenges;
       });
     } on SocialApiException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -163,8 +165,9 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       await _refreshPlatform();
       await _refreshSocial(showLoading: false);
     } on PlatformGameServicesException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -192,8 +195,9 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       final results = await _social.searchPlayers(query);
       if (mounted) setState(() => _searchResults = results);
     } on SocialApiException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -454,6 +458,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
     try {
       await _platform.showPlayerProfile(player.playerId);
     } on PlatformGameServicesException catch (error) {
+      if (!mounted) return;
       _showMessage(UserSafeError.message(context, error));
     }
   }
@@ -464,6 +469,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       _showMessage('Friend request sent to ${player.displayName}.');
       await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
+      if (!mounted) return;
       _showMessage(UserSafeError.message(context, error));
     }
   }
@@ -495,6 +501,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       _showMessage('Challenge sent to ${player.displayName}.');
       await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
+      if (!mounted) return;
       _showMessage(UserSafeError.message(context, error));
     }
   }
@@ -517,6 +524,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       }
       await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
+      if (!mounted) return;
       _showMessage(UserSafeError.message(context, error));
     }
   }

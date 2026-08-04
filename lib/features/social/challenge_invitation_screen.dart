@@ -98,8 +98,9 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
         setState(() {});
       });
     } on SocialApiException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -143,8 +144,9 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
         MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)),
       );
     } on SocialApiException catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('matchmaking_start_failed'));

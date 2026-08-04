@@ -346,11 +346,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       _lastQueueRefresh = DateTime.now();
       _startPollingForMatch();
     } on FirebaseSessionException catch (error) {
+      if (!mounted) return;
       _stopSearchWithError(UserSafeError.message(context, error));
     } on SocialApiException catch (error) {
       if (error.statusCode == 409) {
         await _economy.refresh(showLoading: false);
       }
+      if (!mounted) return;
       _stopSearchWithError(UserSafeError.message(context, error));
     } catch (_) {
       _stopSearchWithError(context.tr('matchmaking_start_failed'));
