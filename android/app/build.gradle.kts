@@ -1,3 +1,4 @@
+import com.flutter.gradle.tasks.FlutterTask
 import groovy.json.JsonSlurper
 import java.io.FileInputStream
 import java.net.URI
@@ -11,6 +12,12 @@ plugins {
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
 }
+
+val defaultSocialBackendUrl =
+    "https://sudoku-duel-social-staging.ilhanahmet246.workers.dev"
+val defaultSocialBackendDefine = Base64.getEncoder().encodeToString(
+    "SOCIAL_BACKEND_URL=$defaultSocialBackendUrl".toByteArray(Charsets.UTF_8),
+)
 
 fun xmlStringResource(xml: String, name: String): String {
     val pattern = Regex(
@@ -27,10 +34,23 @@ fun decodeDartDefines(rawValue: String): Map<String, String> {
             val decoded = String(Base64.getDecoder().decode(encoded.trim()), Charsets.UTF_8)
             val separator = decoded.indexOf('=')
             if (separator <= 0) {
-                throw GradleException("Invalid dart-define entry in Gradle properties: $decoded")
+                throw GradleException("Invalid dart-define entry: $decoded")
             }
             decoded.substring(0, separator) to decoded.substring(separator + 1)
         }
+}
+
+fun withDefaultSocialBackend(rawValue: String?): String {
+    val entries = rawValue
+        ?.split(',')
+        ?.map(String::trim)
+        ?.filter(String::isNotEmpty)
+        .orEmpty()
+    val decoded = decodeDartDefines(entries.joinToString(","))
+    if (decoded["SOCIAL_BACKEND_URL"]?.isNotBlank() == true) {
+        return entries.joinToString(",")
+    }
+    return (entries + defaultSocialBackendDefine).joinToString(",")
 }
 
 val keystoreProperties = Properties()
@@ -129,6 +149,17 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+// The Flutter CLI always supplies its own -Pdart-defines list, even when the
+// developer did not pass --dart-define. That command-line project property has
+// precedence over android/gradle.properties. Merge the public staging endpoint
+// directly into release Flutter tasks when no explicit SOCIAL_BACKEND_URL was
+// supplied, so the documented plain build command remains deterministic.
+tasks.withType<FlutterTask>().configureEach {
+    if (name.contains("Release", ignoreCase = true)) {
+        dartDefines = withDefaultSocialBackend(dartDefines)
+    }
 }
 
 val generateSudokuLauncherIcon by tasks.registering {
@@ -253,11 +284,14 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
         // OAuth credential used by Play Games is associated with the game in the
         // Play Console and is not guaranteed to be emitted in google-services.json.
 
-        val dartDefines = try {
-            decodeDartDefines(project.findProperty("dart-defines")?.toString().orEmpty())
+        val effectiveDartDefines = try {
+            withDefaultSocialBackend(
+                project.findProperty("dart-defines")?.toString(),
+            )
         } catch (error: IllegalArgumentException) {
             throw GradleException("Unable to decode dart-defines for release validation.", error)
         }
+        val dartDefines = decodeDartDefines(effectiveDartDefines)
         val socialBackendUrl = dartDefines["SOCIAL_BACKEND_URL"]?.trim().orEmpty()
         val socialUri = runCatching { URI(socialBackendUrl) }.getOrNull()
         val blockedBackend = listOf("localhost", "127.0.0.1", "replace_with", "example")
@@ -271,8 +305,8 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
             blockedBackend
         ) {
             throw GradleException(
-                "SOCIAL_BACKEND_URL must be embedded as a real HTTPS endpoint. " +
-                    "The normal 'flutter build appbundle --release' command reads it from android/gradle.properties.",
+                "SOCIAL_BACKEND_URL must be a real HTTPS endpoint. " +
+                    "The normal 'flutter build appbundle --release' command injects the configured staging default when no override is supplied.",
             )
         }
 
