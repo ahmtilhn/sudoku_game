@@ -24,8 +24,8 @@ class PlayGamesFirebaseAuthException implements Exception {
 /// same Firebase UID and therefore the same server-side player account.
 class PlayGamesFirebaseAuthService {
   PlayGamesFirebaseAuthService._() {
-    PlatformGameServices.instance.authenticated.addListener(
-      _onPlatformAuthenticationChanged,
+    PlatformGameServices.instance.registerAfterInteractiveAuthentication(
+      _linkAfterInteractiveAuthentication,
     );
   }
 
@@ -39,12 +39,6 @@ class PlayGamesFirebaseAuthService {
   Object? _lastSilentFailure;
 
   Object? get lastSilentFailure => _lastSilentFailure;
-
-  void _onPlatformAuthenticationChanged() {
-    if (!PlatformGameServices.instance.authenticated.value) return;
-    _lastSilentFailureAt = null;
-    unawaited(restoreSilently());
-  }
 
   Future<User?> restoreSilently() {
     final current = Firebase.apps.isEmpty
@@ -77,6 +71,35 @@ class PlayGamesFirebaseAuthService {
     return operation;
   }
 
+  Future<void> _linkAfterInteractiveAuthentication() async {
+    final pending = _inFlight;
+    if (pending != null) {
+      final existing = await pending;
+      if (existing != null) return;
+    }
+
+    final operation = _authenticate(prompt: false).whenComplete(
+      () => _inFlight = null,
+    );
+    _inFlight = operation;
+
+    try {
+      final user = await operation;
+      if (user == null) {
+        throw const PlayGamesFirebaseAuthException(
+          'Google Play Games connected, but Firebase did not create or restore the player account.',
+          code: 'firebase_play_games_link_missing',
+        );
+      }
+      _lastSilentFailureAt = null;
+      _lastSilentFailure = null;
+    } catch (error) {
+      _lastSilentFailureAt = DateTime.now();
+      _lastSilentFailure = error;
+      rethrow;
+    }
+  }
+
   Future<User> connect() async {
     final pending = _inFlight;
     if (pending != null) {
@@ -84,8 +107,13 @@ class PlayGamesFirebaseAuthService {
       if (existing != null) return existing;
     }
 
+    final operation = _authenticate(prompt: true).whenComplete(
+      () => _inFlight = null,
+    );
+    _inFlight = operation;
+
     try {
-      final user = await _authenticate(prompt: true);
+      final user = await operation;
       if (user == null) {
         throw const PlayGamesFirebaseAuthException(
           'Google Play Games authentication was cancelled or did not complete.',
@@ -100,7 +128,10 @@ class PlayGamesFirebaseAuthService {
     } on FirebaseAuthException catch (error) {
       throw _mapFirebaseError(error);
     } on PlatformGameServicesException catch (error) {
-      throw PlayGamesFirebaseAuthException(error.message, code: error.code);
+      throw PlayGamesFirebaseAuthException(
+        error.toString(),
+        code: error.code,
+      );
     } on TimeoutException {
       throw const PlayGamesFirebaseAuthException(
         'Google Play Games account connection timed out.',
@@ -146,7 +177,11 @@ class PlayGamesFirebaseAuthService {
 
     var authenticated = await games.refreshAuthentication().timeout(_timeout);
     if (!authenticated && prompt) {
-      authenticated = await games.authenticate().timeout(_timeout);
+      // This service owns the account-link operation, so suppress the platform
+      // bridge callback to avoid a second simultaneous server-auth-code request.
+      authenticated = await games
+          .authenticate(notifyAccountBridge: false)
+          .timeout(_timeout);
     }
     if (!authenticated) return null;
 
