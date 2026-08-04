@@ -36,8 +36,17 @@ Future<void> main() async {
       ),
     );
     unawaited(
-      _initializeOptionalService('Firebase and push', () async {
+      _initializeOptionalService('Firebase, Play Games, and push', () async {
         await FirebaseServices.instance.initialize();
+
+        // Resolve the permanent Play Games-linked Firebase account before push
+        // initialization is allowed to create a guest Firebase session.
+        await _initializeOptionalService(
+          'Google Play Games',
+          _initializeGooglePlayGames,
+          timeout: const Duration(seconds: 30),
+        );
+
         final push = PushNotificationService.instance;
         await push.initialize();
         if (!push.userDisabled.value) {
@@ -49,13 +58,6 @@ Future<void> main() async {
         }
         await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
       }, timeout: const Duration(seconds: 60)),
-    );
-    unawaited(
-      _initializeOptionalService(
-        'Google Play Games',
-        _initializeGooglePlayGames,
-        timeout: const Duration(seconds: 30),
-      ),
     );
     unawaited(
       _initializeOptionalService(
