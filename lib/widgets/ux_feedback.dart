@@ -3,6 +3,26 @@ import 'package:flutter/material.dart';
 import '../localization/app_strings.dart';
 import '../localization/ux_copy.dart';
 
+Future<T?> showAdaptiveBottomSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool isDismissible = true,
+  bool enableDrag = true,
+  bool useSafeArea = false,
+  bool showDragHandle = true,
+  bool isScrollControlled = false,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    builder: builder,
+    isDismissible: isDismissible,
+    enableDrag: enableDrag,
+    useSafeArea: useSafeArea,
+    showDragHandle: showDragHandle,
+    isScrollControlled: isScrollControlled,
+  );
+}
+
 class UxStatePanel extends StatelessWidget {
   const UxStatePanel({
     super.key,
