@@ -8,12 +8,10 @@ import '../../data/local_progress_store.dart';
 import '../../data/puzzle_catalog.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
-import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
-import '../game/game_screen.dart';
-import '../game/hint_economy.dart';
+import '../game/enhanced_game_screen.dart';
 
 class CareerScreen extends StatefulWidget {
   const CareerScreen({super.key, required this.store});
@@ -123,9 +121,7 @@ class _CareerScreenState extends State<CareerScreen> {
                           const SizedBox(height: 22),
                           Text(
                             context.tr('career_intro'),
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w900,
@@ -163,15 +159,11 @@ class _CareerScreenState extends State<CareerScreen> {
                             },
                           ),
                           const SizedBox(height: 28),
-                          Divider(
-                            color: Colors.white.withValues(alpha: .15),
-                          ),
+                          Divider(color: Colors.white.withValues(alpha: .15)),
                           const SizedBox(height: 18),
                           Text(
                             context.tr('practice'),
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
+                            style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w900,
@@ -186,9 +178,7 @@ class _CareerScreenState extends State<CareerScreen> {
                             ),
                           ),
                           const SizedBox(height: 14),
-                          for (
-                            final difficulty in SudokuDifficulty.values
-                          ) ...[
+                          for (final difficulty in SudokuDifficulty.values) ...[
                             _DifficultyCard(
                               difficulty: difficulty,
                               clueCount: PuzzleCatalog.targetClueCount(
@@ -197,8 +187,7 @@ class _CareerScreenState extends State<CareerScreen> {
                               progress: widget.store.progressFor(
                                 'career-${difficulty.name}',
                               ),
-                              generating:
-                                  _generatingDifficulty == difficulty,
+                              generating: _generatingDifficulty == difficulty,
                               onTap: _isGenerating
                                   ? null
                                   : () => _startRandomPuzzle(difficulty),
@@ -231,17 +220,12 @@ class _CareerScreenState extends State<CareerScreen> {
     setState(() => _generatingLevelNumber = null);
 
     final wasCompleted = widget.store.isCompleted(level.id);
-    final completed = await Navigator.of(context).push<bool>(
+    await Navigator.of(context).push<EnhancedGameExit>(
       MaterialPageRoute(
-        builder: (gameContext) => GameScreen(
+        builder: (_) => EnhancedGameScreen(
           puzzle: puzzle,
+          store: widget.store,
           mistakeLimit: 3,
-          coinContinueCost: 25,
-          onCoinContinue: (_) => _economy.spendCareerContinue(),
-          onRewardedContinue: AdsService.instance.showRewarded,
-          onConsumeHint: () =>
-              HintEconomy.consumeOrAcquire(gameContext, widget.store),
-          hintBalanceProvider: () => widget.store.hints,
           onCompleted:
               ({required seconds, required mistakes, required hints}) async {
                 await widget.store.recordResult(
@@ -259,7 +243,8 @@ class _CareerScreenState extends State<CareerScreen> {
       ),
     );
     if (!mounted) return;
-    if (completed == true) {
+    final nowCompleted = widget.store.isCompleted(level.id);
+    if (!wasCompleted && nowCompleted) {
       await _showCareerRewardOffer();
     }
     if (mounted) setState(() {});
@@ -273,19 +258,16 @@ class _CareerScreenState extends State<CareerScreen> {
     if (!mounted) return;
     setState(() => _generatingDifficulty = null);
 
-    final completed = await Navigator.of(context).push<bool>(
+    var didComplete = false;
+    await Navigator.of(context).push<EnhancedGameExit>(
       MaterialPageRoute(
-        builder: (gameContext) => GameScreen(
+        builder: (_) => EnhancedGameScreen(
           puzzle: puzzle,
+          store: widget.store,
           mistakeLimit: 3,
-          coinContinueCost: 25,
-          onCoinContinue: (_) => _economy.spendCareerContinue(),
-          onRewardedContinue: AdsService.instance.showRewarded,
-          onConsumeHint: () =>
-              HintEconomy.consumeOrAcquire(gameContext, widget.store),
-          hintBalanceProvider: () => widget.store.hints,
           onCompleted:
               ({required seconds, required mistakes, required hints}) async {
+                didComplete = true;
                 await widget.store.recordResult(
                   puzzleId: 'career-${difficulty.name}',
                   seconds: seconds,
@@ -298,7 +280,7 @@ class _CareerScreenState extends State<CareerScreen> {
       ),
     );
     if (!mounted) return;
-    if (completed == true) {
+    if (didComplete) {
       await _showCareerRewardOffer();
     }
     if (mounted) setState(() {});
@@ -508,9 +490,7 @@ class _NextLevelPanel extends StatelessWidget {
                         ),
                       )
                     : DuelAssetIcon(
-                        level.isEndless
-                            ? DuelAsset.refresh
-                            : DuelAsset.grid,
+                        level.isEndless ? DuelAsset.refresh : DuelAsset.grid,
                         size: 38,
                         color: accent,
                       ),
