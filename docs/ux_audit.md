@@ -5,6 +5,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 ## Audit scope
 
 - Screen files: **28**
+- Forwarding/compatibility wrappers: **1**
 - Feature groups: **9** (career, daily, duel, economy, game, home, settings, social, tutorial)
 - Required device behavior: compact phone, large phone/tablet, text scaling, safe insets, keyboard insets and scroll recovery
 - Required state behavior: loading, empty, recoverable error, disabled/busy and completed/outcome
@@ -19,64 +20,48 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 5. **Profile hierarchy:** identity header, platform status, ELO/rank/peak/country, W-L-D/win rate/streak/tournament data, achievements and separate account/social actions.
 6. **Technical error exposure:** central `UserSafeError`, static CI guard and user-safe network/account/server messages across online, social, wallet, settings and platform flows.
 7. **Shared feedback system:** `UxStatePanel`, `UxMetricTile`, `UxOutcomeHeader` and `UxOutcomeSheet` now define loading/empty/error/result presentation.
-8. **Outcome consistency:** career/practice completion, loss/continue, local duel and online duel share the same outcome header and information hierarchy.
-9. **Release safety:** localization, user-safe messages, UX contracts, fatal analyzer, tests, debug APK and release AAB are CI gates.
+8. **Outcome consistency:** career/practice/daily completion, loss/continue, local duel and online duel share the same outcome header and information hierarchy.
+9. **Gameplay route consistency:** career and daily modes now open `EnhancedGameScreen`; compatibility wrappers are reported separately instead of being treated as broken screens.
+10. **Release safety:** localization, user-safe messages, UX contracts, fatal analyzer, tests, debug APK and release AAB are CI gates.
 
 ## Screen inventory
 
-| Feature | Screen / file | Safe area | Responsive | Scroll | State feedback | Safe errors | Shared state | Shared outcome | Localized | Static finding |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| career | `CareerHubScreen`<br>`lib/features/career/career_hub_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| career | `CareerScreen`<br>`lib/features/career/career_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| daily | `DailyScreen`<br>`lib/features/daily/daily_screen.dart` | — | — | — | — | Yes | — | — | Yes | No explicit responsive primitive detected; Result-like content does not use shared outcome component |
-| duel | `DuelScreen`<br>`lib/features/duel/duel_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| duel | `LeaderboardsScreen`<br>`lib/features/duel/leaderboards_screen.dart` | — | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
-| duel | `MatchmakingScreen`<br>`lib/features/duel/matchmaking_screen.dart` | Yes | Yes | Yes | — | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| duel | `OnlineDuelScreen`<br>`lib/features/duel/online_duel_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| duel | `PreMatchReadyScreen`<br>`lib/features/duel/pre_match_ready_screen.dart` | Yes | Yes | Yes | — | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| economy | `CoinStoreScreen`<br>`lib/features/economy/coin_store_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| economy | `WalletHistoryScreen`<br>`lib/features/economy/wallet_history_screen.dart` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
-| game | `EnhancedGameScreen`<br>`lib/features/game/enhanced_game_screen.dart` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
-| game | `GameScreen`<br>`lib/features/game/game_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| home | `HomeScreen`<br>`lib/features/home/home_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| home | `UxRootScreen`<br>`lib/features/home/ux_root_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | — | Result-like content does not use shared outcome component; No localization call detected |
-| settings | `SettingsScreen`<br>`lib/features/settings/settings_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Yes | Yes | Yes | — | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| social | `ChallengeInvitationScreen`<br>`lib/features/social/challenge_invitation_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| social | `ChallengeWaitingScreen`<br>`lib/features/social/challenge_waiting_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| social | `FriendRequestsScreen`<br>`lib/features/social/friend_requests_screen.dart` | — | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
-| social | `GooglePlayGamesScreen`<br>`lib/features/social/google_play_games_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| social | `PlatformServicesScreen`<br>`lib/features/social/platform_services_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| social | `PlatformSocialScreen`<br>`lib/features/social/platform_social_screen.dart` | — | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| social | `PlayerProfileScreen`<br>`lib/features/social/player_profile_screen.dart` | — | — | — | — | Yes | — | Yes | — | No explicit responsive primitive detected; No localization call detected |
-| social | `ProfileHubScreen`<br>`lib/features/social/profile_hub_screen.dart` | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
-| social | `SocialHubScreen`<br>`lib/features/social/social_hub_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| social | `UxChallengeInvitationScreen`<br>`lib/features/social/ux_challenge_invitation_screen.dart` | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Result-like content does not use shared outcome component |
-| tutorial | `TutorialScreen`<br>`lib/features/tutorial/tutorial_screen.dart` | — | Yes | Yes | — | Yes | — | — | Yes | Result-like content does not use shared outcome component |
+| Feature | Screen / file | Role | Safe area | Responsive | Scroll | State feedback | Safe errors | Shared state | Shared outcome | Localized | Static finding |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| career | `CareerHubScreen`<br>`lib/features/career/career_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| career | `CareerScreen`<br>`lib/features/career/career_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| daily | `DailyScreen`<br>`lib/features/daily/daily_screen.dart` | Production screen | — | — | — | — | Yes | — | Yes | Yes | No explicit responsive primitive detected |
+| duel | `DuelScreen`<br>`lib/features/duel/duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| duel | `LeaderboardsScreen`<br>`lib/features/duel/leaderboards_screen.dart` | Production screen | — | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
+| duel | `MatchmakingScreen`<br>`lib/features/duel/matchmaking_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
+| duel | `OnlineDuelScreen`<br>`lib/features/duel/online_duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| duel | `PreMatchReadyScreen`<br>`lib/features/duel/pre_match_ready_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
+| economy | `CoinStoreScreen`<br>`lib/features/economy/coin_store_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| economy | `WalletHistoryScreen`<br>`lib/features/economy/wallet_history_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
+| game | `EnhancedGameScreen`<br>`lib/features/game/enhanced_game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
+| game | `GameScreen`<br>`lib/features/game/game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
+| home | `HomeScreen`<br>`lib/features/home/home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| home | `UxRootScreen`<br>`lib/features/home/ux_root_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | — | No localization call detected |
+| settings | `SettingsScreen`<br>`lib/features/settings/settings_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
+| social | `ChallengeInvitationScreen`<br>`lib/features/social/challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| social | `ChallengeWaitingScreen`<br>`lib/features/social/challenge_waiting_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| social | `FriendRequestsScreen`<br>`lib/features/social/friend_requests_screen.dart` | Production screen | — | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
+| social | `GooglePlayGamesScreen`<br>`lib/features/social/google_play_games_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| social | `PlatformServicesScreen`<br>`lib/features/social/platform_services_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| social | `PlatformSocialScreen`<br>`lib/features/social/platform_social_screen.dart` | Production screen | — | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| social | `PlayerProfileScreen`<br>`lib/features/social/player_profile_screen.dart` | Forwarding wrapper | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
+| social | `ProfileHubScreen`<br>`lib/features/social/profile_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
+| social | `SocialHubScreen`<br>`lib/features/social/social_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| social | `UxChallengeInvitationScreen`<br>`lib/features/social/ux_challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| tutorial | `TutorialScreen`<br>`lib/features/tutorial/tutorial_screen.dart` | Production screen | — | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
 
 ## Static warnings requiring visual regression attention
 
-- `lib/features/career/career_hub_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/career/career_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/daily/daily_screen.dart`: No explicit responsive primitive detected; Result-like content does not use shared outcome component
-- `lib/features/duel/matchmaking_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/duel/pre_match_ready_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/game/game_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/home/home_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/home/ux_root_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/settings/account_protection_screen.dart`: Result-like content does not use shared outcome component; No localization call detected
-- `lib/features/settings/settings_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/settings/ux_settings_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/social/challenge_invitation_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/social/challenge_waiting_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/social/google_play_games_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/social/platform_services_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/social/platform_social_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/social/player_profile_screen.dart`: No explicit responsive primitive detected; No localization call detected
-- `lib/features/social/social_hub_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/social/ux_challenge_invitation_screen.dart`: Result-like content does not use shared outcome component
-- `lib/features/tutorial/tutorial_screen.dart`: Result-like content does not use shared outcome component
+- `lib/features/daily/daily_screen.dart`: No explicit responsive primitive detected
+- `lib/features/game/game_screen.dart`: Outcome content does not use shared outcome component
+- `lib/features/settings/account_protection_screen.dart`: No localization call detected
 
 Static warnings are not automatically defects. Confirmation dialogs, short setup screens and game canvases may intentionally omit a list or common state panel. They remain listed so visual/device tests do not silently skip them.
 
@@ -95,6 +80,7 @@ Static warnings are not automatically defects. Confirmation dialogs, short setup
 - `python3 tool/validate_localizations.py`
 - `python3 tool/verify_user_facing_messages.py`
 - `python3 tool/verify_ux_contracts.py`
+- `python3 tool/generate_ux_audit.py --check`
 - `flutter analyze --fatal-infos`
 - `flutter test --concurrency=1`
 - `flutter build apk --debug`
@@ -111,5 +97,5 @@ Static warnings are not automatically defects. Confirmation dialogs, short setup
 5. Restart and return to menu; confirm save/confirmation behavior.
 6. Open 16×16, enter A–G values, add notes, zoom, background the app and resume.
 7. Exercise offline/server-down states for profile, friends, leaderboard, wallet and matchmaking; verify no technical text appears.
-8. Complete and lose career/practice/local duel/online duel sessions; compare visual hierarchy and action order.
+8. Complete and lose career/practice/daily/local duel/online duel sessions; compare visual hierarchy and action order.
 9. Test 320×568, 360×800, 412×915 and tablet widths with text scale 1.0, 1.3 and 2.0.
