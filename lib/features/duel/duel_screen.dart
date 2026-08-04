@@ -8,6 +8,7 @@ import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
+import '../../widgets/ux_feedback.dart';
 
 class DuelScreen extends StatefulWidget {
   const DuelScreen({super.key, required this.difficulty});
@@ -87,7 +88,7 @@ class _DuelScreenState extends State<DuelScreen> {
       });
     }
     if (SudokuEngine.isComplete(_puzzle, _board)) {
-      _finishGame();
+      unawaited(_finishGame());
     } else {
       _switchTurn();
     }
@@ -112,49 +113,48 @@ class _DuelScreenState extends State<DuelScreen> {
     }
   }
 
-  void _finishGame() {
+  Future<void> _finishGame() async {
     _timer?.cancel();
     setState(() => _completed = true);
     final winner = _scores[0] == _scores[1]
         ? null
         : _scores[0] > _scores[1]
-        ? 0
-        : 1;
-    showDialog<void>(
+            ? 0
+            : 1;
+    final restart = await showAdaptiveBottomSheet<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          winner == null
-              ? context.tr('draw')
-              : context.tr('player_won', <Object>[winner + 1]),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.emoji_events_outlined, size: 58),
-            const SizedBox(height: 16),
-            Text(
-              '${_scores[0]}  —  ${_scores[1]}',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 8),
-            Text(context.tr('turns_played', <Object>[_turn])),
-          ],
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              Navigator.of(context).pop();
-            },
-            child: Text(context.tr('main_menu')),
+      isDismissible: false,
+      enableDrag: false,
+      useSafeArea: true,
+      showDragHandle: false,
+      builder: (sheetContext) => UxOutcomeSheet(
+        icon: winner == null
+            ? Icons.handshake_outlined
+            : Icons.emoji_events_rounded,
+        title: winner == null
+            ? sheetContext.tr('draw')
+            : sheetContext.tr('player_won', <Object>[winner + 1]),
+        subtitle: sheetContext.tr('turns_played', <Object>[_turn]),
+        metrics: <Widget>[
+          UxMetricTile(
+            label: sheetContext.tr('player', const <Object>[1]),
+            value: '${_scores[0]}',
+            icon: Icons.looks_one_outlined,
+          ),
+          UxMetricTile(
+            label: sheetContext.tr('player', const <Object>[2]),
+            value: '${_scores[1]}',
+            icon: Icons.looks_two_outlined,
           ),
         ],
+        primaryLabel: sheetContext.tr('restart_puzzle'),
+        onPrimary: () => Navigator.of(sheetContext).pop(true),
+        secondaryLabel: sheetContext.tr('main_menu'),
+        onSecondary: () => Navigator.of(sheetContext).pop(false),
       ),
     );
+    if (!mounted) return;
+    Navigator.of(context).pop(restart == true ? 'restart' : null);
   }
 
   @override
@@ -310,9 +310,10 @@ class _PlayerScore extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '$score',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w900),
           ),
         ],
       ),
