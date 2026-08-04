@@ -86,7 +86,11 @@ void main() {
     );
     expect(numberButton.onPressed, isNull);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Continue').last);
+    final continueButton =
+        find.widgetWithText(FilledButton, 'Continue').last;
+    await tester.ensureVisible(continueButton);
+    await tester.pumpAndSettle();
+    await tester.tap(continueButton);
     await tester.pumpAndSettle();
     expect(find.text('Game paused'), findsNothing);
 
