@@ -83,6 +83,10 @@ Future<void> main() async {
 
 Future<void> _initializeGooglePlayGames() async {
   final games = PlatformGameServices.instance;
+  // Construct the account bridge before probing authentication. This registers
+  // the callback that links Firebase after a later user-initiated Play Games
+  // sign-in, even when automatic sign-in did not succeed during startup.
+  final accountBridge = PlayGamesFirebaseAuthService.instance;
   if (!await games.isConfigured()) return;
 
   // Play Games v2 already performs an automatic sign-in attempt. Startup must
@@ -93,7 +97,7 @@ Future<void> _initializeGooglePlayGames() async {
 
   // Restore/link the permanent Firebase account using the one-time Play Games
   // server auth code. Failures remain optional and never block offline Sudoku.
-  await PlayGamesFirebaseAuthService.instance.restoreSilently();
+  await accountBridge.restoreSilently();
 
   await PlatformGameStatsService.instance.initialize();
   await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
