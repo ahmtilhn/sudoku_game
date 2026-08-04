@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
+import '../../services/firebase_session_service.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
 import '../../widgets/app_backdrop.dart';
@@ -67,6 +68,13 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
         authenticated = await _games.authenticate();
       }
 
+      // A successful Play Games connection must also become the permanent
+      // Firebase account. This preserves the same backend UID, nickname, Coin,
+      // ELO and social profile after reinstalling the game.
+      if (authenticated && prompt) {
+        await FirebaseSessionService.connectPlayGamesAccount();
+      }
+
       if (!mounted) return;
       setState(() {
         _configured = configured;
@@ -77,6 +85,14 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
               _games.lastError.value ??
               'authentication_failed: Google Play Games did not authenticate the current account.';
         }
+      });
+    } on FirebaseSessionException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _configured = true;
+        _authenticated = _games.authenticated.value;
+        _player = _games.localPlayer.value;
+        _error = '${error.code ?? 'firebase_play_games'}: ${error.message}';
       });
     } on PlatformGameServicesException catch (error) {
       if (!mounted) return;
@@ -103,6 +119,9 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
     var authenticated = await _games.refreshAuthentication();
     if (!authenticated) {
       authenticated = await _games.authenticate();
+    }
+    if (authenticated) {
+      await FirebaseSessionService.connectPlayGamesAccount();
     }
     if (mounted) {
       setState(() {
@@ -155,6 +174,12 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
         throw const PlatformGameServicesException(
           'achievements_unavailable',
           'Google Play achievements could not be opened.',
+        );
+      }
+    } on FirebaseSessionException catch (error) {
+      if (mounted) {
+        setState(
+          () => _error = '${error.code ?? 'firebase_play_games'}: ${error.message}',
         );
       }
     } on PlatformGameServicesException catch (error) {
