@@ -93,14 +93,68 @@ class GameCenterIdentityProof {
   }
 }
 
+@immutable
+class PlayGamesDiagnostics {
+  const PlayGamesDiagnostics(this.values);
+
+  static const String expectedPlayAppSigningSha1 =
+      '53:B0:F0:FF:89:6C:50:AE:B0:86:F2:04:A2:2E:ED:E2:9F:1B:F3:0B';
+
+  final Map<String, String> values;
+
+  factory PlayGamesDiagnostics.fromMap(Map<Object?, Object?> map) {
+    return PlayGamesDiagnostics(_stringMap(map));
+  }
+
+  String get packageName => values['packageName'] ?? '';
+  String get projectId => values['projectId'] ?? '';
+  String get certificateSha1 => values['certificateSha1'] ?? '';
+  String get installer => values['installer'] ?? '';
+  String get version => values['version'] ?? '';
+  String get playServicesStatus => values['playServicesStatus'] ?? '';
+  String get apiStatusCode => values['apiStatusCode'] ?? '';
+  String get apiStatusName => values['apiStatusName'] ?? '';
+
+  bool get installedFromGooglePlay => installer == 'com.android.vending';
+
+  bool get certificateMatchesPlayAppSigning =>
+      _normalizeFingerprint(certificateSha1) ==
+      _normalizeFingerprint(expectedPlayAppSigningSha1);
+
+  String get conciseSummary {
+    final parts = <String>[
+      if (packageName.isNotEmpty) 'package=$packageName',
+      if (projectId.isNotEmpty) 'playGamesProject=$projectId',
+      if (certificateSha1.isNotEmpty) 'sha1=$certificateSha1',
+      if (installer.isNotEmpty) 'installer=$installer',
+      if (apiStatusCode.isNotEmpty && apiStatusCode != 'none')
+        'status=$apiStatusCode ($apiStatusName)',
+      if (playServicesStatus.isNotEmpty) 'playServices=$playServicesStatus',
+      if (version.isNotEmpty) 'version=$version',
+    ];
+    return parts.join(', ');
+  }
+}
+
 class PlatformGameServicesException implements Exception {
-  const PlatformGameServicesException(this.code, this.message);
+  const PlatformGameServicesException(
+    this.code,
+    this.message, {
+    this.diagnostics = const <String, String>{},
+  });
 
   final String code;
   final String message;
+  final Map<String, String> diagnostics;
+
+  PlayGamesDiagnostics get playGamesDiagnostics =>
+      PlayGamesDiagnostics(diagnostics);
 
   @override
-  String toString() => '$code: $message';
+  String toString() {
+    final summary = playGamesDiagnostics.conciseSummary;
+    return summary.isEmpty ? '$code: $message' : '$code: $message | $summary';
+  }
 }
 
 class PlatformGameServices {
@@ -117,7 +171,20 @@ class PlatformGameServices {
       ValueNotifier<PlatformPlayer?>(null);
   final ValueNotifier<String?> lastError = ValueNotifier<String?>(null);
 
+  Future<void> Function()? _afterInteractiveAuthentication;
+
+  void registerAfterInteractiveAuthentication(
+    Future<void> Function()? callback,
+  ) {
+    _afterInteractiveAuthentication = callback;
+  }
+
   Future<bool> isConfigured() => _invokeBool('isConfigured');
+
+  Future<PlayGamesDiagnostics> getDiagnostics() async {
+    final map = await _invokeMap('getDiagnostics');
+    return PlayGamesDiagnostics.fromMap(map ?? const <Object?, Object?>{});
+  }
 
   Future<bool> refreshAuthentication() async {
     final value = await _invokeBool('isAuthenticated');
@@ -130,15 +197,41 @@ class PlatformGameServices {
     return value;
   }
 
-  Future<bool> authenticate() async {
+  Future<bool> authenticate({bool notifyAccountBridge = true}) async {
     final value = await _invokeBool('authenticate');
     authenticated.value = value;
     localPlayer.value = value ? await getLocalPlayer() : null;
     if (!value) {
-      lastError.value =
-          'authentication_failed: Google Play Games did not authenticate the current account.';
+      final diagnostics = await _safeDiagnostics();
+      final exception = PlatformGameServicesException(
+        'authentication_failed',
+        'Google Play Games did not authenticate the current account.',
+        diagnostics: diagnostics.values,
+      );
+      lastError.value = exception.toString();
+      return false;
     }
-    return value;
+
+    final callback = notifyAccountBridge
+        ? _afterInteractiveAuthentication
+        : null;
+    if (callback != null) {
+      try {
+        await callback();
+      } catch (error) {
+        final diagnostics = await _safeDiagnostics();
+        final exception = PlatformGameServicesException(
+          'account_link_failed',
+          'Google Play Games connected, but the Firebase player account could not be linked: $error',
+          diagnostics: diagnostics.values,
+        );
+        lastError.value = exception.toString();
+        throw exception;
+      }
+    }
+
+    lastError.value = null;
+    return true;
   }
 
   Future<PlatformPlayer?> getLocalPlayer() async {
@@ -175,11 +268,8 @@ class PlatformGameServices {
     <String, Object?>{'achievementId': achievementId},
   );
 
-  Future<bool> recordGameStatsEvents(
-    List<Map<String, Object?>> events,
-  ) => _invokeBool('recordGameStatsEvents', <String, Object?>{
-    'events': events,
-  });
+  Future<bool> recordGameStatsEvents(List<Map<String, Object?>> events) =>
+      _invokeBool('recordGameStatsEvents', <String, Object?>{'events': events});
 
   Future<String?> requestServerAuthCode() async {
     final value = await _invoke<Object?>('requestServerAuthCode');
@@ -200,6 +290,14 @@ class PlatformGameServices {
         .map(PlatformPlayer.fromMap)
         .where((player) => player.playerId.isNotEmpty)
         .toList(growable: false);
+  }
+
+  Future<PlayGamesDiagnostics> _safeDiagnostics() async {
+    try {
+      return await getDiagnostics();
+    } catch (_) {
+      return const PlayGamesDiagnostics(<String, String>{});
+    }
   }
 
   Future<bool> _invokeBool(
@@ -235,6 +333,7 @@ class PlatformGameServices {
       final exception = PlatformGameServicesException(
         error.code,
         error.message ?? 'Platform game services request failed.',
+        diagnostics: _stringMap(error.details),
       );
       lastError.value = exception.toString();
       throw exception;
@@ -244,6 +343,17 @@ class PlatformGameServices {
     }
   }
 }
+
+Map<String, String> _stringMap(Object? value) {
+  if (value is! Map) return const <String, String>{};
+  return <String, String>{
+    for (final entry in value.entries)
+      entry.key.toString(): entry.value?.toString() ?? '',
+  };
+}
+
+String _normalizeFingerprint(String value) =>
+    value.replaceAll(RegExp(r'[^0-9a-fA-F]'), '').toUpperCase();
 
 int _intFromMap(Object? value) {
   if (value is int) return value;

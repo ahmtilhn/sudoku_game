@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
+import '../../services/firebase_runtime_config.dart';
+import '../../services/firebase_session_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 
@@ -19,7 +21,8 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
   String? _error;
   List<SocialPlayer> _requests = const <SocialPlayer>[];
 
-  bool get _configured => _social.configured && _push.configured;
+  bool get _configured =>
+      _social.configured && FirebaseRuntimeConfig.configured;
 
   @override
   void initState() {
@@ -41,10 +44,16 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
       _error = null;
     });
     try {
+      // Friend requests require an authenticated Firebase ID token. Push
+      // notification registration is optional and must not be used as the gate
+      // for loading the social inbox.
+      await FirebaseSessionService.ensureAnonymousSession();
       await _push.initialize();
       await _social.ensureProfile();
       final requests = await _social.loadIncomingFriendRequests();
       if (mounted) setState(() => _requests = requests);
+    } on FirebaseSessionException catch (error) {
+      if (mounted) setState(() => _error = error.message);
     } on SocialApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (error) {

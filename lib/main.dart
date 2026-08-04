@@ -36,8 +36,17 @@ Future<void> main() async {
       ),
     );
     unawaited(
-      _initializeOptionalService('Firebase and push', () async {
+      _initializeOptionalService('Firebase, Play Games, and push', () async {
         await FirebaseServices.instance.initialize();
+
+        // Resolve the permanent Play Games-linked Firebase account before push
+        // initialization is allowed to create a guest Firebase session.
+        await _initializeOptionalService(
+          'Google Play Games',
+          _initializeGooglePlayGames,
+          timeout: const Duration(seconds: 30),
+        );
+
         final push = PushNotificationService.instance;
         await push.initialize();
         if (!push.userDisabled.value) {
@@ -49,13 +58,6 @@ Future<void> main() async {
         }
         await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
       }, timeout: const Duration(seconds: 60)),
-    );
-    unawaited(
-      _initializeOptionalService(
-        'Google Play Games',
-        _initializeGooglePlayGames,
-        timeout: const Duration(seconds: 30),
-      ),
     );
     unawaited(
       _initializeOptionalService(
@@ -83,6 +85,10 @@ Future<void> main() async {
 
 Future<void> _initializeGooglePlayGames() async {
   final games = PlatformGameServices.instance;
+  // Construct the account bridge before probing authentication. This registers
+  // the callback that links Firebase after a later user-initiated Play Games
+  // sign-in, even when automatic sign-in did not succeed during startup.
+  final accountBridge = PlayGamesFirebaseAuthService.instance;
   if (!await games.isConfigured()) return;
 
   // Play Games v2 already performs an automatic sign-in attempt. Startup must
@@ -93,7 +99,7 @@ Future<void> _initializeGooglePlayGames() async {
 
   // Restore/link the permanent Firebase account using the one-time Play Games
   // server auth code. Failures remain optional and never block offline Sudoku.
-  await PlayGamesFirebaseAuthService.instance.restoreSilently();
+  await accountBridge.restoreSilently();
 
   await PlatformGameStatsService.instance.initialize();
   await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
