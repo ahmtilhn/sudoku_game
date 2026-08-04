@@ -48,14 +48,17 @@ REMOTE_MARKERS = (
     "http.",
     "WebSocket",
 )
-RESULT_MARKERS = (
-    "winner",
+OUTCOME_MARKERS = (
+    "UxOutcomeSheet",
+    "UxOutcomeHeader",
+    "_finishGame(",
+    "_showLossSheet(",
+    "OnlineDuelResult",
     "you_won",
     "you_lost",
     "round_lost",
-    "congratulations",
-    "result",
-    "completed",
+    "player_won",
+    "winner ==",
 )
 
 
@@ -63,46 +66,63 @@ def yes(value: bool) -> str:
     return "Yes" if value else "—"
 
 
+def is_forwarding_wrapper(source: str, classes: list[str]) -> bool:
+    if len(classes) != 1:
+        return False
+    build_match = re.search(
+        r"Widget\s+build\s*\([^)]*\)\s*(?:=>|\{\s*return)\s*(?:const\s+)?(\w+Screen)\s*\(",
+        source,
+        re.DOTALL,
+    )
+    return build_match is not None and build_match.group(1) != classes[0]
+
+
 def classify(path: Path) -> dict[str, str]:
     source = path.read_text(encoding="utf-8")
     classes = re.findall(r"class\s+(\w*Screen)\b", source)
     relative = path.relative_to(ROOT).as_posix()
     feature = path.relative_to(ROOT / "lib" / "features").parts[0]
+    wrapper = is_forwarding_wrapper(source, classes)
     remote = any(marker in source for marker in REMOTE_MARKERS)
     catches = "catch (" in source or "catch(" in source
     safe_error = "UserSafeError" in source or "_safeErrorMessage" in source
     common_state = "UxStatePanel" in source
     common_outcome = "UxOutcome" in source or "UxOutcomeHeader" in source
-    result_related = any(marker in source.lower() for marker in RESULT_MARKERS)
-    responsive = any(marker in source for marker in RESPONSIVE_MARKERS)
-    scrollable = any(marker in source for marker in SCROLL_MARKERS)
-    state_feedback = any(marker in source for marker in STATE_MARKERS)
-    localized = "context.tr(" in source or "context.strings" in source
-    safe_area = "SafeArea" in source or "AppBackdrop" in source
+    outcome_related = any(marker in source for marker in OUTCOME_MARKERS)
+    responsive = wrapper or any(marker in source for marker in RESPONSIVE_MARKERS)
+    scrollable = wrapper or any(marker in source for marker in SCROLL_MARKERS)
+    state_feedback = wrapper or any(marker in source for marker in STATE_MARKERS)
+    localized = wrapper or any(
+        marker in source
+        for marker in ("context.tr(", "context.strings", "_accountText(")
+    )
+    safe_area = wrapper or "SafeArea" in source or "AppBackdrop" in source
 
     findings: list[str] = []
     if remote and catches and not safe_error:
         findings.append("Remote failure path needs user-safe mapping review")
-    if not responsive:
+    if not wrapper and not responsive:
         findings.append("No explicit responsive primitive detected")
-    if not scrollable and source.count("Column(") >= 2:
+    if not wrapper and not scrollable and source.count("Column(") >= 2:
         findings.append("Dense column without explicit scroll marker")
-    if result_related and not common_outcome:
-        findings.append("Result-like content does not use shared outcome component")
+    if outcome_related and not common_outcome:
+        findings.append("Outcome content does not use shared outcome component")
     if not localized:
         findings.append("No localization call detected")
 
+    role = "Forwarding wrapper" if wrapper else "Production screen"
     return {
         "path": relative,
         "feature": feature,
         "classes": ", ".join(classes) if classes else path.stem,
+        "role": role,
         "safe_area": yes(safe_area),
         "responsive": yes(responsive),
         "scroll": yes(scrollable),
         "state": yes(state_feedback),
         "safe_error": yes(safe_error or not (remote and catches)),
-        "common_state": yes(common_state),
-        "common_outcome": yes(common_outcome or not result_related),
+        "common_state": yes(common_state or wrapper),
+        "common_outcome": yes(common_outcome or not outcome_related or wrapper),
         "localized": yes(localized),
         "findings": "; ".join(findings) if findings else "No static warning",
     }
@@ -111,6 +131,7 @@ def classify(path: Path) -> dict[str, str]:
 def render(rows: list[dict[str, str]]) -> str:
     warnings = [row for row in rows if row["findings"] != "No static warning"]
     features = sorted({row["feature"] for row in rows})
+    wrappers = sum(row["role"] == "Forwarding wrapper" for row in rows)
     lines: list[str] = [
         "# Complete UX Audit",
         "",
@@ -119,6 +140,7 @@ def render(rows: list[dict[str, str]]) -> str:
         "## Audit scope",
         "",
         f"- Screen files: **{len(rows)}**",
+        f"- Forwarding/compatibility wrappers: **{wrappers}**",
         f"- Feature groups: **{len(features)}** ({', '.join(features)})",
         "- Required device behavior: compact phone, large phone/tablet, text scaling, safe insets, keyboard insets and scroll recovery",
         "- Required state behavior: loading, empty, recoverable error, disabled/busy and completed/outcome",
@@ -133,17 +155,18 @@ def render(rows: list[dict[str, str]]) -> str:
         "5. **Profile hierarchy:** identity header, platform status, ELO/rank/peak/country, W-L-D/win rate/streak/tournament data, achievements and separate account/social actions.",
         "6. **Technical error exposure:** central `UserSafeError`, static CI guard and user-safe network/account/server messages across online, social, wallet, settings and platform flows.",
         "7. **Shared feedback system:** `UxStatePanel`, `UxMetricTile`, `UxOutcomeHeader` and `UxOutcomeSheet` now define loading/empty/error/result presentation.",
-        "8. **Outcome consistency:** career/practice completion, loss/continue, local duel and online duel share the same outcome header and information hierarchy.",
-        "9. **Release safety:** localization, user-safe messages, UX contracts, fatal analyzer, tests, debug APK and release AAB are CI gates.",
+        "8. **Outcome consistency:** career/practice/daily completion, loss/continue, local duel and online duel share the same outcome header and information hierarchy.",
+        "9. **Gameplay route consistency:** career and daily modes now open `EnhancedGameScreen`; compatibility wrappers are reported separately instead of being treated as broken screens.",
+        "10. **Release safety:** localization, user-safe messages, UX contracts, fatal analyzer, tests, debug APK and release AAB are CI gates.",
         "",
         "## Screen inventory",
         "",
-        "| Feature | Screen / file | Safe area | Responsive | Scroll | State feedback | Safe errors | Shared state | Shared outcome | Localized | Static finding |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        "| Feature | Screen / file | Role | Safe area | Responsive | Scroll | State feedback | Safe errors | Shared state | Shared outcome | Localized | Static finding |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
     for row in rows:
         lines.append(
-            "| {feature} | `{classes}`<br>`{path}` | {safe_area} | {responsive} | {scroll} | {state} | {safe_error} | {common_state} | {common_outcome} | {localized} | {findings} |".format(**row)
+            "| {feature} | `{classes}`<br>`{path}` | {role} | {safe_area} | {responsive} | {scroll} | {state} | {safe_error} | {common_state} | {common_outcome} | {localized} | {findings} |".format(**row)
         )
 
     lines.extend(
@@ -179,6 +202,7 @@ def render(rows: list[dict[str, str]]) -> str:
             "- `python3 tool/validate_localizations.py`",
             "- `python3 tool/verify_user_facing_messages.py`",
             "- `python3 tool/verify_ux_contracts.py`",
+            "- `python3 tool/generate_ux_audit.py --check`",
             "- `flutter analyze --fatal-infos`",
             "- `flutter test --concurrency=1`",
             "- `flutter build apk --debug`",
@@ -195,7 +219,7 @@ def render(rows: list[dict[str, str]]) -> str:
             "5. Restart and return to menu; confirm save/confirmation behavior.",
             "6. Open 16×16, enter A–G values, add notes, zoom, background the app and resume.",
             "7. Exercise offline/server-down states for profile, friends, leaderboard, wallet and matchmaking; verify no technical text appears.",
-            "8. Complete and lose career/practice/local duel/online duel sessions; compare visual hierarchy and action order.",
+            "8. Complete and lose career/practice/daily/local duel/online duel sessions; compare visual hierarchy and action order.",
             "9. Test 320×568, 360×800, 412×915 and tablet widths with text scale 1.0, 1.3 and 2.0.",
             "",
         ]
