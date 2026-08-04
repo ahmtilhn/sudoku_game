@@ -183,9 +183,7 @@ class PlatformGameServices {
 
   Future<PlayGamesDiagnostics> getDiagnostics() async {
     final map = await _invokeMap('getDiagnostics');
-    return PlayGamesDiagnostics.fromMap(
-      map ?? const <Object?, Object?>{},
-    );
+    return PlayGamesDiagnostics.fromMap(map ?? const <Object?, Object?>{});
   }
 
   Future<bool> refreshAuthentication() async {
@@ -270,11 +268,8 @@ class PlatformGameServices {
     <String, Object?>{'achievementId': achievementId},
   );
 
-  Future<bool> recordGameStatsEvents(
-    List<Map<String, Object?>> events,
-  ) => _invokeBool('recordGameStatsEvents', <String, Object?>{
-    'events': events,
-  });
+  Future<bool> recordGameStatsEvents(List<Map<String, Object?>> events) =>
+      _invokeBool('recordGameStatsEvents', <String, Object?>{'events': events});
 
   Future<String?> requestServerAuthCode() async {
     final value = await _invoke<Object?>('requestServerAuthCode');
