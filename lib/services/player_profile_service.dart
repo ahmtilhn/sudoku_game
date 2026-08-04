@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'firebase_session_service.dart';
@@ -44,19 +45,26 @@ class PlayerProfilePreferences {
   final int wins;
 
   PlayerProfilePreferences copyWith({
+    String? publicId,
+    String? username,
     String? displayName,
+    bool? profileConfirmed,
+    bool? discoverable,
     String? nameSource,
+    int? rating,
+    int? gamesPlayed,
+    int? wins,
   }) {
     return PlayerProfilePreferences(
-      publicId: publicId,
-      username: username,
+      publicId: publicId ?? this.publicId,
+      username: username ?? this.username,
       displayName: displayName ?? this.displayName,
-      profileConfirmed: profileConfirmed,
-      discoverable: discoverable,
+      profileConfirmed: profileConfirmed ?? this.profileConfirmed,
+      discoverable: discoverable ?? this.discoverable,
       nameSource: nameSource ?? this.nameSource,
-      rating: rating,
-      gamesPlayed: gamesPlayed,
-      wins: wins,
+      rating: rating ?? this.rating,
+      gamesPlayed: gamesPlayed ?? this.gamesPlayed,
+      wins: wins ?? this.wins,
     );
   }
 
@@ -82,40 +90,91 @@ class PlayerProfileService {
   static const Duration _timeout = Duration(seconds: 20);
 
   final http.Client _client = http.Client();
+  final ValueNotifier<PlayerProfilePreferences?> current =
+      ValueNotifier<PlayerProfilePreferences?>(null);
 
   Future<PlayerProfilePreferences> load() async {
-    final player = await _loadGooglePlayPlayer();
+    final player = await _loadPlatformPlayer();
+    final platformName = player?.displayName.trim();
 
     PlayerProfilePreferences preferences;
     try {
-      preferences = PlayerProfilePreferences.fromJson(
-        await _request('GET', '/v1/me/preferences'),
-      );
-    } catch (_) {
-      final displayName = player?.displayName.trim();
-      if (displayName == null || displayName.isEmpty) rethrow;
-      return PlayerProfilePreferences(
-        publicId: '',
-        username: '',
-        displayName: displayName,
-        profileConfirmed: true,
-        discoverable: true,
-        nameSource: 'google_play_games',
-        rating: 1000,
-        gamesPlayed: 0,
-        wins: 0,
+      preferences = await _loadRemotePreferences();
+    } catch (firstError) {
+      if (platformName != null &&
+          platformName.isNotEmpty &&
+          SocialApiClient.instance.configured) {
+        try {
+          await SocialApiClient.instance.ensureProfile(displayName: platformName);
+          preferences = await _loadRemotePreferences();
+        } catch (_) {
+          final fallback = PlayerProfilePreferences(
+            publicId: '',
+            username: '',
+            displayName: platformName,
+            profileConfirmed: false,
+            discoverable: true,
+            nameSource: player!.platform,
+            rating: 1000,
+            gamesPlayed: 0,
+            wins: 0,
+          );
+          current.value = fallback;
+          return fallback;
+        }
+      } else {
+        Error.throwWithStackTrace(firstError, StackTrace.current);
+      }
+    }
+
+    if (platformName == null || platformName.isEmpty) {
+      current.value = preferences;
+      return preferences;
+    }
+
+    // A name explicitly chosen by the player is authoritative. Platform
+    // identity may still provide the avatar, but it must not replace the name.
+    if (preferences.profileConfirmed && preferences.nameSource == 'custom') {
+      current.value = preferences;
+      return preferences;
+    }
+
+    if (preferences.username.trim().isNotEmpty &&
+        (preferences.displayName != platformName ||
+            preferences.nameSource != player!.platform)) {
+      try {
+        preferences = await update(
+          username: preferences.username,
+          displayName: platformName,
+          discoverable: preferences.discoverable,
+          nameSource: player.platform,
+        );
+      } catch (_) {
+        preferences = preferences.copyWith(
+          displayName: platformName,
+          nameSource: player.platform,
+        );
+      }
+    } else {
+      preferences = preferences.copyWith(
+        displayName: platformName,
+        nameSource: player!.platform,
       );
     }
 
-    final displayName = player?.displayName.trim();
-    if (displayName == null || displayName.isEmpty) return preferences;
-    return preferences.copyWith(
-      displayName: displayName,
-      nameSource: 'google_play_games',
+    current.value = preferences;
+    return preferences;
+  }
+
+  Future<PlayerProfilePreferences> refreshFromPlatform() => load();
+
+  Future<PlayerProfilePreferences> _loadRemotePreferences() async {
+    return PlayerProfilePreferences.fromJson(
+      await _request('GET', '/v1/me/preferences'),
     );
   }
 
-  Future<PlatformPlayer?> _loadGooglePlayPlayer() async {
+  Future<PlatformPlayer?> _loadPlatformPlayer() async {
     final games = PlatformGameServices.instance;
     final cached = games.localPlayer.value;
     if (cached != null) return cached;
@@ -123,9 +182,7 @@ class PlayerProfileService {
     try {
       if (!await games.isConfigured()) return null;
       var authenticated = await games.refreshAuthentication();
-      if (!authenticated) {
-        authenticated = await games.authenticate();
-      }
+      if (!authenticated) authenticated = await games.authenticate();
       return authenticated ? games.localPlayer.value : null;
     } on PlatformGameServicesException {
       return null;
@@ -138,7 +195,7 @@ class PlayerProfileService {
     required bool discoverable,
     required String nameSource,
   }) async {
-    return PlayerProfilePreferences.fromJson(
+    final updated = PlayerProfilePreferences.fromJson(
       await _request(
         'PUT',
         '/v1/me/preferences',
@@ -150,6 +207,8 @@ class PlayerProfileService {
         },
       ),
     );
+    current.value = updated;
+    return updated;
   }
 
   Future<Map<String, dynamic>> _request(
