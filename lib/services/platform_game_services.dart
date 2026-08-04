@@ -171,6 +171,14 @@ class PlatformGameServices {
       ValueNotifier<PlatformPlayer?>(null);
   final ValueNotifier<String?> lastError = ValueNotifier<String?>(null);
 
+  Future<void> Function()? _afterInteractiveAuthentication;
+
+  void registerAfterInteractiveAuthentication(
+    Future<void> Function()? callback,
+  ) {
+    _afterInteractiveAuthentication = callback;
+  }
+
   Future<bool> isConfigured() => _invokeBool('isConfigured');
 
   Future<PlayGamesDiagnostics> getDiagnostics() async {
@@ -191,7 +199,7 @@ class PlatformGameServices {
     return value;
   }
 
-  Future<bool> authenticate() async {
+  Future<bool> authenticate({bool notifyAccountBridge = true}) async {
     final value = await _invokeBool('authenticate');
     authenticated.value = value;
     localPlayer.value = value ? await getLocalPlayer() : null;
@@ -203,8 +211,29 @@ class PlatformGameServices {
         diagnostics: diagnostics.values,
       );
       lastError.value = exception.toString();
+      return false;
     }
-    return value;
+
+    final callback = notifyAccountBridge
+        ? _afterInteractiveAuthentication
+        : null;
+    if (callback != null) {
+      try {
+        await callback();
+      } catch (error) {
+        final diagnostics = await _safeDiagnostics();
+        final exception = PlatformGameServicesException(
+          'account_link_failed',
+          'Google Play Games connected, but the Firebase player account could not be linked: $error',
+          diagnostics: diagnostics.values,
+        );
+        lastError.value = exception.toString();
+        throw exception;
+      }
+    }
+
+    lastError.value = null;
+    return true;
   }
 
   Future<PlatformPlayer?> getLocalPlayer() async {
