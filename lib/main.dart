@@ -10,6 +10,7 @@ import 'services/ads_service.dart';
 import 'services/coin_store_service.dart';
 import 'services/economy_service.dart';
 import 'services/firebase_services.dart';
+import 'services/play_games_firebase_auth_service.dart';
 import 'services/platform_game_services.dart';
 import 'services/platform_game_stats_service.dart';
 import 'services/platform_leaderboard_service.dart';
@@ -84,11 +85,15 @@ Future<void> _initializeGooglePlayGames() async {
   final games = PlatformGameServices.instance;
   if (!await games.isConfigured()) return;
 
-  var authenticated = await games.refreshAuthentication();
-  if (!authenticated) {
-    authenticated = await games.authenticate();
-  }
+  // Play Games v2 already performs an automatic sign-in attempt. Startup must
+  // never call the interactive signIn() API, otherwise the system account panel
+  // can repeatedly appear on every launch or route refresh.
+  final authenticated = await games.refreshAuthentication();
   if (!authenticated) return;
+
+  // Restore/link the permanent Firebase account using the one-time Play Games
+  // server auth code. Failures remain optional and never block offline Sudoku.
+  await PlayGamesFirebaseAuthService.instance.restoreSilently();
 
   await PlatformGameStatsService.instance.initialize();
   await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
