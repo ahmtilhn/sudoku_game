@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 import 'firebase_runtime_config.dart';
 import 'platform_game_services.dart';
@@ -16,7 +17,7 @@ class PlayGamesFirebaseAuthException implements Exception {
   String toString() => message;
 }
 
-/// Binds the Play Games player to Firebase Authentication.
+/// Binds the Android Play Games player to Firebase Authentication.
 ///
 /// Linking preserves the current anonymous Firebase UID on first connection, so
 /// the nickname and backend profile already created for that UID remain intact.
@@ -24,15 +25,20 @@ class PlayGamesFirebaseAuthException implements Exception {
 /// same Firebase UID and therefore the same server-side player account.
 class PlayGamesFirebaseAuthService {
   PlayGamesFirebaseAuthService._() {
-    PlatformGameServices.instance.registerAfterInteractiveAuthentication(
-      _linkAfterInteractiveAuthentication,
-    );
+    if (supported) {
+      PlatformGameServices.instance.registerAfterInteractiveAuthentication(
+        _linkAfterInteractiveAuthentication,
+      );
+    }
   }
 
   static final PlayGamesFirebaseAuthService instance =
       PlayGamesFirebaseAuthService._();
 
   static const Duration _timeout = Duration(seconds: 20);
+
+  static bool get supported =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   Future<User?>? _inFlight;
   DateTime? _lastSilentFailureAt;
@@ -41,6 +47,8 @@ class PlayGamesFirebaseAuthService {
   Object? get lastSilentFailure => _lastSilentFailure;
 
   Future<User?> restoreSilently() {
+    if (!supported) return Future<User?>.value(null);
+
     final current = Firebase.apps.isEmpty
         ? null
         : FirebaseAuth.instance.currentUser;
@@ -72,6 +80,8 @@ class PlayGamesFirebaseAuthService {
   }
 
   Future<void> _linkAfterInteractiveAuthentication() async {
+    if (!supported) return;
+
     final pending = _inFlight;
     if (pending != null) {
       final existing = await pending;
@@ -101,6 +111,13 @@ class PlayGamesFirebaseAuthService {
   }
 
   Future<User> connect() async {
+    if (!supported) {
+      throw const PlayGamesFirebaseAuthException(
+        'Google Play Games account linking is available only on Android.',
+        code: 'unsupported_platform',
+      );
+    }
+
     final pending = _inFlight;
     if (pending != null) {
       final existing = await pending;
