@@ -12,9 +12,9 @@ $expectedPlaySigningSha1 = "53:B0:F0:FF:89:6C:50:AE:B0:86:F2:04:A2:2E:ED:E2:9F:1
 
 $googleServicesPath = Join-Path $ProjectRoot "android\app\google-services.json"
 $servicesXmlPath = Join-Path $ProjectRoot "android\app\src\main\res\values\services.xml"
-$gradlePropertiesPath = Join-Path $ProjectRoot "android\gradle.properties"
+$buildGradlePath = Join-Path $ProjectRoot "android\app\build.gradle.kts"
 
-foreach ($path in @($googleServicesPath, $servicesXmlPath, $gradlePropertiesPath)) {
+foreach ($path in @($googleServicesPath, $servicesXmlPath, $buildGradlePath)) {
   if (!(Test-Path -LiteralPath $path)) {
     throw "Required release configuration file is missing: $path"
   }
@@ -64,30 +64,20 @@ if ($playGamesWebClientId -notin $webClientIds) {
   throw "The Play Games server OAuth client is not present as a web client in google-services.json."
 }
 
-$gradleText = Get-Content -LiteralPath $gradlePropertiesPath -Raw
-$dartDefinesMatch = [regex]::Match($gradleText, "(?m)^dart-defines=(.+)$")
-if (!$dartDefinesMatch.Success) {
-  throw "android/gradle.properties does not embed the release dart-defines."
+$buildGradleText = Get-Content -LiteralPath $buildGradlePath -Raw
+$backendMatch = [regex]::Match(
+  $buildGradleText,
+  '(?s)val\s+defaultSocialBackendUrl\s*=\s*"([^"]+)"'
+)
+if (!$backendMatch.Success) {
+  throw "build.gradle.kts does not define the default Android social backend."
+}
+if ($buildGradleText -notmatch 'tasks\.withType<FlutterTask>\(\)' -or
+    $buildGradleText -notmatch 'withDefaultSocialBackend\(dartDefines\)') {
+  throw "The release Flutter task does not merge the default SOCIAL_BACKEND_URL."
 }
 
-$defines = @{}
-foreach ($encoded in $dartDefinesMatch.Groups[1].Value.Trim().Split(',')) {
-  try {
-    $decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded.Trim()))
-  } catch {
-    throw "A dart-define entry is not valid Base64."
-  }
-  $separator = $decoded.IndexOf('=')
-  if ($separator -le 0) {
-    throw "Invalid decoded dart-define: $decoded"
-  }
-  $defines[$decoded.Substring(0, $separator)] = $decoded.Substring($separator + 1)
-}
-
-$backendUrl = [string]$defines["SOCIAL_BACKEND_URL"]
-if ([string]::IsNullOrWhiteSpace($backendUrl)) {
-  throw "SOCIAL_BACKEND_URL is not embedded in the normal Android release build."
-}
+$backendUrl = $backendMatch.Groups[1].Value
 $backendUri = $null
 if (![Uri]::TryCreate($backendUrl, [UriKind]::Absolute, [ref]$backendUri) -or
     $backendUri.Scheme -ne "https" -or
@@ -96,7 +86,7 @@ if (![Uri]::TryCreate($backendUrl, [UriKind]::Absolute, [ref]$backendUri) -or
     $backendUri.Query -or
     $backendUri.Fragment -or
     $backendUrl -match "localhost|127\.0\.0\.1|replace_with|example") {
-  throw "SOCIAL_BACKEND_URL must be a real HTTPS endpoint without credentials or query data."
+  throw "The default SOCIAL_BACKEND_URL must be a real HTTPS endpoint without credentials or query data."
 }
 
 $androidOauthClients = @($androidClient.oauth_client) | Where-Object {
