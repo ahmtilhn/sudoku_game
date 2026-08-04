@@ -10,18 +10,13 @@ void main() {
 
     expect(
       manifest,
-      contains(
-        'android:name="com.google.android.gms.games.APP_ID"',
-      ),
+      contains('android:name="com.google.android.gms.games.APP_ID"'),
     );
     expect(
       manifest,
       contains('android:value="@string/game_services_project_id"'),
     );
-    expect(
-      manifest,
-      isNot(contains('android:value="@string/app_id"')),
-    );
+    expect(manifest, isNot(contains('android:value="@string/app_id"')));
   });
 
   test('Android application initializes Play Games with the same project ID', () {
@@ -29,10 +24,7 @@ void main() {
       'android/app/src/main/kotlin/com/devoviastudio/sudoku/SudokuApplication.kt',
     ).readAsStringSync();
 
-    expect(
-      application,
-      contains('R.string.game_services_project_id'),
-    );
+    expect(application, contains('R.string.game_services_project_id'));
     expect(application, isNot(contains('R.string.app_id')));
   });
 

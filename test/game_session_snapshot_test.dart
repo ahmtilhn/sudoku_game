@@ -6,18 +6,8 @@ void main() {
   const puzzle = SudokuPuzzle(
     id: 'session-test',
     difficulty: SudokuDifficulty.easy,
-    puzzle: <int>[
-      1, 0, 0, 4,
-      0, 4, 1, 0,
-      0, 1, 4, 0,
-      4, 0, 0, 1,
-    ],
-    solution: <int>[
-      1, 2, 3, 4,
-      3, 4, 1, 2,
-      2, 1, 4, 3,
-      4, 3, 2, 1,
-    ],
+    puzzle: <int>[1, 0, 0, 4, 0, 4, 1, 0, 0, 1, 4, 0, 4, 0, 0, 1],
+    solution: <int>[1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
     size: 4,
     boxRows: 2,
     boxColumns: 2,
@@ -30,10 +20,13 @@ void main() {
   }) {
     return GameSessionSnapshot(
       puzzleId: puzzle.id,
-      puzzleSignature:
-          signature ?? GameSessionSnapshot.signatureFor(puzzle),
+      puzzleSignature: signature ?? GameSessionSnapshot.signatureFor(puzzle),
       board: board ?? List<int>.from(puzzle.puzzle),
-      notes: notes ?? <int, Set<int>>{1: <int>{2, 3}},
+      notes:
+          notes ??
+          <int, Set<int>>{
+            1: <int>{2, 3},
+          },
       history: const <GameSessionMove>[],
       hintedIndexes: const <int>{},
       selectedIndex: 1,
@@ -63,7 +56,11 @@ void main() {
 
   test('rejects notes on fixed or completed cells', () {
     expect(
-      snapshot(notes: <int, Set<int>>{0: <int>{2}}).isValidFor(puzzle),
+      snapshot(
+        notes: <int, Set<int>>{
+          0: <int>{2},
+        },
+      ).isValidFor(puzzle),
       isFalse,
     );
   });

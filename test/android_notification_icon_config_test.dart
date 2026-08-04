@@ -10,18 +10,10 @@ void main() {
     final aliases = File(
       'android/app/src/main/res/values/notification_icons.xml',
     ).readAsStringSync();
-    final icon = File(
-      'android/app/src/main/res/drawable/ic_stat_sudoku.xml',
-    );
+    final icon = File('android/app/src/main/res/drawable/ic_stat_sudoku.xml');
 
-    expect(
-      service,
-      contains("AndroidInitializationSettings('ic_launcher')"),
-    );
-    expect(
-      aliases,
-      contains('<item name="ic_launcher" type="drawable">'),
-    );
+    expect(service, contains("AndroidInitializationSettings('ic_launcher')"));
+    expect(aliases, contains('<item name="ic_launcher" type="drawable">'));
     expect(aliases, contains('@drawable/ic_stat_sudoku'));
     expect(icon.existsSync(), isTrue);
   });
@@ -37,9 +29,6 @@ void main() {
         'android:name="com.google.firebase.messaging.default_notification_icon"',
       ),
     );
-    expect(
-      manifest,
-      contains('android:resource="@drawable/ic_stat_sudoku"'),
-    );
+    expect(manifest, contains('android:resource="@drawable/ic_stat_sudoku"'));
   });
 }

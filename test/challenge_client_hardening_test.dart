@@ -10,9 +10,7 @@ void main() {
     final invitation = File(
       'lib/features/social/ux_challenge_invitation_screen.dart',
     ).readAsStringSync();
-    final api = File(
-      'lib/services/social_api_client.dart',
-    ).readAsStringSync();
+    final api = File('lib/services/social_api_client.dart').readAsStringSync();
 
     expect(api, contains('Future<SocialChallenge> loadChallenge'));
     expect(api, contains('Future<SocialChallenge> cancelChallenge'));

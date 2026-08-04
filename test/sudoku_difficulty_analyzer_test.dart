@@ -7,18 +7,8 @@ void main() {
     const puzzle = SudokuPuzzle(
       id: 'single-gap',
       difficulty: SudokuDifficulty.beginner,
-      puzzle: <int>[
-        1, 2, 3, 0,
-        3, 4, 1, 2,
-        2, 1, 4, 3,
-        4, 3, 2, 1,
-      ],
-      solution: <int>[
-        1, 2, 3, 4,
-        3, 4, 1, 2,
-        2, 1, 4, 3,
-        4, 3, 2, 1,
-      ],
+      puzzle: <int>[1, 2, 3, 0, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
+      solution: <int>[1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
       size: 4,
       boxRows: 2,
       boxColumns: 2,

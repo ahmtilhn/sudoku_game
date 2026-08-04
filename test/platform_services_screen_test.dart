@@ -12,20 +12,20 @@ void main() {
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      return switch (call.method) {
-        'isConfigured' => true,
-        'isAuthenticated' => true,
-        'getLocalPlayer' => <String, Object?>{
-            'platform': 'google_play_games',
-            'playerId': 'player-1',
-            'displayName': 'Responsive Player',
-          },
-        'authenticate' => true,
-        'showLeaderboard' => true,
-        'showAchievements' => true,
-        _ => null,
-      };
-    });
+          return switch (call.method) {
+            'isConfigured' => true,
+            'isAuthenticated' => true,
+            'getLocalPlayer' => <String, Object?>{
+              'platform': 'google_play_games',
+              'playerId': 'player-1',
+              'displayName': 'Responsive Player',
+            },
+            'authenticate' => true,
+            'showLeaderboard' => true,
+            'showAchievements' => true,
+            _ => null,
+          };
+        });
   });
 
   tearDown(() {
@@ -44,9 +44,9 @@ void main() {
         strings: AppStrings.forTesting(),
         child: MaterialApp(
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaler: const TextScaler.linear(2),
-            ),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(2)),
             child: child!,
           ),
           home: const PlatformServicesScreen(),

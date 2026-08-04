@@ -41,9 +41,7 @@ void main() {
       ),
     );
 
-    final selectedCell = find.byKey(
-      const ValueKey<String>('sudoku-cell-1'),
-    );
+    final selectedCell = find.byKey(const ValueKey<String>('sudoku-cell-1'));
     final selectedValue = find.descendant(
       of: selectedCell,
       matching: find.text('2'),
@@ -86,8 +84,7 @@ void main() {
     );
     expect(numberButton.onPressed, isNull);
 
-    final continueButton =
-        find.widgetWithText(FilledButton, 'Continue').last;
+    final continueButton = find.widgetWithText(FilledButton, 'Continue').last;
     await tester.ensureVisible(continueButton);
     await tester.pumpAndSettle();
     await tester.tap(continueButton);
@@ -100,46 +97,12 @@ void main() {
 }
 
 SudokuPuzzle _miniPuzzle() {
-  const solution = <int>[
-    1,
-    2,
-    3,
-    4,
-    3,
-    4,
-    1,
-    2,
-    2,
-    1,
-    4,
-    3,
-    4,
-    3,
-    2,
-    1,
-  ];
+  const solution = <int>[1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1];
   return const SudokuPuzzle(
     id: 'ux-test-mini',
     title: 'Mini',
     difficulty: SudokuDifficulty.easy,
-    puzzle: <int>[
-      1,
-      0,
-      3,
-      4,
-      3,
-      4,
-      1,
-      2,
-      2,
-      1,
-      4,
-      3,
-      4,
-      3,
-      2,
-      1,
-    ],
+    puzzle: <int>[1, 0, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
     solution: solution,
     size: 4,
     boxRows: 2,

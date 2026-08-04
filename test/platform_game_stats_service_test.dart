@@ -4,48 +4,50 @@ import 'package:sudoku_game/services/online_duel_models.dart';
 import 'package:sudoku_game/services/platform_game_stats_service.dart';
 
 void main() {
-  test('submits ranked match and progress events with authoritative values', () async {
-    final recorded = <Map<String, Object?>>[];
-    final service = PlatformGameStatsService(
-      platform: TargetPlatform.android,
-      isConfigured: () async => true,
-      refreshAuthentication: () async => true,
-      loadProfile: () async => const PlatformGameStatsProfile(
-        currentElo: 1216,
-        winStreak: 4,
-      ),
-      recordEvents: (events) async {
-        recorded.addAll(events);
-        return true;
-      },
-    );
+  test(
+    'submits ranked match and progress events with authoritative values',
+    () async {
+      final recorded = <Map<String, Object?>>[];
+      final service = PlatformGameStatsService(
+        platform: TargetPlatform.android,
+        isConfigured: () async => true,
+        refreshAuthentication: () async => true,
+        loadProfile: () async =>
+            const PlatformGameStatsProfile(currentElo: 1216, winStreak: 4),
+        recordEvents: (events) async {
+          recorded.addAll(events);
+          return true;
+        },
+      );
 
-    service.observeSnapshot(
-      _snapshot(
-        status: OnlineDuelStatus.active,
-        serverTime: DateTime.utc(2026, 8, 1, 20),
-      ),
-    );
-    final result = await service.mirrorFinalStats(
-      _snapshot(
-        status: OnlineDuelStatus.completed,
-        serverTime: DateTime.utc(2026, 8, 1, 20, 2),
-      ),
-    );
+      service.observeSnapshot(
+        _snapshot(
+          status: OnlineDuelStatus.active,
+          serverTime: DateTime.utc(2026, 8, 1, 20),
+        ),
+      );
+      final result = await service.mirrorFinalStats(
+        _snapshot(
+          status: OnlineDuelStatus.completed,
+          serverTime: DateTime.utc(2026, 8, 1, 20, 2),
+        ),
+      );
 
-    expect(result.status, PlatformGameStatsStatus.submitted);
-    expect(recorded, hasLength(2));
-    expect(recorded.first['eventName'], 'rankedMatchCompleted');
-    final properties = (recorded.first['properties'] as Map).cast<String, Object?>();
-    expect(_value(properties, 'matchId'), 'match-1');
-    expect(_value(properties, 'isWinner'), isTrue);
-    expect(_value(properties, 'durationSeconds'), 120.0);
-    expect(_value(properties, 'globalEloAfter'), 1216);
-    expect(_value(properties, 'winStreakAfter'), 4);
-    expect(_value(properties, 'difficulty'), 'hard');
-    expect(_value(properties, 'eloDelta'), 16);
-    expect(recorded.last['eventName'], 'progressUpdate');
-  });
+      expect(result.status, PlatformGameStatsStatus.submitted);
+      expect(recorded, hasLength(2));
+      expect(recorded.first['eventName'], 'rankedMatchCompleted');
+      final properties = (recorded.first['properties'] as Map)
+          .cast<String, Object?>();
+      expect(_value(properties, 'matchId'), 'match-1');
+      expect(_value(properties, 'isWinner'), isTrue);
+      expect(_value(properties, 'durationSeconds'), 120.0);
+      expect(_value(properties, 'globalEloAfter'), 1216);
+      expect(_value(properties, 'winStreakAfter'), 4);
+      expect(_value(properties, 'difficulty'), 'hard');
+      expect(_value(properties, 'eloDelta'), 16);
+      expect(recorded.last['eventName'], 'progressUpdate');
+    },
+  );
 
   test('does not submit friendly matches', () async {
     var calls = 0;
@@ -53,10 +55,8 @@ void main() {
       platform: TargetPlatform.android,
       isConfigured: () async => true,
       refreshAuthentication: () async => true,
-      loadProfile: () async => const PlatformGameStatsProfile(
-        currentElo: 1216,
-        winStreak: 1,
-      ),
+      loadProfile: () async =>
+          const PlatformGameStatsProfile(currentElo: 1216, winStreak: 1),
       recordEvents: (_) async {
         calls++;
         return true;
@@ -77,10 +77,8 @@ void main() {
       platform: TargetPlatform.android,
       isConfigured: () async => true,
       refreshAuthentication: () async => true,
-      loadProfile: () async => const PlatformGameStatsProfile(
-        currentElo: 1216,
-        winStreak: 2,
-      ),
+      loadProfile: () async =>
+          const PlatformGameStatsProfile(currentElo: 1216, winStreak: 2),
       recordEvents: (_) async {
         calls++;
         return true;
@@ -105,10 +103,8 @@ void main() {
       platform: TargetPlatform.android,
       isConfigured: () async => true,
       refreshAuthentication: () async => true,
-      loadProfile: () async => const PlatformGameStatsProfile(
-        currentElo: 1450,
-        winStreak: 0,
-      ),
+      loadProfile: () async =>
+          const PlatformGameStatsProfile(currentElo: 1450, winStreak: 0),
       recordEvents: (events) async {
         recorded.addAll(events);
         return true;
@@ -119,8 +115,8 @@ void main() {
 
     expect(recorded, hasLength(1));
     expect(recorded.single['eventName'], 'progressUpdate');
-    final properties =
-        (recorded.single['properties'] as Map).cast<String, Object?>();
+    final properties = (recorded.single['properties'] as Map)
+        .cast<String, Object?>();
     expect(_value(properties, 'currentProgress'), 1450);
   });
 }

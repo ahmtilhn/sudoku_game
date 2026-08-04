@@ -15,45 +15,44 @@ void main() {
 
   for (final size in sizes) {
     for (final scale in <double>[1, 1.3, 2]) {
-      testWidgets(
-        'portrait ${size.width}x${size.height} at ${scale}x',
-        (tester) async {
-          tester.view.devicePixelRatio = 1;
-          tester.view.physicalSize = size;
-          addTearDown(tester.view.resetPhysicalSize);
-          addTearDown(tester.view.resetDevicePixelRatio);
+      testWidgets('portrait ${size.width}x${size.height} at ${scale}x', (
+        tester,
+      ) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = size;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-          await tester.pumpWidget(
-            MaterialApp(
-              builder: (context, child) => MediaQuery(
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(scale),
-                ),
-                child: child!,
-              ),
-              home: Scaffold(
-                body: SafeArea(
-                  child: AdaptiveActionGroup(
-                    children: [
-                      OutlinedButton(
-                        onPressed: () {},
-                        child: const Text('Decline request'),
-                      ),
-                      FilledButton(
-                        onPressed: () {},
-                        child: const Text('Accept challenge'),
-                      ),
-                    ],
-                  ),
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: SafeArea(
+                child: AdaptiveActionGroup(
+                  children: [
+                    OutlinedButton(
+                      onPressed: () {},
+                      child: const Text('Decline request'),
+                    ),
+                    FilledButton(
+                      onPressed: () {},
+                      child: const Text('Accept challenge'),
+                    ),
+                  ],
                 ),
               ),
             ),
-          );
+          ),
+        );
 
-          await tester.pumpAndSettle();
-          expect(tester.takeException(), isNull);
-        },
-      );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      });
     }
   }
 
@@ -104,9 +103,9 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            viewInsets: const EdgeInsets.only(bottom: 280),
-          ),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(viewInsets: const EdgeInsets.only(bottom: 280)),
           child: child!,
         ),
         home: Builder(
@@ -131,9 +130,9 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: const TextScaler.linear(2),
-          ),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
           child: child!,
         ),
         home: Builder(
