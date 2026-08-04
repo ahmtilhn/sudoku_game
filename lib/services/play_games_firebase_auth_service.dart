@@ -23,7 +23,11 @@ class PlayGamesFirebaseAuthException implements Exception {
 /// After reinstall, signing in with the same Play Games credential restores the
 /// same Firebase UID and therefore the same server-side player account.
 class PlayGamesFirebaseAuthService {
-  PlayGamesFirebaseAuthService._();
+  PlayGamesFirebaseAuthService._() {
+    PlatformGameServices.instance.authenticated.addListener(
+      _onPlatformAuthenticationChanged,
+    );
+  }
 
   static final PlayGamesFirebaseAuthService instance =
       PlayGamesFirebaseAuthService._();
@@ -35,6 +39,12 @@ class PlayGamesFirebaseAuthService {
   Object? _lastSilentFailure;
 
   Object? get lastSilentFailure => _lastSilentFailure;
+
+  void _onPlatformAuthenticationChanged() {
+    if (!PlatformGameServices.instance.authenticated.value) return;
+    _lastSilentFailureAt = null;
+    unawaited(restoreSilently());
+  }
 
   Future<User?> restoreSilently() {
     final current = Firebase.apps.isEmpty
