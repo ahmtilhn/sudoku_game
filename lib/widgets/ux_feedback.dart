@@ -169,8 +169,10 @@ class UxOutcomeSheet extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.metrics = const <Widget>[],
-    required this.primaryLabel,
-    required this.onPrimary,
+    this.details,
+    this.footer,
+    this.primaryLabel,
+    this.onPrimary,
     this.secondaryLabel,
     this.onSecondary,
     this.tertiaryLabel,
@@ -182,8 +184,10 @@ class UxOutcomeSheet extends StatelessWidget {
   final String title;
   final String subtitle;
   final List<Widget> metrics;
-  final String primaryLabel;
-  final VoidCallback onPrimary;
+  final Widget? details;
+  final Widget? footer;
+  final String? primaryLabel;
+  final VoidCallback? onPrimary;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
   final String? tertiaryLabel;
@@ -237,8 +241,18 @@ class UxOutcomeSheet extends StatelessWidget {
                 children: metrics,
               ),
             ],
-            const SizedBox(height: 20),
-            FilledButton(onPressed: onPrimary, child: Text(primaryLabel)),
+            if (details != null) ...[
+              const SizedBox(height: 18),
+              details!,
+            ],
+            if (footer != null) ...[
+              const SizedBox(height: 16),
+              footer!,
+            ],
+            if (onPrimary != null && primaryLabel != null) ...[
+              const SizedBox(height: 20),
+              FilledButton(onPressed: onPrimary, child: Text(primaryLabel!)),
+            ],
             if (onSecondary != null && secondaryLabel != null) ...[
               const SizedBox(height: 8),
               OutlinedButton(
