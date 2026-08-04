@@ -5,6 +5,8 @@ on:
     paths:
       - ".github/workflows/android-release-services.yml"
       - "android/**"
+      - "backend/**"
+      - "docs/**"
       - "lib/**"
       - "test/**"
       - "tool/**"
@@ -23,6 +25,24 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: sudoku-source-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 3
+          path: |
+            .github
+            android
+            backend
+            docs
+            lib
+            test
+            tool
+            analysis_options.yaml
+            pubspec.yaml
+            pubspec.lock
 
       - name: Set up Java
         uses: actions/setup-java@v5
