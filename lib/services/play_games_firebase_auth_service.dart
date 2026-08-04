@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_runtime_config.dart';
 import 'platform_game_services.dart';
@@ -36,7 +37,9 @@ class PlayGamesFirebaseAuthService {
   Object? get lastSilentFailure => _lastSilentFailure;
 
   Future<User?> restoreSilently() {
-    final current = Firebase.apps.isEmpty ? null : FirebaseAuth.instance.currentUser;
+    final current = Firebase.apps.isEmpty
+        ? null
+        : FirebaseAuth.instance.currentUser;
     if (_isPlayGamesUser(current)) return Future<User?>.value(current);
 
     final lastFailure = _lastSilentFailureAt;
