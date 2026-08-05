@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
 import '../../data/local_progress_store.dart';
+import '../../data/samurai_game_session_store.dart';
 import '../../domain/samurai_sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../widgets/number_pad.dart';
@@ -30,12 +31,14 @@ class SamuraiGameScreen extends StatefulWidget {
     required this.puzzle,
     required this.store,
     this.onCompleted,
+    this.initialSession,
     this.mistakeLimit = 3,
   });
 
   final SamuraiPuzzle puzzle;
   final LocalProgressStore store;
   final SamuraiGameCompleted? onCompleted;
+  final SamuraiGameSession? initialSession;
   final int? mistakeLimit;
 
   @override
@@ -48,12 +51,16 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
   final Map<int, Set<int>> _notes = <int, Set<int>>{};
   final List<_SamuraiMove> _history = <_SamuraiMove>[];
   final Set<int> _hintedIndexes = <int>{};
+  final SamuraiGameSessionStore _sessionStore =
+      SamuraiGameSessionStore.instance;
 
   late List<int> _board;
   Timer? _clockTimer;
+  Timer? _saveTimer;
   int? _selectedIndex;
   int? _errorIndex;
   int _elapsedSeconds = 0;
+  int _elapsedOffsetSeconds = 0;
   int _mistakes = 0;
   int _hintsUsed = 0;
   bool _notesMode = false;
@@ -72,8 +79,24 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _board = List<int>.from(widget.puzzle.puzzle);
+    final restored = widget.initialSession;
+    if (restored != null && restored.puzzle.id == widget.puzzle.id) {
+      _board = List<int>.from(restored.board);
+      _notes.addAll(<int, Set<int>>{
+        for (final entry in restored.notes.entries)
+          entry.key: Set<int>.from(entry.value),
+      });
+      _hintedIndexes.addAll(restored.hintedIndexes);
+      _elapsedSeconds = restored.elapsedSeconds;
+      _elapsedOffsetSeconds = restored.elapsedSeconds;
+      _mistakes = restored.mistakes;
+      _hintsUsed = restored.hintsUsed;
+      _notesMode = restored.notesMode;
+    } else {
+      _board = List<int>.from(widget.puzzle.puzzle);
+    }
     _startClock();
+    _schedulePersist();
   }
 
   @override
@@ -82,6 +105,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       if (!_paused && !_lost && !_completed) _startClock();
     } else {
       _pauseClock();
+      unawaited(_persistNow());
     }
   }
 
@@ -89,6 +113,8 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pauseClock();
+    _saveTimer?.cancel();
+    unawaited(_persistNow());
     super.dispose();
   }
 
@@ -97,7 +123,8 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
     _stopwatch.start();
     _clockTimer ??= Timer.periodic(const Duration(milliseconds: 250), (_) {
       if (!mounted || !_stopwatch.isRunning) return;
-      final seconds = _stopwatch.elapsed.inSeconds;
+      final seconds =
+          _elapsedOffsetSeconds + _stopwatch.elapsed.inSeconds;
       if (seconds != _elapsedSeconds) {
         setState(() => _elapsedSeconds = seconds);
       }
@@ -108,6 +135,35 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
     _stopwatch.stop();
     _clockTimer?.cancel();
     _clockTimer = null;
+  }
+
+  void _schedulePersist() {
+    if (_completed || _lost) return;
+    _saveTimer?.cancel();
+    _saveTimer = Timer(
+      const Duration(milliseconds: 250),
+      () => unawaited(_persistNow()),
+    );
+  }
+
+  Future<void> _persistNow() async {
+    if (_completed || _lost) return;
+    await _sessionStore.save(
+      SamuraiGameSession(
+        puzzle: widget.puzzle,
+        board: List<int>.from(_board),
+        notes: <int, Set<int>>{
+          for (final entry in _notes.entries)
+            entry.key: Set<int>.from(entry.value),
+        },
+        hintedIndexes: Set<int>.from(_hintedIndexes),
+        elapsedSeconds: _elapsedSeconds,
+        mistakes: _mistakes,
+        hintsUsed: _hintsUsed,
+        notesMode: _notesMode,
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
   }
 
   void _selectCell(int index) {
@@ -133,6 +189,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
         values.contains(value) ? values.remove(value) : values.add(value);
         if (values.isEmpty) _notes.remove(index);
       });
+      _schedulePersist();
       return;
     }
 
@@ -142,6 +199,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
         _mistakes++;
         _errorIndex = index;
       });
+      _schedulePersist();
       if (widget.mistakeLimit != null &&
           _mistakes >= widget.mistakeLimit!) {
         Future<void>.microtask(_showLossSheet);
@@ -169,6 +227,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _removeRelatedNotes(index, value);
       _errorIndex = null;
     });
+    _schedulePersist();
     unawaited(_checkCompletion());
   }
 
@@ -192,6 +251,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _notes.remove(index);
       _errorIndex = null;
     });
+    _schedulePersist();
   }
 
   void _undo() {
@@ -207,11 +267,13 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _selectedIndex = move.index;
       _errorIndex = null;
     });
+    _schedulePersist();
   }
 
   void _toggleNotes() {
     if (!_inputEnabled) return;
     setState(() => _notesMode = !_notesMode);
+    _schedulePersist();
   }
 
   Future<void> _hint() async {
@@ -240,6 +302,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
         _removeRelatedNotes(index, _board[index]);
         _hintsUsed++;
       });
+      _schedulePersist();
       await _checkCompletion();
     } finally {
       if (mounted) setState(() => _hintBusy = false);
@@ -285,6 +348,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _paused = true;
       _dialogVisible = true;
     });
+    await _persistNow();
 
     final action = await showAdaptiveBottomSheet<_SamuraiPauseAction>(
       context: context,
@@ -346,6 +410,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _lost = true;
       _dialogVisible = true;
     });
+    await _sessionStore.clear();
 
     final action = await showAdaptiveBottomSheet<_SamuraiLossAction>(
       context: context,
@@ -394,6 +459,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
     if (_completed || !SamuraiEngine.isComplete(widget.puzzle, _board)) return;
     _pauseClock();
     setState(() => _completed = true);
+    await _sessionStore.clear();
     await widget.onCompleted?.call(
       seconds: _elapsedSeconds,
       mistakes: _mistakes,
@@ -448,6 +514,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
   void _restartPuzzle() {
     _pauseClock();
     _stopwatch.reset();
+    _elapsedOffsetSeconds = 0;
     setState(() {
       _board = List<int>.from(widget.puzzle.puzzle);
       _notes.clear();
@@ -464,11 +531,13 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _paused = false;
     });
     _startClock();
+    _schedulePersist();
   }
 
   void _exitToMenu() {
     if (!mounted) return;
     _pauseClock();
+    unawaited(_persistNow());
     setState(() => _allowExit = true);
     Navigator.of(context).pop(SamuraiGameExit.menu);
   }
