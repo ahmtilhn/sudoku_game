@@ -6383,6 +6383,54 @@
           }
         }
       }
+    },
+    "duel_variant_classic": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Classic Sudoku"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klasik Sudoku"
+          }
+        }
+      }
+    },
+    "choose_duel_variant": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose game type"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oyun türünü seç"
+          }
+        }
+      }
+    },
+    "same_variant_match": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You will only be matched with the same game type."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yalnızca aynı oyun türünü seçen oyuncularla eşleşirsiniz."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

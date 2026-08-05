@@ -1,3 +1,5 @@
+import '../domain/samurai_sudoku.dart';
+
 enum OnlineDuelStatus {
   waiting,
   readyWindow,
@@ -106,6 +108,7 @@ class OnlineDuelSnapshot {
     required this.roomId,
     required this.matchId,
     required this.mode,
+    this.variant = 'classic',
     required this.difficulty,
     required this.status,
     required this.youSeat,
@@ -131,6 +134,7 @@ class OnlineDuelSnapshot {
   final String roomId;
   final String matchId;
   final String mode;
+  final String variant;
   final String difficulty;
   final OnlineDuelStatus status;
   final OnlineDuelSeat youSeat;
@@ -184,6 +188,7 @@ class OnlineDuelSnapshot {
       roomId: roomId,
       matchId: matchId,
       mode: mode,
+      variant: variant,
       difficulty: difficulty,
       status: status ?? this.status,
       youSeat: youSeat,
@@ -222,12 +227,18 @@ class OnlineDuelSnapshot {
   factory OnlineDuelSnapshot.fromJson(Map<String, dynamic> json) {
     final puzzle = _intList(json['puzzle']);
     final board = _intList(json['board']);
-    _validateSnapshotShape(puzzle: puzzle, board: board);
+    final variant = json['variant']?.toString() ?? 'classic';
+    _validateSnapshotShape(
+      puzzle: puzzle,
+      board: board,
+      variant: variant,
+    );
 
     return OnlineDuelSnapshot(
       roomId: json['roomId']?.toString() ?? '',
       matchId: json['matchId']?.toString() ?? '',
       mode: json['mode']?.toString() ?? 'friendly',
+      variant: variant,
       difficulty: json['difficulty']?.toString() ?? 'easy',
       status: _status(json['status']?.toString()),
       youSeat: _seat(json['youSeat']?.toString()) ?? OnlineDuelSeat.a,
@@ -337,11 +348,37 @@ List<int> _intList(Object? value) {
 void _validateSnapshotShape({
   required List<int> puzzle,
   required List<int> board,
+  required String variant,
 }) {
   if (puzzle.isEmpty || board.length != puzzle.length) {
     throw const FormatException(
       'Online duel snapshot puzzle and board lengths are invalid.',
     );
+  }
+  if (variant == 'samurai') {
+    if (puzzle.length != SamuraiTopology.canvasCellCount) {
+      throw FormatException(
+        'Unsupported Samurai duel board length: ${puzzle.length}.',
+      );
+    }
+    for (var index = 0; index < puzzle.length; index++) {
+      final clue = puzzle[index];
+      final value = board[index];
+      if (!SamuraiTopology.isActiveIndex(index)) {
+        if (clue != SamuraiTopology.inactiveCell ||
+            value != SamuraiTopology.inactiveCell) {
+          throw FormatException('Invalid inactive Samurai cell at $index.');
+        }
+        continue;
+      }
+      if (clue < 0 || clue > 9 || value < 0 || value > 9) {
+        throw FormatException('Invalid Samurai duel cell at $index.');
+      }
+      if (clue != 0 && value != clue) {
+        throw FormatException('Samurai duel changed a clue at $index.');
+      }
+    }
+    return;
   }
   final size = switch (puzzle.length) {
     16 => 4,

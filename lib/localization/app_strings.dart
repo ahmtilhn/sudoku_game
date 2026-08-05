@@ -57,6 +57,10 @@ class AppStrings {
     'career_random_intro':
         'Choose a difficulty. A fresh, unique Sudoku will be generated for every game.',
     'samurai_sudoku': 'Samurai Sudoku',
+    'duel_variant_classic': 'Classic Sudoku',
+    'choose_duel_variant': 'Choose game type',
+    'same_variant_match':
+        'You will only be matched with the same game type.',
     'samurai_subtitle': 'Five overlapping 9×9 boards in one challenge',
     'samurai_choose_difficulty': 'Choose Samurai difficulty',
     'samurai_zoom_hint':

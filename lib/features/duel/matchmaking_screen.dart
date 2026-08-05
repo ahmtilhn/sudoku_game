@@ -19,9 +19,14 @@ import 'duel_screen.dart';
 import 'pre_match_ready_screen.dart';
 
 class MatchmakingScreen extends StatefulWidget {
-  const MatchmakingScreen({super.key, this.initialDifficulty});
+  const MatchmakingScreen({
+    super.key,
+    this.initialDifficulty,
+    this.initialVariant = 'classic',
+  });
 
   final SudokuDifficulty? initialDifficulty;
+  final String initialVariant;
 
   @override
   State<MatchmakingScreen> createState() => _MatchmakingScreenState();
@@ -32,6 +37,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   final EconomyService _economy = EconomyService.instance;
   late SudokuDifficulty _difficulty;
+  late String _variant;
   bool _searching = false;
   bool _polling = false;
   String? _error;
@@ -47,6 +53,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   void initState() {
     super.initState();
     _difficulty = widget.initialDifficulty ?? SudokuDifficulty.easy;
+    _variant = widget.initialVariant == 'samurai' ? 'samurai' : 'classic';
     _economy.addListener(_onEconomyChanged);
     _economy.initialize();
   }
@@ -113,6 +120,44 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       ),
                       const SizedBox(height: 12),
                       _EntrySummary(economy: _economy, difficulty: _difficulty),
+                      const SizedBox(height: 16),
+                      Text(
+                        context.tr('choose_duel_variant'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SegmentedButton<String>(
+                        segments: <ButtonSegment<String>>[
+                          ButtonSegment<String>(
+                            value: 'classic',
+                            icon: const Icon(Icons.grid_3x3_rounded),
+                            label: Text(context.tr('duel_variant_classic')),
+                          ),
+                          ButtonSegment<String>(
+                            value: 'samurai',
+                            icon: const Icon(Icons.dashboard_customize_rounded),
+                            label: Text(context.tr('samurai_sudoku')),
+                          ),
+                        ],
+                        selected: <String>{_variant},
+                        onSelectionChanged: _searching
+                            ? null
+                            : (selection) => setState(
+                                  () => _variant = selection.first,
+                                ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        context.tr('same_variant_match'),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .72),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         context.tr('choose_duel_difficulty'),
@@ -328,6 +373,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       await FirebaseSessionService.ensureAnonymousSession();
       final result = await SocialApiClient.instance.joinRankedQueue(
         difficulty: _difficulty.name,
+        variant: _variant,
       );
       if (!mounted) return;
 
@@ -433,6 +479,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       if (refreshDue) {
         final refreshed = await SocialApiClient.instance.joinRankedQueue(
           difficulty: _difficulty.name,
+          variant: _variant,
         );
         _lastQueueRefresh = now;
         final refreshedRoomId = refreshed.roomId;
