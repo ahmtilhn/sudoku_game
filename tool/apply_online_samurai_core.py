@@ -22,13 +22,22 @@ def main() -> None:
         "export type DuelVariant = 'classic' | 'samurai';\n",
     )
     replace_once(
-        "  mode: DuelMode;\n  difficulty: DuelDifficulty;\n",
+        "  challengeId: string | null;\n"
+        "  mode: DuelMode;\n"
+        "  difficulty: DuelDifficulty;\n"
+        "  status: MatchStatus;\n",
+        "  challengeId: string | null;\n"
         "  mode: DuelMode;\n"
         "  variant?: DuelVariant;\n"
-        "  difficulty: DuelDifficulty;\n",
+        "  difficulty: DuelDifficulty;\n"
+        "  status: MatchStatus;\n",
     )
     replace_once(
-        "  mode: DuelMode;\n  difficulty: DuelDifficulty;\n  playerA: PlayerPublic;\n",
+        "  challengeId: string | null;\n"
+        "  mode: DuelMode;\n"
+        "  difficulty: DuelDifficulty;\n"
+        "  playerA: PlayerPublic;\n",
+        "  challengeId: string | null;\n"
         "  mode: DuelMode;\n"
         "  variant?: DuelVariant;\n"
         "  difficulty: DuelDifficulty;\n"
