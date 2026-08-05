@@ -1,0 +1,50 @@
+name: Repair Samurai Ranked Bank
+
+on:
+  push:
+    branches: [feature/samurai-sudoku]
+    paths:
+      - 'tool/repair_samurai_ranked_bank.mjs'
+      - '.github/workflows/repair-samurai-ranked-bank.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-samurai-ranked-bank
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/samurai-sudoku
+          fetch-depth: 0
+      - name: Rebuild solutions
+        run: node tool/repair_samurai_ranked_bank.mjs
+      - name: Install worker dependencies
+        working-directory: backend/social_worker
+        run: npm ci
+      - name: Typecheck worker
+        working-directory: backend/social_worker
+        run: npm run typecheck
+      - name: Test worker
+        working-directory: backend/social_worker
+        run: npm test
+      - name: Commit repaired bank
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend/social_worker/src/samurai_ranked_puzzles.ts
+          if git diff --cached --quiet; then
+            echo 'No repaired bank changes to commit.'
+            exit 0
+          fi
+          git commit -m 'fix(samurai): rebuild complete ranked solutions'
+          git pull --rebase origin feature/samurai-sudoku
+          git push origin HEAD:feature/samurai-sudoku
