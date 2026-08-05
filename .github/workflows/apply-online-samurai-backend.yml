@@ -23,7 +23,7 @@ jobs:
         with:
           ref: feature/samurai-sudoku
           fetch-depth: 0
-      - name: Apply backend patch
+      - name: Apply backend patch after duel core
         run: python3 tool/apply_online_samurai_backend.py
       - name: Install worker dependencies
         working-directory: backend/social_worker
