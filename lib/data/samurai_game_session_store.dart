@@ -128,9 +128,14 @@ class SamuraiGameSession {
       }),
       hintedIndexes: Set<int>.unmodifiable(hinted),
       elapsedSeconds: ((json['elapsedSeconds'] as num?)?.toInt() ?? 0)
-          .clamp(0, 24 * 60 * 60),
-      mistakes: ((json['mistakes'] as num?)?.toInt() ?? 0).clamp(0, 999),
-      hintsUsed: ((json['hintsUsed'] as num?)?.toInt() ?? 0).clamp(0, 369),
+          .clamp(0, 24 * 60 * 60)
+          .toInt(),
+      mistakes: ((json['mistakes'] as num?)?.toInt() ?? 0)
+          .clamp(0, 999)
+          .toInt(),
+      hintsUsed: ((json['hintsUsed'] as num?)?.toInt() ?? 0)
+          .clamp(0, 369)
+          .toInt(),
       notesMode: json['notesMode'] == true,
       updatedAt: updatedAt ?? DateTime.now(),
     );
