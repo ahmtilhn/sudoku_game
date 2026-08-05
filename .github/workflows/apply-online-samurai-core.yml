@@ -1,0 +1,49 @@
+name: Apply Online Samurai Core
+
+on:
+  push:
+    branches: [feature/samurai-sudoku]
+    paths:
+      - 'tool/apply_online_samurai_core.py'
+      - '.github/workflows/apply-online-samurai-core.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-online-samurai-core
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/samurai-sudoku
+          fetch-depth: 0
+      - name: Apply core patch
+        run: python3 tool/apply_online_samurai_core.py
+      - name: Install worker dependencies
+        working-directory: backend/social_worker
+        run: npm ci
+      - name: Typecheck worker
+        working-directory: backend/social_worker
+        run: npm run typecheck
+      - name: Test worker
+        working-directory: backend/social_worker
+        run: npm test
+      - name: Commit core patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend/social_worker/src/online_duel.ts
+          if git diff --cached --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat(samurai): add online duel variant core'
+          git push origin HEAD:feature/samurai-sudoku
