@@ -18,6 +18,9 @@ val defaultSocialBackendUrl =
 val defaultSocialBackendDefine = Base64.getEncoder().encodeToString(
     "SOCIAL_BACKEND_URL=$defaultSocialBackendUrl".toByteArray(Charsets.UTF_8),
 )
+val expectedPlayGamesProjectId = "917838292556"
+val expectedPlayGamesServerClientId =
+    "917838292556-bbq7a36t2kulodpqfd9p3aqkkcs58jhj.apps.googleusercontent.com"
 
 fun xmlStringResource(xml: String, name: String): String {
     val pattern = Regex(
@@ -219,15 +222,18 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
         }
 
         val playGamesProjectId = xmlStringResource(servicesText, "game_services_project_id")
-        if (!playGamesProjectId.matches(Regex("^[0-9]{10,20}$"))) {
-            throw GradleException("game_services_project_id must be a 10-20 digit Play Games application ID.")
+        if (playGamesProjectId != expectedPlayGamesProjectId) {
+            throw GradleException(
+                "game_services_project_id belongs to the wrong Play Games project. " +
+                    "Expected $expectedPlayGamesProjectId.",
+            )
         }
         val playGamesWebClientId = xmlStringResource(servicesText, "game_services_web_client_id")
-        if (!playGamesWebClientId.matches(
-                Regex("^[0-9]+-[a-zA-Z0-9_-]+\\.apps\\.googleusercontent\\.com$"),
+        if (playGamesWebClientId != expectedPlayGamesServerClientId) {
+            throw GradleException(
+                "game_services_web_client_id does not match the Play Games game-server credential. " +
+                    "Expected $expectedPlayGamesServerClientId.",
             )
-        ) {
-            throw GradleException("game_services_web_client_id is missing or malformed.")
         }
 
         val googleServicesFile = rootProject.file("app/google-services.json")
@@ -268,21 +274,12 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
             )
         }
 
-        val oauthClients = androidClient["oauth_client"] as? List<*> ?: emptyList<Any?>()
-        val webClientIds = oauthClients
-            .mapNotNull { it as? Map<*, *> }
-            .filter { it["client_type"]?.toString() == "3" }
-            .mapNotNull { it["client_id"]?.toString() }
-            .toSet()
-        if (playGamesWebClientId !in webClientIds) {
-            throw GradleException(
-                "The Play Games server OAuth client in services.xml is not present as a web client " +
-                    "in google-services.json.",
-            )
-        }
-        // A client_type=1 entry is intentionally not required here. The Android
-        // OAuth credential used by Play Games is associated with the game in the
-        // Play Console and is not guaranteed to be emitted in google-services.json.
+        // Firebase runtime configuration intentionally belongs to project
+        // focus-sweep-503417-d7, while Play Games belongs to sudoku-503420.
+        // The game-server OAuth client is therefore not expected to appear in
+        // google-services.json. It is configured manually in both Play Console
+        // and Firebase Authentication's Play Games provider. Never commit its
+        // client secret to source control.
 
         val effectiveDartDefines = try {
             withDefaultSocialBackend(
@@ -311,9 +308,10 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
         }
 
         logger.lifecycle(
-            "Verified release services: Firebase={}, PlayGames={}, backend={}",
+            "Verified release services: Firebase={}, PlayGames={}, serverOAuth={}, backend={}",
             expectedFirebaseProjectId,
             playGamesProjectId,
+            playGamesWebClientId,
             socialUri.host,
         )
     }

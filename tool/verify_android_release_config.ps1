@@ -5,9 +5,11 @@ param(
 $ErrorActionPreference = "Stop"
 
 $expectedPackage = "com.devoviastudio.sudoku"
-$expectedProjectId = "focus-sweep-503417-d7"
-$expectedProjectNumber = "31445697560"
-$expectedAppId = "1:31445697560:android:ed951eabf51d75800b2f6d"
+$expectedFirebaseProjectId = "focus-sweep-503417-d7"
+$expectedFirebaseProjectNumber = "31445697560"
+$expectedFirebaseAppId = "1:31445697560:android:ed951eabf51d75800b2f6d"
+$expectedPlayGamesProjectId = "917838292556"
+$expectedPlayGamesServerClientId = "917838292556-bbq7a36t2kulodpqfd9p3aqkkcs58jhj.apps.googleusercontent.com"
 $expectedPlaySigningSha1 = "53:B0:F0:FF:89:6C:50:AE:B0:86:F2:04:A2:2E:ED:E2:9F:1B:F3:0B"
 
 $googleServicesPath = Join-Path $ProjectRoot "android\app\google-services.json"
@@ -21,8 +23,8 @@ foreach ($path in @($googleServicesPath, $servicesXmlPath, $buildGradlePath)) {
 }
 
 $googleServices = Get-Content -LiteralPath $googleServicesPath -Raw | ConvertFrom-Json
-if ($googleServices.project_info.project_id -ne $expectedProjectId -or
-    [string]$googleServices.project_info.project_number -ne $expectedProjectNumber) {
+if ($googleServices.project_info.project_id -ne $expectedFirebaseProjectId -or
+    [string]$googleServices.project_info.project_number -ne $expectedFirebaseProjectNumber) {
   throw "google-services.json belongs to the wrong Firebase project."
 }
 
@@ -32,8 +34,8 @@ $androidClient = @($googleServices.client) | Where-Object {
 if ($null -eq $androidClient) {
   throw "google-services.json has no Android client for $expectedPackage."
 }
-if ($androidClient.client_info.mobilesdk_app_id -ne $expectedAppId) {
-  throw "The Firebase Android App ID is not $expectedAppId."
+if ($androidClient.client_info.mobilesdk_app_id -ne $expectedFirebaseAppId) {
+  throw "The Firebase Android App ID is not $expectedFirebaseAppId."
 }
 
 $servicesText = Get-Content -LiteralPath $servicesXmlPath -Raw
@@ -47,20 +49,20 @@ function Read-XmlString([string]$Name) {
 }
 
 $playGamesProjectId = Read-XmlString "game_services_project_id"
-$playGamesWebClientId = Read-XmlString "game_services_web_client_id"
-if ($playGamesProjectId -notmatch "^[0-9]{10,20}$") {
-  throw "game_services_project_id must contain only 10-20 digits."
+$playGamesServerClientId = Read-XmlString "game_services_web_client_id"
+if ($playGamesProjectId -ne $expectedPlayGamesProjectId) {
+  throw "The Play Games project ID must be $expectedPlayGamesProjectId."
 }
-if ($playGamesWebClientId -notmatch "^[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$") {
-  throw "game_services_web_client_id is malformed."
+if ($playGamesServerClientId -ne $expectedPlayGamesServerClientId) {
+  throw "The Play Games game-server OAuth client must be $expectedPlayGamesServerClientId."
 }
 
-$webClientIds = @($androidClient.oauth_client) | Where-Object {
-  [int]$_.client_type -eq 3
-} | ForEach-Object { [string]$_.client_id }
-if ($playGamesWebClientId -notin $webClientIds) {
-  throw "The Play Games server OAuth client is not present as a web client in google-services.json."
-}
+# The Firebase Android application and Play Games project deliberately live in
+# separate Google Cloud projects. google-services.json remains the Firebase
+# runtime configuration and therefore does not need to contain the Play Games
+# game-server OAuth client. That client is configured manually in Play Console
+# and in Firebase Authentication's Play Games provider. Its secret must never be
+# stored in this repository.
 
 $buildGradleText = Get-Content -LiteralPath $buildGradlePath -Raw
 $backendMatch = [regex]::Match(
@@ -73,6 +75,9 @@ if (!$backendMatch.Success) {
 if ($buildGradleText -notmatch 'tasks\.withType<FlutterTask>\(\)' -or
     $buildGradleText -notmatch 'withDefaultSocialBackend\(dartDefines\)') {
   throw "The release Flutter task does not merge the default SOCIAL_BACKEND_URL."
+}
+if ($buildGradleText -notmatch [regex]::Escape($expectedPlayGamesServerClientId)) {
+  throw "build.gradle.kts does not pin the expected Play Games game-server OAuth client."
 }
 
 $backendUrl = $backendMatch.Groups[1].Value
@@ -87,20 +92,12 @@ if (![Uri]::TryCreate($backendUrl, [UriKind]::Absolute, [ref]$backendUri) -or
   throw "The default SOCIAL_BACKEND_URL must be a real HTTPS endpoint without credentials or query data."
 }
 
-$androidOauthClients = @($androidClient.oauth_client) | Where-Object {
-  [int]$_.client_type -eq 1
-}
-if ($androidOauthClients.Count -eq 0) {
-  Write-Host "Info: google-services.json has no client_type=1 entry. This is allowed."
-  Write-Host "      The Play Games Android OAuth credential must be linked in Play Console."
-}
-
 Write-Host "Android release configuration verified."
-Write-Host "Firebase project : $expectedProjectId ($expectedProjectNumber)"
-Write-Host "Firebase app     : $expectedAppId"
+Write-Host "Firebase project : $expectedFirebaseProjectId ($expectedFirebaseProjectNumber)"
+Write-Host "Firebase app     : $expectedFirebaseAppId"
 Write-Host "Package          : $expectedPackage"
 Write-Host "Play Games ID    : $playGamesProjectId"
-Write-Host "Server OAuth     : $playGamesWebClientId"
+Write-Host "Server OAuth     : $playGamesServerClientId"
 Write-Host "Social backend   : $($backendUri.GetLeftPart([UriPartial]::Authority))"
 Write-Host "Play signing SHA1: $expectedPlaySigningSha1"
-Write-Host "Console-only checks still required: Play Games Android credential/test access and Firebase App Check SHA-256."
+Write-Host "Console-only checks still required: Firebase Auth Play Games provider uses this client and current secret; Play Games Android credential/test access; Firebase App Check SHA-256."
