@@ -1,0 +1,45 @@
+name: Apply Samurai Resume
+
+on:
+  push:
+    branches: [feature/samurai-sudoku]
+    paths:
+      - 'tool/apply_samurai_resume.py'
+      - '.github/workflows/apply-samurai-resume.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-samurai-resume
+  cancel-in-progress: false
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/samurai-sudoku
+          fetch-depth: 0
+      - name: Apply resume integration
+        run: python3 tool/apply_samurai_resume.py
+      - name: Refresh UX audit
+        run: python3 tool/generate_ux_audit.py --write
+      - name: Commit generated integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            lib/features/game/samurai_game_screen.dart \
+            lib/features/home/ux_root_screen.dart \
+            docs/ux_audit.md
+          if git diff --cached --quiet; then
+            echo 'No generated changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat(samurai): persist and resume active games'
+          git push origin HEAD:feature/samurai-sudoku
