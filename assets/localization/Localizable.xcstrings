@@ -6271,6 +6271,118 @@
           }
         }
       }
+    },
+    "samurai_sudoku": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samurai Sudoku"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samuray Sudoku"
+          }
+        }
+      }
+    },
+    "samurai_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Five overlapping 9×9 boards in one challenge"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tek mücadelede birbiriyle kesişen beş 9×9 tahta"
+          }
+        }
+      }
+    },
+    "samurai_choose_difficulty": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Samurai difficulty"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samuray zorluğunu seç"
+          }
+        }
+      }
+    },
+    "samurai_zoom_hint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pinch to zoom and drag to move across the five linked boards."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beş bağlantılı tahtada gezinmek için yakınlaştırın ve sürükleyin."
+          }
+        }
+      }
+    },
+    "samurai_pause_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your five linked boards are paused. Continue when ready."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beş bağlantılı tahta duraklatıldı. Hazır olduğunuzda devam edin."
+          }
+        }
+      }
+    },
+    "samurai_completed_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samurai completed!"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samuray tamamlandı!"
+          }
+        }
+      }
+    },
+    "samurai_completed_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You solved all five linked Sudoku boards."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Birbirine bağlı beş Sudoku tahtasının tamamını çözdünüz."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

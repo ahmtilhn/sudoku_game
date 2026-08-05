@@ -6,12 +6,14 @@ import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
 import '../../data/local_progress_store.dart';
 import '../../data/puzzle_catalog.dart';
+import '../../domain/samurai_sudoku.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../game/enhanced_game_screen.dart';
+import '../game/samurai_game_screen.dart';
 
 class CareerHubScreen extends StatefulWidget {
   const CareerHubScreen({super.key, required this.store});
@@ -32,6 +34,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
   int? _generatingLevel;
   SudokuDifficulty? _generatingPractice;
   bool _generatingDaily = false;
+  bool _generatingSamurai = false;
 
   @override
   void initState() {
@@ -56,7 +59,8 @@ class _CareerHubScreenState extends State<CareerHubScreen>
   bool get _busy =>
       _generatingLevel != null ||
       _generatingPractice != null ||
-      _generatingDaily;
+      _generatingDaily ||
+      _generatingSamurai;
 
   @override
   Widget build(BuildContext context) {
@@ -286,6 +290,15 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   onTap: _busy ? null : _openDaily,
                 ),
                 const SizedBox(height: 10),
+                _PracticeCard(
+                  icon: Icons.dashboard_customize_rounded,
+                  title: context.tr('samurai_sudoku'),
+                  subtitle: context.tr('samurai_subtitle'),
+                  accent: const Color(0xFFE8794F),
+                  loading: _generatingSamurai,
+                  onTap: _busy ? null : _openSamurai,
+                ),
+                const SizedBox(height: 10),
                 for (final difficulty in SudokuDifficulty.values) ...[
                   _PracticeCard(
                     icon: Icons.grid_4x4_rounded,
@@ -368,6 +381,76 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       puzzle,
       progressId: 'practice-${difficulty.name}',
     );
+  }
+
+  Future<void> _openSamurai() async {
+    final difficulty = await showModalBottomSheet<SudokuDifficulty>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              sheetContext.tr('samurai_choose_difficulty'),
+              textAlign: TextAlign.center,
+              style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            for (final value in SudokuDifficulty.values)
+              ListTile(
+                leading: Icon(
+                  Icons.dashboard_customize_rounded,
+                  color: _difficultyAccent(value),
+                ),
+                title: Text(
+                  sheetContext.strings.difficultyLabel(value),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(sheetContext).pop(value),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || difficulty == null) return;
+
+    setState(() => _generatingSamurai = true);
+    final puzzle = await Future<SamuraiPuzzle>(
+      () => SamuraiEngine.generate(difficulty: difficulty),
+    );
+    if (!mounted) return;
+    setState(() => _generatingSamurai = false);
+
+    await Navigator.of(context).push<SamuraiGameExit>(
+      MaterialPageRoute(
+        builder: (_) => SamuraiGameScreen(
+          puzzle: puzzle,
+          store: widget.store,
+          onCompleted:
+              ({
+                required seconds,
+                required mistakes,
+                required hints,
+              }) async {
+                await widget.store.recordResult(
+                  puzzleId: 'practice-samurai-${difficulty.name}',
+                  seconds: seconds,
+                  mistakes: mistakes,
+                  hints: hints,
+                );
+                await _claimEligibleAchievements();
+              },
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   Future<void> _openDaily() async {

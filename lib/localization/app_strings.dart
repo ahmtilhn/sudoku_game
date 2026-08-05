@@ -56,6 +56,16 @@ class AppStrings {
     'career_random_subtitle': 'Choose a difficulty and get a new puzzle',
     'career_random_intro':
         'Choose a difficulty. A fresh, unique Sudoku will be generated for every game.',
+    'samurai_sudoku': 'Samurai Sudoku',
+    'samurai_subtitle': 'Five overlapping 9×9 boards in one challenge',
+    'samurai_choose_difficulty': 'Choose Samurai difficulty',
+    'samurai_zoom_hint':
+        'Pinch to zoom and drag to move across the five linked boards.',
+    'samurai_pause_body':
+        'Your five linked boards are paused. Continue when ready.',
+    'samurai_completed_title': 'Samurai completed!',
+    'samurai_completed_body':
+        'You solved all five linked Sudoku boards.',
     'three_mistake_rule': 'Career rule: the round ends after 3 wrong moves.',
     'coins_count': '%1d coins',
     'random_clue_count': 'About %1d starting clues',
