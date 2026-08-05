@@ -44,7 +44,7 @@ class SamuraiBoard extends StatelessWidget {
     this.errorIndex,
     this.hintedIndexes = const <int>{},
     this.enabled = true,
-    this.minimumBoardExtent = 630,
+    this.minimumBoardExtent = 280,
   });
 
   final SamuraiPuzzle puzzle;

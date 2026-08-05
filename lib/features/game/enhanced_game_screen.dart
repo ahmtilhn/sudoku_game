@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
 import '../../data/local_progress_store.dart';
+import '../../data/samurai_game_session_store.dart';
 import '../../data/ux_game_session_store.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
@@ -93,6 +94,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(SamuraiGameSessionStore.instance.clear());
     _board = List<int>.from(widget.puzzle.puzzle);
     unawaited(_restore());
   }

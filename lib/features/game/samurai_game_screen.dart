@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
+import '../../data/game_session_store.dart';
 import '../../data/local_progress_store.dart';
 import '../../data/samurai_game_session_store.dart';
+import '../../data/ux_game_session_store.dart';
 import '../../domain/samurai_sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../widgets/number_pad.dart';
@@ -79,6 +81,8 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(UxGameSessionStore.instance.clear());
+    unawaited(GameSessionStore.instance.clearAll());
     final restored = widget.initialSession;
     if (restored != null && restored.puzzle.id == widget.puzzle.id) {
       _board = List<int>.from(restored.board);
