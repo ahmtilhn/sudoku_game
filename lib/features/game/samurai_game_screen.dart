@@ -328,10 +328,14 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       case _SamuraiPauseAction.resume:
         setState(() => _paused = false);
         _startClock();
+        return;
       case _SamuraiPauseAction.restart:
         _restartPuzzle();
-      case _SamuraiPauseAction.menu || null:
+        return;
+      case _SamuraiPauseAction.menu:
+      case null:
         _exitToMenu();
+        return;
     }
   }
 
@@ -443,6 +447,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
 
   void _restartPuzzle() {
     _pauseClock();
+    _stopwatch.reset();
     setState(() {
       _board = List<int>.from(widget.puzzle.puzzle);
       _notes.clear();
@@ -457,17 +462,8 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _completed = false;
       _lost = false;
       _paused = false;
-      _stopwatch
-        ..reset()
-        ..start();
     });
-    _clockTimer ??= Timer.periodic(const Duration(milliseconds: 250), (_) {
-      if (!mounted || !_stopwatch.isRunning) return;
-      final seconds = _stopwatch.elapsed.inSeconds;
-      if (seconds != _elapsedSeconds) {
-        setState(() => _elapsedSeconds = seconds);
-      }
-    });
+    _startClock();
   }
 
   void _exitToMenu() {
