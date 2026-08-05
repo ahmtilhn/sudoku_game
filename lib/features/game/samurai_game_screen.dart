@@ -349,6 +349,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _dialogVisible = true;
     });
     await _persistNow();
+    if (!mounted) return;
 
     final action = await showAdaptiveBottomSheet<_SamuraiPauseAction>(
       context: context,
@@ -411,6 +412,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _dialogVisible = true;
     });
     await _sessionStore.clear();
+    if (!mounted) return;
 
     final action = await showAdaptiveBottomSheet<_SamuraiLossAction>(
       context: context,
