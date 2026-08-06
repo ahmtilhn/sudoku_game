@@ -1,5 +1,6 @@
 name: Apply full UX overhaul
 
+# Main-only validation trigger: 2026-08-06
 on:
   push:
     branches:
