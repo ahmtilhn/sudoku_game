@@ -14,7 +14,10 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === '/v1/matchmaking/queue') {
+    if (
+      url.pathname === '/v1/matchmaking/queue' &&
+      request.method !== 'OPTIONS'
+    ) {
       return handleVariantMatchmakingRequest(
         request,
         env,
