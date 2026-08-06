@@ -162,8 +162,9 @@ flutter {
 tasks.withType<FlutterTask>().configureEach {
     if (name.contains("Release", ignoreCase = true)) {
         doFirst {
-            dartDefines = withDefaultSocialBackend(dartDefines)
-            val effectiveDefines = decodeDartDefines(dartDefines)
+            val mergedDartDefines = withDefaultSocialBackend(dartDefines)
+            dartDefines = mergedDartDefines
+            val effectiveDefines = decodeDartDefines(mergedDartDefines)
             val effectiveBackend = effectiveDefines["SOCIAL_BACKEND_URL"]
                 ?.trim()
                 .orEmpty()
