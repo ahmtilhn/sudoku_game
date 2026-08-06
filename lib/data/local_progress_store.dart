@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../debug/debug_economy.dart';
+import '../domain/sudoku_variant.dart';
 
 abstract class PreferencesBackend {
   Future<int?> getInt(String key);
@@ -93,16 +94,22 @@ class LevelProgress {
     required this.stars,
     required this.bestSeconds,
     required this.bestMistakes,
+    this.bestHints = 0,
+    this.rewardClaimed = false,
   });
 
   final int stars;
   final int bestSeconds;
   final int bestMistakes;
+  final int bestHints;
+  final bool rewardClaimed;
 
   Map<String, Object> toJson() => <String, Object>{
     'stars': stars,
     'bestSeconds': bestSeconds,
     'bestMistakes': bestMistakes,
+    'bestHints': bestHints,
+    'rewardClaimed': rewardClaimed,
   };
 
   factory LevelProgress.fromJson(Map<String, dynamic> json) {
@@ -110,6 +117,8 @@ class LevelProgress {
       stars: (json['stars'] as num?)?.toInt() ?? 0,
       bestSeconds: (json['bestSeconds'] as num?)?.toInt() ?? 0,
       bestMistakes: (json['bestMistakes'] as num?)?.toInt() ?? 0,
+      bestHints: (json['bestHints'] as num?)?.toInt() ?? 0,
+      rewardClaimed: json['rewardClaimed'] == true,
     );
   }
 }
@@ -117,7 +126,8 @@ class LevelProgress {
 class LocalProgressStore extends ChangeNotifier {
   LocalProgressStore._(this._preferences, {required this.unlimitedCoins});
 
-  static const _progressKey = 'career_progress_v1';
+  static const _progressKey = 'career_progress_v2';
+  static const _legacyProgressKey = 'career_progress_v1';
   static const _themeKey = 'theme_mode_v1';
   static const _highContrastKey = 'high_contrast_v1';
   static const _tutorialKey = 'tutorial_complete_v1';
@@ -160,31 +170,60 @@ class LocalProgressStore extends ChangeNotifier {
 
   int get completedLevelCount => completedCareerLevelCount;
 
-  int get completedCareerLevelCount => _progress.keys
+  int get completedCareerLevelCount =>
+      completedCareerLevelCountFor(SudokuVariant.classic9);
+
+  int completedCareerLevelCountFor(SudokuVariant variant) => _progress.keys
+      .where((key) => key.startsWith('${variant.persistenceKey}:'))
+      .map(_puzzleIdFromStorageKey)
       .map(_careerLevelNumber)
       .whereType<int>()
       .length;
 
-  int get nextCareerLevelNumber {
+  int get nextCareerLevelNumber =>
+      nextCareerLevelNumberFor(SudokuVariant.classic9);
+
+  int nextCareerLevelNumberFor(SudokuVariant variant) {
     var number = 1;
-    while (_progress.containsKey(_careerLevelId(number))) {
+    while (_progress.containsKey(
+      _storageKey(variant, _careerLevelId(number)),
+    )) {
       number++;
     }
     return number;
   }
 
-  bool isCompleted(String puzzleId) => _progress.containsKey(puzzleId);
+  int totalStarsFor(SudokuVariant variant) => _progress.entries
+      .where((entry) => entry.key.startsWith('${variant.persistenceKey}:'))
+      .fold<int>(0, (total, entry) => total + entry.value.stars);
 
-  bool isCareerLevelUnlocked(int number) {
+  bool isCompleted(
+    String puzzleId, {
+    SudokuVariant variant = SudokuVariant.classic9,
+  }) => _progress.containsKey(_storageKey(variant, puzzleId));
+
+  bool isCareerLevelUnlocked(
+    int number, {
+    SudokuVariant variant = SudokuVariant.classic9,
+  }) {
     if (number < 1) return false;
-    return number == 1 || _progress.containsKey(_careerLevelId(number - 1));
+    return number == 1 ||
+        _progress.containsKey(
+          _storageKey(variant, _careerLevelId(number - 1)),
+        );
   }
 
-  LevelProgress? progressFor(String puzzleId) => _progress[puzzleId];
+  LevelProgress? progressFor(
+    String puzzleId, {
+    SudokuVariant variant = SudokuVariant.classic9,
+  }) => _progress[_storageKey(variant, puzzleId)];
 
-  LevelProgress? progressForCareerLevel(int number) {
+  LevelProgress? progressForCareerLevel(
+    int number, {
+    SudokuVariant variant = SudokuVariant.classic9,
+  }) {
     if (number < 1) return null;
-    return _progress[_careerLevelId(number)];
+    return _progress[_storageKey(variant, _careerLevelId(number))];
   }
 
   Future<void> recordResult({
@@ -192,10 +231,12 @@ class LocalProgressStore extends ChangeNotifier {
     required int seconds,
     required int mistakes,
     required int hints,
+    SudokuVariant variant = SudokuVariant.classic9,
   }) async {
     final stars = _calculateStars(mistakes: mistakes, hints: hints);
-    final previous = _progress[puzzleId];
-    _progress[puzzleId] = LevelProgress(
+    final key = _storageKey(variant, puzzleId);
+    final previous = _progress[key];
+    _progress[key] = LevelProgress(
       stars: previous == null
           ? stars
           : stars > previous.stars
@@ -207,6 +248,28 @@ class LocalProgressStore extends ChangeNotifier {
       bestMistakes: previous == null || mistakes < previous.bestMistakes
           ? mistakes
           : previous.bestMistakes,
+      bestHints: previous == null || hints < previous.bestHints
+          ? hints
+          : previous.bestHints,
+      rewardClaimed: previous?.rewardClaimed ?? false,
+    );
+    await _saveProgress();
+    notifyListeners();
+  }
+
+  Future<void> markCareerRewardClaimed({
+    required int levelNumber,
+    SudokuVariant variant = SudokuVariant.classic9,
+  }) async {
+    final key = _storageKey(variant, _careerLevelId(levelNumber));
+    final previous = _progress[key];
+    if (previous == null || previous.rewardClaimed) return;
+    _progress[key] = LevelProgress(
+      stars: previous.stars,
+      bestSeconds: previous.bestSeconds,
+      bestMistakes: previous.bestMistakes,
+      bestHints: previous.bestHints,
+      rewardClaimed: true,
     );
     await _saveProgress();
     notifyListeners();
@@ -282,7 +345,18 @@ class LocalProgressStore extends ChangeNotifier {
 
   Future<void> clearProgress() async {
     _progress.clear();
-    await _preferences.remove(_progressKey);
+    await Future.wait<void>(<Future<void>>[
+      _preferences.remove(_progressKey),
+      _preferences.remove(_legacyProgressKey),
+    ]);
+    notifyListeners();
+  }
+
+  Future<void> clearProgressForVariant(SudokuVariant variant) async {
+    _progress.removeWhere(
+      (key, _) => key.startsWith('${variant.persistenceKey}:'),
+    );
+    await _saveProgress();
     notifyListeners();
   }
 
@@ -300,20 +374,34 @@ class LocalProgressStore extends ChangeNotifier {
     hints = await _preferences.getInt(_hintsKey) ?? initialHints;
 
     final raw = await _preferences.getString(_progressKey);
-    if (raw == null || raw.isEmpty) {
+    if (raw != null && raw.isNotEmpty) {
+      _decodeProgress(raw, legacyVariant: null);
       return;
     }
+
+    final legacyRaw = await _preferences.getString(_legacyProgressKey);
+    if (legacyRaw == null || legacyRaw.isEmpty) return;
+    _decodeProgress(legacyRaw, legacyVariant: SudokuVariant.classic9);
+    if (_progress.isNotEmpty) {
+      await _saveProgress();
+    }
+  }
+
+  void _decodeProgress(String raw, {required SudokuVariant? legacyVariant}) {
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       for (final entry in decoded.entries) {
         final value = entry.value;
-        if (value is Map<String, dynamic>) {
-          _progress[entry.key] = LevelProgress.fromJson(value);
-        } else if (value is Map) {
-          _progress[entry.key] = LevelProgress.fromJson(
-            value.map((key, item) => MapEntry(key.toString(), item)),
-          );
-        }
+        final json = value is Map<String, dynamic>
+            ? value
+            : value is Map
+            ? value.map((key, item) => MapEntry(key.toString(), item))
+            : null;
+        if (json == null) continue;
+        final key = legacyVariant == null
+            ? entry.key
+            : _storageKey(legacyVariant, entry.key);
+        _progress[key] = LevelProgress.fromJson(json);
       }
     } on FormatException {
       _progress.clear();
@@ -325,6 +413,15 @@ class LocalProgressStore extends ChangeNotifier {
       _progress.map((key, value) => MapEntry(key, value.toJson())),
     );
     return _preferences.setString(_progressKey, encoded);
+  }
+
+  static String _storageKey(SudokuVariant variant, String puzzleId) {
+    return '${variant.persistenceKey}:$puzzleId';
+  }
+
+  static String _puzzleIdFromStorageKey(String key) {
+    final separator = key.indexOf(':');
+    return separator < 0 ? key : key.substring(separator + 1);
   }
 
   static String _careerLevelId(int number) {
