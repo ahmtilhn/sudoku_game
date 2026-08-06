@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,7 @@ import '../../localization/app_strings.dart';
 import '../../localization/ux_copy.dart';
 import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
+import '../../widgets/game_modal.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 import '../../widgets/ux_feedback.dart';
@@ -60,6 +62,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
   final UxGameSessionStore _sessions = UxGameSessionStore.instance;
   final Stopwatch _stopwatch = Stopwatch();
+  final TransformationController _boardTransform = TransformationController();
   final Map<int, Set<int>> _notes = <int, Set<int>>{};
   final List<UxSessionMove> _history = <UxSessionMove>[];
   final Set<int> _hintedIndexes = <int>{};
@@ -100,11 +103,20 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (!_paused) _startClock();
-    } else {
-      _pauseClock();
-      unawaited(_saveNow());
+      if (_paused && !_pauseVisible && _ready && !_completed && !_roundLost) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) unawaited(_showPauseMenu());
+        });
+      } else if (!_paused) {
+        _startClock();
+      }
+      return;
     }
+    _pauseClock();
+    if (mounted && _ready && !_completed && !_roundLost && !_paused) {
+      setState(() => _paused = true);
+    }
+    unawaited(_saveNow());
   }
 
   @override
@@ -112,6 +124,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     WidgetsBinding.instance.removeObserver(this);
     _pauseClock();
     _saveDebounce?.cancel();
+    _boardTransform.dispose();
     if (_ready && !_completed) unawaited(_saveNow());
     super.dispose();
   }
@@ -181,6 +194,10 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     }
     _clockTimer?.cancel();
     _clockTimer = null;
+  }
+
+  void _fitBoard() {
+    _boardTransform.value = Matrix4.identity();
   }
 
   Future<void> _showPauseMenu() async {
@@ -253,26 +270,14 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     await _exitToMenu();
   }
 
-  Future<bool> _confirmRestart() async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(UxCopy.restartTitle(dialogContext)),
-            content: Text(UxCopy.restartBody(dialogContext)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(dialogContext.tr('cancel')),
-              ),
-              FilledButton.icon(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                icon: const Icon(Icons.restart_alt_rounded),
-                label: Text(dialogContext.tr('restart_puzzle')),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+  Future<bool> _confirmRestart() {
+    return GameModal.warning(
+      context,
+      title: UxCopy.restartTitle(context),
+      message: UxCopy.restartBody(context),
+      confirmLabel: context.tr('restart_puzzle'),
+      cancelLabel: context.tr('cancel'),
+    );
   }
 
   Future<void> _exitToMenu() async {
@@ -487,8 +492,12 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       if (continued) {
         _resumeAfterLoss();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('not_enough_coins'))),
+        await GameModal.error(
+          context,
+          title: context.tr('round_lost'),
+          message: context.tr('not_enough_coins'),
+          retryLabel: context.tr('try_again'),
+          cancelLabel: context.tr('cancel'),
         );
         await _showLossSheet();
       }
@@ -500,8 +509,12 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       if (continued) {
         _resumeAfterLoss();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
+        await GameModal.error(
+          context,
+          title: context.tr('round_lost'),
+          message: context.tr('rewarded_ad_unavailable'),
+          retryLabel: context.tr('try_again'),
+          cancelLabel: context.tr('cancel'),
         );
         await _showLossSheet();
       }
@@ -527,6 +540,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
   void _restartPuzzle() {
     _pauseClock();
+    _fitBoard();
     setState(() {
       _board = List<int>.from(widget.puzzle.puzzle);
       _notes.clear();
@@ -583,8 +597,8 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     final stars = _totalMistakes == 0 && _hintsUsed == 0
         ? 3
         : _totalMistakes <= 2 && _hintsUsed <= 1
-            ? 2
-            : 1;
+        ? 2
+        : 1;
     final action = await showAdaptiveBottomSheet<_ResultAction>(
       context: context,
       isDismissible: false,
@@ -717,78 +731,90 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
                 enabled: _inputEnabled,
                 onCellTap: _selectCell,
               );
-              final availableWidth = constraints.maxWidth - 32;
-              final normalWidth = availableWidth > 560 ? 560.0 : availableWidth;
-              final boardArea = widget.puzzle.size == 16
-                  ? SizedBox(
-                      key: const ValueKey<String>('fantasy-board-viewport'),
-                      height: (availableWidth * .94).clamp(300.0, 620.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: InteractiveViewer(
-                          minScale: .55,
-                          maxScale: 3,
+              final availableWidth = math.min(
+                560.0,
+                math.max(180.0, constraints.maxWidth - 24),
+              );
+              final statusHeight = constraints.maxHeight < 470 ? 42.0 : 48.0;
+              final availableHeight = math.max(
+                180.0,
+                constraints.maxHeight - statusHeight - 20,
+              );
+              final boardDimension = math.min(availableWidth, availableHeight);
+              final boardArea = SizedBox.square(
+                key: ValueKey<String>(
+                  widget.puzzle.size == 16
+                      ? 'classic16-board-viewport'
+                      : 'classic9-board-viewport',
+                ),
+                dimension: boardDimension,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: widget.puzzle.size == 16
+                      ? InteractiveViewer(
+                          transformationController: _boardTransform,
+                          minScale: 1,
+                          maxScale: 3.5,
                           boundaryMargin: const EdgeInsets.all(120),
-                          constrained: false,
+                          clipBehavior: Clip.hardEdge,
                           child: SizedBox.square(
-                            dimension: 640,
+                            dimension: boardDimension,
                             child: boardWidget,
                           ),
-                        ),
-                      ),
-                    )
-                  : SizedBox(width: normalWidth, child: boardWidget);
+                        )
+                      : boardWidget,
+                ),
+              );
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 700),
-                    child: Column(
-                      children: [
-                        if (!_ready) ...[
-                          const LinearProgressIndicator(),
-                          const SizedBox(height: 12),
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+                child: Column(
+                  children: [
+                    if (!_ready)
+                      const SizedBox(
+                        height: 3,
+                        child: LinearProgressIndicator(),
+                      ),
+                    SizedBox(
+                      height: statusHeight,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _GameStatusPill(
+                              icon: Icons.error_outline_rounded,
+                              text: mistakeLabel,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: _GameStatusPill(
+                              icon: Icons.lightbulb_outline_rounded,
+                              text: context.tr('hints_count', <Object>[
+                                widget.store.hints,
+                              ]),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: _GameStatusPill(
+                              icon: widget.puzzle.size == 16
+                                  ? Icons.zoom_out_map_rounded
+                                  : Icons.grid_4x4_rounded,
+                              text: widget.puzzle.size == 16
+                                  ? '16×16 · 1–16'
+                                  : context.strings.difficultyLabel(
+                                      widget.puzzle.difficulty,
+                                    ),
+                              onTap: widget.puzzle.size == 16 ? _fitBoard : null,
+                            ),
+                          ),
                         ],
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            Chip(
-                              avatar: const Icon(Icons.error_outline, size: 18),
-                              label: Text(mistakeLabel),
-                            ),
-                            Chip(
-                              avatar: const Icon(
-                                Icons.lightbulb_outline,
-                                size: 18,
-                              ),
-                              label: Text(
-                                context.tr('hints_count', <Object>[
-                                  widget.store.hints,
-                                ]),
-                              ),
-                            ),
-                            Chip(
-                              avatar: Icon(
-                                widget.puzzle.size == 16
-                                    ? Icons.auto_awesome_rounded
-                                    : Icons.grid_4x4,
-                                size: 18,
-                              ),
-                              label: Text(
-                                widget.puzzle.size == 16
-                                    ? '16×16 · A–G'
-                                    : context.strings.difficultyLabel(
-                                        widget.puzzle.difficulty,
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Stack(
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Center(
+                        child: Stack(
                           alignment: Alignment.center,
                           children: [
                             AnimatedOpacity(
@@ -800,9 +826,8 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
                               ),
                             ),
                             if (_paused)
-                              SizedBox(
-                                width: normalWidth,
-                                height: normalWidth,
+                              SizedBox.square(
+                                dimension: boardDimension,
                                 child: UxStatePanel(
                                   icon: Icons.pause_circle_filled_rounded,
                                   title: UxCopy.pausedTitle(context),
@@ -813,14 +838,67 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
                               ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               );
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GameStatusPill extends StatelessWidget {
+  const _GameStatusPill({
+    required this.icon,
+    required this.text,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String text;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 17),
+          const SizedBox(width: 5),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                text,
+                maxLines: 1,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (onTap == null) return content;
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: content,
       ),
     );
   }
@@ -890,8 +968,8 @@ class _GameResultSheetState extends State<_GameResultSheet> {
               widget.title,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 10),
             Row(
