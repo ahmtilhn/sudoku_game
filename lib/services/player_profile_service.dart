@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 
 import 'firebase_session_service.dart';
 import 'platform_game_services.dart';
+import 'platform_profile_policy.dart';
 import 'social_api_client.dart';
 
 class PlayerProfileException implements Exception {
@@ -32,6 +33,9 @@ class PlayerProfilePreferences {
     required this.rating,
     required this.gamesPlayed,
     required this.wins,
+    this.platformDisplayName,
+    this.avatarUrl,
+    this.platformConnected = false,
   });
 
   final String publicId;
@@ -43,6 +47,9 @@ class PlayerProfilePreferences {
   final int rating;
   final int gamesPlayed;
   final int wins;
+  final String? platformDisplayName;
+  final String? avatarUrl;
+  final bool platformConnected;
 
   PlayerProfilePreferences copyWith({
     String? publicId,
@@ -54,6 +61,9 @@ class PlayerProfilePreferences {
     int? rating,
     int? gamesPlayed,
     int? wins,
+    String? platformDisplayName,
+    String? avatarUrl,
+    bool? platformConnected,
   }) {
     return PlayerProfilePreferences(
       publicId: publicId ?? this.publicId,
@@ -65,6 +75,9 @@ class PlayerProfilePreferences {
       rating: rating ?? this.rating,
       gamesPlayed: gamesPlayed ?? this.gamesPlayed,
       wins: wins ?? this.wins,
+      platformDisplayName: platformDisplayName ?? this.platformDisplayName,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      platformConnected: platformConnected ?? this.platformConnected,
     );
   }
 
@@ -79,6 +92,11 @@ class PlayerProfilePreferences {
       rating: (json['rating'] as num?)?.toInt() ?? 1000,
       gamesPlayed: (json['gamesPlayed'] as num?)?.toInt() ?? 0,
       wins: (json['wins'] as num?)?.toInt() ?? 0,
+      platformDisplayName: json['platformDisplayName']?.toString(),
+      avatarUrl: PlatformProfilePolicy.normalizedAvatarUrl(
+        json['avatarUrl']?.toString(),
+      ),
+      platformConnected: json['platformConnected'] == true,
     );
   }
 }
@@ -97,6 +115,10 @@ class PlayerProfileService {
     final player = await _loadPlatformPlayer();
     final platformName = player?.displayName.trim();
     final platformSource = player?.platform ?? 'google_play_games';
+    final platformAvatar = PlatformProfilePolicy.normalizedAvatarUrl(
+      player?.avatarUrl,
+    );
+    final platformConnected = player != null && player.playerId.trim().isNotEmpty;
 
     PlayerProfilePreferences preferences;
     try {
@@ -119,6 +141,9 @@ class PlayerProfileService {
             rating: 1000,
             gamesPlayed: 0,
             wins: 0,
+            platformDisplayName: platformName,
+            avatarUrl: platformAvatar,
+            platformConnected: platformConnected,
           );
           current.value = fallback;
           return fallback;
@@ -129,20 +154,19 @@ class PlayerProfileService {
     }
 
     if (platformName == null || platformName.isEmpty) {
-      current.value = preferences;
-      return preferences;
+      current.value = preferences.copyWith(platformConnected: false);
+      return current.value!;
     }
 
-    // A name explicitly chosen by the player is authoritative. Platform
-    // identity may still provide the avatar, but it must not replace the name.
-    if (preferences.profileConfirmed && preferences.nameSource == 'custom') {
-      current.value = preferences;
-      return preferences;
-    }
+    final decision = PlatformProfilePolicy.decideNameUpdate(
+      profileConfirmed: preferences.profileConfirmed,
+      currentNameSource: preferences.nameSource,
+      currentDisplayName: preferences.displayName,
+      platformDisplayName: platformName,
+    );
 
-    if (preferences.username.trim().isNotEmpty &&
-        (preferences.displayName != platformName ||
-            preferences.nameSource != platformSource)) {
+    if (decision == PlatformProfileNameDecision.adoptPlatform &&
+        preferences.username.trim().isNotEmpty) {
       try {
         preferences = await update(
           username: preferences.username,
@@ -156,13 +180,18 @@ class PlayerProfileService {
           nameSource: platformSource,
         );
       }
-    } else {
+    } else if (decision == PlatformProfileNameDecision.adoptPlatform) {
       preferences = preferences.copyWith(
         displayName: platformName,
         nameSource: platformSource,
       );
     }
 
+    preferences = preferences.copyWith(
+      platformDisplayName: platformName,
+      avatarUrl: platformAvatar,
+      platformConnected: platformConnected,
+    );
     current.value = preferences;
     return preferences;
   }
@@ -196,6 +225,7 @@ class PlayerProfileService {
     required bool discoverable,
     required String nameSource,
   }) async {
+    final platformMetadata = current.value;
     final updated = PlayerProfilePreferences.fromJson(
       await _request(
         'PUT',
@@ -207,6 +237,10 @@ class PlayerProfileService {
           'nameSource': nameSource,
         },
       ),
+    ).copyWith(
+      platformDisplayName: platformMetadata?.platformDisplayName,
+      avatarUrl: platformMetadata?.avatarUrl,
+      platformConnected: platformMetadata?.platformConnected,
     );
     current.value = updated;
     return updated;

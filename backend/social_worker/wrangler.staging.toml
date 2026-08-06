@@ -1,5 +1,5 @@
 name = "sudoku-duel-social-staging"
-main = "src/entry.ts"
+main = "src/entry_v2.ts"
 compatibility_date = "2026-07-24"
 
 [vars]

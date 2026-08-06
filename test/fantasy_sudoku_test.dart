@@ -4,7 +4,7 @@ import 'package:sudoku_game/domain/sudoku.dart';
 import 'package:sudoku_game/domain/sudoku_symbols.dart';
 
 void main() {
-  test('fantasy puzzle is a valid unique 16x16 Sudoku', () {
+  test('16x16 puzzle is a valid unique Sudoku', () {
     final puzzle = FantasySudokuCatalog.puzzleForSeed(20260804);
 
     expect(puzzle.size, 16);
@@ -24,7 +24,7 @@ void main() {
     expect(_countSolutions(puzzle, limit: 2), 1);
   });
 
-  test('fantasy seeds preserve validity and vary the board', () {
+  test('16x16 seeds preserve validity and vary the board', () {
     final first = FantasySudokuCatalog.puzzleForSeed(1);
     final second = FantasySudokuCatalog.puzzleForSeed(2);
 
@@ -33,12 +33,15 @@ void main() {
     expect(first.solution, isNot(equals(second.solution)));
   });
 
-  test('large Sudoku symbols use 1-9 and A-G', () {
+  test('large Sudoku symbols use numeric values 1 through 16', () {
     expect(sudokuSymbol(1), '1');
     expect(sudokuSymbol(9), '9');
-    expect(sudokuSymbol(10), 'A');
-    expect(sudokuSymbol(16), 'G');
+    expect(sudokuSymbol(10), '10');
+    expect(sudokuSymbol(16), '16');
+    expect(sudokuSpokenValue(10), '10');
+    expect(sudokuSpokenValue(16), '16');
     expect(sudokuSymbol(0), isEmpty);
+    expect(sudokuSpokenValue(0), isEmpty);
   });
 }
 

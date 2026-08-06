@@ -154,14 +154,30 @@ flutter {
     source = "../.."
 }
 
-// The Flutter CLI always supplies its own -Pdart-defines list, even when the
-// developer did not pass --dart-define. That command-line project property has
-// precedence over android/gradle.properties. Merge the public staging endpoint
-// directly into release Flutter tasks when no explicit SOCIAL_BACKEND_URL was
-// supplied, so the documented plain build command remains deterministic.
+// Flutter supplies -Pdart-defines after project configuration. Mutating the
+// task only while Gradle is configuring it can therefore be overwritten by the
+// Flutter plugin/CLI. Merge the public staging endpoint in a doFirst action so
+// the exact value consumed by the release FlutterTask is guaranteed to contain
+// SOCIAL_BACKEND_URL. An explicit --dart-define still takes precedence.
 tasks.withType<FlutterTask>().configureEach {
     if (name.contains("Release", ignoreCase = true)) {
-        dartDefines = withDefaultSocialBackend(dartDefines)
+        doFirst {
+            dartDefines = withDefaultSocialBackend(dartDefines)
+            val effectiveDefines = decodeDartDefines(dartDefines)
+            val effectiveBackend = effectiveDefines["SOCIAL_BACKEND_URL"]
+                ?.trim()
+                .orEmpty()
+            if (effectiveBackend.isEmpty()) {
+                throw GradleException(
+                    "Release FlutterTask is missing SOCIAL_BACKEND_URL after final task configuration.",
+                )
+            }
+            logger.lifecycle(
+                "Release FlutterTask {} uses SOCIAL_BACKEND_URL={}",
+                name,
+                effectiveBackend,
+            )
+        }
     }
 }
 

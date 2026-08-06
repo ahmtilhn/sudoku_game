@@ -29,7 +29,7 @@ class UserSafeError {
       return UxCopy.connectionError(context);
     }
 
-    final normalized = (error?.toString() ?? '').toLowerCase();
+    final normalized = error?.toString().trim().toLowerCase() ?? '';
     if (_containsAny(normalized, const <String>[
       'timeout',
       'timed out',
@@ -50,6 +50,10 @@ class UserSafeError {
       'firebase',
       'token',
       'account_link',
+      'play games',
+      'play_games',
+      'server_auth_code',
+      'not_authenticated',
     ])) {
       return UxCopy.accountError(context);
     }
