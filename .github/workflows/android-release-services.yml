@@ -108,7 +108,7 @@ jobs:
       - name: Upload release AAB
         uses: actions/upload-artifact@v4
         with:
-          name: sudoku-duel-0.1.11-24-release-aab
+          name: sudoku-duel-0.1.12-25-release-aab
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
