@@ -55,7 +55,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | social | `PlayerProfileScreen`<br>`lib/features/social/player_profile_screen.dart` | Forwarding wrapper | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | social | `ProfileHubScreen`<br>`lib/features/social/profile_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | social | `SocialHubScreen`<br>`lib/features/social/social_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| social | `UxChallengeInvitationScreen`<br>`lib/features/social/ux_challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| social | `UxChallengeInvitationScreen`<br>`lib/features/social/ux_challenge_invitation_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | tutorial | `TutorialScreen`<br>`lib/features/tutorial/tutorial_screen.dart` | Production screen | — | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
 
 ## Static warnings requiring visual regression attention
@@ -63,6 +63,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 - `lib/features/daily/daily_screen.dart`: No explicit responsive primitive detected
 - `lib/features/duel/matchmaking_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/game/game_screen.dart`: Outcome content does not use shared outcome component
+- `lib/features/social/ux_challenge_invitation_screen.dart`: Dense column without explicit scroll marker
 
 Static warnings are not automatically defects. Confirmation dialogs, short setup screens and game canvases may intentionally omit a list or common state panel. They remain listed so visual/device tests do not silently skip them.
 
