@@ -29,8 +29,7 @@ class UserSafeError {
       return UxCopy.connectionError(context);
     }
 
-    final rawError = error?.toString().trim() ?? '';
-    final normalized = rawError.toLowerCase();
+    final normalized = error?.toString().trim().toLowerCase() ?? '';
     if (_containsAny(normalized, const <String>[
       'timeout',
       'timed out',
@@ -51,12 +50,12 @@ class UserSafeError {
       'firebase',
       'token',
       'account_link',
+      'play games',
+      'play_games',
+      'server_auth_code',
+      'not_authenticated',
     ])) {
-      final safeMessage = UxCopy.accountError(context);
-      if (_shouldExposePlayGamesDiagnostics(normalized) && rawError.isNotEmpty) {
-        return '$safeMessage\n\nDiagnostic:\n$rawError';
-      }
-      return safeMessage;
+      return UxCopy.accountError(context);
     }
     if (_containsAny(normalized, const <String>[
       '429',
@@ -72,21 +71,6 @@ class UserSafeError {
       return UxCopy.serverBusy(context);
     }
     return fallback ?? UxCopy.genericError(context);
-  }
-
-  static bool _shouldExposePlayGamesDiagnostics(String value) {
-    return _containsAny(value, const <String>[
-      'play games',
-      'play_games',
-      'playgamesproject=',
-      'certificatesha1=',
-      'installer=',
-      'apistatuscode=',
-      'account_link_failed',
-      'server_auth_code',
-      'authentication_failed:',
-      'not_authenticated:',
-    ]);
   }
 
   static bool _containsAny(String value, List<String> terms) {
