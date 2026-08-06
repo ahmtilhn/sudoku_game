@@ -5,4 +5,6 @@
 *.py text eol=lf
 *.swift text eol=lf
 
+docs/FULL_UX_AUDIT_2026-08.md whitespace=-trailing-space
+
 *.ps1 text eol=crlf
