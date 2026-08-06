@@ -1,3 +1,5 @@
+import '../domain/sudoku_variant.dart';
+
 enum OnlineDuelStatus {
   waiting,
   readyWindow,
@@ -107,6 +109,7 @@ class OnlineDuelSnapshot {
     required this.matchId,
     required this.mode,
     required this.difficulty,
+    this.variant = SudokuVariant.classic9,
     required this.status,
     required this.youSeat,
     required this.players,
@@ -132,6 +135,7 @@ class OnlineDuelSnapshot {
   final String matchId;
   final String mode;
   final String difficulty;
+  final SudokuVariant variant;
   final OnlineDuelStatus status;
   final OnlineDuelSeat youSeat;
   final Map<OnlineDuelSeat, OnlineDuelPlayer> players;
@@ -152,6 +156,9 @@ class OnlineDuelSnapshot {
   final Map<OnlineDuelSeat, OnlineDuelRatingChange>? rating;
   final OnlineDuelCoinSettlement? coinSettlement;
 
+  int get boardSize => variant.boardSize;
+  int get cellCount => variant.cellCount;
+
   bool get isLocalTurn =>
       status == OnlineDuelStatus.active && currentTurnSeat == youSeat;
 
@@ -162,6 +169,7 @@ class OnlineDuelSnapshot {
       status == OnlineDuelStatus.abandoned;
 
   OnlineDuelSnapshot copyWith({
+    SudokuVariant? variant,
     OnlineDuelStatus? status,
     Map<OnlineDuelSeat, OnlineDuelPlayer>? players,
     List<int>? board,
@@ -185,6 +193,7 @@ class OnlineDuelSnapshot {
       matchId: matchId,
       mode: mode,
       difficulty: difficulty,
+      variant: variant ?? this.variant,
       status: status ?? this.status,
       youSeat: youSeat,
       players: players ?? this.players,
@@ -222,13 +231,15 @@ class OnlineDuelSnapshot {
   factory OnlineDuelSnapshot.fromJson(Map<String, dynamic> json) {
     final puzzle = _intList(json['puzzle']);
     final board = _intList(json['board']);
-    _validateSnapshotShape(puzzle: puzzle, board: board);
+    final variant = _variantFromSnapshot(json, puzzle.length);
+    _validateSnapshotShape(puzzle: puzzle, board: board, variant: variant);
 
     return OnlineDuelSnapshot(
       roomId: json['roomId']?.toString() ?? '',
       matchId: json['matchId']?.toString() ?? '',
       mode: json['mode']?.toString() ?? 'friendly',
       difficulty: json['difficulty']?.toString() ?? 'easy',
+      variant: variant,
       status: _status(json['status']?.toString()),
       youSeat: _seat(json['youSeat']?.toString()) ?? OnlineDuelSeat.a,
       players: _players(json['players']),
@@ -334,29 +345,78 @@ List<int> _intList(Object? value) {
   return value.map((item) => (item as num?)?.toInt() ?? -1).toList();
 }
 
+SudokuVariant _variantFromSnapshot(
+  Map<String, dynamic> json,
+  int puzzleLength,
+) {
+  SudokuVariant? declaredVariant;
+  final rawVariant = json['variant']?.toString().trim();
+  if (rawVariant != null && rawVariant.isNotEmpty) {
+    try {
+      declaredVariant = SudokuVariant.fromKey(rawVariant);
+    } on ArgumentError {
+      throw FormatException('Unsupported online duel variant: $rawVariant.');
+    }
+  }
+
+  final declaredBoardSize = (json['boardSize'] as num?)?.toInt();
+  if (declaredBoardSize != null) {
+    SudokuVariant boardSizeVariant;
+    try {
+      boardSizeVariant = SudokuVariant.fromBoardSize(declaredBoardSize);
+    } on ArgumentError {
+      throw FormatException(
+        'Unsupported online duel board size: $declaredBoardSize.',
+      );
+    }
+    if (declaredVariant != null && declaredVariant != boardSizeVariant) {
+      throw const FormatException(
+        'Online duel variant and board size do not match.',
+      );
+    }
+    declaredVariant = boardSizeVariant;
+  }
+
+  final inferredVariant = switch (puzzleLength) {
+    81 => SudokuVariant.classic9,
+    256 => SudokuVariant.classic16,
+    _ => throw FormatException(
+      'Unsupported online duel board length: $puzzleLength.',
+    ),
+  };
+  final variant = declaredVariant ?? inferredVariant;
+  if (variant != inferredVariant) {
+    throw const FormatException(
+      'Online duel variant does not match the puzzle length.',
+    );
+  }
+
+  final declaredCellCount = (json['cellCount'] as num?)?.toInt();
+  if (declaredCellCount != null && declaredCellCount != variant.cellCount) {
+    throw const FormatException(
+      'Online duel cell count does not match the selected variant.',
+    );
+  }
+  return variant;
+}
+
 void _validateSnapshotShape({
   required List<int> puzzle,
   required List<int> board,
+  required SudokuVariant variant,
 }) {
-  if (puzzle.isEmpty || board.length != puzzle.length) {
+  if (puzzle.length != variant.cellCount || board.length != variant.cellCount) {
     throw const FormatException(
       'Online duel snapshot puzzle and board lengths are invalid.',
     );
   }
-  final size = switch (puzzle.length) {
-    16 => 4,
-    81 => 9,
-    _ => 0,
-  };
-  if (size == 0) {
-    throw FormatException(
-      'Unsupported online duel board length: ${puzzle.length}.',
-    );
-  }
-  for (var index = 0; index < puzzle.length; index++) {
+  for (var index = 0; index < variant.cellCount; index++) {
     final clue = puzzle[index];
     final value = board[index];
-    if (clue < 0 || clue > size || value < 0 || value > size) {
+    if (clue < 0 ||
+        clue > variant.boardSize ||
+        value < 0 ||
+        value > variant.boardSize) {
       throw FormatException('Invalid online duel cell value at index $index.');
     }
     if (clue != 0 && value != clue) {
