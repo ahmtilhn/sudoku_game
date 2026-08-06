@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/local_progress_store.dart';
-import 'ux_root_screen.dart';
+import 'professional_home_screen.dart';
 
 class MainExperienceShell extends StatelessWidget {
   const MainExperienceShell({super.key, required this.store});
@@ -10,6 +10,6 @@ class MainExperienceShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: UxRootScreen(store: store));
+    return Scaffold(body: ProfessionalHomeScreen(store: store));
   }
 }
