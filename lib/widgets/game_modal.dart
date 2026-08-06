@@ -33,7 +33,9 @@ class GameModal {
     return result ?? false;
   }
 
-  static Future<bool> error(
+  // Kept dynamic so the same modal can be awaited as a retry choice or used
+  // as a fire-and-forget notice by existing screens without unsafe casts.
+  static dynamic error(
     BuildContext context, {
     required String title,
     required String message,
