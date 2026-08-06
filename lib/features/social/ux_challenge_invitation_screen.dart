@@ -55,7 +55,8 @@ class _UxChallengeInvitationScreenState
       _challenge!.status != 'pending' ||
       _secondsLeft <= 0;
 
-  bool get _canAccept => !_expired && _economy.balance >= _entryFee;
+  bool get _hasBalance => _economy.balance >= _entryFee;
+  bool get _canAccept => !_expired && _hasBalance;
 
   @override
   void initState() {
@@ -441,7 +442,7 @@ class _UxChallengeInvitationScreenState
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _busy || !_canAccept ? null : () => _respond(true),
+                  onPressed: _busy || _expired ? null : () => _respond(true),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(54),
                     backgroundColor: accent,
@@ -452,9 +453,11 @@ class _UxChallengeInvitationScreenState
                           dimension: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.sports_kabaddi_rounded),
+                      : _hasBalance
+                      ? const Icon(Icons.sports_kabaddi_rounded)
+                      : const Icon(Icons.storefront_rounded),
                   label: Text(
-                    _canAccept
+                    _hasBalance
                         ? context.tr('accept')
                         : context.tr('open_coin_store'),
                   ),
