@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class DuelAsset {
   const DuelAsset._();
@@ -39,6 +40,19 @@ class DuelAsset {
   static const undo = 'assets/images/ui/undo.png';
   static const video = 'assets/images/ui/video.png';
   static const wifi = 'assets/images/ui/wifi.png';
+
+  static const quickPlayPro = 'assets/images/ui/pro/mode_quick_play.svg';
+  static const careerPro = 'assets/images/ui/pro/mode_career.svg';
+  static const onlineDuelPro = 'assets/images/ui/pro/mode_online_duel.svg';
+  static const friendsPro = 'assets/images/ui/pro/mode_friends.svg';
+  static const storePro = 'assets/images/ui/pro/mode_store.svg';
+  static const profilePro = 'assets/images/ui/pro/mode_profile.svg';
+  static const board9Pro = 'assets/images/ui/pro/board_9x9.svg';
+  static const board16Pro = 'assets/images/ui/pro/board_16x16.svg';
+  static const statusErrorPro = 'assets/images/ui/pro/status_error.svg';
+  static const statusSuccessPro = 'assets/images/ui/pro/status_success.svg';
+  static const statusWarningPro = 'assets/images/ui/pro/status_warning.svg';
+  static const statusOfflinePro = 'assets/images/ui/pro/status_offline.svg';
 }
 
 class DuelAssetIcon extends StatelessWidget {
@@ -48,20 +62,34 @@ class DuelAssetIcon extends StatelessWidget {
     this.size = 24,
     this.color,
     this.semanticLabel,
+    this.fit = BoxFit.contain,
   });
 
   final String asset;
   final double size;
   final Color? color;
   final String? semanticLabel;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
+    if (asset.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.asset(
+        asset,
+        width: size,
+        height: size,
+        fit: fit,
+        semanticsLabel: semanticLabel,
+        colorFilter: color == null
+            ? null
+            : ColorFilter.mode(color!, BlendMode.srcIn),
+      );
+    }
     return Image.asset(
       asset,
       width: size,
       height: size,
-      fit: BoxFit.contain,
+      fit: fit,
       color: color,
       semanticLabel: semanticLabel,
       filterQuality: FilterQuality.high,
