@@ -10,11 +10,15 @@ import '../../services/platform_game_services.dart';
 import '../../services/player_profile_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/game_modal.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/ux_feedback.dart';
 import '../economy/wallet_history_screen.dart';
 import 'platform_services_screen.dart';
 import 'social_hub_screen.dart';
+
+enum _ProfileTab { overview, performance, account }
 
 class ProfileHubScreen extends StatefulWidget {
   const ProfileHubScreen({super.key});
@@ -25,13 +29,13 @@ class ProfileHubScreen extends StatefulWidget {
 
 class _ProfileHubScreenState extends State<ProfileHubScreen> {
   final PlatformGameServices _games = PlatformGameServices.instance;
-  final PlayerProfileService _preferencesService =
-      PlayerProfileService.instance;
+  final PlayerProfileService _preferencesService = PlayerProfileService.instance;
 
   CompetitiveProfile? _profile;
   PlayerProfilePreferences? _preferences;
+  _ProfileTab _tab = _ProfileTab.overview;
   bool _loading = true;
-  String? _errorMessage;
+  bool _showingError = false;
 
   @override
   void initState() {
@@ -56,33 +60,32 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   }
 
   Future<void> _load({bool showSpinner = true}) async {
-    if (showSpinner) {
-      setState(() {
-        _loading = true;
-        _errorMessage = null;
-      });
-    }
-
+    if (showSpinner && mounted) setState(() => _loading = true);
     Object? failure;
     try {
       _preferences = await _preferencesService.load();
     } catch (error) {
       failure = error;
     }
-
     try {
       _profile = await SocialApiClient.instance.loadCompetitiveProfile();
     } catch (error) {
       failure ??= error;
     }
-
     if (!mounted) return;
-    setState(() {
-      _loading = false;
-      _errorMessage = failure == null
-          ? null
-          : UserSafeError.message(context, failure);
-    });
+    setState(() => _loading = false);
+    if (failure != null && !_showingError) {
+      _showingError = true;
+      final retry = await GameModal.error(
+        context,
+        title: context.tr('profile'),
+        message: UserSafeError.message(context, failure),
+        retryLabel: context.tr('retry'),
+        cancelLabel: context.tr('cancel'),
+      );
+      _showingError = false;
+      if (retry == true && mounted) unawaited(_load());
+    }
   }
 
   Future<void> _editProfile() async {
@@ -93,106 +96,125 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     var discoverable = current.discoverable;
     var saving = false;
 
-    final saved = await showModalBottomSheet<bool>(
+    final saved = await showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) {
+      barrierDismissible: !saving,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
           final normalized = username.text.trim().toLowerCase();
-          final valid = display.text.trim().length >= 2 &&
+          final valid =
+              display.text.trim().length >= 2 &&
               RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(normalized);
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              18,
-              20,
-              20 + MediaQuery.viewInsetsOf(context).bottom,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    context.tr('edit_player_profile'),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  18,
+                  20,
+                  18 + MediaQuery.viewInsetsOf(context).bottom,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              context.tr('edit_player_profile'),
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: saving
+                                ? null
+                                : () => Navigator.of(dialogContext).pop(false),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: display,
+                        maxLength: 24,
+                        textInputAction: TextInputAction.next,
+                        decoration: InputDecoration(
+                          labelText: context.tr('display_name'),
+                          border: const OutlineInputBorder(),
                         ),
+                        onChanged: (_) => setDialogState(() {}),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: username,
+                        maxLength: 20,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        decoration: InputDecoration(
+                          labelText: context.tr('unique_username'),
+                          helperText: context.tr('username_helper'),
+                          border: const OutlineInputBorder(),
+                        ),
+                        onChanged: (_) => setDialogState(() {}),
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(context.tr('discoverable_by_players')),
+                        subtitle: Text(context.tr('discoverable_by_players_body')),
+                        value: discoverable,
+                        onChanged: saving
+                            ? null
+                            : (value) =>
+                                setDialogState(() => discoverable = value),
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        onPressed: !valid || saving
+                            ? null
+                            : () async {
+                                setDialogState(() => saving = true);
+                                try {
+                                  await _preferencesService.update(
+                                    username: normalized,
+                                    displayName: display.text.trim(),
+                                    discoverable: discoverable,
+                                    nameSource: 'custom',
+                                  );
+                                  if (dialogContext.mounted) {
+                                    Navigator.of(dialogContext).pop(true);
+                                  }
+                                } catch (error) {
+                                  if (!dialogContext.mounted) return;
+                                  setDialogState(() => saving = false);
+                                  await GameModal.error(
+                                    dialogContext,
+                                    title: context.tr('edit_player_profile'),
+                                    message: UserSafeError.message(
+                                      dialogContext,
+                                      error,
+                                    ),
+                                    retryLabel: context.tr('try_again'),
+                                    cancelLabel: context.tr('cancel'),
+                                  );
+                                }
+                              },
+                        icon: saving
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.save_rounded),
+                        label: Text(context.tr('save')),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: display,
-                    maxLength: 24,
-                    textInputAction: TextInputAction.next,
-                    decoration: InputDecoration(
-                      labelText: context.tr('display_name'),
-                      border: const OutlineInputBorder(),
-                    ),
-                    onChanged: (_) => setSheetState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: username,
-                    maxLength: 20,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    decoration: InputDecoration(
-                      labelText: context.tr('unique_username'),
-                      helperText: context.tr('username_helper'),
-                      border: const OutlineInputBorder(),
-                    ),
-                    onChanged: (_) => setSheetState(() {}),
-                  ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(context.tr('discoverable_by_players')),
-                    subtitle: Text(
-                      context.tr('discoverable_by_players_body'),
-                    ),
-                    value: discoverable,
-                    onChanged: saving
-                        ? null
-                        : (value) =>
-                            setSheetState(() => discoverable = value),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: !valid || saving
-                        ? null
-                        : () async {
-                            setSheetState(() => saving = true);
-                            try {
-                              await _preferencesService.update(
-                                username: normalized,
-                                displayName: display.text.trim(),
-                                discoverable: discoverable,
-                                nameSource: 'custom',
-                              );
-                              if (sheetContext.mounted) {
-                                Navigator.of(sheetContext).pop(true);
-                              }
-                            } catch (error) {
-                              if (!sheetContext.mounted) return;
-                              setSheetState(() => saving = false);
-                              ScaffoldMessenger.of(sheetContext).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    UserSafeError.message(sheetContext, error),
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                    icon: saving
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.save_outlined),
-                    label: Text(context.tr('save')),
-                  ),
-                ],
+                ),
               ),
             ),
           );
@@ -204,8 +226,11 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     if (saved == true) await _load(showSpinner: false);
   }
 
-  void _open(Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+  Future<void> _open(Widget screen) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => screen),
+    );
+    if (mounted) await _load(showSpinner: false);
   }
 
   @override
@@ -224,417 +249,514 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         : profile?.publicId ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B1215),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(context.tr('profile')),
-        actions: [
-          IconButton(
-            tooltip: context.tr('edit_player_profile'),
-            onPressed: preferences == null ? null : _editProfile,
-            icon: const Icon(Icons.edit_outlined),
+      backgroundColor: const Color(0xFF07111E),
+      body: AppBackdrop(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight < 720;
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      14,
+                      compact ? 6 : 10,
+                      14,
+                      compact ? 8 : 14,
+                    ),
+                    child: Column(
+                      children: [
+                        _header(),
+                        SizedBox(height: compact ? 7 : 11),
+                        _identityCard(
+                          displayName: displayName,
+                          username: username,
+                          publicId: publicId,
+                          avatarKey: profile?.avatarKey ?? 'default',
+                          avatarUrl: platformPlayer?.avatarUrl,
+                          rankName: profile?.rankName,
+                          connected: platformPlayer != null,
+                          compact: compact,
+                        ),
+                        SizedBox(height: compact ? 7 : 10),
+                        SegmentedButton<_ProfileTab>(
+                          segments: [
+                            ButtonSegment<_ProfileTab>(
+                              value: _ProfileTab.overview,
+                              icon: const Icon(Icons.dashboard_rounded),
+                              label: Text(UxCopy.overview(context)),
+                            ),
+                            ButtonSegment<_ProfileTab>(
+                              value: _ProfileTab.performance,
+                              icon: const Icon(Icons.query_stats_rounded),
+                              label: Text(UxCopy.performance(context)),
+                            ),
+                            ButtonSegment<_ProfileTab>(
+                              value: _ProfileTab.account,
+                              icon: const Icon(Icons.manage_accounts_rounded),
+                              label: Text(UxCopy.accountAndSocial(context)),
+                            ),
+                          ],
+                          selected: <_ProfileTab>{_tab},
+                          onSelectionChanged: (value) =>
+                              setState(() => _tab = value.first),
+                          showSelectedIcon: false,
+                          style: ButtonStyle(
+                            visualDensity: compact
+                                ? VisualDensity.compact
+                                : VisualDensity.standard,
+                          ),
+                        ),
+                        SizedBox(height: compact ? 7 : 10),
+                        Expanded(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            child: _loading
+                                ? const Center(child: CircularProgressIndicator())
+                                : _tabContent(profile, platformPlayer != null),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-          IconButton(
+        ),
+      ),
+    );
+  }
+
+  Widget _header() {
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          IconButton.filledTonal(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              context.tr('profile'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 23,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          IconButton.filledTonal(
+            tooltip: context.tr('edit_player_profile'),
+            onPressed: _preferences == null ? null : _editProfile,
+            icon: const Icon(Icons.edit_rounded),
+          ),
+          const SizedBox(width: 6),
+          IconButton.filledTonal(
             tooltip: context.tr('refresh'),
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
-      body: AppBackdrop(
-        child: SafeArea(
-          top: false,
-          child: RefreshIndicator(
-            onRefresh: _load,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                  children: [
-                    _IdentityHeader(
-                      displayName: displayName,
-                      username: username,
-                      publicId: publicId,
-                      avatarKey: profile?.avatarKey ?? 'default',
-                      avatarUrl: platformPlayer?.avatarUrl,
-                      rankName: profile?.rankName,
-                      platformConnected: platformPlayer != null,
-                      onEdit: preferences == null ? null : _editProfile,
-                    ),
-                    const SizedBox(height: 16),
-                    if (_loading)
-                      UxStatePanel(
-                        icon: Icons.sync_rounded,
-                        title: UxCopy.loading(context),
-                        message: UxCopy.loading(context),
-                        compact: true,
-                      )
-                    else if (_errorMessage != null)
-                      UxStatePanel.error(
-                        context,
-                        message: _errorMessage!,
-                        onRetry: _load,
-                      ),
-                    if (profile != null) ...[
-                      const SizedBox(height: 16),
-                      _SectionTitle(
-                        icon: Icons.public_rounded,
-                        title: UxCopy.overview(context),
-                      ),
-                      const SizedBox(height: 8),
-                      _MetricGrid(
-                        children: [
-                          UxMetricTile(
-                            label: context.tr('current_elo'),
-                            value: '${profile.currentElo}',
-                            icon: Icons.bolt_rounded,
-                          ),
-                          UxMetricTile(
-                            label: context.tr('rank'),
-                            value: profile.rank == null ? '—' : '#${profile.rank}',
-                            icon: Icons.public_rounded,
-                          ),
-                          UxMetricTile(
-                            label: context.tr('season_peak'),
-                            value: '${profile.seasonPeak}',
-                            icon: Icons.trending_up_rounded,
-                          ),
-                          UxMetricTile(
-                            label: context.tr('country'),
-                            value: profile.country?.isNotEmpty == true
-                                ? profile.country!
-                                : context.tr('country_not_set'),
-                            icon: Icons.flag_outlined,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      _SectionTitle(
-                        icon: Icons.query_stats_rounded,
-                        title: UxCopy.performance(context),
-                      ),
-                      const SizedBox(height: 8),
-                      _MetricGrid(
-                        children: [
-                          UxMetricTile(
-                            label: UxCopy.totalMatches(context),
-                            value:
-                                '${profile.wins + profile.losses + profile.draws}',
-                            icon: Icons.sports_esports_rounded,
-                          ),
-                          UxMetricTile(
-                            label: context.tr('wins_losses_draws'),
-                            value:
-                                '${profile.wins}/${profile.losses}/${profile.draws}',
-                            icon: Icons.scoreboard_outlined,
-                          ),
-                          UxMetricTile(
-                            label: context.tr('win_rate'),
-                            value: '${(profile.winRate * 100).round()}%',
-                            icon: Icons.percent_rounded,
-                          ),
-                          UxMetricTile(
-                            label: context.tr('win_streak'),
-                            value: '${profile.winStreak}',
-                            icon: Icons.local_fire_department_rounded,
-                          ),
-                          UxMetricTile(
-                            label: context.tr('tournament_entries'),
-                            value: '${profile.tournamentEntries}',
-                            icon: Icons.stadium_outlined,
-                          ),
-                          UxMetricTile(
-                            label: context.tr('tournament_podiums'),
-                            value: '${profile.tournamentPodiums}',
-                            icon: Icons.emoji_events_outlined,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      _AchievementSection(profile: profile),
-                    ],
-                    const SizedBox(height: 18),
-                    _SectionTitle(
-                      icon: Icons.manage_accounts_outlined,
-                      title: UxCopy.accountAndSocial(context),
-                    ),
-                    const SizedBox(height: 8),
-                    _ProfileAction(
-                      icon: Icons.people_alt_outlined,
-                      title: context.tr('friends_challenges'),
-                      subtitle: context.tr('friend_requests'),
-                      onTap: () => _open(const SocialHubScreen()),
-                    ),
-                    _ProfileAction(
-                      icon: Icons.receipt_long_outlined,
-                      title: context.tr('coin_history'),
-                      subtitle: context.tr('server_wallet_history'),
-                      onTap: () => _open(const WalletHistoryScreen()),
-                    ),
-                    if (Platform.isAndroid || Platform.isIOS)
-                      _ProfileAction(
-                        icon: Icons.sports_esports_outlined,
-                        title: Platform.isIOS
-                            ? 'Game Center'
-                            : 'Google Play Games',
-                        subtitle: platformPlayer == null
-                            ? UxCopy.platformNotConnected(context)
-                            : UxCopy.connectedPlatform(context),
-                        trailing: platformPlayer == null
-                            ? Icons.link_off_rounded
-                            : Icons.verified_rounded,
-                        onTap: () => _open(const PlatformServicesScreen()),
-                      ),
-                  ],
-                ),
-              ),
+    );
+  }
+
+  Widget _identityCard({
+    required String displayName,
+    required String username,
+    required String publicId,
+    required String avatarKey,
+    required String? avatarUrl,
+    required String? rankName,
+    required bool connected,
+    required bool compact,
+  }) {
+    return Container(
+      height: compact ? 108 : 132,
+      padding: EdgeInsets.all(compact ? 10 : 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A1728).withValues(alpha: .94),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFF7A5CFF).withValues(alpha: .52),
+        ),
+      ),
+      child: Row(
+        children: [
+          DuelAssetIcon(DuelAsset.profilePro, size: compact ? 76 : 96),
+          SizedBox(width: compact ? 8 : 12),
+          PlayerAvatar(
+            displayName: displayName,
+            avatarKey: avatarKey,
+            remoteApprovedImageUrl: avatarUrl,
+            radius: compact ? 30 : 37,
+            semanticLabel: context.tr(
+              'player_avatar_semantics',
+              <Object>[displayName],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _IdentityHeader extends StatelessWidget {
-  const _IdentityHeader({
-    required this.displayName,
-    required this.username,
-    required this.publicId,
-    required this.avatarKey,
-    required this.avatarUrl,
-    required this.rankName,
-    required this.platformConnected,
-    required this.onEdit,
-  });
-
-  final String displayName;
-  final String username;
-  final String publicId;
-  final String avatarKey;
-  final String? avatarUrl;
-  final String? rankName;
-  final bool platformConnected;
-  final VoidCallback? onEdit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            Row(
+          SizedBox(width: compact ? 9 : 13),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PlayerAvatar(
-                  displayName: displayName,
-                  avatarKey: avatarKey,
-                  remoteApprovedImageUrl: avatarUrl,
-                  radius: 38,
-                  semanticLabel: context.tr(
-                    'player_avatar_semantics',
-                    <Object>[displayName],
+                Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: compact ? 19 : 23,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
-                      ),
-                      if (username.isNotEmpty)
-                        Text(
-                          '@$username',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      if (publicId.isNotEmpty)
-                        Text(
-                          context.tr('friend_id_value', <Object>[publicId]),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                    ],
+                if (username.isNotEmpty)
+                  Text(
+                    '@$username',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFB7A9FF),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                IconButton(
-                  tooltip: context.tr('edit_player_profile'),
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(
-                  avatar: Icon(
-                    platformConnected
-                        ? Icons.verified_rounded
-                        : Icons.link_off_rounded,
-                    size: 18,
-                  ),
-                  label: Text(
-                    platformConnected
-                        ? UxCopy.connectedPlatform(context)
-                        : UxCopy.platformNotConnected(context),
-                  ),
-                ),
-                if (rankName != null)
-                  Chip(
-                    avatar: const Icon(Icons.shield_outlined, size: 18),
-                    label: Text(rankName!),
+                if (publicId.isNotEmpty)
+                  Text(
+                    context.tr('friend_id_value', <Object>[publicId]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .55),
+                      fontSize: 11,
+                    ),
                   ),
               ],
             ),
-          ],
-        ),
+          ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Icon(
+                connected ? Icons.verified_rounded : Icons.link_off_rounded,
+                color: connected
+                    ? const Color(0xFF29D398)
+                    : Colors.white38,
+              ),
+              if (rankName != null)
+                Text(
+                  rankName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFFFC73D),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
-}
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.icon, required this.title});
+  Widget _tabContent(CompetitiveProfile? profile, bool platformConnected) {
+    return switch (_tab) {
+      _ProfileTab.overview => _overview(profile),
+      _ProfileTab.performance => _performance(profile),
+      _ProfileTab.account => _account(platformConnected),
+    };
+  }
 
-  final IconData icon;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget _overview(CompetitiveProfile? profile) {
+    if (profile == null) return _emptyState();
+    final achievements = profile.achievementShowcase.take(3).toList();
+    return Column(
+      key: const ValueKey<String>('profile-overview'),
       children: [
-        Icon(icon, size: 22, color: Theme.of(context).colorScheme.primary),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
+        Expanded(
+          flex: 3,
+          child: _metricGrid([
+            _MetricData(context.tr('current_elo'), '${profile.currentElo}', Icons.bolt_rounded),
+            _MetricData(context.tr('rank'), profile.rank == null ? '—' : '#${profile.rank}', Icons.public_rounded),
+            _MetricData(context.tr('season_peak'), '${profile.seasonPeak}', Icons.trending_up_rounded),
+            _MetricData(context.tr('country'), profile.country?.isNotEmpty == true ? profile.country! : context.tr('country_not_set'), Icons.flag_rounded),
+          ]),
+        ),
+        const SizedBox(height: 10),
+        Expanded(
+          flex: 2,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A1728).withValues(alpha: .94),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFFFFC73D).withValues(alpha: .35),
               ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.emoji_events_rounded, color: Color(0xFFFFC73D)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        context.tr('achievement_showcase'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${profile.achievementCount}',
+                      style: const TextStyle(
+                        color: Color(0xFFFFC73D),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                if (achievements.isEmpty)
+                  Center(child: Text(context.tr('achievement_showcase_empty')))
+                else
+                  Row(
+                    children: [
+                      for (var index = 0; index < achievements.length; index++) ...[
+                        Expanded(
+                          child: _AchievementBadge(title: achievements[index].title),
+                        ),
+                        if (index != achievements.length - 1)
+                          const SizedBox(width: 7),
+                      ],
+                    ],
+                  ),
+                const Spacer(),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
-}
 
-class _MetricGrid extends StatelessWidget {
-  const _MetricGrid({required this.children});
+  Widget _performance(CompetitiveProfile? profile) {
+    if (profile == null) return _emptyState();
+    return _metricGrid(
+      [
+        _MetricData(UxCopy.totalMatches(context), '${profile.wins + profile.losses + profile.draws}', Icons.sports_esports_rounded),
+        _MetricData(context.tr('wins_losses_draws'), '${profile.wins}/${profile.losses}/${profile.draws}', Icons.scoreboard_rounded),
+        _MetricData(context.tr('win_rate'), '${(profile.winRate * 100).round()}%', Icons.percent_rounded),
+        _MetricData(context.tr('win_streak'), '${profile.winStreak}', Icons.local_fire_department_rounded),
+        _MetricData(context.tr('tournament_entries'), '${profile.tournamentEntries}', Icons.stadium_rounded),
+        _MetricData(context.tr('tournament_podiums'), '${profile.tournamentPodiums}', Icons.emoji_events_rounded),
+      ],
+      key: const ValueKey<String>('profile-performance'),
+    );
+  }
 
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _account(bool platformConnected) {
+    final actions = <_AccountData>[
+      _AccountData(
+        context.tr('friends_challenges'),
+        context.tr('friend_requests'),
+        DuelAsset.friendsPro,
+        () => _open(const SocialHubScreen()),
+      ),
+      _AccountData(
+        context.tr('coin_history'),
+        context.tr('server_wallet_history'),
+        DuelAsset.storePro,
+        () => _open(const WalletHistoryScreen()),
+      ),
+      if (Platform.isAndroid || Platform.isIOS)
+        _AccountData(
+          Platform.isIOS ? 'Game Center' : 'Google Play Games',
+          platformConnected
+              ? UxCopy.connectedPlatform(context)
+              : UxCopy.platformNotConnected(context),
+          DuelAsset.profilePro,
+          () => _open(const PlatformServicesScreen()),
+        ),
+    ];
     return LayoutBuilder(
+      key: const ValueKey<String>('profile-account'),
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 620
-            ? 4
-            : constraints.maxWidth >= 400
-                ? 2
-                : 1;
-        final width =
-            (constraints.maxWidth - (columns - 1) * 8) / columns;
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final child in children) SizedBox(width: width, child: child),
-          ],
+        final columns = constraints.maxWidth >= 700 ? 3 : 1;
+        final rows = (actions.length / columns).ceil();
+        final gap = 10.0;
+        final extent = (constraints.maxHeight - gap * (rows - 1)) / rows;
+        return GridView.builder(
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: actions.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: gap,
+            mainAxisSpacing: gap,
+            mainAxisExtent: extent,
+          ),
+          itemBuilder: (context, index) => _AccountTile(actions[index]),
         );
       },
     );
   }
+
+  Widget _metricGrid(List<_MetricData> metrics, {Key? key}) {
+    return LayoutBuilder(
+      key: key,
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 620 ? 3 : 2;
+        final rows = (metrics.length / columns).ceil();
+        final gap = 9.0;
+        final extent = (constraints.maxHeight - gap * (rows - 1)) / rows;
+        return GridView.builder(
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: metrics.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: gap,
+            mainAxisSpacing: gap,
+            mainAxisExtent: extent,
+          ),
+          itemBuilder: (context, index) {
+            final value = metrics[index];
+            return UxMetricTile(
+              label: value.label,
+              value: value.value,
+              icon: value.icon,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _emptyState() {
+    return UxStatePanel(
+      icon: Icons.cloud_off_rounded,
+      title: context.tr('profile'),
+      message: context.tr('try_again_when_connected'),
+      actionLabel: context.tr('retry'),
+      onAction: _load,
+    );
+  }
 }
 
-class _AchievementSection extends StatelessWidget {
-  const _AchievementSection({required this.profile});
+class _MetricData {
+  const _MetricData(this.label, this.value, this.icon);
 
-  final CompetitiveProfile profile;
+  final String label;
+  final String value;
+  final IconData icon;
+}
+
+class _AchievementBadge extends StatelessWidget {
+  const _AchievementBadge({required this.title});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SectionTitle(
-              icon: Icons.emoji_events_outlined,
-              title: context.tr('achievement_showcase'),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '${UxCopy.achievements(context)}: ${profile.achievementCount}',
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 10),
-            if (profile.achievementShowcase.isEmpty)
-              Text(context.tr('achievement_showcase_empty'))
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final achievement in profile.achievementShowcase.take(3))
-                    Chip(
-                      avatar: const Icon(Icons.workspace_premium, size: 18),
-                      label: Text(achievement.title),
-                    ),
-                ],
-              ),
-          ],
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFC73D).withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFFFC73D).withValues(alpha: .32),
         ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC73D)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _ProfileAction extends StatelessWidget {
-  const _ProfileAction({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.trailing = Icons.chevron_right_rounded,
-  });
+class _AccountData {
+  const _AccountData(this.title, this.subtitle, this.asset, this.onTap);
 
-  final IconData icon;
   final String title;
   final String subtitle;
+  final String asset;
   final VoidCallback onTap;
-  final IconData trailing;
+}
+
+class _AccountTile extends StatelessWidget {
+  const _AccountTile(this.data);
+
+  final _AccountData data;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        minTileHeight: 72,
-        leading: Icon(icon, size: 30),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-        subtitle: Text(subtitle),
-        trailing: Icon(trailing),
-        onTap: onTap,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: data.onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A1728).withValues(alpha: .94),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: .13)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(child: DuelAssetIcon(data.asset, size: 88)),
+                Text(
+                  data.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  data.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .58),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
