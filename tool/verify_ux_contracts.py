@@ -50,15 +50,23 @@ def main() -> int:
         )
         require(
             "lib/features/home/main_experience_shell.dart",
-            "fantasy-16-launcher",
-            "FantasySudokuCatalog.puzzleForSeed",
-            "EnhancedGameScreen",
+            "ProfessionalHomeScreen(store: store)",
         )
         require(
-            "lib/data/fantasy_sudoku_catalog.dart",
-            "size: 16",
-            "boxRows: 4",
-            "boxColumns: 4",
+            "lib/features/home/professional_home_screen.dart",
+            "DuelAsset.quickPlayPro",
+            "DuelAsset.onlineDuelPro",
+            "SudokuVariant.values",
+            "SudokuVariantId.classic16",
+            "Classic16PuzzleFactory.generate",
+            "NeverScrollableScrollPhysics",
+            "GameModal.error",
+        )
+        require(
+            "lib/domain/classic16_puzzle_factory.dart",
+            "size = 16",
+            "boxSize = 4",
+            "List<int>.generate(size",
         )
         require(
             "lib/features/game/enhanced_game_screen.dart",
@@ -68,7 +76,71 @@ def main() -> int:
             "_PauseAction.restart",
             "_PauseAction.menu",
             "InteractiveViewer",
+            "classic16-board-viewport",
+            "16×16 · 1–16",
+            "_fitBoard",
             "UxOutcomeSheet",
+        )
+        forbid(
+            "lib/features/game/enhanced_game_screen.dart",
+            "16×16 · A–G",
+        )
+        require(
+            "lib/features/career/career_hub_screen.dart",
+            "SudokuVariant.values",
+            "nextCareerLevelNumberFor",
+            "Classic16PuzzleFactory.generate",
+            "NeverScrollableScrollPhysics",
+            "GameModal.error",
+        )
+        require(
+            "lib/features/duel/matchmaking_screen.dart",
+            "VariantMatchmakingClient.instance",
+            "SudokuVariant.values",
+            "DuelAsset.board16Pro",
+            "Classic16PuzzleFactory.generate",
+            "GameModal.error",
+            "NeverScrollableScrollPhysics",
+        )
+        require(
+            "lib/features/social/social_hub_screen.dart",
+            "SudokuVariant.values",
+            "variant: selection.variant",
+            "DuelAsset.board16Pro",
+            "GameModal.error",
+        )
+        require(
+            "lib/features/social/challenge_waiting_screen.dart",
+            "challenge.variant.label",
+            "DuelAsset.board16Pro",
+            "GameModal.error",
+        )
+        require(
+            "lib/features/social/ux_challenge_invitation_screen.dart",
+            "challenge.variant.label",
+            "DuelAsset.board16Pro",
+            "GameModal.warning",
+            "GameModal.error",
+        )
+        require(
+            "lib/services/social_api_client.dart",
+            "SudokuVariant variant = SudokuVariant.classic9",
+            "'variant': variant.key",
+            "final SudokuVariant variant",
+            "boardSize",
+            "cellCount",
+        )
+        require(
+            "backend/social_worker/src/entry_v2.ts",
+            "handleVariantMatchmakingRequest",
+            "handleVariantChallengeRequest",
+        )
+        require(
+            "backend/social_worker/src/variant_challenges.ts",
+            "classic16:",
+            "board_size",
+            "cell_count",
+            "augmentChallenge",
         )
         require(
             "lib/features/career/career_screen.dart",
@@ -106,6 +178,22 @@ def main() -> int:
             "NumberPadDock",
         )
         require(
+            "lib/widgets/duel_asset_icon.dart",
+            "SvgPicture.asset",
+            "DuelAsset.board9Pro",
+            "DuelAsset.board16Pro",
+            "DuelAsset.statusErrorPro",
+        )
+        require(
+            "lib/widgets/game_modal.dart",
+            "enum GameModalTone",
+            "class GameModal",
+            "DuelAsset.statusErrorPro",
+            "DuelAsset.statusSuccessPro",
+            "DuelAsset.statusWarningPro",
+            "DuelAsset.statusOfflinePro",
+        )
+        require(
             "lib/services/player_profile_service.dart",
             "ValueNotifier<PlayerProfilePreferences?> current",
             "preferences.profileConfirmed && preferences.nameSource == 'custom'",
@@ -117,7 +205,9 @@ def main() -> int:
             "_preferencesService.current.addListener",
             "UxCopy.overview(context)",
             "UxCopy.performance(context)",
-            "_AchievementSection",
+            "_AchievementBadge",
+            "NeverScrollableScrollPhysics",
+            "GameModal.error",
         )
         require(
             "lib/core/user_safe_error.dart",
@@ -151,6 +241,7 @@ def main() -> int:
             "lib/features/social/social_hub_screen.dart",
             "lib/features/social/challenge_invitation_screen.dart",
             "lib/features/social/challenge_waiting_screen.dart",
+            "lib/features/social/ux_challenge_invitation_screen.dart",
             "lib/features/social/platform_services_screen.dart",
             "lib/features/social/platform_social_screen.dart",
         )
@@ -174,9 +265,9 @@ def main() -> int:
             require(relative, "UxOutcomeSheet")
 
         require(
-            "test/fantasy_sudoku_test.dart",
-            "fantasy puzzle is a valid unique 16x16 Sudoku",
-            "_countSolutions",
+            "test/classic16_puzzle_factory_test.dart",
+            "generates a valid numeric 16x16 puzzle",
+            "contains(16)",
         )
         require(
             "test/gameplay_ux_test.dart",
@@ -192,7 +283,7 @@ def main() -> int:
         print(f"UX contract verification failed: {error}")
         return 1
 
-    print("Gameplay, profile, safe-message, route, and common-feedback UX contracts are wired.")
+    print("Professional home, variant, game, social, profile, safe-message, and common-feedback UX contracts are wired.")
     return 0
 
 
