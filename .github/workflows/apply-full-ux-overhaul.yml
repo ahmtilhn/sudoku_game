@@ -55,8 +55,21 @@ jobs:
         run: flutter pub get
 
       - name: Format source
+        shell: bash
         run: |
+          set -euo pipefail
           dart format lib test
+          python3 - <<'PY'
+          from pathlib import Path
+
+          audit_path = Path("docs/FULL_UX_AUDIT_2026-08.md")
+          if audit_path.exists():
+              lines = audit_path.read_text(encoding="utf-8").splitlines()
+              audit_path.write_text(
+                  "\n".join(line.rstrip() for line in lines) + "\n",
+                  encoding="utf-8",
+              )
+          PY
           git add -A
           git diff --check --cached
 
