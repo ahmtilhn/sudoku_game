@@ -29,7 +29,8 @@ class UserSafeError {
       return UxCopy.connectionError(context);
     }
 
-    final normalized = (error?.toString() ?? '').toLowerCase();
+    final rawError = error?.toString().trim() ?? '';
+    final normalized = rawError.toLowerCase();
     if (_containsAny(normalized, const <String>[
       'timeout',
       'timed out',
@@ -51,7 +52,11 @@ class UserSafeError {
       'token',
       'account_link',
     ])) {
-      return UxCopy.accountError(context);
+      final safeMessage = UxCopy.accountError(context);
+      if (_shouldExposePlayGamesDiagnostics(normalized) && rawError.isNotEmpty) {
+        return '$safeMessage\n\nDiagnostic:\n$rawError';
+      }
+      return safeMessage;
     }
     if (_containsAny(normalized, const <String>[
       '429',
@@ -67,6 +72,21 @@ class UserSafeError {
       return UxCopy.serverBusy(context);
     }
     return fallback ?? UxCopy.genericError(context);
+  }
+
+  static bool _shouldExposePlayGamesDiagnostics(String value) {
+    return _containsAny(value, const <String>[
+      'play games',
+      'play_games',
+      'playgamesproject=',
+      'certificatesha1=',
+      'installer=',
+      'apistatuscode=',
+      'account_link_failed',
+      'server_auth_code',
+      'authentication_failed:',
+      'not_authenticated:',
+    ]);
   }
 
   static bool _containsAny(String value, List<String> terms) {
