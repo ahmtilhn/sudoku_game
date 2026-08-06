@@ -4,7 +4,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 
 ## Audit scope
 
-- Screen files: **28**
+- Screen files: **29**
 - Forwarding/compatibility wrappers: **1**
 - Feature groups: **9** (career, daily, duel, economy, game, home, settings, social, tutorial)
 - Required device behavior: compact phone, large phone/tablet, text scaling, safe insets, keyboard insets and scroll recovery
@@ -33,7 +33,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | daily | `DailyScreen`<br>`lib/features/daily/daily_screen.dart` | Production screen | — | — | — | — | Yes | — | Yes | Yes | No explicit responsive primitive detected |
 | duel | `DuelScreen`<br>`lib/features/duel/duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | duel | `LeaderboardsScreen`<br>`lib/features/duel/leaderboards_screen.dart` | Production screen | — | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
-| duel | `MatchmakingScreen`<br>`lib/features/duel/matchmaking_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
+| duel | `MatchmakingScreen`<br>`lib/features/duel/matchmaking_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | duel | `OnlineDuelScreen`<br>`lib/features/duel/online_duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | duel | `PreMatchReadyScreen`<br>`lib/features/duel/pre_match_ready_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
 | economy | `CoinStoreScreen`<br>`lib/features/economy/coin_store_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
@@ -41,6 +41,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | game | `EnhancedGameScreen`<br>`lib/features/game/enhanced_game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | game | `GameScreen`<br>`lib/features/game/game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
 | home | `HomeScreen`<br>`lib/features/home/home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| home | `ProfessionalHomeScreen`<br>`lib/features/home/professional_home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | home | `UxRootScreen`<br>`lib/features/home/ux_root_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | settings | `SettingsScreen`<br>`lib/features/settings/settings_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
@@ -60,6 +61,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 ## Static warnings requiring visual regression attention
 
 - `lib/features/daily/daily_screen.dart`: No explicit responsive primitive detected
+- `lib/features/duel/matchmaking_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/game/game_screen.dart`: Outcome content does not use shared outcome component
 
 Static warnings are not automatically defects. Confirmation dialogs, short setup screens and game canvases may intentionally omit a list or common state panel. They remain listed so visual/device tests do not silently skip them.
