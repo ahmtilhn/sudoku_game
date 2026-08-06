@@ -157,6 +157,7 @@ class CompetitiveProfile {
 class SocialChallenge {
   const SocialChallenge({
     required this.id,
+    this.variant = 'classic',
     required this.difficulty,
     required this.status,
     required this.challenger,
@@ -166,6 +167,7 @@ class SocialChallenge {
   });
 
   final String id;
+  final String variant;
   final String difficulty;
   final String status;
   final SocialPlayer challenger;
@@ -176,6 +178,7 @@ class SocialChallenge {
   factory SocialChallenge.fromJson(Map<String, dynamic> json) {
     return SocialChallenge(
       id: json['id']?.toString() ?? '',
+      variant: json['variant']?.toString() ?? 'classic',
       difficulty: json['difficulty']?.toString() ?? 'easy',
       status: json['status']?.toString() ?? 'pending',
       challenger: SocialPlayer.fromJson(
@@ -197,17 +200,20 @@ class SocialChallenge {
 class MatchmakingResult {
   const MatchmakingResult({
     required this.status,
+    this.variant = 'classic',
     required this.difficulty,
     this.roomId,
   });
 
   final String status;
+  final String variant;
   final String difficulty;
   final String? roomId;
 
   factory MatchmakingResult.fromJson(Map<String, dynamic> json) {
     return MatchmakingResult(
       status: json['status']?.toString() ?? 'queued',
+      variant: json['variant']?.toString() ?? 'classic',
       difficulty: json['difficulty']?.toString() ?? 'easy',
       roomId: json['roomId']?.toString(),
     );
@@ -362,12 +368,14 @@ class SocialApiClient {
   Future<SocialChallenge> createChallenge({
     required String recipientPublicId,
     required String difficulty,
+    String variant = 'classic',
   }) async {
     final response = await _request(
       'POST',
       '/v1/challenges',
       body: <String, Object>{
         'recipientPublicId': recipientPublicId,
+        'variant': variant,
         'difficulty': difficulty,
       },
     );
@@ -414,11 +422,15 @@ class SocialApiClient {
 
   Future<MatchmakingResult> joinRankedQueue({
     required String difficulty,
+    String variant = 'classic',
   }) async {
     final response = await _request(
       'POST',
       '/v1/matchmaking/queue',
-      body: <String, Object>{'difficulty': difficulty},
+      body: <String, Object>{
+        'variant': variant,
+        'difficulty': difficulty,
+      },
     );
     return MatchmakingResult.fromJson(response);
   }

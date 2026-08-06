@@ -6,6 +6,16 @@
     <string name="career_subtitle">Progress from beginner to expert</string>
     <string name="career_random_subtitle">Choose a difficulty and get a new puzzle</string>
     <string name="career_random_intro">Choose a difficulty. A fresh, unique Sudoku will be generated for every game.</string>
+    <string name="samurai_sudoku">Samurai Sudoku</string>
+    <string name="duel_variant_classic">Classic Sudoku</string>
+    <string name="choose_duel_variant">Choose game type</string>
+    <string name="same_variant_match">You will only be matched with the same game type.</string>
+    <string name="samurai_subtitle">Five overlapping 9×9 boards in one challenge</string>
+    <string name="samurai_choose_difficulty">Choose Samurai difficulty</string>
+    <string name="samurai_zoom_hint">Pinch to zoom and drag to move across the five linked boards.</string>
+    <string name="samurai_pause_body">Your five linked boards are paused. Continue when ready.</string>
+    <string name="samurai_completed_title">Samurai completed!</string>
+    <string name="samurai_completed_body">You solved all five linked Sudoku boards.</string>
     <string name="three_mistake_rule">Career rule: the round ends after 3 wrong moves.</string>
     <string name="coins_count" formatted="false">%1$d coins</string>
     <string name="random_clue_count" formatted="false">About %1$d starting clues</string>
