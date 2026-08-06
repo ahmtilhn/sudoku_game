@@ -4,6 +4,10 @@ import {
   handleVariantMatchmakingRequest,
   type VariantMatchmakingEnv,
 } from './variant_matchmaking';
+import {
+  handleVariantChallengeRequest,
+  isVariantChallengeRoute,
+} from './variant_challenges';
 
 export { GameRoom, MatchmakingQueue };
 
@@ -19,6 +23,15 @@ export default {
       request.method !== 'OPTIONS'
     ) {
       return handleVariantMatchmakingRequest(
+        request,
+        env,
+        ctx,
+        (forwarded, forwardedEnv, forwardedCtx) =>
+          legacyWorker.fetch(forwarded, forwardedEnv as never, forwardedCtx),
+      );
+    }
+    if (isVariantChallengeRoute(url.pathname) && request.method !== 'OPTIONS') {
+      return handleVariantChallengeRequest(
         request,
         env,
         ctx,
