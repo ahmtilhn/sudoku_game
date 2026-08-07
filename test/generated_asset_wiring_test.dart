@@ -10,8 +10,10 @@ void main() {
     'assets/images/ui/home_friends.png',
     'assets/images/ui/home_coin_store.png',
     'assets/images/ui/home_profile.png',
-    'assets/images/ui/coin_stack.png',
-    'assets/images/ui/daily_reward.png',
+    'assets/images/ui/coin.png',
+    'assets/images/ui/gift.png',
+    'assets/images/ui/diamond.png',
+    'assets/images/ui/shield.png',
     'assets/images/ui/victory_trophy.png',
     'assets/images/ui/defeat_trophy.png',
     'assets/images/ui/leaderboard.png',
@@ -23,24 +25,20 @@ void main() {
     }
   });
 
-  test('DuelAsset catalog points production artwork at generated PNGs', () {
+  test('DuelAsset catalog points economy artwork at current PNGs', () {
     final source = File('lib/widgets/duel_asset_icon.dart').readAsStringSync();
 
     for (final asset in generatedAssets) {
       expect(source, contains("'$asset'"), reason: 'Catalog does not use $asset');
     }
+    expect(source, contains('static const dailyRewardPro = gift;'));
+    expect(source, contains('static const walletCoinStackPro = coin;'));
+    expect(source, contains('static const removeAdsPro = shield;'));
   });
 
-  test('home, leaderboard, and outcome screens consume production assets', () {
+  test('home is centered and consumes current coin and gift artwork', () {
     final home = File(
       'lib/features/home/professional_home_screen.dart',
-    ).readAsStringSync();
-    final leaderboards = File(
-      'lib/features/duel/leaderboards_screen.dart',
-    ).readAsStringSync();
-    final outcomes = File('lib/widgets/ux_feedback.dart').readAsStringSync();
-    final soloGame = File(
-      'lib/features/game/enhanced_game_screen.dart',
     ).readAsStringSync();
 
     expect(home, contains('DuelAsset.homePlayScene'));
@@ -49,8 +47,35 @@ void main() {
     expect(home, contains('DuelAsset.homeFriendsScene'));
     expect(home, contains('DuelAsset.homeStoreScene'));
     expect(home, contains('DuelAsset.homeProfileScene'));
-    expect(home, contains('DuelAsset.dailyRewardPro'));
-    expect(home, contains('DuelAsset.walletCoinStackPro'));
+    expect(home, contains('DuelAsset.gift'));
+    expect(home, contains('DuelAsset.coin'));
+    expect(home, contains('constraints: const BoxConstraints(maxWidth: 760)'));
+    expect(home, contains('child: Center('));
+  });
+
+  test('coin store uses untinted current economy artwork without fixed overflow', () {
+    final store = File(
+      'lib/features/economy/coin_store_screen.dart',
+    ).readAsStringSync();
+
+    expect(store, contains('DuelAsset.coinStoreBalancePro'));
+    expect(store, contains('DuelAsset.gift'));
+    expect(store, contains('DuelAsset.removeAdsPro'));
+    expect(store, contains('DuelAsset.diamond'));
+    expect(store, isNot(contains('width: 360')));
+    expect(store, isNot(contains('color: Color(0xFF29D398)')));
+    expect(store, isNot(contains('color: Color(0xFF3AA9FF)')));
+  });
+
+  test('leaderboard and outcome screens consume production artwork', () {
+    final leaderboards = File(
+      'lib/features/duel/leaderboards_screen.dart',
+    ).readAsStringSync();
+    final outcomes = File('lib/widgets/ux_feedback.dart').readAsStringSync();
+    final soloGame = File(
+      'lib/features/game/enhanced_game_screen.dart',
+    ).readAsStringSync();
+
     expect(leaderboards, contains('DuelAsset.leaderboardCrownPro'));
     expect(outcomes, contains('DuelAsset.resultVictoryTrophyPro'));
     expect(outcomes, contains('DuelAsset.resultDefeatTrophyPro'));
