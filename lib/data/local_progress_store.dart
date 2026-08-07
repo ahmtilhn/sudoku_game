@@ -178,6 +178,7 @@ class LocalProgressStore extends ChangeNotifier {
       .map(_puzzleIdFromStorageKey)
       .map(_careerLevelNumber)
       .whereType<int>()
+      .toSet()
       .length;
 
   int get nextCareerLevelNumber =>
@@ -375,7 +376,8 @@ class LocalProgressStore extends ChangeNotifier {
 
     final raw = await _preferences.getString(_progressKey);
     if (raw != null && raw.isNotEmpty) {
-      _decodeProgress(raw, legacyVariant: null);
+      final normalized = _decodeProgress(raw, legacyVariant: null);
+      if (normalized) await _saveProgress();
       return;
     }
 
@@ -387,7 +389,8 @@ class LocalProgressStore extends ChangeNotifier {
     }
   }
 
-  void _decodeProgress(String raw, {required SudokuVariant? legacyVariant}) {
+  bool _decodeProgress(String raw, {required SudokuVariant? legacyVariant}) {
+    var normalized = false;
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
       for (final entry in decoded.entries) {
@@ -399,13 +402,19 @@ class LocalProgressStore extends ChangeNotifier {
             : null;
         if (json == null) continue;
         final key = legacyVariant == null
-            ? entry.key
+            ? _normalizeStorageKey(entry.key)
             : _storageKey(legacyVariant, entry.key);
-        _progress[key] = LevelProgress.fromJson(json);
+        normalized = normalized || key != entry.key || legacyVariant != null;
+        final incoming = LevelProgress.fromJson(json);
+        final previous = _progress[key];
+        _progress[key] = previous == null
+            ? incoming
+            : _mergeProgress(previous, incoming);
       }
     } on FormatException {
       _progress.clear();
     }
+    return normalized;
   }
 
   Future<void> _saveProgress() {
@@ -416,12 +425,26 @@ class LocalProgressStore extends ChangeNotifier {
   }
 
   static String _storageKey(SudokuVariant variant, String puzzleId) {
-    return '${variant.persistenceKey}:$puzzleId';
+    return '${variant.persistenceKey}:${_canonicalPuzzleId(puzzleId)}';
+  }
+
+  static String _normalizeStorageKey(String key) {
+    final separator = key.indexOf(':');
+    if (separator < 0) return key;
+    final namespace = key.substring(0, separator);
+    final puzzleId = key.substring(separator + 1);
+    return '$namespace:${_canonicalPuzzleId(puzzleId)}';
   }
 
   static String _puzzleIdFromStorageKey(String key) {
     final separator = key.indexOf(':');
-    return separator < 0 ? key : key.substring(separator + 1);
+    final puzzleId = separator < 0 ? key : key.substring(separator + 1);
+    return _canonicalPuzzleId(puzzleId);
+  }
+
+  static String _canonicalPuzzleId(String puzzleId) {
+    final levelNumber = _careerLevelNumber(puzzleId);
+    return levelNumber == null ? puzzleId : _careerLevelId(levelNumber);
   }
 
   static String _careerLevelId(int number) {
@@ -431,6 +454,25 @@ class LocalProgressStore extends ChangeNotifier {
   static int? _careerLevelNumber(String id) {
     if (!id.startsWith('career-')) return null;
     return int.tryParse(id.substring('career-'.length));
+  }
+
+  static LevelProgress _mergeProgress(
+    LevelProgress first,
+    LevelProgress second,
+  ) {
+    return LevelProgress(
+      stars: first.stars >= second.stars ? first.stars : second.stars,
+      bestSeconds: _bestNonNegative(first.bestSeconds, second.bestSeconds),
+      bestMistakes: _bestNonNegative(first.bestMistakes, second.bestMistakes),
+      bestHints: _bestNonNegative(first.bestHints, second.bestHints),
+      rewardClaimed: first.rewardClaimed || second.rewardClaimed,
+    );
+  }
+
+  static int _bestNonNegative(int first, int second) {
+    if (first < 0) return second;
+    if (second < 0) return first;
+    return first <= second ? first : second;
   }
 
   static int _calculateStars({required int mistakes, required int hints}) {
