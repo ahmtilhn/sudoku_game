@@ -35,10 +35,9 @@ class MatchmakingScreen extends StatefulWidget {
 }
 
 class _MatchmakingScreenState extends State<MatchmakingScreen> {
-  static const Duration _queueRefreshInterval = Duration(seconds: 45);
-
   final EconomyService _economy = EconomyService.instance;
-  final VariantMatchmakingClient _matchmaking = VariantMatchmakingClient.instance;
+  final VariantMatchmakingClient _matchmaking =
+      VariantMatchmakingClient.instance;
 
   late SudokuDifficulty _difficulty;
   late SudokuVariant _variant;
@@ -46,10 +45,10 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   bool _polling = false;
   Timer? _pollTimer;
   int _pollAttempt = 0;
-  DateTime? _lastQueueRefresh;
   String? _searchStatus;
 
-  int get _entryFee => _economy.entryFeeForDifficulty(_difficulty.name);
+  int get _entryFee =>
+      _economy.entryFeeForDifficulty(_difficulty.name);
   bool get _canEnter => _economy.balance >= _entryFee;
 
   @override
@@ -112,7 +111,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         SizedBox(height: compact ? 6 : 10),
                         Text(
                           context.tr('online_duel'),
-                          textAlign: TextAlign.left,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: compact ? 23 : 27,
@@ -123,7 +121,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         const SizedBox(height: 3),
                         Text(
                           context.tr('same_difficulty_match'),
-                          textAlign: TextAlign.left,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -135,7 +132,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         SizedBox(height: compact ? 9 : 12),
                         if (horizontal)
                           SizedBox(
-                            height: compact ? 112 : 122,
+                            height: compact ? 116 : 124,
                             child: Row(
                               children: [
                                 Expanded(child: _variantSection(compact)),
@@ -151,14 +148,16 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                           ),
                           const SizedBox(height: 8),
                           SizedBox(
-                            height: compact ? 102 : 112,
+                            height: compact ? 104 : 112,
                             child: _difficultySection(compact),
                           ),
                         ],
                         const Spacer(),
                         _EntryBar(
                           fee: _entryFee,
-                          pot: _economy.winnerPotForDifficulty(_difficulty.name),
+                          pot: _economy.winnerPotForDifficulty(
+                            _difficulty.name,
+                          ),
                           variant: _variant,
                         ),
                         SizedBox(height: compact ? 8 : 10),
@@ -266,7 +265,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       title: context.tr('choose_duel_difficulty'),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final buttonWidth = (constraints.maxWidth - 6) / 2;
+          final buttonWidth = (constraints.maxWidth - 12) / 3;
           return Align(
             alignment: Alignment.topLeft,
             child: Wrap(
@@ -276,7 +275,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                 for (final difficulty in SudokuDifficulty.values)
                   SizedBox(
                     width: buttonWidth,
-                    height: compact ? 34 : 38,
+                    height: compact ? 30 : 34,
                     child: ChoiceChip(
                       selected: _difficulty == difficulty,
                       onSelected: (_) =>
@@ -291,6 +290,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         ),
                       ),
                       showCheckmark: false,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,
                       selectedColor: const Color(0xFF29D398),
                       backgroundColor: const Color(0xFF122234),
@@ -298,7 +298,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         color: _difficulty == difficulty
                             ? const Color(0xFF07111E)
                             : Colors.white,
-                        fontSize: compact ? 11 : 12,
+                        fontSize: compact ? 10 : 11,
                         fontWeight: FontWeight.w900,
                       ),
                       side: BorderSide(
@@ -307,7 +307,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                             : Colors.white.withValues(alpha: .14),
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(11),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
                   ),
@@ -384,24 +384,22 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     setState(() {
       _searching = true;
       _searchStatus = null;
-      _lastQueueRefresh = null;
     });
 
     try {
       await FirebaseSessionService.ensureAnonymousSession();
-      final result = await _matchmaking.joinRankedQueue(
-        difficulty: _difficulty.name,
-        variant: _variant,
-      );
+      final result = await _joinSelectedQueue();
       if (!mounted) return;
       if (result.matched) {
-        _openOnlineRoom(result.roomId!);
+        _openMatchedResult(result);
         return;
       }
       if (result.status != 'queued') {
-        throw const SocialApiException(0, 'Unexpected matchmaking response.');
+        throw const SocialApiException(
+          0,
+          'Unexpected matchmaking response.',
+        );
       }
-      _lastQueueRefresh = DateTime.now();
       _startPolling();
     } on FirebaseSessionException catch (error) {
       await _stopWithError(UserSafeError.message(context, error));
@@ -419,16 +417,63 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     }
   }
 
+  Future<VariantMatchmakingResult> _joinSelectedQueue() async {
+    final result = await _matchmaking.joinRankedQueue(
+      difficulty: _difficulty.name,
+      variant: _variant,
+    );
+    if (result.variant.id != _variant.id ||
+        result.boardSize != _variant.boardSize ||
+        result.cellCount != _variant.cellCount) {
+      throw const SocialApiException(
+        409,
+        'The matchmaking room does not match the selected Sudoku size.',
+      );
+    }
+    return result;
+  }
+
+  void _openMatchedResult(VariantMatchmakingResult result) {
+    final roomId = result.roomId?.trim() ?? '';
+    if (roomId.isEmpty) {
+      unawaited(
+        _stopWithError(context.tr('matchmaking_start_failed')),
+      );
+      return;
+    }
+    if (_variant.id == SudokuVariantId.classic16 &&
+        !roomId.startsWith('classic16:')) {
+      unawaited(
+        _stopWithError(
+          context.tr('matchmaking_start_failed'),
+        ),
+      );
+      return;
+    }
+    if (_variant.id == SudokuVariantId.classic9 &&
+        roomId.startsWith('classic16:')) {
+      unawaited(
+        _stopWithError(
+          context.tr('matchmaking_start_failed'),
+        ),
+      );
+      return;
+    }
+    _openOnlineRoom(roomId);
+  }
+
   void _startPolling() {
     _pollTimer?.cancel();
     _pollAttempt = 0;
-    unawaited(_pollForMatch());
+    _scheduleNextPoll(immediate: true);
   }
 
-  void _scheduleNextPoll() {
+  void _scheduleNextPoll({bool immediate = false}) {
     _pollTimer?.cancel();
     if (!_searching || !mounted) return;
-    final delay = matchmakingFallbackDelay(_pollAttempt++);
+    final delay = immediate
+        ? Duration.zero
+        : matchmakingFallbackDelay(_pollAttempt++);
     _pollTimer = Timer(delay, () => unawaited(_pollForMatch()));
   }
 
@@ -436,26 +481,15 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     if (!_searching || _polling) return;
     _polling = true;
     try {
-      final now = DateTime.now();
-      final refreshDue =
-          _lastQueueRefresh == null ||
-          now.difference(_lastQueueRefresh!) >= _queueRefreshInterval;
-      if (refreshDue) {
-        final refreshed = await _matchmaking.joinRankedQueue(
-          difficulty: _difficulty.name,
-          variant: _variant,
-        );
-        _lastQueueRefresh = now;
-        if (!mounted) return;
-        if (refreshed.matched) {
-          _openOnlineRoom(refreshed.roomId!);
-          return;
-        }
+      final result = await _joinSelectedQueue();
+      if (!mounted || !_searching) return;
+      if (result.matched) {
+        _openMatchedResult(result);
+        return;
       }
-      final active = await SocialApiClient.instance.activeMatch();
-      final roomId = active?['roomId']?.toString();
-      if (!mounted || roomId == null || roomId.isEmpty) return;
-      _openOnlineRoom(roomId);
+      if (_searchStatus != null) {
+        setState(() => _searchStatus = null);
+      }
     } on SocialApiException catch (error) {
       if (!mounted) return;
       if (error.statusCode >= 400 && error.statusCode < 500) {
@@ -473,7 +507,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       }
     } finally {
       _polling = false;
-      _scheduleNextPoll();
+      if (_searching) _scheduleNextPoll();
     }
   }
 
@@ -484,7 +518,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     setState(() {
       _searching = false;
       _polling = false;
-      _lastQueueRefresh = null;
       _pollAttempt = 0;
     });
     final retry = await GameModal.error(
@@ -505,7 +538,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         _searching = false;
         _polling = false;
         _searchStatus = null;
-        _lastQueueRefresh = null;
         _pollAttempt = 0;
       });
     }
@@ -650,7 +682,9 @@ class _VariantCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final is16 = variant.id == SudokuVariantId.classic16;
-    final accent = is16 ? const Color(0xFF35D2FF) : const Color(0xFFFFC73D);
+    final accent = is16
+        ? const Color(0xFF35D2FF)
+        : const Color(0xFFFFC73D);
     return Semantics(
       selected: selected,
       button: true,
@@ -668,7 +702,9 @@ class _VariantCard extends StatelessWidget {
                   : const Color(0xFF07111E),
               borderRadius: BorderRadius.circular(13),
               border: Border.all(
-                color: selected ? accent : Colors.white.withValues(alpha: .09),
+                color: selected
+                    ? accent
+                    : Colors.white.withValues(alpha: .09),
                 width: selected ? 1.7 : 1,
               ),
             ),
