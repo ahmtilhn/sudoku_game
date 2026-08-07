@@ -14,6 +14,7 @@ import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/game_modal.dart';
 import '../../widgets/player_avatar.dart';
+import '../../widgets/ux_feedback.dart';
 
 class LeaderboardsScreen extends StatefulWidget {
   const LeaderboardsScreen({super.key});
@@ -179,25 +180,10 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     }
     if (_error != null && _snapshots.isEmpty) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const DuelAssetIcon(DuelAsset.statusOfflinePro, size: 112),
-              const SizedBox(height: 12),
-              Text(
-                UserSafeError.message(context, _error),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh_rounded),
-                label: Text(context.tr('retry')),
-              ),
-            ],
-          ),
+        child: UxStatePanel.error(
+          context,
+          message: UserSafeError.message(context, _error),
+          onRetry: _load,
         ),
       );
     }
@@ -438,7 +424,8 @@ class _LeaderboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rank = snapshot?.rank;
-    final neighbors = snapshot?.nearby.take(2).toList() ?? const <_NearbyPlayer>[];
+    final neighbors =
+        snapshot?.nearby.take(2).toList() ?? const <_NearbyPlayer>[];
     return Material(
       color: Colors.transparent,
       child: InkWell(
