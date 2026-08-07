@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../localization/app_strings.dart';
 import '../localization/ux_copy.dart';
+import 'duel_asset_icon.dart';
 
 Future<T?> showAdaptiveBottomSheet<T>({
   required BuildContext context,
@@ -129,32 +130,55 @@ class UxMetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      constraints: const BoxConstraints(minWidth: 118),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      constraints: const BoxConstraints(minWidth: 112),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: scheme.outlineVariant),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 18, color: scheme.primary),
-            const SizedBox(height: 5),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: scheme.primary),
+            ),
+            const SizedBox(width: 8),
           ],
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 10.5,
+                    height: 1.05,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -180,6 +204,11 @@ class UxOutcomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final color = accent ?? scheme.primary;
+    final artwork = icon == Icons.emoji_events_rounded
+        ? DuelAsset.resultVictoryTrophyPro
+        : icon == Icons.flag_rounded
+        ? DuelAsset.resultDefeatTrophyPro
+        : null;
     return Semantics(
       liveRegion: true,
       header: true,
@@ -187,18 +216,20 @@ class UxOutcomeHeader extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Center(
-            child: Container(
-              width: 76,
-              height: 76,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withValues(alpha: .16),
-                border: Border.all(color: color.withValues(alpha: .45)),
-              ),
-              child: Icon(icon, size: 42, color: color),
-            ),
+            child: artwork != null
+                ? DuelAssetIcon(artwork, size: 94)
+                : Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: color.withValues(alpha: .16),
+                      border: Border.all(color: color.withValues(alpha: .45)),
+                    ),
+                    child: Icon(icon, size: 42, color: color),
+                  ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -206,7 +237,7 @@ class UxOutcomeHeader extends StatelessWidget {
                   fontWeight: FontWeight.w900,
                 ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Text(
             subtitle,
             textAlign: TextAlign.center,
