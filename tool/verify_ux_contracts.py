@@ -54,8 +54,11 @@ def main() -> int:
         )
         require(
             "lib/features/home/professional_home_screen.dart",
-            "DuelAsset.quickPlayPro",
-            "DuelAsset.onlineDuelPro",
+            "DuelAsset.homePlayScene",
+            "DuelAsset.homeDuelScene",
+            "DuelAsset.dailyRewardPro",
+            "DuelAsset.leaderboardCrownPro",
+            "LeaderboardsScreen",
             "SudokuVariant.values",
             "SudokuVariantId.classic16",
             "Classic16PuzzleFactory.generate",
@@ -109,6 +112,9 @@ def main() -> int:
             "VariantMatchmakingClient.instance",
             "SudokuVariant.values",
             "DuelAsset.board16Pro",
+            "DuelAsset.walletCoinStackPro",
+            "context.tr('entry_fee')",
+            "context.tr('winner_pot')",
             "Classic16PuzzleFactory.generate",
             "GameModal.error",
             "LayoutBuilder(",
@@ -201,6 +207,9 @@ def main() -> int:
             "static const board9Pro",
             "static const board16Pro",
             "static const statusErrorPro",
+            "static const homePlayScene",
+            "static const resultVictoryTrophyPro",
+            "static const leaderboardCrownPro",
         )
         require(
             "lib/widgets/game_modal.dart",
@@ -224,8 +233,10 @@ def main() -> int:
             "lib/features/social/profile_hub_screen.dart",
             "_games.localPlayer.addListener",
             "_preferencesService.current.addListener",
+            "localAvatarBytes: avatarBytes",
             "UxCopy.overview(context)",
             "UxCopy.performance(context)",
+            "LeaderboardsScreen",
             "_AchievementBadge",
             "NeverScrollableScrollPhysics",
             "GameModal.error",
@@ -243,6 +254,8 @@ def main() -> int:
             "class UxMetricTile",
             "class UxOutcomeHeader",
             "class UxOutcomeSheet",
+            "DuelAsset.resultVictoryTrophyPro",
+            "DuelAsset.resultDefeatTrophyPro",
         )
         require(
             "lib/features/duel/online_duel_screen.dart",
