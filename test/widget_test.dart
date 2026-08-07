@@ -104,19 +104,42 @@ void main() {
       moreOrLessEquals(tester.getCenter(sixteen).dy, epsilon: 1),
     );
 
+    final beginner = find.descendant(
+      of: dialog,
+      matching: find.text('Beginner'),
+    );
     final easy = find.descendant(of: dialog, matching: find.text('Easy'));
     final medium = find.descendant(of: dialog, matching: find.text('Medium'));
     final hard = find.descendant(of: dialog, matching: find.text('Hard'));
+    final expert = find.descendant(of: dialog, matching: find.text('Expert'));
+    expect(beginner, findsOneWidget);
     expect(easy, findsOneWidget);
     expect(medium, findsOneWidget);
     expect(hard, findsOneWidget);
+    expect(expert, findsOneWidget);
+
+    final firstRowY = tester.getCenter(beginner).dy;
     expect(
       tester.getCenter(easy).dy,
-      moreOrLessEquals(tester.getCenter(medium).dy, epsilon: 1),
+      moreOrLessEquals(firstRowY, epsilon: 1),
     );
     expect(
       tester.getCenter(medium).dy,
-      moreOrLessEquals(tester.getCenter(hard).dy, epsilon: 1),
+      moreOrLessEquals(firstRowY, epsilon: 1),
+    );
+
+    final secondRowY = tester.getCenter(hard).dy;
+    expect(
+      tester.getCenter(expert).dy,
+      moreOrLessEquals(secondRowY, epsilon: 1),
+    );
+    expect(secondRowY, greaterThan(firstRowY));
+
+    final secondRowMidpoint =
+        (tester.getCenter(hard).dx + tester.getCenter(expert).dx) / 2;
+    expect(
+      secondRowMidpoint,
+      moreOrLessEquals(tester.getCenter(dialog).dx, epsilon: 2),
     );
   });
 }
