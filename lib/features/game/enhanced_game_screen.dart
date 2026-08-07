@@ -12,7 +12,9 @@ import '../../localization/app_strings.dart';
 import '../../localization/ux_copy.dart';
 import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
+import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/game_modal.dart';
+import '../../widgets/game_pause_menu.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 import '../../widgets/ux_feedback.dart';
@@ -216,48 +218,46 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     await _saveNow();
     if (!mounted) return;
 
-    final action = await showAdaptiveBottomSheet<_PauseAction>(
+    final action = await showDialog<_PauseAction>(
       context: context,
-      isDismissible: false,
-      enableDrag: false,
-      useSafeArea: true,
-      showDragHandle: false,
-      builder: (sheetContext) => UxOutcomeSheet(
-        icon: Icons.pause_circle_filled_rounded,
-        title: UxCopy.pausedTitle(sheetContext),
-        subtitle: UxCopy.pausedBody(sheetContext),
-        metrics: <Widget>[
-          UxMetricTile(
-            label: sheetContext.tr('time'),
-            value: formatDuration(_elapsedSeconds),
-            icon: Icons.timer_outlined,
-          ),
-          UxMetricTile(
-            label: sheetContext.tr('mistakes'),
-            value: '$_mistakes${widget.mistakeLimit == null ? '' : '/${widget.mistakeLimit}'}',
-            icon: Icons.error_outline_rounded,
-          ),
-        ],
-        primaryLabel: sheetContext.tr('continue_action'),
-        onPrimary: () =>
-            Navigator.of(sheetContext).pop(_PauseAction.resume),
-        secondaryLabel: sheetContext.tr('restart_puzzle'),
-        onSecondary: () =>
-            Navigator.of(sheetContext).pop(_PauseAction.restart),
-        tertiaryLabel: sheetContext.tr('main_menu'),
-        onTertiary: () => Navigator.of(sheetContext).pop(_PauseAction.menu),
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: .72),
+      builder: (dialogContext) => GamePauseMenu(
+        asset: widget.puzzle.size == 16
+            ? DuelAsset.board16Pro
+            : DuelAsset.board9Pro,
+        title: UxCopy.pausedTitle(dialogContext),
+        subtitle: UxCopy.pausedBody(dialogContext),
+        variantLabel: widget.puzzle.size == 16 ? '16×16 · 1–16' : '9×9 · 1–9',
+        difficultyLabel: dialogContext.strings.difficultyLabel(
+          widget.puzzle.difficulty,
+        ),
+        timeLabel: dialogContext.tr('time'),
+        timeValue: formatDuration(_elapsedSeconds),
+        mistakesLabel: dialogContext.tr('mistakes'),
+        mistakesValue:
+            '$_mistakes${widget.mistakeLimit == null ? '' : '/${widget.mistakeLimit}'}',
+        hintsLabel: dialogContext.tr('hints'),
+        hintsValue: '$_hintsUsed',
+        resumeLabel: dialogContext.tr('continue_action'),
+        restartLabel: dialogContext.tr('restart_puzzle'),
+        menuLabel: dialogContext.tr('main_menu'),
+        onResume: () => Navigator.of(dialogContext).pop(_PauseAction.resume),
+        onRestart: () => Navigator.of(dialogContext).pop(_PauseAction.restart),
+        onMenu: () => Navigator.of(dialogContext).pop(_PauseAction.menu),
       ),
     );
 
     if (!mounted) return;
     setState(() => _pauseVisible = false);
+    final resolvedAction = action ?? _PauseAction.resume;
 
-    if (action == _PauseAction.resume) {
+    if (resolvedAction == _PauseAction.resume) {
       setState(() => _paused = false);
       _startClock();
       return;
     }
-    if (action == _PauseAction.restart) {
+    if (resolvedAction == _PauseAction.restart) {
       final confirmed = await _confirmRestart();
       if (!mounted) return;
       if (confirmed) {
