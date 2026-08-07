@@ -7,6 +7,7 @@ import '../../services/ads_service.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
+import '../../widgets/duel_asset_icon.dart';
 
 class HintEconomy {
   const HintEconomy._();
@@ -54,7 +55,7 @@ class HintEconomy {
               onPressed: economy.balance >= coinCost
                   ? () => Navigator.of(sheetContext).pop(_HintAction.coin)
                   : null,
-              icon: const Icon(Icons.monetization_on_outlined),
+              icon: const DuelAssetIcon(DuelAsset.coin, size: 24),
               label: Text(
                 '${context.tr('continue_with_coins', const <Object>[coinCost])} · ${context.tr('balance_coin', <Object>[economy.balance])}',
               ),
