@@ -89,97 +89,106 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final compact = constraints.maxHeight < 720;
+              final compact = constraints.maxHeight < 700;
               final horizontal = constraints.maxWidth >= 760;
               return Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 760),
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
-                      16,
+                      14,
                       compact ? 6 : 10,
-                      16,
-                      compact ? 10 : 18,
+                      14,
+                      compact ? 8 : 14,
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _Header(
                           balance: _economy.balance,
                           onBack: () => Navigator.of(context).pop(),
                           onStore: _openStore,
                         ),
-                        SizedBox(height: compact ? 8 : 14),
+                        SizedBox(height: compact ? 6 : 10),
                         Text(
                           context.tr('online_duel'),
+                          textAlign: TextAlign.left,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: compact ? 24 : 30,
+                            fontSize: compact ? 23 : 27,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: -.5,
+                            letterSpacing: -.4,
                           ),
                         ),
-                        SizedBox(height: compact ? 3 : 6),
+                        const SizedBox(height: 3),
                         Text(
                           context.tr('same_difficulty_match'),
-                          textAlign: TextAlign.center,
+                          textAlign: TextAlign.left,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: .66),
+                            color: Colors.white.withValues(alpha: .64),
+                            fontSize: compact ? 12 : 13,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: compact ? 10 : 18),
-                        Expanded(
-                          child: horizontal
-                              ? Row(
-                                  children: [
-                                    Expanded(child: _buildVariantPanel(compact)),
-                                    const SizedBox(width: 14),
-                                    Expanded(child: _buildDifficultyPanel(compact)),
-                                  ],
-                                )
-                              : Column(
-                                  children: [
-                                    Expanded(
-                                      flex: 5,
-                                      child: _buildVariantPanel(compact),
-                                    ),
-                                    SizedBox(height: compact ? 8 : 12),
-                                    Expanded(
-                                      flex: 4,
-                                      child: _buildDifficultyPanel(compact),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                        SizedBox(height: compact ? 8 : 12),
+                        SizedBox(height: compact ? 9 : 12),
+                        if (horizontal)
+                          SizedBox(
+                            height: compact ? 112 : 122,
+                            child: Row(
+                              children: [
+                                Expanded(child: _variantSection(compact)),
+                                const SizedBox(width: 10),
+                                Expanded(child: _difficultySection(compact)),
+                              ],
+                            ),
+                          )
+                        else ...[
+                          SizedBox(
+                            height: compact ? 82 : 90,
+                            child: _variantSection(compact),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: compact ? 102 : 112,
+                            child: _difficultySection(compact),
+                          ),
+                        ],
+                        const Spacer(),
                         _EntryBar(
                           fee: _entryFee,
                           pot: _economy.winnerPotForDifficulty(_difficulty.name),
                           variant: _variant,
                         ),
-                        SizedBox(height: compact ? 8 : 12),
+                        SizedBox(height: compact ? 8 : 10),
                         Row(
                           children: [
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: _openLocalPractice,
                                 style: OutlinedButton.styleFrom(
-                                  minimumSize: Size(0, compact ? 48 : 54),
+                                  minimumSize: Size(0, compact ? 46 : 50),
                                   foregroundColor: Colors.white,
                                   side: BorderSide(
-                                    color: Colors.white.withValues(alpha: .28),
+                                    color: Colors.white.withValues(alpha: .24),
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
-                                icon: const Icon(Icons.sports_esports_rounded),
-                                label: Text(context.tr('local_practice')),
+                                icon: const Icon(
+                                  Icons.sports_esports_rounded,
+                                  size: 20,
+                                ),
+                                label: Text(
+                                  context.tr('local_practice'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
                             Expanded(
                               flex: 2,
                               child: FilledButton.icon(
@@ -189,19 +198,20 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                     ? _findOpponent
                                     : _showInsufficientCoins,
                                 style: FilledButton.styleFrom(
-                                  minimumSize: Size(0, compact ? 48 : 54),
+                                  minimumSize: Size(0, compact ? 46 : 50),
                                   backgroundColor: _canEnter
                                       ? const Color(0xFF29D398)
                                       : const Color(0xFFFFC73D),
                                   foregroundColor: const Color(0xFF07111E),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
                                 icon: Icon(
                                   _canEnter
                                       ? Icons.travel_explore_rounded
                                       : Icons.lock_rounded,
+                                  size: 20,
                                 ),
                                 label: Text(
                                   _canEnter
@@ -209,6 +219,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                       : context.tr('open_coin_store'),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
                             ),
@@ -226,8 +239,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     );
   }
 
-  Widget _buildVariantPanel(bool compact) {
-    return _Panel(
+  Widget _variantSection(bool compact) {
+    return _SectionCard(
       title: 'Sudoku',
       child: Row(
         children: [
@@ -241,59 +254,65 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
               ),
             ),
             if (variant != SudokuVariant.values.last)
-              SizedBox(width: compact ? 8 : 12),
+              const SizedBox(width: 7),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildDifficultyPanel(bool compact) {
-    return _Panel(
+  Widget _difficultySection(bool compact) {
+    return _SectionCard(
       title: context.tr('choose_duel_difficulty'),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final buttonWidth = (constraints.maxWidth - 8) / 2;
-          return Wrap(
-            spacing: 8,
-            runSpacing: compact ? 6 : 8,
-            children: [
-              for (final difficulty in SudokuDifficulty.values)
-                SizedBox(
-                  width: buttonWidth,
-                  height: compact ? 38 : 44,
-                  child: ChoiceChip(
-                    selected: _difficulty == difficulty,
-                    onSelected: (_) => setState(() => _difficulty = difficulty),
-                    label: SizedBox(
-                      width: double.infinity,
-                      child: Text(
-                        context.strings.difficultyLabel(difficulty),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+          final buttonWidth = (constraints.maxWidth - 6) / 2;
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final difficulty in SudokuDifficulty.values)
+                  SizedBox(
+                    width: buttonWidth,
+                    height: compact ? 34 : 38,
+                    child: ChoiceChip(
+                      selected: _difficulty == difficulty,
+                      onSelected: (_) =>
+                          setState(() => _difficulty = difficulty),
+                      label: SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          context.strings.difficultyLabel(difficulty),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      showCheckmark: false,
+                      visualDensity: VisualDensity.compact,
+                      selectedColor: const Color(0xFF29D398),
+                      backgroundColor: const Color(0xFF122234),
+                      labelStyle: TextStyle(
+                        color: _difficulty == difficulty
+                            ? const Color(0xFF07111E)
+                            : Colors.white,
+                        fontSize: compact ? 11 : 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      side: BorderSide(
+                        color: _difficulty == difficulty
+                            ? const Color(0xFF29D398)
+                            : Colors.white.withValues(alpha: .14),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11),
                       ),
                     ),
-                    showCheckmark: false,
-                    selectedColor: const Color(0xFF29D398),
-                    backgroundColor: const Color(0xFF122234),
-                    labelStyle: TextStyle(
-                      color: _difficulty == difficulty
-                          ? const Color(0xFF07111E)
-                          : Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                    side: BorderSide(
-                      color: _difficulty == difficulty
-                          ? const Color(0xFF29D398)
-                          : Colors.white.withValues(alpha: .16),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -545,26 +564,40 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        IconButton.filledTonal(
-          onPressed: onBack,
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          icon: const Icon(Icons.arrow_back_rounded),
-        ),
-        const Spacer(),
-        FilledButton.tonalIcon(
-          onPressed: onStore,
-          icon: const DuelAssetIcon(DuelAsset.coin, size: 18),
-          label: Text(NumberFormat.compact().format(balance)),
-        ),
-      ],
+    return SizedBox(
+      height: 42,
+      child: Row(
+        children: [
+          IconButton.filledTonal(
+            onPressed: onBack,
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            style: IconButton.styleFrom(
+              fixedSize: const Size(40, 40),
+              padding: EdgeInsets.zero,
+            ),
+            icon: const Icon(Icons.arrow_back_rounded, size: 20),
+          ),
+          const Spacer(),
+          FilledButton.tonalIcon(
+            onPressed: onStore,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+            icon: const DuelAssetIcon(DuelAsset.coin, size: 16),
+            label: Text(
+              NumberFormat.compact().format(balance),
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.child});
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -573,12 +606,12 @@ class _Panel extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFF0A1728).withValues(alpha: .88),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: .12)),
+        color: const Color(0xFF0A1728).withValues(alpha: .9),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: Colors.white.withValues(alpha: .11)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -587,11 +620,12 @@ class _Panel extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
+                color: Colors.white70,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 9),
+            const SizedBox(height: 6),
             Expanded(child: child),
           ],
         ),
@@ -625,47 +659,53 @@ class _VariantCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(13),
           child: Ink(
+            padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 9),
             decoration: BoxDecoration(
               color: selected
-                  ? accent.withValues(alpha: .16)
+                  ? accent.withValues(alpha: .15)
                   : const Color(0xFF07111E),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(13),
               border: Border.all(
-                color: selected ? accent : Colors.white.withValues(alpha: .10),
-                width: selected ? 2 : 1,
+                color: selected ? accent : Colors.white.withValues(alpha: .09),
+                width: selected ? 1.7 : 1,
               ),
             ),
-            child: Padding(
-              padding: EdgeInsets.all(compact ? 8 : 11),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: DuelAssetIcon(
-                      is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                      size: compact ? 84 : 112,
-                    ),
+            child: Row(
+              children: [
+                DuelAssetIcon(
+                  is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
+                  size: compact ? 40 : 46,
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        variant.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: selected ? accent : Colors.white,
+                          fontSize: compact ? 13 : 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        is16 ? '1–16' : '1–9',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .55),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    variant.label,
-                    style: TextStyle(
-                      color: selected ? accent : Colors.white,
-                      fontSize: compact ? 17 : 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    is16 ? '1–16' : '1–9',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .58),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -688,17 +728,19 @@ class _EntryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: const Color(0xFF102235),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color(0xFF29D398).withValues(alpha: .3)),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF29D398).withValues(alpha: .28),
+        ),
       ),
       child: Row(
         children: [
-          const DuelAssetIcon(DuelAsset.coin, size: 20),
-          const SizedBox(width: 7),
+          const DuelAssetIcon(DuelAsset.coin, size: 18),
+          const SizedBox(width: 6),
           Expanded(
             child: Text(
               '$fee → $pot',
@@ -712,6 +754,7 @@ class _EntryBar extends StatelessWidget {
             variant.label,
             style: const TextStyle(
               color: Color(0xFF29D398),
+              fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -742,7 +785,7 @@ class _SearchingStage extends StatelessWidget {
       body: AppBackdrop(
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 Align(
@@ -755,7 +798,7 @@ class _SearchingStage extends StatelessWidget {
                 ),
                 const Spacer(),
                 TweenAnimationBuilder<double>(
-                  tween: Tween(begin: .92, end: 1.04),
+                  tween: Tween(begin: .94, end: 1.03),
                   duration: const Duration(milliseconds: 900),
                   curve: Curves.easeInOut,
                   builder: (context, value, child) => Transform.scale(
@@ -764,44 +807,44 @@ class _SearchingStage extends StatelessWidget {
                   ),
                   child: DuelAssetIcon(
                     is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                    size: 174,
+                    size: 126,
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 16),
                 Text(
                   context.tr('finding_opponent_title'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 28,
+                    fontSize: 24,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   '${variant.label} · ${context.strings.difficultyLabel(difficulty)}',
                   style: const TextStyle(
                     color: Color(0xFF29D398),
-                    fontSize: 17,
+                    fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   status ?? context.tr('searching_similar_opponents'),
                   textAlign: TextAlign.center,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .65),
+                    color: Colors.white.withValues(alpha: .63),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 18),
                 const SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: CircularProgressIndicator(strokeWidth: 4),
+                  width: 40,
+                  height: 40,
+                  child: CircularProgressIndicator(strokeWidth: 3),
                 ),
                 const Spacer(),
                 SizedBox(
