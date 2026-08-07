@@ -1055,48 +1055,58 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  height: 122,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (final variant in SudokuVariant.values) ...[
-                        Expanded(
-                          child: _DialogVariantCard(
-                            variant: variant,
-                            selected: _variant.id == variant.id,
-                            onTap: () => setState(() => _variant = variant),
-                          ),
-                        ),
-                        if (variant != SudokuVariant.values.last)
-                          const SizedBox(width: 8),
-                      ],
-                    ],
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    child: SizedBox(
+                      height: 122,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final variant in SudokuVariant.values) ...[
+                            Expanded(
+                              child: _DialogVariantCard(
+                                variant: variant,
+                                selected: _variant.id == variant.id,
+                                onTap: () => setState(() => _variant = variant),
+                              ),
+                            ),
+                            if (variant != SudokuVariant.values.last)
+                              const SizedBox(width: 8),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final chipWidth = (constraints.maxWidth - 12) / 3;
-                    return Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        for (final difficulty in SudokuDifficulty.values)
-                          SizedBox(
-                            width: chipWidth,
-                            height: 42,
-                            child: _DialogDifficultyCard(
-                              label: context.strings.difficultyLabel(difficulty),
-                              selected: _difficulty == difficulty,
-                              onTap: () =>
-                                  setState(() => _difficulty = difficulty),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 330),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final chipWidth = (constraints.maxWidth - 12) / 3;
+                        return Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            for (final difficulty in SudokuDifficulty.values)
+                              SizedBox(
+                                width: chipWidth,
+                                height: 42,
+                                child: _DialogDifficultyCard(
+                                  label: context.strings.difficultyLabel(difficulty),
+                                  selected: _difficulty == difficulty,
+                                  onTap: () =>
+                                      setState(() => _difficulty = difficulty),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -1165,54 +1175,54 @@ class _DialogVariantCard extends StatelessWidget {
             ),
           ),
           child: Stack(
+            alignment: Alignment.center,
             children: [
-              Align(
-                alignment: Alignment.center,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox.square(
-                      dimension: 56,
-                      child: Center(
-                        child: DuelAssetIcon(
-                          is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                          size: 52,
-                          fit: BoxFit.contain,
-                        ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox.square(
+                    dimension: 56,
+                    child: Center(
+                      child: DuelAssetIcon(
+                        is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
+                        size: 52,
+                        fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      variant.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      strutStyle: const StrutStyle(
-                        forceStrutHeight: true,
-                        height: 1.05,
-                      ),
-                      style: TextStyle(
-                        color: selected ? accent : Colors.white,
-                        fontSize: 15,
-                        height: 1.05,
-                        fontWeight: FontWeight.w900,
-                      ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    variant.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    strutStyle: const StrutStyle(
+                      forceStrutHeight: true,
+                      height: 1.05,
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      is16 ? '1–16 · 256' : '1–9 · 81',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .6),
-                        fontSize: 10.5,
-                        height: 1.05,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    style: TextStyle(
+                      color: selected ? accent : Colors.white,
+                      fontSize: 15,
+                      height: 1.05,
+                      fontWeight: FontWeight.w900,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    is16 ? '1–16 · 256' : '1–9 · 81',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .6),
+                      fontSize: 10.5,
+                      height: 1.05,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
               Positioned(
                 top: 0,
