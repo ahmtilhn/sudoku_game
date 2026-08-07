@@ -75,6 +75,8 @@ def main() -> int:
             "_PauseAction.resume",
             "_PauseAction.restart",
             "_PauseAction.menu",
+            "showDialog<_PauseAction>",
+            "GamePauseMenu(",
             "InteractiveViewer",
             "classic16-board-viewport",
             "16×16 · 1–16",
@@ -84,6 +86,15 @@ def main() -> int:
         forbid(
             "lib/features/game/enhanced_game_screen.dart",
             "16×16 · A–G",
+            "showAdaptiveBottomSheet<_PauseAction>",
+        )
+        require(
+            "lib/widgets/game_pause_menu.dart",
+            "class GamePauseMenu",
+            "game-pause-menu",
+            "pause-resume",
+            "pause-restart",
+            "pause-menu",
         )
         require(
             "lib/features/career/career_hub_screen.dart",
@@ -282,6 +293,12 @@ def main() -> int:
             "pause stops interaction",
         )
         require(
+            "test/game_pause_menu_test.dart",
+            "pause menu fits a compact phone without overflow",
+            "game-pause-menu",
+            "16×16 · 1–16",
+        )
+        require(
             "test/responsive_feedback_ux_test.dart",
             "shared outcome remains scrollable at 320px and 2x text",
             "16x16 number pad remains usable on a compact phone",
@@ -290,7 +307,7 @@ def main() -> int:
         print(f"UX contract verification failed: {error}")
         return 1
 
-    print("Professional home, variant, game, social, profile, safe-message, and common-feedback UX contracts are wired.")
+    print("Professional home, compact pause, variant, game, social, profile, safe-message, and common-feedback UX contracts are wired.")
     return 0
 
 
