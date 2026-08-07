@@ -90,9 +90,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    for (final symbol in <String>['1', '9', 'A', 'G']) {
+    for (final symbol in <String>['1', '9', '10', '16']) {
       expect(find.text(symbol), findsOneWidget);
     }
+    expect(find.text('A'), findsNothing);
+    expect(find.text('G'), findsNothing);
     expect(find.byKey(const ValueKey<String>('number-16')), findsOneWidget);
   });
 }
