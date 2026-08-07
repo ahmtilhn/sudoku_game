@@ -198,9 +198,9 @@ def main() -> int:
         require(
             "lib/widgets/duel_asset_icon.dart",
             "SvgPicture.asset",
-            "DuelAsset.board9Pro",
-            "DuelAsset.board16Pro",
-            "DuelAsset.statusErrorPro",
+            "static const board9Pro",
+            "static const board16Pro",
+            "static const statusErrorPro",
         )
         require(
             "lib/widgets/game_modal.dart",
