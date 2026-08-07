@@ -29,7 +29,8 @@ class ProfileHubScreen extends StatefulWidget {
 
 class _ProfileHubScreenState extends State<ProfileHubScreen> {
   final PlatformGameServices _games = PlatformGameServices.instance;
-  final PlayerProfileService _preferencesService = PlayerProfileService.instance;
+  final PlayerProfileService _preferencesService =
+      PlayerProfileService.instance;
 
   CompetitiveProfile? _profile;
   PlayerProfilePreferences? _preferences;
@@ -98,7 +99,6 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
 
     final saved = await showDialog<bool>(
       context: context,
-      barrierDismissible: !saving,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
           final normalized = username.text.trim().toLowerCase();
@@ -106,7 +106,10 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
               display.text.trim().length >= 2 &&
               RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(normalized);
           return Dialog(
-            insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 20,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: Padding(
@@ -126,15 +129,18 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                           Expanded(
                             child: Text(
                               context.tr('edit_player_profile'),
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.w900),
                             ),
                           ),
                           IconButton(
                             onPressed: saving
                                 ? null
-                                : () => Navigator.of(dialogContext).pop(false),
+                                : () => Navigator.of(
+                                    dialogContext,
+                                  ).pop(false),
                             icon: const Icon(Icons.close_rounded),
                           ),
                         ],
@@ -166,12 +172,15 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                       SwitchListTile.adaptive(
                         contentPadding: EdgeInsets.zero,
                         title: Text(context.tr('discoverable_by_players')),
-                        subtitle: Text(context.tr('discoverable_by_players_body')),
+                        subtitle: Text(
+                          context.tr('discoverable_by_players_body'),
+                        ),
                         value: discoverable,
                         onChanged: saving
                             ? null
-                            : (value) =>
-                                setDialogState(() => discoverable = value),
+                            : (value) => setDialogState(
+                                () => discoverable = value,
+                              ),
                       ),
                       const SizedBox(height: 8),
                       FilledButton.icon(
@@ -207,7 +216,9 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                         icon: saving
                             ? const SizedBox.square(
                                 dimension: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.save_rounded),
                         label: Text(context.tr('save')),
@@ -240,7 +251,9 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     final preferences = _preferences;
     final displayName = preferences?.displayName.trim().isNotEmpty == true
         ? preferences!.displayName
-        : profile?.displayName ?? platformPlayer?.displayName ?? 'Sudoku Player';
+        : profile?.displayName ??
+              platformPlayer?.displayName ??
+              'Sudoku Player';
     final username = preferences?.username.trim().isNotEmpty == true
         ? preferences!.username
         : profile?.username ?? '';
@@ -268,7 +281,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                     child: Column(
                       children: [
                         _header(),
-                        SizedBox(height: compact ? 7 : 11),
+                        SizedBox(height: compact ? 7 : 10),
                         _identityCard(
                           displayName: displayName,
                           username: username,
@@ -294,8 +307,12 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                             ),
                             ButtonSegment<_ProfileTab>(
                               value: _ProfileTab.account,
-                              icon: const Icon(Icons.manage_accounts_rounded),
-                              label: Text(UxCopy.accountAndSocial(context)),
+                              icon: const Icon(
+                                Icons.manage_accounts_rounded,
+                              ),
+                              label: Text(
+                                UxCopy.accountAndSocial(context),
+                              ),
                             ),
                           ],
                           selected: <_ProfileTab>{_tab},
@@ -313,8 +330,13 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 180),
                             child: _loading
-                                ? const Center(child: CircularProgressIndicator())
-                                : _tabContent(profile, platformPlayer != null),
+                                ? const Center(
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : _tabContent(
+                                    profile,
+                                    platformPlayer != null,
+                                  ),
                           ),
                         ),
                       ],
@@ -331,12 +353,16 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
 
   Widget _header() {
     return SizedBox(
-      height: 48,
+      height: 46,
       child: Row(
         children: [
           IconButton.filledTonal(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_rounded),
+            style: IconButton.styleFrom(
+              fixedSize: const Size(40, 40),
+              padding: EdgeInsets.zero,
+            ),
+            icon: const Icon(Icons.arrow_back_rounded, size: 20),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -344,7 +370,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
               context.tr('profile'),
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 23,
+                fontSize: 22,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -352,13 +378,21 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
           IconButton.filledTonal(
             tooltip: context.tr('edit_player_profile'),
             onPressed: _preferences == null ? null : _editProfile,
-            icon: const Icon(Icons.edit_rounded),
+            style: IconButton.styleFrom(
+              fixedSize: const Size(40, 40),
+              padding: EdgeInsets.zero,
+            ),
+            icon: const Icon(Icons.edit_rounded, size: 20),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           IconButton.filledTonal(
             tooltip: context.tr('refresh'),
             onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh_rounded),
+            style: IconButton.styleFrom(
+              fixedSize: const Size(40, 40),
+              padding: EdgeInsets.zero,
+            ),
+            icon: const Icon(Icons.refresh_rounded, size: 20),
           ),
         ],
       ),
@@ -376,45 +410,54 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     required bool compact,
   }) {
     return Container(
-      height: compact ? 108 : 132,
-      padding: EdgeInsets.all(compact ? 10 : 14),
+      key: const ValueKey<String>('profile-identity-card'),
+      height: compact ? 92 : 104,
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 11 : 14,
+        vertical: compact ? 9 : 11,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFF0A1728).withValues(alpha: .94),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(19),
         border: Border.all(
-          color: const Color(0xFF7A5CFF).withValues(alpha: .52),
+          color: const Color(0xFF7A5CFF).withValues(alpha: .48),
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          DuelAssetIcon(DuelAsset.profilePro, size: compact ? 76 : 96),
-          SizedBox(width: compact ? 8 : 12),
           PlayerAvatar(
             displayName: displayName,
             avatarKey: avatarKey,
             remoteApprovedImageUrl: avatarUrl,
-            radius: compact ? 30 : 37,
+            radius: compact ? 29 : 34,
             semanticLabel: context.tr(
               'player_avatar_semantics',
               <Object>[displayName],
             ),
           ),
-          SizedBox(width: compact ? 9 : 13),
+          SizedBox(width: compact ? 10 : 13),
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  strutStyle: const StrutStyle(
+                    forceStrutHeight: true,
+                    height: 1.05,
+                  ),
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: compact ? 19 : 23,
+                    fontSize: compact ? 18 : 21,
+                    height: 1.05,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                const SizedBox(height: 4),
                 if (username.isNotEmpty)
                   Text(
                     '@$username',
@@ -422,6 +465,8 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFFB7A9FF),
+                      fontSize: 12,
+                      height: 1.1,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -431,41 +476,77 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: .55),
-                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: .52),
+                      fontSize: 10,
+                      height: 1.1,
                     ),
                   ),
               ],
             ),
           ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Icon(
-                connected ? Icons.verified_rounded : Icons.link_off_rounded,
-                color: connected
-                    ? const Color(0xFF29D398)
-                    : Colors.white38,
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: compact ? 68 : 78,
+              maxWidth: compact ? 88 : 110,
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 7,
               ),
-              if (rankName != null)
-                Text(
-                  rankName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFFFC73D),
-                    fontWeight: FontWeight.w900,
-                  ),
+              decoration: BoxDecoration(
+                color: (connected
+                        ? const Color(0xFF29D398)
+                        : Colors.white)
+                    .withValues(alpha: .1),
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                  color: (connected
+                          ? const Color(0xFF29D398)
+                          : Colors.white38)
+                      .withValues(alpha: .42),
                 ),
-            ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    connected
+                        ? Icons.verified_rounded
+                        : Icons.link_off_rounded,
+                    color: connected
+                        ? const Color(0xFF29D398)
+                        : Colors.white38,
+                    size: 20,
+                  ),
+                  if (rankName != null && rankName.trim().isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      rankName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFFFFC73D),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _tabContent(CompetitiveProfile? profile, bool platformConnected) {
+  Widget _tabContent(
+    CompetitiveProfile? profile,
+    bool platformConnected,
+  ) {
     return switch (_tab) {
       _ProfileTab.overview => _overview(profile),
       _ProfileTab.performance => _performance(profile),
@@ -482,10 +563,28 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         Expanded(
           flex: 3,
           child: _metricGrid([
-            _MetricData(context.tr('current_elo'), '${profile.currentElo}', Icons.bolt_rounded),
-            _MetricData(context.tr('rank'), profile.rank == null ? '—' : '#${profile.rank}', Icons.public_rounded),
-            _MetricData(context.tr('season_peak'), '${profile.seasonPeak}', Icons.trending_up_rounded),
-            _MetricData(context.tr('country'), profile.country?.isNotEmpty == true ? profile.country! : context.tr('country_not_set'), Icons.flag_rounded),
+            _MetricData(
+              context.tr('current_elo'),
+              '${profile.currentElo}',
+              Icons.bolt_rounded,
+            ),
+            _MetricData(
+              context.tr('rank'),
+              profile.rank == null ? '—' : '#${profile.rank}',
+              Icons.public_rounded,
+            ),
+            _MetricData(
+              context.tr('season_peak'),
+              '${profile.seasonPeak}',
+              Icons.trending_up_rounded,
+            ),
+            _MetricData(
+              context.tr('country'),
+              profile.country?.isNotEmpty == true
+                  ? profile.country!
+                  : context.tr('country_not_set'),
+              Icons.flag_rounded,
+            ),
           ]),
         ),
         const SizedBox(height: 10),
@@ -506,7 +605,10 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.emoji_events_rounded, color: Color(0xFFFFC73D)),
+                    const Icon(
+                      Icons.emoji_events_rounded,
+                      color: Color(0xFFFFC73D),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -528,13 +630,23 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                 ),
                 const Spacer(),
                 if (achievements.isEmpty)
-                  Center(child: Text(context.tr('achievement_showcase_empty')))
+                  Center(
+                    child: Text(
+                      context.tr('achievement_showcase_empty'),
+                    ),
+                  )
                 else
                   Row(
                     children: [
-                      for (var index = 0; index < achievements.length; index++) ...[
+                      for (
+                        var index = 0;
+                        index < achievements.length;
+                        index++
+                      ) ...[
                         Expanded(
-                          child: _AchievementBadge(title: achievements[index].title),
+                          child: _AchievementBadge(
+                            title: achievements[index].title,
+                          ),
                         ),
                         if (index != achievements.length - 1)
                           const SizedBox(width: 7),
@@ -554,12 +666,36 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     if (profile == null) return _emptyState();
     return _metricGrid(
       [
-        _MetricData(UxCopy.totalMatches(context), '${profile.wins + profile.losses + profile.draws}', Icons.sports_esports_rounded),
-        _MetricData(context.tr('wins_losses_draws'), '${profile.wins}/${profile.losses}/${profile.draws}', Icons.scoreboard_rounded),
-        _MetricData(context.tr('win_rate'), '${(profile.winRate * 100).round()}%', Icons.percent_rounded),
-        _MetricData(context.tr('win_streak'), '${profile.winStreak}', Icons.local_fire_department_rounded),
-        _MetricData(context.tr('tournament_entries'), '${profile.tournamentEntries}', Icons.stadium_rounded),
-        _MetricData(context.tr('tournament_podiums'), '${profile.tournamentPodiums}', Icons.emoji_events_rounded),
+        _MetricData(
+          UxCopy.totalMatches(context),
+          '${profile.wins + profile.losses + profile.draws}',
+          Icons.sports_esports_rounded,
+        ),
+        _MetricData(
+          context.tr('wins_losses_draws'),
+          '${profile.wins}/${profile.losses}/${profile.draws}',
+          Icons.scoreboard_rounded,
+        ),
+        _MetricData(
+          context.tr('win_rate'),
+          '${(profile.winRate * 100).round()}%',
+          Icons.percent_rounded,
+        ),
+        _MetricData(
+          context.tr('win_streak'),
+          '${profile.winStreak}',
+          Icons.local_fire_department_rounded,
+        ),
+        _MetricData(
+          context.tr('tournament_entries'),
+          '${profile.tournamentEntries}',
+          Icons.stadium_rounded,
+        ),
+        _MetricData(
+          context.tr('tournament_podiums'),
+          '${profile.tournamentPodiums}',
+          Icons.emoji_events_rounded,
+        ),
       ],
       key: const ValueKey<String>('profile-performance'),
     );
@@ -595,7 +731,8 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         final columns = constraints.maxWidth >= 700 ? 3 : 1;
         final rows = (actions.length / columns).ceil();
         final gap = 10.0;
-        final extent = (constraints.maxHeight - gap * (rows - 1)) / rows;
+        final extent =
+            (constraints.maxHeight - gap * (rows - 1)) / rows;
         return GridView.builder(
           padding: EdgeInsets.zero,
           physics: const NeverScrollableScrollPhysics(),
@@ -619,7 +756,8 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         final columns = constraints.maxWidth >= 620 ? 3 : 2;
         final rows = (metrics.length / columns).ceil();
         final gap = 9.0;
-        final extent = (constraints.maxHeight - gap * (rows - 1)) / rows;
+        final extent =
+            (constraints.maxHeight - gap * (rows - 1)) / rows;
         return GridView.builder(
           padding: EdgeInsets.zero,
           physics: const NeverScrollableScrollPhysics(),
@@ -681,7 +819,10 @@ class _AchievementBadge extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC73D)),
+          const Icon(
+            Icons.workspace_premium_rounded,
+            color: Color(0xFFFFC73D),
+          ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -702,7 +843,12 @@ class _AchievementBadge extends StatelessWidget {
 }
 
 class _AccountData {
-  const _AccountData(this.title, this.subtitle, this.asset, this.onTap);
+  const _AccountData(
+    this.title,
+    this.subtitle,
+    this.asset,
+    this.onTap,
+  );
 
   final String title;
   final String subtitle;
@@ -726,7 +872,9 @@ class _AccountTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF0A1728).withValues(alpha: .94),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: .13)),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: .13),
+            ),
           ),
           child: Padding(
             padding: const EdgeInsets.all(12),
