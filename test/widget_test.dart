@@ -58,9 +58,9 @@ void main() {
     );
     expect(find.byType(SingleChildScrollView), findsNothing);
     expect(find.byType(PlayerAvatar), findsWidgets);
-    expect(find.byType(DuelAssetIcon), findsAtLeastNWidgets(6));
+    expect(find.byType(DuelAssetIcon), findsAtLeastNWidgets(8));
     expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.people_alt_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.people_alt_rounded), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
