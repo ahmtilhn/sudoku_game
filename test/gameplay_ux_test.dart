@@ -53,6 +53,46 @@ void main() {
     expect(text.style?.fontWeight, FontWeight.w900);
   });
 
+  testWidgets('notes render inside the selected cell and erase clears them', (
+    tester,
+  ) async {
+    final store = await LocalProgressStore.createInMemory();
+    await tester.pumpWidget(
+      AppStringsScope(
+        strings: AppStrings.forTesting(),
+        child: MaterialApp(
+          home: EnhancedGameScreen(
+            puzzle: _miniPuzzle(),
+            store: store,
+            allowNotes: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final emptyCell = find.byKey(const ValueKey<String>('sudoku-cell-1'));
+    await tester.tap(emptyCell);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('action-notes')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('number-2')));
+    await tester.pump();
+
+    expect(
+      find.descendant(of: emptyCell, matching: find.text('2')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('action-erase')));
+    await tester.pump();
+
+    expect(
+      find.descendant(of: emptyCell, matching: find.text('2')),
+      findsNothing,
+    );
+  });
+
   testWidgets('pause stops interaction and exposes all requested actions', (
     tester,
   ) async {
