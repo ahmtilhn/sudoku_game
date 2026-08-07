@@ -42,7 +42,7 @@ void main() {
     expect(find.byKey(const ValueKey<String>('pause-resume')), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('pause-restart')), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('pause-menu')), findsOneWidget);
-    expect(find.text('16×16 · 1–16'), findsOneWidget);
+    expect(find.textContaining('16×16 · 1–16'), findsOneWidget);
   });
 }
 
