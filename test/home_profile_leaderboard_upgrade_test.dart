@@ -15,14 +15,15 @@ void main() {
       'DuelAsset.homeFriendsScene',
       'DuelAsset.homeStoreScene',
       'DuelAsset.homeProfileScene',
-      'DuelAsset.dailyRewardPro',
-      'DuelAsset.walletCoinStackPro',
+      'DuelAsset.gift',
+      'DuelAsset.coin',
       'DuelAsset.leaderboardCrownPro',
     ]) {
       expect(source, contains(asset));
     }
     expect(source, contains('LeaderboardsScreen'));
     expect(source, contains('localAvatarBytes: platformPlayer?.avatarBytes'));
+    expect(source, contains('constraints: const BoxConstraints(maxWidth: 760)'));
   });
 
   test('profile cards stay compact and expose leaderboard entry', () {
