@@ -60,8 +60,15 @@ class DuelAsset {
   static const homeFriendsScene = 'assets/images/ui/home_friends.png';
   static const homeStoreScene = 'assets/images/ui/home_coin_store.png';
   static const homeProfileScene = 'assets/images/ui/home_profile.png';
-  static const dailyRewardPro = 'assets/images/ui/daily_reward.png';
-  static const walletCoinStackPro = 'assets/images/ui/coin_stack.png';
+
+  // Production economy artwork. These aliases intentionally point at the
+  // latest user-provided standalone assets instead of the legacy stack/reward
+  // scenes so updates to coin.png, gift.png and shield.png are visible in UI.
+  static const dailyRewardPro = gift;
+  static const walletCoinStackPro = coin;
+  static const coinStoreBalancePro = coin;
+  static const removeAdsPro = shield;
+
   static const resultVictoryTrophyPro = 'assets/images/ui/victory_trophy.png';
   static const resultDefeatTrophyPro = 'assets/images/ui/defeat_trophy.png';
   static const leaderboardCrownPro = 'assets/images/ui/leaderboard.png';
