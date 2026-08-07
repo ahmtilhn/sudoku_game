@@ -134,7 +134,9 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   }
 
   Future<void> _routePendingPush() async {
-    if (!mounted || _routingPush || !(ModalRoute.of(context)?.isCurrent ?? false)) {
+    if (!mounted ||
+        _routingPush ||
+        !(ModalRoute.of(context)?.isCurrent ?? false)) {
       return;
     }
     final challengeId = _push.openedChallengeId.value;
@@ -349,6 +351,59 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
     final rewardReady =
         _economy.wallet?.dailyLoginAvailable == true ||
         (_economy.wallet?.dailyAdAvailable == true && !_economy.noAds);
+    final primaryItems = <_HomeModeData>[
+      _HomeModeData(
+        asset: DuelAsset.quickPlayPro,
+        title: context.tr('play'),
+        subtitle: '9×9 · 16×16',
+        accent: const Color(0xFFFFC73D),
+        onTap: _showQuickPlay,
+        primary: true,
+      ),
+      _HomeModeData(
+        asset: DuelAsset.onlineDuelPro,
+        title: context.tr('online_duel'),
+        subtitle: context.tr('online_duel_subtitle'),
+        accent: const Color(0xFFFF525E),
+        onTap: _identityBusy ? null : _openOnline,
+        primary: true,
+      ),
+    ];
+    final secondaryItems = <_HomeModeData>[
+      _HomeModeData(
+        asset: DuelAsset.careerPro,
+        title: context.tr('career'),
+        subtitle: context.tr('completed_levels', <Object>[
+          widget.store.completedCareerLevelCount,
+        ]),
+        accent: const Color(0xFFFFC73D),
+        onTap: () => _open(CareerHubScreen(store: widget.store)),
+      ),
+      _HomeModeData(
+        asset: DuelAsset.friendsPro,
+        title: context.tr('friends_challenges'),
+        subtitle: _socialBadge > 0
+            ? '$_socialBadge'
+            : context.tr('friend_requests'),
+        accent: const Color(0xFF35D2FF),
+        onTap: _identityBusy ? null : _openSocial,
+      ),
+      _HomeModeData(
+        asset: DuelAsset.storePro,
+        title: context.tr('coin_store'),
+        subtitle: NumberFormat.compact().format(_economy.balance),
+        accent: const Color(0xFF29D398),
+        onTap: () => _open(const CoinStoreScreen()),
+      ),
+      _HomeModeData(
+        asset: DuelAsset.profilePro,
+        title: context.tr('profile'),
+        subtitle: context.tr('shown_to_other_players'),
+        accent: const Color(0xFF7A5CFF),
+        onTap: _identityBusy ? null : _openProfile,
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: const Color(0xFF07111E),
       body: AppBackdrop(
@@ -368,6 +423,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
                       compact ? 8 : 14,
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _HomeHeader(
                           profile: _profile,
@@ -382,117 +438,41 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
                             UxSettingsScreen(store: widget.store),
                           ),
                         ),
-                        SizedBox(height: compact ? 6 : 10),
-                        Text(
-                          context.tr('app_name').toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: compact ? 25 : 34,
-                            height: 1,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                            shadows: const [
-                              Shadow(
-                                color: Colors.black54,
-                                blurRadius: 18,
-                                offset: Offset(0, 7),
-                              ),
-                            ],
+                        SizedBox(height: compact ? 4 : 7),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            context.tr('app_name').toUpperCase(),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: compact ? 22 : 27,
+                              height: 1,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: .9,
+                            ),
                           ),
                         ),
                         if (_activeSession != null) ...[
-                          SizedBox(height: compact ? 6 : 10),
+                          SizedBox(height: compact ? 6 : 8),
                           _ResumeStrip(
                             session: _activeSession!,
                             busy: _openingGame,
                             onTap: _resume,
                           ),
                         ],
-                        SizedBox(height: compact ? 7 : 12),
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, gridConstraints) {
-                              const itemCount = 6;
-                              final columns = wide ? 3 : 2;
-                              final rows = (itemCount / columns).ceil();
-                              final gap = compact ? 7.0 : 10.0;
-                              final extent =
-                                  (gridConstraints.maxHeight - gap * (rows - 1)) /
-                                  rows;
-                              final items = <_HomeModeData>[
-                                _HomeModeData(
-                                  asset: DuelAsset.quickPlayPro,
-                                  title: context.tr('play'),
-                                  subtitle: '9×9 · 16×16',
-                                  accent: const Color(0xFFFFC73D),
-                                  onTap: _showQuickPlay,
-                                  primary: true,
-                                ),
-                                _HomeModeData(
-                                  asset: DuelAsset.onlineDuelPro,
-                                  title: context.tr('online_duel'),
-                                  subtitle: context.tr('online_duel_subtitle'),
-                                  accent: const Color(0xFFFF525E),
-                                  onTap: _identityBusy ? null : _openOnline,
-                                  primary: true,
-                                ),
-                                _HomeModeData(
-                                  asset: DuelAsset.careerPro,
-                                  title: context.tr('career'),
-                                  subtitle: context.tr('completed_levels', <Object>[
-                                    widget.store.completedCareerLevelCount,
-                                  ]),
-                                  accent: const Color(0xFFFFC73D),
-                                  onTap: () => _open(
-                                    CareerHubScreen(store: widget.store),
-                                  ),
-                                ),
-                                _HomeModeData(
-                                  asset: DuelAsset.friendsPro,
-                                  title: context.tr('friends_challenges'),
-                                  subtitle: _socialBadge > 0
-                                      ? '$_socialBadge'
-                                      : context.tr('friend_requests'),
-                                  accent: const Color(0xFF35D2FF),
-                                  onTap: _identityBusy ? null : _openSocial,
-                                ),
-                                _HomeModeData(
-                                  asset: DuelAsset.storePro,
-                                  title: context.tr('coin_store'),
-                                  subtitle: NumberFormat.compact().format(
-                                    _economy.balance,
-                                  ),
-                                  accent: const Color(0xFF29D398),
-                                  onTap: () => _open(const CoinStoreScreen()),
-                                ),
-                                _HomeModeData(
-                                  asset: DuelAsset.profilePro,
-                                  title: context.tr('profile'),
-                                  subtitle: context.tr('shown_to_other_players'),
-                                  accent: const Color(0xFF7A5CFF),
-                                  onTap: _identityBusy ? null : _openProfile,
-                                ),
-                              ];
-                              return GridView.builder(
-                                padding: EdgeInsets.zero,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: items.length,
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: columns,
-                                      crossAxisSpacing: gap,
-                                      mainAxisSpacing: gap,
-                                      mainAxisExtent: extent,
-                                    ),
-                                itemBuilder: (context, index) => _HomeModeTile(
-                                  data: items[index],
-                                  compact: compact,
-                                ),
-                              );
-                            },
-                          ),
+                        SizedBox(height: compact ? 8 : 12),
+                        _PrimaryModes(
+                          items: primaryItems,
+                          compact: compact,
+                          wide: wide,
                         ),
+                        SizedBox(height: compact ? 8 : 10),
+                        _SecondaryModes(
+                          items: secondaryItems,
+                          compact: compact,
+                          wide: wide,
+                        ),
+                        const Spacer(),
                       ],
                     ),
                   ),
@@ -533,7 +513,7 @@ class _HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = profile?.displayName ?? 'Sudoku Player';
     return SizedBox(
-      height: 50,
+      height: 44,
       child: Row(
         children: [
           Expanded(
@@ -545,13 +525,13 @@ class _HomeHeader extends StatelessWidget {
                   PlayerAvatar(
                     displayName: name,
                     avatarKey: 'professional-home-$name',
-                    radius: 20,
+                    radius: 18,
                     semanticLabel: context.tr(
                       'player_avatar_semantics',
                       <Object>[name],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 7),
                   Flexible(
                     child: Text(
                       name,
@@ -559,6 +539,7 @@ class _HomeHeader extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
+                        fontSize: 13,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -574,22 +555,23 @@ class _HomeHeader extends StatelessWidget {
               child: const Icon(
                 Icons.redeem_rounded,
                 color: Color(0xFFFFC73D),
+                size: 20,
               ),
             ),
-          const SizedBox(width: 5),
+          const SizedBox(width: 4),
           _HeaderButton(
             tooltip: context.tr('friends_challenges'),
             onTap: identityBusy ? null : onSocial,
             child: Badge(
               isLabelVisible: badge > 0,
               label: Text('$badge'),
-              child: const Icon(Icons.people_alt_rounded),
+              child: const Icon(Icons.people_alt_rounded, size: 20),
             ),
           ),
-          const SizedBox(width: 5),
+          const SizedBox(width: 4),
           Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
               color: const Color(0xFF0A1728).withValues(alpha: .9),
               borderRadius: BorderRadius.circular(999),
@@ -599,23 +581,24 @@ class _HomeHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const DuelAssetIcon(DuelAsset.coin, size: 18),
-                const SizedBox(width: 5),
+                const DuelAssetIcon(DuelAsset.coin, size: 16),
+                const SizedBox(width: 4),
                 Text(
                   NumberFormat.compact().format(balance),
                   style: const TextStyle(
                     color: Colors.white,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 5),
+          const SizedBox(width: 4),
           _HeaderButton(
             tooltip: context.tr('settings'),
             onTap: onSettings,
-            child: const Icon(Icons.settings_rounded),
+            child: const Icon(Icons.settings_rounded, size: 20),
           ),
         ],
       ),
@@ -639,7 +622,8 @@ class _HeaderButton extends StatelessWidget {
     tooltip: tooltip,
     onPressed: onTap,
     style: IconButton.styleFrom(
-      fixedSize: const Size(44, 44),
+      fixedSize: const Size(38, 38),
+      padding: EdgeInsets.zero,
       backgroundColor: const Color(0xFF0A1728).withValues(alpha: .9),
       side: BorderSide(color: Colors.white.withValues(alpha: .13)),
     ),
@@ -665,13 +649,13 @@ class _ResumeStrip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: busy ? null : onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Ink(
-          height: 58,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
             color: const Color(0xFF12352A).withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: const Color(0xFF29D398).withValues(alpha: .55),
             ),
@@ -680,40 +664,45 @@ class _ResumeStrip extends StatelessWidget {
             children: [
               busy
                   ? const SizedBox.square(
-                      dimension: 28,
+                      dimension: 24,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(
                       Icons.play_circle_fill_rounded,
                       color: Color(0xFF29D398),
-                      size: 34,
+                      size: 28,
                     ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr('continue_action'),
-                      style: const TextStyle(
-                        color: Color(0xFF29D398),
-                        fontWeight: FontWeight.w900,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${context.tr('continue_action')}  ',
+                        style: const TextStyle(
+                          color: Color(0xFF29D398),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${variant.label} · ${context.strings.difficultyLabel(session.puzzle.difficulty)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                      TextSpan(
+                        text:
+                            '${variant.label} · ${context.strings.difficultyLabel(session.puzzle.difficulty)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(Icons.arrow_forward_rounded, color: Colors.white70),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white70,
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -740,6 +729,84 @@ class _HomeModeData {
   final bool primary;
 }
 
+class _PrimaryModes extends StatelessWidget {
+  const _PrimaryModes({
+    required this.items,
+    required this.compact,
+    required this.wide,
+  });
+
+  final List<_HomeModeData> items;
+  final bool compact;
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    if (wide) {
+      return SizedBox(
+        height: compact ? 104 : 118,
+        child: Row(
+          children: [
+            Expanded(child: _HomeModeTile(data: items[0], compact: compact)),
+            const SizedBox(width: 10),
+            Expanded(child: _HomeModeTile(data: items[1], compact: compact)),
+          ],
+        ),
+      );
+    }
+    return Column(
+      children: [
+        SizedBox(
+          height: compact ? 86 : 94,
+          child: _HomeModeTile(data: items[0], compact: compact),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: compact ? 86 : 94,
+          child: _HomeModeTile(data: items[1], compact: compact),
+        ),
+      ],
+    );
+  }
+}
+
+class _SecondaryModes extends StatelessWidget {
+  const _SecondaryModes({
+    required this.items,
+    required this.compact,
+    required this.wide,
+  });
+
+  final List<_HomeModeData> items;
+  final bool compact;
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    final columns = wide ? 4 : 2;
+    final itemHeight = compact ? 72.0 : 82.0;
+    final rows = (items.length / columns).ceil();
+    return SizedBox(
+      height: rows * itemHeight + (rows - 1) * 8,
+      child: GridView.builder(
+        padding: EdgeInsets.zero,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: items.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          mainAxisExtent: itemHeight,
+        ),
+        itemBuilder: (context, index) => _HomeModeTile(
+          data: items[index],
+          compact: compact,
+        ),
+      ),
+    );
+  }
+}
+
 class _HomeModeTile extends StatelessWidget {
   const _HomeModeTile({required this.data, required this.compact});
 
@@ -748,6 +815,14 @@ class _HomeModeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final radius = data.primary ? 18.0 : 15.0;
+    final iconSize = data.primary
+        ? compact
+              ? 54.0
+              : 66.0
+        : compact
+        ? 38.0
+        : 44.0;
     return Semantics(
       button: true,
       enabled: data.onTap != null,
@@ -756,61 +831,80 @@ class _HomeModeTile extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: data.onTap,
-          borderRadius: BorderRadius.circular(data.primary ? 22 : 18),
+          borderRadius: BorderRadius.circular(radius),
           child: Ink(
+            padding: EdgeInsets.symmetric(
+              horizontal: data.primary ? 12 : 10,
+              vertical: data.primary ? 9 : 7,
+            ),
             decoration: BoxDecoration(
               color: const Color(0xFF0A1728).withValues(alpha: .93),
-              borderRadius: BorderRadius.circular(data.primary ? 22 : 18),
+              borderRadius: BorderRadius.circular(radius),
               border: Border.all(
-                color: data.accent.withValues(alpha: data.primary ? .7 : .35),
-                width: data.primary ? 1.8 : 1,
+                color: data.accent.withValues(alpha: data.primary ? .62 : .3),
+                width: data.primary ? 1.5 : 1,
               ),
               boxShadow: data.primary
                   ? [
                       BoxShadow(
-                        color: data.accent.withValues(alpha: .12),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
+                        color: data.accent.withValues(alpha: .09),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
                       ),
                     ]
                   : null,
             ),
-            child: Padding(
-              padding: EdgeInsets.all(compact ? 7 : 10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: DuelAssetIcon(
-                      data.asset,
-                      size: compact ? 78 : 108,
-                    ),
+            child: Row(
+              children: [
+                SizedBox.square(
+                  dimension: iconSize,
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: DuelAssetIcon(data.asset, size: iconSize),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    data.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: compact ? 14 : data.primary ? 18 : 16,
-                      fontWeight: FontWeight.w900,
-                    ),
+                ),
+                SizedBox(width: data.primary ? 10 : 8),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: data.primary
+                              ? compact
+                                    ? 15
+                                    : 17
+                              : compact
+                              ? 12
+                              : 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        data.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: data.accent.withValues(alpha: .82),
+                          fontSize: data.primary ? 11 : 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    data.subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: data.accent.withValues(alpha: .82),
-                      fontSize: compact ? 10 : 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white.withValues(alpha: .48),
+                  size: data.primary ? 24 : 20,
+                ),
+              ],
             ),
           ),
         ),
@@ -834,26 +928,26 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: 500),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: const Color(0xFF081522),
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: const Color(0xFFFFC73D).withValues(alpha: .5),
+              color: const Color(0xFFFFC73D).withValues(alpha: .45),
             ),
             boxShadow: const [
               BoxShadow(
                 color: Colors.black54,
-                blurRadius: 30,
-                offset: Offset(0, 16),
+                blurRadius: 26,
+                offset: Offset(0, 14),
               ),
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -864,7 +958,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                         context.tr('play'),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 21,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -875,7 +969,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
                 Row(
                   children: [
                     for (final variant in SudokuVariant.values) ...[
@@ -887,14 +981,14 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                         ),
                       ),
                       if (variant != SudokuVariant.values.last)
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                     ],
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
+                  spacing: 6,
+                  runSpacing: 6,
                   alignment: WrapAlignment.center,
                   children: [
                     for (final difficulty in SudokuDifficulty.values)
@@ -906,6 +1000,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                           context.strings.difficultyLabel(difficulty),
                         ),
                         showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
                         selectedColor: const Color(0xFF29D398),
                         backgroundColor: const Color(0xFF132438),
                         labelStyle: TextStyle(
@@ -917,7 +1012,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
@@ -926,7 +1021,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                       difficulty: _difficulty,
                     )),
                     style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(54),
+                      minimumSize: const Size.fromHeight(48),
                       backgroundColor: const Color(0xFF29D398),
                       foregroundColor: const Color(0xFF07111E),
                     ),
@@ -964,32 +1059,51 @@ class _DialogVariantCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: Ink(
-          height: 148,
+          height: 88,
+          padding: const EdgeInsets.symmetric(horizontal: 9),
           decoration: BoxDecoration(
             color: selected
                 ? accent.withValues(alpha: .14)
                 : const Color(0xFF0A1728),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: selected ? accent : Colors.white.withValues(alpha: .12),
               width: selected ? 2 : 1,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Row(
             children: [
               DuelAssetIcon(
                 is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                size: 96,
+                size: 54,
               ),
-              Text(
-                variant.label,
-                style: TextStyle(
-                  color: selected ? accent : Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+              const SizedBox(width: 7),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      variant.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: selected ? accent : Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      is16 ? '1–16' : '1–9',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .58),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
