@@ -55,6 +55,7 @@ class NumberPad extends StatelessWidget {
     this.onUndo,
     this.onHint,
     this.hintCount,
+    this.unlimitedHints = false,
     this.enabled = true,
   });
 
@@ -67,6 +68,7 @@ class NumberPad extends StatelessWidget {
   final VoidCallback? onUndo;
   final VoidCallback? onHint;
   final int? hintCount;
+  final bool unlimitedHints;
   final bool enabled;
 
   @override
@@ -98,12 +100,12 @@ class NumberPad extends StatelessWidget {
               SizedBox(height: maxValue > 9 ? 6 : 10),
               Wrap(
                 alignment: WrapAlignment.center,
-                spacing: 4,
-                runSpacing: 4,
+                spacing: 6,
+                runSpacing: 6,
                 children: [
                   _ActionButton(
                     buttonKey: const ValueKey<String>('action-erase'),
-                    icon: Icons.backspace_outlined,
+                    icon: Icons.backspace_rounded,
                     label: context.tr('erase'),
                     onPressed: enabled ? onErase : null,
                   ),
@@ -111,7 +113,7 @@ class NumberPad extends StatelessWidget {
                     _ActionButton(
                       buttonKey: const ValueKey<String>('action-notes'),
                       icon: notesEnabled
-                          ? Icons.edit_note
+                          ? Icons.edit_note_rounded
                           : Icons.edit_note_outlined,
                       label: notesEnabled
                           ? context.tr('notes_on')
@@ -122,17 +124,19 @@ class NumberPad extends StatelessWidget {
                   if (onUndo != null)
                     _ActionButton(
                       buttonKey: const ValueKey<String>('action-undo'),
-                      icon: Icons.undo,
+                      icon: Icons.undo_rounded,
                       label: context.tr('undo'),
                       onPressed: enabled ? onUndo : null,
                     ),
                   if (onHint != null)
                     _ActionButton(
                       buttonKey: const ValueKey<String>('action-hint'),
-                      icon: Icons.lightbulb_outline,
-                      label: hintCount == null
-                          ? context.tr('hint')
-                          : '${context.tr('hint')} ($hintCount)',
+                      icon: Icons.lightbulb_outline_rounded,
+                      label: unlimitedHints
+                          ? '${context.tr('hint')} (∞)'
+                          : hintCount == null
+                              ? context.tr('hint')
+                              : '${context.tr('hint')} ($hintCount)',
                       onPressed: enabled ? onHint : null,
                     ),
                 ],
@@ -289,31 +293,64 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return TextButton(
-      key: buttonKey,
-      onPressed: onPressed,
-      style: TextButton.styleFrom(
-        backgroundColor: selected
-            ? scheme.primaryContainer
-            : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        minimumSize: const Size(48, 48),
-        tapTargetSize: MaterialTapTargetSize.padded,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
+    final activeColor = selected ? scheme.primary : scheme.outlineVariant;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: buttonKey,
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          width: 92,
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected
+                ? scheme.primaryContainer.withValues(alpha: .72)
+                : scheme.surfaceContainerHighest.withValues(alpha: .58),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: onPressed == null
+                  ? scheme.outlineVariant.withValues(alpha: .45)
+                  : activeColor,
+              width: selected ? 1.5 : 1,
             ),
           ),
-        ],
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 19,
+                color: onPressed == null
+                    ? scheme.onSurface.withValues(alpha: .38)
+                    : selected
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: onPressed == null
+                        ? scheme.onSurface.withValues(alpha: .38)
+                        : selected
+                            ? scheme.onPrimaryContainer
+                            : scheme.onSurface,
+                    fontSize: 11,
+                    height: 1.05,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
