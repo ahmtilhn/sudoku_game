@@ -15,7 +15,6 @@ class ReminderNotificationService {
   static final ReminderNotificationService instance =
       ReminderNotificationService._();
 
-  static const String _enabledKey = 'daily_reminders_enabled_v1';
   static const String _seedKey = 'daily_reminders_seed_v1';
   static const int _firstNotificationId = 10000;
   static const int _notificationCount = 63;
@@ -42,13 +41,13 @@ class ReminderNotificationService {
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   Future<void> initialize() async {
-    enabled.value = await _preferences.getBool(_enabledKey) ?? false;
     _seed =
         await _preferences.getInt(_seedKey) ??
         DateTime.now().microsecondsSinceEpoch & 0x7fffffff;
     await _preferences.setInt(_seedKey, _seed);
 
     if (!_supportsScheduling) {
+      enabled.value = false;
       _initialized = true;
       return;
     }
@@ -77,46 +76,50 @@ class ReminderNotificationService {
       },
     );
     _initialized = true;
-
-    if (enabled.value) {
-      await refreshSchedule();
-    }
+    await syncWithSystemPermission();
   }
 
-  Future<bool> requestPermissionAndEnable() async {
+  Future<bool> syncWithSystemPermission() async {
     if (!_initialized) await initialize();
-    if (!_supportsScheduling) return false;
+    if (!_supportsScheduling) {
+      enabled.value = false;
+      return false;
+    }
 
-    var granted = true;
+    final granted = await _requestSystemPermission();
+    enabled.value = granted;
+    if (granted) {
+      await refreshSchedule();
+    } else {
+      await _cancelReminderSchedule();
+    }
+    return granted;
+  }
+
+  Future<bool> requestPermissionAndEnable() => syncWithSystemPermission();
+
+  Future<bool> _requestSystemPermission() async {
     if (Platform.isAndroid) {
-      granted =
-          await _plugin
+      return await _plugin
               .resolvePlatformSpecificImplementation<
                 AndroidFlutterLocalNotificationsPlugin
               >()
               ?.requestNotificationsPermission() ??
-          true;
-    } else if (Platform.isIOS) {
-      granted =
-          await _plugin
+          false;
+    }
+    if (Platform.isIOS) {
+      return await _plugin
               .resolvePlatformSpecificImplementation<
                 IOSFlutterLocalNotificationsPlugin
               >()
               ?.requestPermissions(alert: true, badge: false, sound: true) ??
           false;
     }
-
-    if (!granted) return false;
-
-    enabled.value = true;
-    await _preferences.setBool(_enabledKey, true);
-    await refreshSchedule();
-    return true;
+    return false;
   }
 
   Future<void> disable() async {
     enabled.value = false;
-    await _preferences.setBool(_enabledKey, false);
     if (_supportsScheduling && _initialized) {
       await _cancelReminderSchedule();
     }
@@ -137,7 +140,7 @@ class ReminderNotificationService {
         'daily_sudoku_challenges',
         'Daily Sudoku challenges',
         channelDescription:
-            'Optional reminders to return for a fresh Sudoku challenge.',
+            'Daily reminders to return for a fresh Sudoku challenge.',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
       ),
