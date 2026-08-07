@@ -9,15 +9,15 @@ void main() {
       final worker = File(
         'backend/social_worker/src/index.ts',
       ).readAsStringSync();
+      final variantLayer = File(
+        'backend/social_worker/src/variant_challenges.ts',
+      ).readAsStringSync();
+      final entry = File(
+        'backend/social_worker/src/entry_v2.ts',
+      ).readAsStringSync();
 
       expect(worker, contains("if (challenge.status === 'accepted')"));
       expect(worker, contains('ensureAcceptedChallengeMatch(env, challenge)'));
-      expect(
-        worker,
-        contains(
-          "WHERE (challenger_id = ? OR recipient_id = ?)\n         AND status = 'accepted'",
-        ),
-      );
       expect(worker, contains("funded?.status !== 'funded'"));
       expect(
         worker,
@@ -27,6 +27,21 @@ void main() {
         worker,
         contains('Both players need enough Coin to create the challenge room.'),
       );
+
+      expect(entry, contains('handleVariantChallengeRequest'));
+      expect(entry, contains('isVariantChallengeRoute'));
+      expect(variantLayer, contains("row.variant === 'classic16'"));
+      expect(variantLayer, contains('`classic16:${crypto.randomUUID()}`'));
+      expect(
+        variantLayer,
+        contains("WHERE id = ? AND status IN ('pending', 'accepted')"),
+      );
+      expect(
+        variantLayer,
+        contains('SET variant = ?, board_size = ?, cell_count = ?, updated_at = ?'),
+      );
+      expect(variantLayer, contains('metadata.boardSize'));
+      expect(variantLayer, contains('metadata.cellCount'));
     },
   );
 
