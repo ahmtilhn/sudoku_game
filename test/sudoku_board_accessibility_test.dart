@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/domain/sudoku.dart';
+import 'package:sudoku_game/localization/app_strings.dart';
 import 'package:sudoku_game/widgets/sudoku_board.dart';
 
 void main() {
@@ -14,17 +15,15 @@ void main() {
     final board = List<int>.filled(81, 0)..[0] = 5;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: SizedBox.square(
-              dimension: 360,
-              child: SudokuBoard(
-                puzzle: puzzle,
-                board: board,
-                selectedIndex: 0,
-                onCellTap: (_) {},
-              ),
+      _testApp(
+        Center(
+          child: SizedBox.square(
+            dimension: 360,
+            child: SudokuBoard(
+              puzzle: puzzle,
+              board: board,
+              selectedIndex: 0,
+              onCellTap: (_) {},
             ),
           ),
         ),
@@ -54,20 +53,18 @@ void main() {
       ..[1] = 16;
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: SizedBox.square(
-              dimension: 640,
-              child: SudokuBoard(
-                puzzle: puzzle,
-                board: board,
-                selectedIndex: 2,
-                notes: const <int, Set<int>>{
-                  2: <int>{10, 16},
-                },
-                onCellTap: (_) {},
-              ),
+      _testApp(
+        Center(
+          child: SizedBox.square(
+            dimension: 640,
+            child: SudokuBoard(
+              puzzle: puzzle,
+              board: board,
+              selectedIndex: 2,
+              notes: const <int, Set<int>>{
+                2: <int>{10, 16},
+              },
+              onCellTap: (_) {},
             ),
           ),
         ),
@@ -80,4 +77,11 @@ void main() {
     expect(find.text('G'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+}
+
+Widget _testApp(Widget child) {
+  return AppStringsScope(
+    strings: AppStrings.forTesting(),
+    child: MaterialApp(home: Scaffold(body: child)),
+  );
 }
