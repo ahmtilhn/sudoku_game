@@ -47,8 +47,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   int _pollAttempt = 0;
   String? _searchStatus;
 
-  int get _entryFee =>
-      _economy.entryFeeForDifficulty(_difficulty.name);
+  int get _entryFee => _economy.entryFeeForDifficulty(_difficulty.name);
   bool get _canEnter => _economy.balance >= _entryFee;
 
   @override
@@ -436,27 +435,17 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   void _openMatchedResult(VariantMatchmakingResult result) {
     final roomId = result.roomId?.trim() ?? '';
     if (roomId.isEmpty) {
-      unawaited(
-        _stopWithError(context.tr('matchmaking_start_failed')),
-      );
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
       return;
     }
     if (_variant.id == SudokuVariantId.classic16 &&
         !roomId.startsWith('classic16:')) {
-      unawaited(
-        _stopWithError(
-          context.tr('matchmaking_start_failed'),
-        ),
-      );
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
       return;
     }
     if (_variant.id == SudokuVariantId.classic9 &&
         roomId.startsWith('classic16:')) {
-      unawaited(
-        _stopWithError(
-          context.tr('matchmaking_start_failed'),
-        ),
-      );
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
       return;
     }
     _openOnlineRoom(roomId);
@@ -614,9 +603,9 @@ class _Header extends StatelessWidget {
             onPressed: onStore,
             style: FilledButton.styleFrom(
               minimumSize: const Size(0, 40),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
-            icon: const DuelAssetIcon(DuelAsset.coin, size: 16),
+            icon: const DuelAssetIcon(DuelAsset.walletCoinStackPro, size: 26),
             label: Text(
               NumberFormat.compact().format(balance),
               style: const TextStyle(fontWeight: FontWeight.w900),
@@ -764,38 +753,115 @@ class _EntryBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 46,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF102235),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFFFC73D).withValues(alpha: .10),
+            const Color(0xFF102235),
+          ],
+        ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFF29D398).withValues(alpha: .28),
+          color: const Color(0xFF29D398).withValues(alpha: .32),
         ),
       ),
       child: Row(
         children: [
-          const DuelAssetIcon(DuelAsset.coin, size: 18),
+          const DuelAssetIcon(DuelAsset.walletCoinStackPro, size: 40),
           const SizedBox(width: 6),
           Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _EntryValue(
+                    label: context.tr('entry_fee'),
+                    value: context.tr('coin_amount', <Object>[fee]),
+                    color: const Color(0xFFFFC73D),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white.withValues(alpha: .38),
+                    size: 18,
+                  ),
+                ),
+                Expanded(
+                  child: _EntryValue(
+                    label: context.tr('winner_pot'),
+                    value: context.tr('coin_amount', <Object>[pot]),
+                    color: const Color(0xFF29D398),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 5),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFF07111E).withValues(alpha: .62),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Text(
-              '$fee → $pot',
+              variant.label,
               style: const TextStyle(
-                color: Colors.white,
+                color: Color(0xFF35D2FF),
+                fontSize: 9.5,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ),
-          Text(
-            variant.label,
-            style: const TextStyle(
-              color: Color(0xFF29D398),
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
         ],
       ),
+    );
+  }
+}
+
+class _EntryValue extends StatelessWidget {
+  const _EntryValue({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .54),
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
     );
   }
 }
