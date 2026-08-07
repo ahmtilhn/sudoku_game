@@ -1619,18 +1619,19 @@ export class GameRoom {
     const duel = await this.loadOrCreate(roomId);
     const seat = this.seatForPlayer(duel, playerId);
     if (!seat) return new Response('Forbidden.', { status: 403 });
-    for (const socket of this.state.getWebSockets(playerId)) {
+    const replacedSockets = this.state.getWebSockets(playerId);
+    const pair = new WebSocketPair();
+    const client = pair[0];
+    const server = pair[1];
+    this.state.acceptWebSocket(server, [playerId]);
+
+    for (const socket of replacedSockets) {
       try {
         socket.close(4001, 'Replaced by a newer connection.');
       } catch {
         // Closed sockets are ignored by the hibernation runtime.
       }
     }
-
-    const pair = new WebSocketPair();
-    const client = pair[0];
-    const server = pair[1];
-    this.state.acceptWebSocket(server, [playerId]);
     const now = Date.now();
     const events = applyDueDeadlines(duel, now);
     events.push(markConnected(duel, seat, now));
@@ -1747,6 +1748,10 @@ export class GameRoom {
     if (!duel) return;
     const seat = this.seatForPlayer(duel, playerId);
     if (!seat) return;
+    const hasReplacementSocket = this.state
+      .getWebSockets(playerId)
+      .some((candidate) => candidate !== socket && candidate.readyState === 1);
+    if (hasReplacementSocket) return;
     const event = markDisconnected(duel, seat, Date.now());
     await this.persist();
     this.broadcast([event]);

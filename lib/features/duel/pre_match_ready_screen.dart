@@ -147,25 +147,15 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     if (_leaving || _handedOff || !mounted) return;
     setState(() => _leaving = true);
     final controller = _controller;
-    if (controller == null) {
-      setState(() => _allowPop = true);
-      if (mounted) Navigator.of(context).pop();
-      return;
-    }
-    controller.forfeit();
-    for (var attempt = 0; attempt < 24; attempt++) {
-      controller.requestSnapshot();
-      await Future<void>.delayed(const Duration(milliseconds: 350));
-      final snapshot = _snapshot;
-      if (snapshot != null &&
-          snapshot.isFinished &&
-          (snapshot.coinSettlement != null || attempt >= 10)) {
-        break;
-      }
+    controller?.forfeit();
+    if (controller != null &&
+        (_connectionState == OnlineDuelConnectionState.connected ||
+            _connectionState == OnlineDuelConnectionState.resyncing)) {
+      await Future<void>.delayed(const Duration(milliseconds: 180));
     }
     await _snapshotSubscription?.cancel();
     await _connectionSubscription?.cancel();
-    await controller.dispose();
+    await controller?.dispose();
     _controller = null;
     _snapshotSubscription = null;
     _connectionSubscription = null;

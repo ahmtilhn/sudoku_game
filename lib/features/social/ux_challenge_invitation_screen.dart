@@ -35,6 +35,7 @@ class _UxChallengeInvitationScreenState
   int _statusTicks = 0;
   bool _loading = true;
   bool _busy = false;
+  bool _openingRoom = false;
   bool _showingError = false;
   String? _statusMessage;
 
@@ -120,7 +121,7 @@ class _UxChallengeInvitationScreenState
   }
 
   Future<void> _refreshStatus() async {
-    if (_busy || !mounted) return;
+    if (_busy || _openingRoom || !mounted) return;
     try {
       final challenge = await _social.loadChallenge(widget.challengeId);
       if (!mounted) return;
@@ -148,7 +149,7 @@ class _UxChallengeInvitationScreenState
 
   Future<void> _respond(bool accept) async {
     final challenge = _challenge;
-    if (challenge == null || _busy || _expired) return;
+    if (challenge == null || _busy || _openingRoom || _expired) return;
     if (accept && !_canAccept) {
       final openStore = await GameModal.warning(
         context,
@@ -256,12 +257,19 @@ class _UxChallengeInvitationScreenState
   }
 
   Future<void> _openRoom(String roomId) async {
+    if (_openingRoom || !mounted) return;
+    _openingRoom = true;
     _timer?.cancel();
-    await _economy.refresh(showLoading: false);
-    if (!mounted) return;
-    await Navigator.of(context).pushReplacement<void, void>(
-      MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
-    );
+    try {
+      await _economy.refresh(showLoading: false);
+      if (!mounted) return;
+      await Navigator.of(context).pushReplacement<void, void>(
+        MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
+      );
+    } catch (_) {
+      if (mounted) setState(() => _openingRoom = false);
+      rethrow;
+    }
   }
 
   Future<void> _openStore() async {
