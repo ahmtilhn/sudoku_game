@@ -38,7 +38,8 @@ void main() {
     final identityCard = source.substring(start, end);
     expect(identityCard, contains("'profile-identity-card'"));
     expect(identityCard, contains('PlayerAvatar('));
-    expect(identityCard, contains('ConstrainedBox('));
+    expect(identityCard, contains('localAvatarBytes: avatarBytes'));
+    expect(identityCard, contains('Expanded('));
     expect(identityCard, isNot(contains('DuelAsset.profilePro')));
   });
 
