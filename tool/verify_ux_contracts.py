@@ -56,9 +56,11 @@ def main() -> int:
             "lib/features/home/professional_home_screen.dart",
             "DuelAsset.homePlayScene",
             "DuelAsset.homeDuelScene",
-            "DuelAsset.dailyRewardPro",
+            "DuelAsset.gift",
+            "DuelAsset.coin",
             "DuelAsset.leaderboardCrownPro",
             "LeaderboardsScreen",
+            "constraints: const BoxConstraints(maxWidth: 760)",
             "SudokuVariant.values",
             "SudokuVariantId.classic16",
             "Classic16PuzzleFactory.generate",
@@ -210,6 +212,19 @@ def main() -> int:
             "static const homePlayScene",
             "static const resultVictoryTrophyPro",
             "static const leaderboardCrownPro",
+            "static const Set<String> fullColorArtwork",
+        )
+        require(
+            "lib/features/economy/coin_store_screen.dart",
+            "DuelAsset.coinStoreBalancePro",
+            "DuelAsset.gift",
+            "DuelAsset.removeAdsPro",
+            "DuelAsset.diamond",
+            "_StoreArtwork",
+        )
+        forbid(
+            "lib/features/economy/coin_store_screen.dart",
+            "width: 360",
         )
         require(
             "lib/widgets/game_modal.dart",
