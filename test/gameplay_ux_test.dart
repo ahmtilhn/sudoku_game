@@ -93,6 +93,40 @@ void main() {
     );
   });
 
+  testWidgets('round lost matches fixed result style without scrolling', (
+    tester,
+  ) async {
+    final store = await LocalProgressStore.createInMemory();
+    await tester.pumpWidget(
+      AppStringsScope(
+        strings: AppStrings.forTesting(),
+        child: MaterialApp(
+          home: EnhancedGameScreen(
+            puzzle: _lossPuzzle(),
+            store: store,
+            mistakeLimit: 3,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('sudoku-cell-0')));
+    await tester.pump();
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const ValueKey<String>('number-2')));
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('fixed-round-lost-outcome')),
+      findsOneWidget,
+    );
+    expect(find.byType(SingleChildScrollView), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('pause stops interaction and exposes all requested actions', (
     tester,
   ) async {
@@ -143,6 +177,20 @@ SudokuPuzzle _miniPuzzle() {
     title: 'Mini',
     difficulty: SudokuDifficulty.easy,
     puzzle: <int>[1, 0, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1],
+    solution: solution,
+    size: 4,
+    boxRows: 2,
+    boxColumns: 2,
+  );
+}
+
+SudokuPuzzle _lossPuzzle() {
+  const solution = <int>[1, 2, 3, 4, 3, 4, 1, 2, 2, 1, 4, 3, 4, 3, 2, 1];
+  return const SudokuPuzzle(
+    id: 'ux-test-loss',
+    title: 'Loss test',
+    difficulty: SudokuDifficulty.easy,
+    puzzle: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     solution: solution,
     size: 4,
     boxRows: 2,
