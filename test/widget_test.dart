@@ -65,4 +65,25 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
+
+  testWidgets('Play opens the quick play dialog without layout errors', (
+    tester,
+  ) async {
+    final store = await LocalProgressStore.createInMemory();
+    final strings = AppStrings.forTesting();
+
+    await tester.pumpWidget(SudokuApp(store: store, strings: strings));
+    await tester.pump();
+
+    await tester.tap(find.text('Play'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const ValueKey<String>('quick-play-dialog')),
+      findsOneWidget,
+    );
+    expect(find.text('9×9'), findsWidgets);
+    expect(find.text('16×16'), findsWidgets);
+  });
 }
