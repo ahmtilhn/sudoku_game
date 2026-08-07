@@ -67,9 +67,10 @@ void main() {
     expect(tester.getSize(logo).height, greaterThanOrEqualTo(120));
     expect(
       tester.getCenter(logo).dx,
-      moreOrLessEquals(tester.view.physicalSize.width /
-          tester.view.devicePixelRatio /
-          2,
+      moreOrLessEquals(
+        tester.view.physicalSize.width /
+            tester.view.devicePixelRatio /
+            2,
         epsilon: 2,
       ),
     );
@@ -91,21 +92,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+    final dialog = find.byKey(const ValueKey<String>('quick-play-dialog'));
+    expect(dialog, findsOneWidget);
+
+    final nine = find.descendant(of: dialog, matching: find.text('9×9'));
+    final sixteen = find.descendant(of: dialog, matching: find.text('16×16'));
+    expect(nine, findsOneWidget);
+    expect(sixteen, findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('quick-play-dialog')),
-      findsOneWidget,
+      tester.getCenter(nine).dy,
+      moreOrLessEquals(tester.getCenter(sixteen).dy, epsilon: 1),
     );
-    expect(find.text('9×9'), findsWidgets);
-    expect(find.text('16×16'), findsWidgets);
 
-    final nine = tester.getCenter(find.text('9×9').last);
-    final sixteen = tester.getCenter(find.text('16×16').last);
-    expect(nine.dy, moreOrLessEquals(sixteen.dy, epsilon: 1));
-
-    final easy = tester.getCenter(find.text('Easy').last);
-    final medium = tester.getCenter(find.text('Medium').last);
-    final hard = tester.getCenter(find.text('Hard').last);
-    expect(easy.dy, moreOrLessEquals(medium.dy, epsilon: 1));
-    expect(medium.dy, moreOrLessEquals(hard.dy, epsilon: 1));
+    final easy = find.descendant(of: dialog, matching: find.text('Easy'));
+    final medium = find.descendant(of: dialog, matching: find.text('Medium'));
+    final hard = find.descendant(of: dialog, matching: find.text('Hard'));
+    expect(easy, findsOneWidget);
+    expect(medium, findsOneWidget);
+    expect(hard, findsOneWidget);
+    expect(
+      tester.getCenter(easy).dy,
+      moreOrLessEquals(tester.getCenter(medium).dy, epsilon: 1),
+    );
+    expect(
+      tester.getCenter(medium).dy,
+      moreOrLessEquals(tester.getCenter(hard).dy, epsilon: 1),
+    );
   });
 }
