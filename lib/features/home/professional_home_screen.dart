@@ -12,21 +12,21 @@ import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
+import '../../services/platform_game_services.dart';
 import '../../services/player_profile_service.dart';
-import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/game_modal.dart';
 import '../../widgets/player_avatar.dart';
 import '../career/career_hub_screen.dart';
+import '../duel/leaderboards_screen.dart';
 import '../duel/matchmaking_screen.dart';
 import '../economy/coin_store_screen.dart';
 import '../game/enhanced_game_screen.dart';
 import '../settings/ux_settings_screen.dart';
 import '../social/profile_hub_screen.dart';
 import '../social/social_hub_screen.dart';
-import '../social/ux_challenge_invitation_screen.dart';
 
 class ProfessionalHomeScreen extends StatefulWidget {
   const ProfessionalHomeScreen({super.key, required this.store});
@@ -41,13 +41,11 @@ class ProfessionalHomeScreen extends StatefulWidget {
 class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   final EconomyService _economy = EconomyService.instance;
   final UxGameSessionStore _sessions = UxGameSessionStore.instance;
-  final PushNotificationService _push = PushNotificationService.instance;
 
   PlayerProfilePreferences? _profile;
   UxGameSession? _activeSession;
   int _socialBadge = 0;
   bool _identityBusy = false;
-  bool _routingPush = false;
   bool _openingGame = false;
 
   @override
@@ -55,21 +53,16 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
     super.initState();
     _economy.addListener(_refresh);
     _sessions.activeSession.addListener(_sessionChanged);
-    _push.openedChallengeId.addListener(_schedulePushRouting);
-    _push.openedRematchId.addListener(_schedulePushRouting);
     unawaited(_economy.initialize());
     unawaited(_sessions.initialize());
     unawaited(_loadProfile());
     unawaited(_loadSocialBadge());
-    WidgetsBinding.instance.addPostFrameCallback((_) => _schedulePushRouting());
   }
 
   @override
   void dispose() {
     _economy.removeListener(_refresh);
     _sessions.activeSession.removeListener(_sessionChanged);
-    _push.openedChallengeId.removeListener(_schedulePushRouting);
-    _push.openedRematchId.removeListener(_schedulePushRouting);
     super.dispose();
   }
 
@@ -125,39 +118,6 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
       _loadProfile(),
       _loadSocialBadge(),
     ]);
-  }
-
-  void _schedulePushRouting() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_routePendingPush());
-    });
-  }
-
-  Future<void> _routePendingPush() async {
-    if (!mounted ||
-        _routingPush ||
-        !(ModalRoute.of(context)?.isCurrent ?? false)) {
-      return;
-    }
-    final challengeId = _push.openedChallengeId.value;
-    final rematchId = _push.openedRematchId.value;
-    if ((challengeId == null || challengeId.isEmpty) &&
-        (rematchId == null || rematchId.isEmpty)) {
-      return;
-    }
-    setState(() => _routingPush = true);
-    try {
-      if (!await _ensureOnlineIdentity() || !mounted) return;
-      if (challengeId != null && challengeId.isNotEmpty) {
-        _push.openedChallengeId.value = null;
-        await _open(UxChallengeInvitationScreen(challengeId: challengeId));
-      } else {
-        _push.openedRematchId.value = null;
-        await _open(const SocialHubScreen());
-      }
-    } finally {
-      if (mounted) setState(() => _routingPush = false);
-    }
   }
 
   Future<bool> _ensureOnlineIdentity() async {
@@ -234,6 +194,11 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   Future<void> _openProfile() async {
     if (!await _ensureOnlineIdentity() || !mounted) return;
     await _open(const ProfileHubScreen());
+  }
+
+  Future<void> _openLeaderboards() async {
+    if (!await _ensureOnlineIdentity() || !mounted) return;
+    await _open(const LeaderboardsScreen());
   }
 
   Future<void> _showQuickPlay() async {
@@ -353,7 +318,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
         (_economy.wallet?.dailyAdAvailable == true && !_economy.noAds);
     final primaryItems = <_HomeModeData>[
       _HomeModeData(
-        asset: DuelAsset.quickPlayPro,
+        asset: DuelAsset.homePlayScene,
         title: context.tr('play'),
         subtitle: '9×9 · 16×16',
         accent: const Color(0xFFFFC73D),
@@ -361,7 +326,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
         primary: true,
       ),
       _HomeModeData(
-        asset: DuelAsset.onlineDuelPro,
+        asset: DuelAsset.homeDuelScene,
         title: context.tr('online_duel'),
         subtitle: context.tr('online_duel_subtitle'),
         accent: const Color(0xFFFF525E),
@@ -371,7 +336,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
     ];
     final secondaryItems = <_HomeModeData>[
       _HomeModeData(
-        asset: DuelAsset.careerPro,
+        asset: DuelAsset.homeCareerScene,
         title: context.tr('career'),
         subtitle: context.tr('completed_levels', <Object>[
           widget.store.completedCareerLevelCount,
@@ -380,7 +345,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
         onTap: () => _open(CareerHubScreen(store: widget.store)),
       ),
       _HomeModeData(
-        asset: DuelAsset.friendsPro,
+        asset: DuelAsset.homeFriendsScene,
         title: context.tr('friends_challenges'),
         subtitle: _socialBadge > 0
             ? '$_socialBadge'
@@ -389,14 +354,14 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
         onTap: _identityBusy ? null : _openSocial,
       ),
       _HomeModeData(
-        asset: DuelAsset.storePro,
+        asset: DuelAsset.homeStoreScene,
         title: context.tr('coin_store'),
         subtitle: NumberFormat.compact().format(_economy.balance),
         accent: const Color(0xFF29D398),
         onTap: () => _open(const CoinStoreScreen()),
       ),
       _HomeModeData(
-        asset: DuelAsset.profilePro,
+        asset: DuelAsset.homeProfileScene,
         title: context.tr('profile'),
         subtitle: context.tr('shown_to_other_players'),
         accent: const Color(0xFF7A5CFF),
@@ -433,6 +398,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
                           identityBusy: _identityBusy,
                           onProfile: _openProfile,
                           onSocial: _openSocial,
+                          onLeaderboards: _openLeaderboards,
                           onReward: _claimReward,
                           onSettings: () => _open(
                             UxSettingsScreen(store: widget.store),
@@ -495,6 +461,7 @@ class _HomeHeader extends StatelessWidget {
     required this.identityBusy,
     required this.onProfile,
     required this.onSocial,
+    required this.onLeaderboards,
     required this.onReward,
     required this.onSettings,
   });
@@ -506,6 +473,7 @@ class _HomeHeader extends StatelessWidget {
   final bool identityBusy;
   final VoidCallback onProfile;
   final VoidCallback onSocial;
+  final VoidCallback onLeaderboards;
   final VoidCallback onReward;
   final VoidCallback onSettings;
 
@@ -520,31 +488,36 @@ class _HomeHeader extends StatelessWidget {
             child: InkWell(
               onTap: identityBusy ? null : onProfile,
               borderRadius: BorderRadius.circular(999),
-              child: Row(
-                children: [
-                  PlayerAvatar(
-                    displayName: name,
-                    avatarKey: 'professional-home-$name',
-                    radius: 18,
-                    semanticLabel: context.tr(
-                      'player_avatar_semantics',
-                      <Object>[name],
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Flexible(
-                    child: Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
+              child: ValueListenableBuilder<PlatformPlayer?>(
+                valueListenable: PlatformGameServices.instance.localPlayer,
+                builder: (context, platformPlayer, _) => Row(
+                  children: [
+                    PlayerAvatar(
+                      displayName: name,
+                      avatarKey: 'professional-home-$name',
+                      localAvatarBytes: platformPlayer?.avatarBytes,
+                      remoteApprovedImageUrl: platformPlayer?.avatarUrl,
+                      radius: 18,
+                      semanticLabel: context.tr(
+                        'player_avatar_semantics',
+                        <Object>[name],
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -552,12 +525,19 @@ class _HomeHeader extends StatelessWidget {
             _HeaderButton(
               tooltip: context.tr('home_daily_reward_title'),
               onTap: onReward,
-              child: const Icon(
-                Icons.redeem_rounded,
-                color: Color(0xFFFFC73D),
-                size: 20,
-              ),
+              accent: const Color(0xFFFFC73D),
+              child: const DuelAssetIcon(DuelAsset.dailyRewardPro, size: 28),
             ),
+          if (rewardReady) const SizedBox(width: 4),
+          _HeaderButton(
+            tooltip: context.tr('leaderboards'),
+            onTap: identityBusy ? null : onLeaderboards,
+            accent: const Color(0xFFFFC73D),
+            child: const DuelAssetIcon(
+              DuelAsset.leaderboardCrownPro,
+              size: 27,
+            ),
+          ),
           const SizedBox(width: 4),
           _HeaderButton(
             tooltip: context.tr('friends_challenges'),
@@ -565,24 +545,24 @@ class _HomeHeader extends StatelessWidget {
             child: Badge(
               isLabelVisible: badge > 0,
               label: Text('$badge'),
-              child: const Icon(Icons.people_alt_rounded, size: 20),
+              child: const DuelAssetIcon(DuelAsset.homeFriendsScene, size: 25),
             ),
           ),
           const SizedBox(width: 4),
           Container(
             height: 38,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.only(left: 4, right: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF0A1728).withValues(alpha: .9),
+              color: const Color(0xFF0A1728).withValues(alpha: .92),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: const Color(0xFFFFC73D).withValues(alpha: .34),
+                color: const Color(0xFFFFC73D).withValues(alpha: .38),
               ),
             ),
             child: Row(
               children: [
-                const DuelAssetIcon(DuelAsset.coin, size: 16),
-                const SizedBox(width: 4),
+                const DuelAssetIcon(DuelAsset.walletCoinStackPro, size: 29),
+                const SizedBox(width: 2),
                 Text(
                   NumberFormat.compact().format(balance),
                   style: const TextStyle(
@@ -611,11 +591,13 @@ class _HeaderButton extends StatelessWidget {
     required this.tooltip,
     required this.onTap,
     required this.child,
+    this.accent,
   });
 
   final String tooltip;
   final VoidCallback? onTap;
   final Widget child;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) => IconButton(
@@ -624,8 +606,10 @@ class _HeaderButton extends StatelessWidget {
     style: IconButton.styleFrom(
       fixedSize: const Size(38, 38),
       padding: EdgeInsets.zero,
-      backgroundColor: const Color(0xFF0A1728).withValues(alpha: .9),
-      side: BorderSide(color: Colors.white.withValues(alpha: .13)),
+      backgroundColor: const Color(0xFF0A1728).withValues(alpha: .92),
+      side: BorderSide(
+        color: (accent ?? Colors.white).withValues(alpha: accent == null ? .13 : .34),
+      ),
     ),
     icon: child,
   );
@@ -667,11 +651,7 @@ class _ResumeStrip extends StatelessWidget {
                       dimension: 24,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(
-                      Icons.play_circle_fill_rounded,
-                      color: Color(0xFF29D398),
-                      size: 28,
-                    ),
+                  : const DuelAssetIcon(DuelAsset.homePlayScene, size: 34),
               const SizedBox(width: 8),
               Expanded(
                 child: Text.rich(
@@ -744,7 +724,7 @@ class _PrimaryModes extends StatelessWidget {
   Widget build(BuildContext context) {
     if (wide) {
       return SizedBox(
-        height: compact ? 104 : 118,
+        height: compact ? 110 : 124,
         child: Row(
           children: [
             Expanded(child: _HomeModeTile(data: items[0], compact: compact)),
@@ -757,12 +737,12 @@ class _PrimaryModes extends StatelessWidget {
     return Column(
       children: [
         SizedBox(
-          height: compact ? 86 : 94,
+          height: compact ? 90 : 100,
           child: _HomeModeTile(data: items[0], compact: compact),
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: compact ? 86 : 94,
+          height: compact ? 90 : 100,
           child: _HomeModeTile(data: items[1], compact: compact),
         ),
       ],
@@ -784,7 +764,7 @@ class _SecondaryModes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final columns = wide ? 4 : 2;
-    final itemHeight = compact ? 72.0 : 82.0;
+    final itemHeight = compact ? 78.0 : 88.0;
     final rows = (items.length / columns).ceil();
     return SizedBox(
       height: rows * itemHeight + (rows - 1) * 8,
@@ -815,14 +795,14 @@ class _HomeModeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = data.primary ? 18.0 : 15.0;
-    final iconSize = data.primary
+    final radius = data.primary ? 19.0 : 16.0;
+    final artSize = data.primary
         ? compact
-              ? 54.0
-              : 66.0
+              ? 68.0
+              : 78.0
         : compact
-        ? 38.0
-        : 44.0;
+        ? 52.0
+        : 60.0;
     return Semantics(
       button: true,
       enabled: data.onTap != null,
@@ -834,36 +814,47 @@ class _HomeModeTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(radius),
           child: Ink(
             padding: EdgeInsets.symmetric(
-              horizontal: data.primary ? 12 : 10,
-              vertical: data.primary ? 9 : 7,
+              horizontal: data.primary ? 10 : 8,
+              vertical: data.primary ? 8 : 6,
             ),
             decoration: BoxDecoration(
-              color: const Color(0xFF0A1728).withValues(alpha: .93),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  data.accent.withValues(alpha: data.primary ? .13 : .09),
+                  const Color(0xFF0A1728).withValues(alpha: .97),
+                ],
+              ),
               borderRadius: BorderRadius.circular(radius),
               border: Border.all(
-                color: data.accent.withValues(alpha: data.primary ? .62 : .3),
+                color: data.accent.withValues(alpha: data.primary ? .68 : .4),
                 width: data.primary ? 1.5 : 1,
               ),
-              boxShadow: data.primary
-                  ? [
-                      BoxShadow(
-                        color: data.accent.withValues(alpha: .09),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: data.accent.withValues(alpha: data.primary ? .10 : .05),
+                  blurRadius: data.primary ? 18 : 10,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                SizedBox.square(
-                  dimension: iconSize,
-                  child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: DuelAssetIcon(data.asset, size: iconSize),
+                Container(
+                  width: artSize,
+                  height: artSize,
+                  padding: EdgeInsets.all(data.primary ? 2 : 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF07111E).withValues(alpha: .66),
+                    borderRadius: BorderRadius.circular(data.primary ? 17 : 14),
+                    border: Border.all(
+                      color: data.accent.withValues(alpha: .26),
+                    ),
                   ),
+                  child: DuelAssetIcon(data.asset, size: artSize - 4),
                 ),
-                SizedBox(width: data.primary ? 10 : 8),
+                SizedBox(width: data.primary ? 11 : 8),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -885,14 +876,15 @@ class _HomeModeTile extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         data.subtitle,
-                        maxLines: 1,
+                        maxLines: data.primary ? 2 : 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: data.accent.withValues(alpha: .82),
+                          color: data.accent.withValues(alpha: .88),
                           fontSize: data.primary ? 11 : 10,
+                          height: 1.15,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -953,6 +945,8 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
               children: [
                 Row(
                   children: [
+                    const DuelAssetIcon(DuelAsset.homePlayScene, size: 42),
+                    const SizedBox(width: 9),
                     Expanded(
                       child: Text(
                         context.tr('play'),
@@ -969,7 +963,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     for (final variant in SudokuVariant.values) ...[
@@ -985,7 +979,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                     ],
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
@@ -1059,15 +1053,20 @@ class _DialogVariantCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(17),
         child: Ink(
-          height: 88,
+          height: 104,
           padding: const EdgeInsets.symmetric(horizontal: 9),
           decoration: BoxDecoration(
-            color: selected
-                ? accent.withValues(alpha: .14)
-                : const Color(0xFF0A1728),
-            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accent.withValues(alpha: selected ? .2 : .07),
+                const Color(0xFF0A1728),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(17),
             border: Border.all(
               color: selected ? accent : Colors.white.withValues(alpha: .12),
               width: selected ? 2 : 1,
@@ -1075,11 +1074,21 @@ class _DialogVariantCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              DuelAssetIcon(
-                is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                size: 54,
+              Container(
+                width: 66,
+                height: 66,
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF07111E).withValues(alpha: .7),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: accent.withValues(alpha: .3)),
+                ),
+                child: DuelAssetIcon(
+                  is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
+                  size: 60,
+                ),
               ),
-              const SizedBox(width: 7),
+              const SizedBox(width: 9),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1095,10 +1104,11 @@ class _DialogVariantCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
+                    const SizedBox(height: 3),
                     Text(
-                      is16 ? '1–16' : '1–9',
+                      is16 ? '1–16 · 256' : '1–9 · 81',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: .58),
+                        color: Colors.white.withValues(alpha: .6),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
