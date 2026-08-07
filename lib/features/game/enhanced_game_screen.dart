@@ -958,10 +958,11 @@ class _GameResultSheetState extends State<_GameResultSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(
-              Icons.emoji_events_rounded,
-              size: 62,
-              color: Color(0xFFFFC94D),
+            const Center(
+              child: DuelAssetIcon(
+                DuelAsset.resultVictoryTrophyPro,
+                size: 110,
+              ),
             ),
             const SizedBox(height: 10),
             Text(
