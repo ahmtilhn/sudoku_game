@@ -467,7 +467,7 @@ class _HomeLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       key: const ValueKey<String>('home-logo-text'),
-      height: compact ? 130 : 176,
+      height: compact ? 150 : 200,
       width: double.infinity,
       child: ClipRect(
         child: Center(
