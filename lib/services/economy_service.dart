@@ -7,6 +7,9 @@ import '../debug/debug_economy.dart';
 import 'ads_service.dart';
 import 'economy_api_client.dart';
 
+@visibleForTesting
+int positiveCoinDelta(int before, int after) => after > before ? after - before : 0;
+
 class EconomyService extends ChangeNotifier {
   EconomyService._();
 
@@ -131,29 +134,35 @@ class EconomyService extends ChangeNotifier {
     }
   }
 
-  Future<bool> claimCareerRewardedInterstitial() async {
-    if (noAds) return false;
+  Future<int> claimCareerRewardedInterstitialCoins() async {
+    if (noAds) return 0;
+    final before = balance;
     try {
       final prepared = await EconomyApiClient.instance.prepareCareerAd();
       final earned = await AdsService.instance.showRewardedInterstitial(
         verificationToken: prepared.token,
       );
-      if (!earned) return false;
+      if (!earned) return 0;
       wallet = await EconomyApiClient.instance.confirmCareerAd(prepared.token);
       _syncAdEntitlement();
       error = null;
       notifyListeners();
-      return true;
+      final verifiedDelta = positiveCoinDelta(before, balance);
+      if (verifiedDelta > 0) return verifiedDelta;
+      return debugUnlimitedCoinsEnabled ? prepared.amount : 0;
     } on EconomyApiException catch (exception) {
       error = exception.message;
       notifyListeners();
-      return false;
+      return 0;
     } catch (_) {
       error = 'The career reward ad is not available right now.';
       notifyListeners();
-      return false;
+      return 0;
     }
   }
+
+  Future<bool> claimCareerRewardedInterstitial() async =>
+      await claimCareerRewardedInterstitialCoins() > 0;
 
   Future<bool> spendCareerContinue() async {
     if (debugUnlimitedCoinsEnabled) {
