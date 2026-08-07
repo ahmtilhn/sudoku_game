@@ -53,6 +53,8 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                         Expanded(
                           child: Text(
                             platformName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -89,6 +91,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
@@ -106,6 +109,8 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                                   connected
                                       ? context.tr('connected')
                                       : context.tr('try_again_when_connected'),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: connected
                                         ? const Color(0xFF29D398)
@@ -116,6 +121,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                               ],
                             ),
                           ),
+                          const SizedBox(width: 6),
                           Icon(
                             connected
                                 ? Icons.verified_rounded
@@ -232,8 +238,8 @@ class _ActionTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(17),
         child: Ink(
-          height: 76,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          constraints: const BoxConstraints(minHeight: 76),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           decoration: BoxDecoration(
             color: const Color(0xFF0A1728).withValues(alpha: .94),
             borderRadius: BorderRadius.circular(17),
@@ -245,21 +251,22 @@ class _ActionTile extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: .54),
@@ -269,6 +276,7 @@ class _ActionTile extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 6),
               const Icon(Icons.chevron_right_rounded, color: Colors.white54),
             ],
           ),
