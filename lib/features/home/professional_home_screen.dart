@@ -467,29 +467,29 @@ class _HomeLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       key: const ValueKey<String>('home-logo-text'),
-      height: compact ? 96 : 122,
+      height: compact ? 120 : 156,
       width: double.infinity,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: compact ? 360 : 460,
-            maxHeight: compact ? 90 : 116,
-          ),
-          child: Image.asset(
-            'assets/images/ui/logo_text.png',
-            fit: BoxFit.contain,
-            alignment: Alignment.center,
-            filterQuality: FilterQuality.high,
-            errorBuilder: (context, error, stackTrace) => Center(
-              child: Text(
-                context.tr('app_name').toUpperCase(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: compact ? 28 : 34,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: .9,
+      child: ClipRect(
+        child: Center(
+          child: SizedBox(
+            width: double.infinity,
+            height: double.infinity,
+            child: Image.asset(
+              'assets/images/ui/logo_text.png',
+              fit: BoxFit.fitWidth,
+              alignment: Alignment.center,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (context, error, stackTrace) => Center(
+                child: Text(
+                  context.tr('app_name').toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: compact ? 34 : 42,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .9,
+                  ),
                 ),
               ),
             ),
@@ -1056,9 +1056,9 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
-                  height: 96,
+                  height: 122,
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       for (final variant in SudokuVariant.values) ...[
                         Expanded(
@@ -1086,32 +1086,12 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                         for (final difficulty in SudokuDifficulty.values)
                           SizedBox(
                             width: chipWidth,
-                            child: ChoiceChip(
+                            height: 42,
+                            child: _DialogDifficultyCard(
+                              label: context.strings.difficultyLabel(difficulty),
                               selected: _difficulty == difficulty,
-                              onSelected: (_) =>
+                              onTap: () =>
                                   setState(() => _difficulty = difficulty),
-                              label: SizedBox(
-                                width: double.infinity,
-                                child: Text(
-                                  context.strings.difficultyLabel(difficulty),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              showCheckmark: false,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                              selectedColor: const Color(0xFF29D398),
-                              backgroundColor: const Color(0xFF132438),
-                              labelStyle: TextStyle(
-                                color: _difficulty == difficulty
-                                    ? const Color(0xFF07111E)
-                                    : Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                              ),
                             ),
                           ),
                       ],
@@ -1168,8 +1148,7 @@ class _DialogVariantCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(17),
         child: Ink(
-          height: 96,
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 7),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -1185,31 +1164,29 @@ class _DialogVariantCard extends StatelessWidget {
               width: selected ? 2 : 1,
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          child: Stack(
             children: [
-              SizedBox(
-                width: 58,
-                height: 58,
-                child: Center(
-                  child: DuelAssetIcon(
-                    is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                    size: 54,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
+              Align(
+                alignment: Alignment.center,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    SizedBox.square(
+                      dimension: 56,
+                      child: Center(
+                        child: DuelAssetIcon(
+                          is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
+                          size: 52,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
                     Text(
                       variant.label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                       strutStyle: const StrutStyle(
                         forceStrutHeight: true,
                         height: 1.05,
@@ -1221,11 +1198,12 @@ class _DialogVariantCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       is16 ? '1–16 · 256' : '1–9 · 81',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: .6),
                         fontSize: 10.5,
@@ -1236,13 +1214,69 @@ class _DialogVariantCard extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(
-                width: 20,
-                child: selected
-                    ? Icon(Icons.check_rounded, color: accent, size: 18)
-                    : const SizedBox.shrink(),
+              Positioned(
+                top: 0,
+                right: 0,
+                child: SizedBox.square(
+                  dimension: 20,
+                  child: selected
+                      ? Icon(Icons.check_rounded, color: accent, size: 18)
+                      : const SizedBox.shrink(),
+                ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogDifficultyCard extends StatelessWidget {
+  const _DialogDifficultyCard({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = Color(0xFF29D398);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: selected ? accent : const Color(0xFF132438),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected
+                  ? accent
+                  : Colors.white.withValues(alpha: .10),
+            ),
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: selected ? const Color(0xFF07111E) : Colors.white,
+                  fontSize: 11,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
           ),
         ),
       ),
