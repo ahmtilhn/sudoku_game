@@ -22,6 +22,7 @@ jobs:
         run: |
           python3 .github/scripts/apply_duel_lifecycle_hotfix.py
           python3 .github/scripts/apply_duel_lifecycle_followup.py
+          python3 .github/scripts/fix_duel_lifecycle_contract.py
 
       - uses: actions/setup-java@v5
         with:
