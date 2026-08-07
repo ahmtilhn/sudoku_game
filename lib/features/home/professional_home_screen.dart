@@ -1056,7 +1056,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
-                  height: 105,
+                  height: 122,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
