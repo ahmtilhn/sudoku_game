@@ -61,9 +61,6 @@ class DuelAsset {
   static const homeStoreScene = 'assets/images/ui/home_coin_store.png';
   static const homeProfileScene = 'assets/images/ui/home_profile.png';
 
-  // Production economy artwork. These aliases intentionally point at the
-  // latest user-provided standalone assets instead of the legacy stack/reward
-  // scenes so updates to coin.png, gift.png and shield.png are visible in UI.
   static const dailyRewardPro = gift;
   static const walletCoinStackPro = coin;
   static const coinStoreBalancePro = coin;
@@ -72,6 +69,26 @@ class DuelAsset {
   static const resultVictoryTrophyPro = 'assets/images/ui/victory_trophy.png';
   static const resultDefeatTrophyPro = 'assets/images/ui/defeat_trophy.png';
   static const leaderboardCrownPro = 'assets/images/ui/leaderboard.png';
+
+  static const Set<String> fullColorArtwork = <String>{
+    coin,
+    diamond,
+    gift,
+    lock,
+    refresh,
+    shield,
+    trophy,
+    wifi,
+    homePlayScene,
+    homeDuelScene,
+    homeCareerScene,
+    homeFriendsScene,
+    homeStoreScene,
+    homeProfileScene,
+    resultVictoryTrophyPro,
+    resultDefeatTrophyPro,
+    leaderboardCrownPro,
+  };
 }
 
 class DuelAssetIcon extends StatelessWidget {
@@ -107,13 +124,15 @@ class DuelAssetIcon extends StatelessWidget {
             : ColorFilter.mode(color!, BlendMode.srcIn),
       );
     }
+
+    final preserveOriginalColor = DuelAsset.fullColorArtwork.contains(asset);
     return Image.asset(
       asset,
       width: size,
       height: size,
       fit: fit,
       alignment: alignment,
-      color: color,
+      color: preserveOriginalColor ? null : color,
       semanticLabel: semanticLabel,
       filterQuality: FilterQuality.high,
       gaplessPlayback: true,
