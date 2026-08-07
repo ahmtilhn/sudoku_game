@@ -641,7 +641,7 @@ class _PlayerTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      minHeight: 86,
+      constraints: const BoxConstraints(minHeight: 86),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: const Color(0xFF0A1728).withValues(alpha: .94),
