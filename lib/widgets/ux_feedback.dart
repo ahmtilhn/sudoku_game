@@ -193,12 +193,14 @@ class UxOutcomeHeader extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.accent,
+    this.compact = false,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final Color? accent;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +211,8 @@ class UxOutcomeHeader extends StatelessWidget {
         : icon == Icons.flag_rounded
         ? DuelAsset.resultDefeatTrophyPro
         : null;
+    final artworkSize = compact ? 64.0 : 110.0;
+    final fallbackSize = compact ? 58.0 : 88.0;
     return Semantics(
       liveRegion: true,
       header: true,
@@ -217,31 +221,43 @@ class UxOutcomeHeader extends StatelessWidget {
         children: [
           Center(
             child: artwork != null
-                ? DuelAssetIcon(artwork, size: 110)
+                ? DuelAssetIcon(artwork, size: artworkSize)
                 : Container(
-                    width: 88,
-                    height: 88,
+                    width: fallbackSize,
+                    height: fallbackSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: color.withValues(alpha: .16),
                       border: Border.all(color: color.withValues(alpha: .45)),
                     ),
-                    child: Icon(icon, size: 46, color: color),
+                    child: Icon(
+                      icon,
+                      size: compact ? 32 : 46,
+                      color: color,
+                    ),
                   ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 5 : 10),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: (compact
+                    ? Theme.of(context).textTheme.titleLarge
+                    : Theme.of(context).textTheme.headlineMedium)
+                ?.copyWith(fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: compact ? 2 : 6),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(color: scheme.onSurfaceVariant),
+            maxLines: compact ? 1 : null,
+            overflow: compact ? TextOverflow.ellipsis : null,
+            style: (compact
+                    ? Theme.of(context).textTheme.bodySmall
+                    : Theme.of(context).textTheme.bodyMedium)
+                ?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -281,9 +297,8 @@ class UxOutcomeSheet extends StatelessWidget {
   final VoidCallback? onTertiary;
   final Color? accent;
 
-  @override
-  Widget build(BuildContext context) {
-    final content = Column(
+  Widget _buildContent(BuildContext context, {required bool compact}) {
+    return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -292,55 +307,80 @@ class UxOutcomeSheet extends StatelessWidget {
           title: title,
           subtitle: subtitle,
           accent: accent,
+          compact: compact,
         ),
         if (metrics.isNotEmpty) ...[
-          const SizedBox(height: 18),
+          SizedBox(height: compact ? 7 : 18),
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
+            spacing: compact ? 6 : 8,
+            runSpacing: compact ? 5 : 8,
             children: metrics,
           ),
         ],
         if (details != null) ...[
-          const SizedBox(height: 18),
+          SizedBox(height: compact ? 7 : 18),
           details!,
         ],
         if (footer != null) ...[
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 6 : 16),
           footer!,
         ],
         if (onPrimary != null && primaryLabel != null) ...[
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: onPrimary,
-            child: Text(primaryLabel!),
+          SizedBox(height: compact ? 9 : 20),
+          SizedBox(
+            height: compact ? 38 : null,
+            child: FilledButton(
+              onPressed: onPrimary,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(primaryLabel!),
+              ),
+            ),
           ),
         ],
         if (onSecondary != null && secondaryLabel != null) ...[
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: onSecondary,
-            child: Text(secondaryLabel!),
+          SizedBox(height: compact ? 5 : 8),
+          SizedBox(
+            height: compact ? 38 : null,
+            child: OutlinedButton(
+              onPressed: onSecondary,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(secondaryLabel!),
+              ),
+            ),
           ),
         ],
         if (onTertiary != null && tertiaryLabel != null)
-          TextButton(onPressed: onTertiary, child: Text(tertiaryLabel!)),
+          SizedBox(
+            height: compact ? 34 : null,
+            child: TextButton(
+              onPressed: onTertiary,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(tertiaryLabel!),
+              ),
+            ),
+          ),
       ],
     );
+  }
 
+  @override
+  Widget build(BuildContext context) {
     final fixedResultStyle = icon == Icons.flag_rounded;
     return SafeArea(
       top: false,
       child: fixedResultStyle
           ? Padding(
               key: const ValueKey<String>('fixed-round-lost-outcome'),
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-              child: content,
+              padding: const EdgeInsets.fromLTRB(16, 9, 16, 10),
+              child: _buildContent(context, compact: true),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-              child: content,
+              child: _buildContent(context, compact: false),
             ),
     );
   }
