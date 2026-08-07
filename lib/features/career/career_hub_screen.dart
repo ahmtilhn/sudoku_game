@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
 import '../../data/local_progress_store.dart';
 import '../../data/puzzle_catalog.dart';
@@ -160,22 +161,24 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
             ),
           ),
           _resource(
-            Icons.lightbulb_rounded,
+            const Icon(
+              Icons.lightbulb_rounded,
+              color: Color(0xFF35D2FF),
+              size: 16,
+            ),
             '${widget.store.hints}',
-            const Color(0xFF35D2FF),
           ),
           const SizedBox(width: 5),
           _resource(
-            Icons.monetization_on_rounded,
+            const DuelAssetIcon(DuelAsset.coin, size: 25),
             '${_economy.balance}',
-            const Color(0xFFFFC73D),
           ),
         ],
       ),
     );
   }
 
-  Widget _resource(IconData icon, String value, Color color) {
+  Widget _resource(Widget icon, String value) {
     return Container(
       height: 36,
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -186,7 +189,7 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 16),
+          icon,
           const SizedBox(width: 4),
           Text(
             value,
@@ -585,6 +588,10 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
   }) {
     final accent = daily ? const Color(0xFF29D398) : _accent(difficulty);
     final busy = daily ? _busyDaily : _busyPractice == difficulty;
+    final progress = widget.store.progressFor(
+      _practiceProgressId(difficulty, daily: daily),
+      variant: _variant,
+    );
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -617,7 +624,7 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                         : daily
                         ? DuelAsset.statusSuccessPro
                         : DuelAsset.board9Pro,
-                    size: 48,
+                    size: progress == null ? 48 : 40,
                   ),
                 const SizedBox(height: 4),
                 Text(
@@ -639,6 +646,47 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                if (progress != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    context.tr('best_time', <Object>[
+                      formatDuration(progress.bestSeconds),
+                    ]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 7,
+                    runSpacing: 2,
+                    children: [
+                      Text(
+                        context.tr('hints_count', <Object>[progress.bestHints]),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .68),
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        context.tr('mistakes_count', <Object>[
+                          progress.bestMistakes,
+                        ]),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .68),
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -646,6 +694,11 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
       ),
     );
   }
+
+  String _practiceProgressId(
+    SudokuDifficulty difficulty, {
+    required bool daily,
+  }) => daily ? 'practice-daily' : 'practice-${difficulty.name}';
 
   SudokuDifficulty _difficultyForLevel(int level) {
     if (_variant.id == SudokuVariantId.classic9) {
@@ -734,7 +787,10 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
           : PuzzleCatalog.generatePuzzle(difficulty);
       if (!mounted) return;
       setState(() => _busyPractice = null);
-      await _openPuzzle(puzzle);
+      await _openPuzzle(
+        puzzle,
+        summaryId: _practiceProgressId(difficulty, daily: false),
+      );
     } catch (_) {
       if (mounted) {
         setState(() => _busyPractice = null);
@@ -761,7 +817,13 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
           : PuzzleCatalog.dailyPuzzle(now);
       if (!mounted) return;
       setState(() => _busyDaily = false);
-      await _openPuzzle(puzzle);
+      await _openPuzzle(
+        puzzle,
+        summaryId: _practiceProgressId(
+          SudokuDifficulty.medium,
+          daily: true,
+        ),
+      );
     } catch (_) {
       if (mounted) {
         setState(() => _busyDaily = false);
@@ -770,7 +832,10 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
     }
   }
 
-  Future<void> _openPuzzle(SudokuPuzzle puzzle) async {
+  Future<void> _openPuzzle(
+    SudokuPuzzle puzzle, {
+    String? summaryId,
+  }) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => EnhancedGameScreen(
@@ -778,17 +843,28 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
           store: widget.store,
           showNextAction: false,
           onCompleted:
-              ({required seconds, required mistakes, required hints}) =>
-                  widget.store.recordResult(
-                    puzzleId: puzzle.id,
+              ({required seconds, required mistakes, required hints}) async {
+                await widget.store.recordResult(
+                  puzzleId: puzzle.id,
+                  seconds: seconds,
+                  mistakes: mistakes,
+                  hints: hints,
+                  variant: _variant,
+                );
+                if (summaryId != null && summaryId != puzzle.id) {
+                  await widget.store.recordResult(
+                    puzzleId: summaryId,
                     seconds: seconds,
                     mistakes: mistakes,
                     hints: hints,
                     variant: _variant,
-                  ),
+                  );
+                }
+              },
         ),
       ),
     );
+    if (mounted) setState(() {});
   }
 
   Future<void> _showGenerationError(String title) async {
