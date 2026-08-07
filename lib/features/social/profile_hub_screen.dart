@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -14,6 +15,7 @@ import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/game_modal.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/ux_feedback.dart';
+import '../duel/leaderboards_screen.dart';
 import '../economy/wallet_history_screen.dart';
 import 'platform_services_screen.dart';
 import 'social_hub_screen.dart';
@@ -288,41 +290,46 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                           publicId: publicId,
                           avatarKey: profile?.avatarKey ?? 'default',
                           avatarUrl: platformPlayer?.avatarUrl,
+                          avatarBytes: platformPlayer?.avatarBytes,
                           rankName: profile?.rankName,
                           connected: platformPlayer != null,
                           compact: compact,
                         ),
                         SizedBox(height: compact ? 7 : 10),
-                        SegmentedButton<_ProfileTab>(
-                          segments: [
-                            ButtonSegment<_ProfileTab>(
-                              value: _ProfileTab.overview,
-                              icon: const Icon(Icons.dashboard_rounded),
-                              label: Text(UxCopy.overview(context)),
-                            ),
-                            ButtonSegment<_ProfileTab>(
-                              value: _ProfileTab.performance,
-                              icon: const Icon(Icons.query_stats_rounded),
-                              label: Text(UxCopy.performance(context)),
-                            ),
-                            ButtonSegment<_ProfileTab>(
-                              value: _ProfileTab.account,
-                              icon: const Icon(
-                                Icons.manage_accounts_rounded,
+                        SizedBox(
+                          height: compact ? 42 : 46,
+                          child: SegmentedButton<_ProfileTab>(
+                            segments: [
+                              ButtonSegment<_ProfileTab>(
+                                value: _ProfileTab.overview,
+                                icon: const Icon(Icons.dashboard_rounded),
+                                label: Text(UxCopy.overview(context)),
                               ),
-                              label: Text(
-                                UxCopy.accountAndSocial(context),
+                              ButtonSegment<_ProfileTab>(
+                                value: _ProfileTab.performance,
+                                icon: const Icon(Icons.query_stats_rounded),
+                                label: Text(UxCopy.performance(context)),
+                              ),
+                              ButtonSegment<_ProfileTab>(
+                                value: _ProfileTab.account,
+                                icon: const Icon(
+                                  Icons.manage_accounts_rounded,
+                                ),
+                                label: Text(
+                                  UxCopy.accountAndSocial(context),
+                                ),
+                              ),
+                            ],
+                            selected: <_ProfileTab>{_tab},
+                            onSelectionChanged: (value) =>
+                                setState(() => _tab = value.first),
+                            showSelectedIcon: false,
+                            style: ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              textStyle: WidgetStatePropertyAll(
+                                TextStyle(fontSize: compact ? 11 : 12),
                               ),
                             ),
-                          ],
-                          selected: <_ProfileTab>{_tab},
-                          onSelectionChanged: (value) =>
-                              setState(() => _tab = value.first),
-                          showSelectedIcon: false,
-                          style: ButtonStyle(
-                            visualDensity: compact
-                                ? VisualDensity.compact
-                                : VisualDensity.standard,
                           ),
                         ),
                         SizedBox(height: compact ? 7 : 10),
@@ -405,20 +412,21 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     required String publicId,
     required String avatarKey,
     required String? avatarUrl,
+    required Uint8List? avatarBytes,
     required String? rankName,
     required bool connected,
     required bool compact,
   }) {
     return Container(
       key: const ValueKey<String>('profile-identity-card'),
-      height: compact ? 92 : 104,
+      height: compact ? 88 : 98,
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 11 : 14,
-        vertical: compact ? 9 : 11,
+        horizontal: compact ? 10 : 13,
+        vertical: compact ? 8 : 10,
       ),
       decoration: BoxDecoration(
         color: const Color(0xFF0A1728).withValues(alpha: .94),
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: const Color(0xFF7A5CFF).withValues(alpha: .48),
         ),
@@ -429,14 +437,15 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
           PlayerAvatar(
             displayName: displayName,
             avatarKey: avatarKey,
+            localAvatarBytes: avatarBytes,
             remoteApprovedImageUrl: avatarUrl,
-            radius: compact ? 29 : 34,
+            radius: compact ? 27 : 31,
             semanticLabel: context.tr(
               'player_avatar_semantics',
               <Object>[displayName],
             ),
           ),
-          SizedBox(width: compact ? 10 : 13),
+          SizedBox(width: compact ? 9 : 12),
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -446,18 +455,14 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                   displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  strutStyle: const StrutStyle(
-                    forceStrutHeight: true,
-                    height: 1.05,
-                  ),
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: compact ? 18 : 21,
+                    fontSize: compact ? 17 : 20,
                     height: 1.05,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 if (username.isNotEmpty)
                   Text(
                     '@$username',
@@ -465,7 +470,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Color(0xFFB7A9FF),
-                      fontSize: 12,
+                      fontSize: 11,
                       height: 1.1,
                       fontWeight: FontWeight.w800,
                     ),
@@ -477,65 +482,54 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .52),
-                      fontSize: 10,
+                      fontSize: 9.5,
                       height: 1.1,
                     ),
                   ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: compact ? 68 : 78,
-              maxWidth: compact ? 88 : 110,
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 7,
-              ),
-              decoration: BoxDecoration(
+          const SizedBox(width: 7),
+          Container(
+            constraints: const BoxConstraints(minWidth: 60, maxWidth: 92),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+            decoration: BoxDecoration(
+              color: (connected ? const Color(0xFF29D398) : Colors.white)
+                  .withValues(alpha: .09),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
                 color: (connected
                         ? const Color(0xFF29D398)
-                        : Colors.white)
-                    .withValues(alpha: .1),
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(
-                  color: (connected
-                          ? const Color(0xFF29D398)
-                          : Colors.white38)
-                      .withValues(alpha: .42),
-                ),
+                        : Colors.white38)
+                    .withValues(alpha: .4),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    connected
-                        ? Icons.verified_rounded
-                        : Icons.link_off_rounded,
-                    color: connected
-                        ? const Color(0xFF29D398)
-                        : Colors.white38,
-                    size: 20,
-                  ),
-                  if (rankName != null && rankName.trim().isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  connected ? Icons.verified_rounded : Icons.link_off_rounded,
+                  color: connected
+                      ? const Color(0xFF29D398)
+                      : Colors.white38,
+                  size: 18,
+                ),
+                if (rankName != null && rankName.trim().isNotEmpty) ...[
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
                       rankName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xFFFFC73D),
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ],
@@ -557,162 +551,185 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   Widget _overview(CompetitiveProfile? profile) {
     if (profile == null) return _emptyState();
     final achievements = profile.achievementShowcase.take(3).toList();
-    return Column(
+    final metrics = <_MetricData>[
+      _MetricData(
+        context.tr('current_elo'),
+        '${profile.currentElo}',
+        Icons.bolt_rounded,
+      ),
+      _MetricData(
+        context.tr('rank'),
+        profile.rank == null ? '—' : '#${profile.rank}',
+        Icons.public_rounded,
+      ),
+      _MetricData(
+        context.tr('season_peak'),
+        '${profile.seasonPeak}',
+        Icons.trending_up_rounded,
+      ),
+      _MetricData(
+        context.tr('country'),
+        profile.country?.isNotEmpty == true
+            ? profile.country!
+            : context.tr('country_not_set'),
+        Icons.flag_rounded,
+      ),
+    ];
+    return LayoutBuilder(
       key: const ValueKey<String>('profile-overview'),
-      children: [
-        Expanded(
-          flex: 3,
-          child: _metricGrid([
-            _MetricData(
-              context.tr('current_elo'),
-              '${profile.currentElo}',
-              Icons.bolt_rounded,
-            ),
-            _MetricData(
-              context.tr('rank'),
-              profile.rank == null ? '—' : '#${profile.rank}',
-              Icons.public_rounded,
-            ),
-            _MetricData(
-              context.tr('season_peak'),
-              '${profile.seasonPeak}',
-              Icons.trending_up_rounded,
-            ),
-            _MetricData(
-              context.tr('country'),
-              profile.country?.isNotEmpty == true
-                  ? profile.country!
-                  : context.tr('country_not_set'),
-              Icons.flag_rounded,
-            ),
-          ]),
-        ),
-        const SizedBox(height: 10),
-        Expanded(
-          flex: 2,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A1728).withValues(alpha: .94),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: const Color(0xFFFFC73D).withValues(alpha: .35),
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 620 ? 4 : 2;
+        return ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            _compactMetricGrid(metrics, columns: columns),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A1728).withValues(alpha: .94),
+                borderRadius: BorderRadius.circular(17),
+                border: Border.all(
+                  color: const Color(0xFFFFC73D).withValues(alpha: .32),
+                ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.emoji_events_rounded,
-                      color: Color(0xFFFFC73D),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        context.tr('achievement_showcase'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const DuelAssetIcon(
+                        DuelAsset.resultVictoryTrophyPro,
+                        size: 29,
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          context.tr('achievement_showcase'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${profile.achievementCount}',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: Color(0xFFFFC73D),
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                    ),
-                    Text(
-                      '${profile.achievementCount}',
-                      style: const TextStyle(
-                        color: Color(0xFFFFC73D),
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                if (achievements.isEmpty)
-                  Center(
-                    child: Text(
-                      context.tr('achievement_showcase_empty'),
-                    ),
-                  )
-                else
-                  Row(
-                    children: [
-                      for (
-                        var index = 0;
-                        index < achievements.length;
-                        index++
-                      ) ...[
-                        Expanded(
-                          child: _AchievementBadge(
-                            title: achievements[index].title,
-                          ),
-                        ),
-                        if (index != achievements.length - 1)
-                          const SizedBox(width: 7),
-                      ],
                     ],
                   ),
-                const Spacer(),
-              ],
+                  const SizedBox(height: 9),
+                  if (achievements.isEmpty)
+                    Text(
+                      context.tr('achievement_showcase_empty'),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .58),
+                        fontSize: 11,
+                      ),
+                    )
+                  else
+                    Row(
+                      children: [
+                        for (
+                          var index = 0;
+                          index < achievements.length;
+                          index++
+                        ) ...[
+                          Expanded(
+                            child: _AchievementBadge(
+                              title: achievements[index].title,
+                            ),
+                          ),
+                          if (index != achievements.length - 1)
+                            const SizedBox(width: 6),
+                        ],
+                      ],
+                    ),
+                ],
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
   Widget _performance(CompetitiveProfile? profile) {
     if (profile == null) return _emptyState();
-    return _metricGrid(
-      [
-        _MetricData(
-          UxCopy.totalMatches(context),
-          '${profile.wins + profile.losses + profile.draws}',
-          Icons.sports_esports_rounded,
-        ),
-        _MetricData(
-          context.tr('wins_losses_draws'),
-          '${profile.wins}/${profile.losses}/${profile.draws}',
-          Icons.scoreboard_rounded,
-        ),
-        _MetricData(
-          context.tr('win_rate'),
-          '${(profile.winRate * 100).round()}%',
-          Icons.percent_rounded,
-        ),
-        _MetricData(
-          context.tr('win_streak'),
-          '${profile.winStreak}',
-          Icons.local_fire_department_rounded,
-        ),
-        _MetricData(
-          context.tr('tournament_entries'),
-          '${profile.tournamentEntries}',
-          Icons.stadium_rounded,
-        ),
-        _MetricData(
-          context.tr('tournament_podiums'),
-          '${profile.tournamentPodiums}',
-          Icons.emoji_events_rounded,
-        ),
-      ],
+    final metrics = <_MetricData>[
+      _MetricData(
+        UxCopy.totalMatches(context),
+        '${profile.wins + profile.losses + profile.draws}',
+        Icons.sports_esports_rounded,
+      ),
+      _MetricData(
+        context.tr('wins_losses_draws'),
+        '${profile.wins}/${profile.losses}/${profile.draws}',
+        Icons.scoreboard_rounded,
+      ),
+      _MetricData(
+        context.tr('win_rate'),
+        '${(profile.winRate * 100).round()}%',
+        Icons.percent_rounded,
+      ),
+      _MetricData(
+        context.tr('win_streak'),
+        '${profile.winStreak}',
+        Icons.local_fire_department_rounded,
+      ),
+      _MetricData(
+        context.tr('tournament_entries'),
+        '${profile.tournamentEntries}',
+        Icons.stadium_rounded,
+      ),
+      _MetricData(
+        context.tr('tournament_podiums'),
+        '${profile.tournamentPodiums}',
+        Icons.emoji_events_rounded,
+      ),
+    ];
+    return LayoutBuilder(
       key: const ValueKey<String>('profile-performance'),
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 620 ? 3 : 2;
+        return GridView.builder(
+          padding: EdgeInsets.zero,
+          itemCount: metrics.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            mainAxisExtent: 88,
+          ),
+          itemBuilder: (context, index) => _metricTile(metrics[index]),
+        );
+      },
     );
   }
 
   Widget _account(bool platformConnected) {
     final actions = <_AccountData>[
       _AccountData(
+        context.tr('leaderboards'),
+        context.tr('global_elo'),
+        DuelAsset.leaderboardCrownPro,
+        () => _open(const LeaderboardsScreen()),
+      ),
+      _AccountData(
         context.tr('friends_challenges'),
         context.tr('friend_requests'),
-        DuelAsset.friendsPro,
+        DuelAsset.homeFriendsScene,
         () => _open(const SocialHubScreen()),
       ),
       _AccountData(
         context.tr('coin_history'),
         context.tr('server_wallet_history'),
-        DuelAsset.storePro,
+        DuelAsset.walletCoinStackPro,
         () => _open(const WalletHistoryScreen()),
       ),
       if (Platform.isAndroid || Platform.isIOS)
@@ -721,27 +738,26 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
           platformConnected
               ? UxCopy.connectedPlatform(context)
               : UxCopy.platformNotConnected(context),
-          DuelAsset.profilePro,
+          DuelAsset.homeProfileScene,
           () => _open(const PlatformServicesScreen()),
         ),
     ];
     return LayoutBuilder(
       key: const ValueKey<String>('profile-account'),
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 700 ? 3 : 1;
-        final rows = (actions.length / columns).ceil();
-        final gap = 10.0;
-        final extent =
-            (constraints.maxHeight - gap * (rows - 1)) / rows;
+        final columns = constraints.maxWidth >= 700
+            ? 3
+            : constraints.maxWidth >= 460
+            ? 2
+            : 1;
         return GridView.builder(
           padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
           itemCount: actions.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            crossAxisSpacing: gap,
-            mainAxisSpacing: gap,
-            mainAxisExtent: extent,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            mainAxisExtent: 84,
           ),
           itemBuilder: (context, index) => _AccountTile(actions[index]),
         );
@@ -749,35 +765,30 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     );
   }
 
-  Widget _metricGrid(List<_MetricData> metrics, {Key? key}) {
-    return LayoutBuilder(
-      key: key,
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 620 ? 3 : 2;
-        final rows = (metrics.length / columns).ceil();
-        final gap = 9.0;
-        final extent =
-            (constraints.maxHeight - gap * (rows - 1)) / rows;
-        return GridView.builder(
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: metrics.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: gap,
-            mainAxisSpacing: gap,
-            mainAxisExtent: extent,
-          ),
-          itemBuilder: (context, index) {
-            final value = metrics[index];
-            return UxMetricTile(
-              label: value.label,
-              value: value.value,
-              icon: value.icon,
-            );
-          },
-        );
-      },
+  Widget _compactMetricGrid(
+    List<_MetricData> metrics, {
+    required int columns,
+  }) {
+    return GridView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: metrics.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        mainAxisExtent: 84,
+      ),
+      itemBuilder: (context, index) => _metricTile(metrics[index]),
+    );
+  }
+
+  Widget _metricTile(_MetricData value) {
+    return UxMetricTile(
+      label: value.label,
+      value: value.value,
+      icon: value.icon,
     );
   }
 
@@ -808,13 +819,13 @@ class _AchievementBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFC73D).withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFFFFC73D).withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFFFC73D).withValues(alpha: .32),
+          color: const Color(0xFFFFC73D).withValues(alpha: .3),
         ),
       ),
       child: Row(
@@ -822,8 +833,9 @@ class _AchievementBadge extends StatelessWidget {
           const Icon(
             Icons.workspace_premium_rounded,
             color: Color(0xFFFFC73D),
+            size: 18,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 5),
           Expanded(
             child: Text(
               title,
@@ -831,7 +843,8 @@ class _AchievementBadge extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 11,
+                fontSize: 10,
+                height: 1.1,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -867,42 +880,61 @@ class _AccountTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: data.onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
           decoration: BoxDecoration(
             color: const Color(0xFF0A1728).withValues(alpha: .94),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: .13),
-            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: .13)),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(child: DuelAssetIcon(data.asset, size: 88)),
-                Text(
-                  data.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF07111E).withValues(alpha: .72),
+                  borderRadius: BorderRadius.circular(13),
                 ),
-                Text(
-                  data.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .58),
-                    fontSize: 11,
-                  ),
+                child: DuelAssetIcon(data.asset, size: 44),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      data.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .55),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white.withValues(alpha: .45),
+                size: 20,
+              ),
+            ],
           ),
         ),
       ),
