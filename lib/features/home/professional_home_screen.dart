@@ -467,12 +467,13 @@ class _HomeLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       key: const ValueKey<String>('home-logo-text'),
-      height: compact ? 58 : 76,
+      height: compact ? 96 : 122,
+      width: double.infinity,
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: compact ? 240 : 300,
-            maxHeight: compact ? 54 : 70,
+            maxWidth: compact ? 360 : 460,
+            maxHeight: compact ? 90 : 116,
           ),
           child: Image.asset(
             'assets/images/ui/logo_text.png',
@@ -485,7 +486,7 @@ class _HomeLogo extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: compact ? 22 : 27,
+                  fontSize: compact ? 28 : 34,
                   height: 1,
                   fontWeight: FontWeight.w900,
                   letterSpacing: .9,
@@ -999,6 +1000,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      key: const ValueKey<String>('quick-play-dialog'),
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       child: ConstrainedBox(
@@ -1053,21 +1055,24 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (final variant in SudokuVariant.values) ...[
-                      Expanded(
-                        child: _DialogVariantCard(
-                          variant: variant,
-                          selected: _variant.id == variant.id,
-                          onTap: () => setState(() => _variant = variant),
+                SizedBox(
+                  height: 96,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      for (final variant in SudokuVariant.values) ...[
+                        Expanded(
+                          child: _DialogVariantCard(
+                            variant: variant,
+                            selected: _variant.id == variant.id,
+                            onTap: () => setState(() => _variant = variant),
+                          ),
                         ),
-                      ),
-                      if (variant != SudokuVariant.values.last)
-                        const SizedBox(width: 8),
+                        if (variant != SudokuVariant.values.last)
+                          const SizedBox(width: 8),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 12),
                 LayoutBuilder(
