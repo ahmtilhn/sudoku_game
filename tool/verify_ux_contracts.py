@@ -100,7 +100,14 @@ def main() -> int:
             "DuelAsset.board16Pro",
             "Classic16PuzzleFactory.generate",
             "GameModal.error",
-            "NeverScrollableScrollPhysics",
+            "LayoutBuilder(",
+            "Expanded(",
+        )
+        forbid(
+            "lib/features/duel/matchmaking_screen.dart",
+            "SingleChildScrollView",
+            "ListView",
+            "GridView",
         )
         require(
             "lib/features/social/social_hub_screen.dart",
