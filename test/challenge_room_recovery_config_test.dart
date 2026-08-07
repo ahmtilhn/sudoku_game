@@ -31,7 +31,10 @@ void main() {
       expect(entry, contains('handleVariantChallengeRequest'));
       expect(entry, contains('isVariantChallengeRoute'));
       expect(variantLayer, contains("row.variant === 'classic16'"));
-      expect(variantLayer, contains('`classic16:${crypto.randomUUID()}`'));
+      expect(
+        variantLayer,
+        contains(r'`classic16:${crypto.randomUUID()}`'),
+      );
       expect(
         variantLayer,
         contains("WHERE id = ? AND status IN ('pending', 'accepted')"),
