@@ -62,11 +62,23 @@ void main() {
     expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
     expect(find.byIcon(Icons.people_alt_rounded), findsNothing);
 
+    final logo = find.byKey(const ValueKey<String>('home-logo-text'));
+    expect(logo, findsOneWidget);
+    expect(tester.getSize(logo).height, greaterThanOrEqualTo(120));
+    expect(
+      tester.getCenter(logo).dx,
+      moreOrLessEquals(tester.view.physicalSize.width /
+          tester.view.devicePixelRatio /
+          2,
+        epsilon: 2,
+      ),
+    );
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
 
-  testWidgets('Play opens the quick play dialog without layout errors', (
+  testWidgets('Play opens aligned quick play cards without layout errors', (
     tester,
   ) async {
     final store = await LocalProgressStore.createInMemory();
@@ -85,5 +97,15 @@ void main() {
     );
     expect(find.text('9×9'), findsWidgets);
     expect(find.text('16×16'), findsWidgets);
+
+    final nine = tester.getCenter(find.text('9×9').last);
+    final sixteen = tester.getCenter(find.text('16×16').last);
+    expect(nine.dy, moreOrLessEquals(sixteen.dy, epsilon: 1));
+
+    final easy = tester.getCenter(find.text('Easy').last);
+    final medium = tester.getCenter(find.text('Medium').last);
+    final hard = tester.getCenter(find.text('Hard').last);
+    expect(easy.dy, moreOrLessEquals(medium.dy, epsilon: 1));
+    expect(medium.dy, moreOrLessEquals(hard.dy, epsilon: 1));
   });
 }
