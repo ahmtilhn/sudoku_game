@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -10,6 +13,7 @@ class PlatformPlayer {
     required this.displayName,
     this.alias,
     this.avatarUrl,
+    this.avatarBytesBase64,
   });
 
   final String platform;
@@ -17,6 +21,18 @@ class PlatformPlayer {
   final String displayName;
   final String? alias;
   final String? avatarUrl;
+  final String? avatarBytesBase64;
+
+  Uint8List? get avatarBytes {
+    final value = avatarBytesBase64?.trim();
+    if (value == null || value.isEmpty) return null;
+    try {
+      final bytes = base64Decode(value);
+      return bytes.isEmpty ? null : bytes;
+    } catch (_) {
+      return null;
+    }
+  }
 
   PlatformPlayerIdentity toIdentity({bool authenticated = true}) {
     return PlatformPlayerIdentity(
@@ -36,6 +52,7 @@ class PlatformPlayer {
       displayName: map['displayName']?.toString() ?? 'Player',
       alias: map['alias']?.toString(),
       avatarUrl: map['avatarUrl']?.toString(),
+      avatarBytesBase64: map['avatarBytesBase64']?.toString(),
     );
   }
 }
