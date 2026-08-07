@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 const int debugUnlimitedCoinBalance = 999999999;
-const int debugUnlimitedHintBalance = 999999999;
+const int debugUnlimitedHintBalance = 999;
 
 bool get debugUnlimitedCoinsEnabled =>
     kDebugMode &&
