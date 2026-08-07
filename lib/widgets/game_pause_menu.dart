@@ -44,7 +44,7 @@ class GamePauseMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope<void>(
+    return PopScope<Object?>(
       canPop: false,
       child: Dialog(
         key: const ValueKey<String>('game-pause-menu'),
