@@ -71,12 +71,6 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate> {
   Future<void> _routePendingDestination() async {
     if (!mounted || _routing || !_push.hasPendingNavigation) return;
 
-    final routeIsCurrent = ModalRoute.of(context)?.isCurrent ?? false;
-    if (!routeIsCurrent) {
-      _scheduleRetry();
-      return;
-    }
-
     final roomId = _push.openedRoomId.value?.trim();
     final challengeId = _push.openedChallengeId.value?.trim();
     final rematchId = _push.openedRematchId.value?.trim();
@@ -87,6 +81,14 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate> {
     }
 
     _routing = true;
+    if (roomId != null && roomId.isNotEmpty) {
+      _push.openedRoomId.value = null;
+    } else if (challengeId != null && challengeId.isNotEmpty) {
+      _push.openedChallengeId.value = null;
+    } else if (rematchId != null && rematchId.isNotEmpty) {
+      _push.openedRematchId.value = null;
+    }
+
     try {
       await FirebaseSessionService.ensureAnonymousSession();
       if (SocialApiClient.instance.configured) {
@@ -94,17 +96,14 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate> {
       }
       if (!mounted) return;
 
+      _retryAttempt = 0;
       if (roomId != null && roomId.isNotEmpty) {
-        _push.openedRoomId.value = null;
-        _retryAttempt = 0;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
             builder: (_) => PreMatchReadyScreen(roomId: roomId),
           ),
         );
       } else if (challengeId != null && challengeId.isNotEmpty) {
-        _push.openedChallengeId.value = null;
-        _retryAttempt = 0;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
             builder: (_) => UxChallengeInvitationScreen(
@@ -113,13 +112,18 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate> {
           ),
         );
       } else if (rematchId != null && rematchId.isNotEmpty) {
-        _push.openedRematchId.value = null;
-        _retryAttempt = 0;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(builder: (_) => const SocialHubScreen()),
         );
       }
     } catch (_) {
+      if (roomId != null && roomId.isNotEmpty) {
+        _push.openedRoomId.value ??= roomId;
+      } else if (challengeId != null && challengeId.isNotEmpty) {
+        _push.openedChallengeId.value ??= challengeId;
+      } else if (rematchId != null && rematchId.isNotEmpty) {
+        _push.openedRematchId.value ??= rematchId;
+      }
       _scheduleRetry();
     } finally {
       _routing = false;
