@@ -6,7 +6,6 @@ import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
 import '../../services/firebase_services.dart';
 import '../../services/push_notification_service.dart';
-import '../../services/reminder_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../economy/wallet_history_screen.dart';
 import 'account_protection_screen.dart';
@@ -21,7 +20,6 @@ class UxSettingsScreen extends StatefulWidget {
 }
 
 class _UxSettingsScreenState extends State<UxSettingsScreen> {
-  bool _dailyBusy = false;
   bool _pushBusy = false;
   bool _analyticsBusy = false;
   bool _crashBusy = false;
@@ -34,7 +32,6 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final reminders = ReminderNotificationService.instance;
     final push = PushNotificationService.instance;
     final firebase = FirebaseServices.instance;
     final socialAvailable = push.configured && SocialApiClient.instance.configured;
@@ -94,62 +91,31 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                   const SizedBox(height: 22),
                   _heading(context.tr('notifications')),
                   Card(
-                    child: Column(
-                      children: [
-                        ValueListenableBuilder<bool>(
-                          valueListenable: reminders.enabled,
-                          builder: (context, enabled, _) => SwitchListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
-                            ),
-                            secondary: const Icon(
-                              Icons.notifications_active_outlined,
-                            ),
-                            value: enabled,
-                            onChanged: _dailyBusy
-                                ? null
-                                : (value) => _setDaily(reminders, value),
-                            title: Text(
-                              context.tr('daily_sudoku_challenges'),
-                            ),
-                            subtitle: Text(
-                              context.tr(
-                                'daily_sudoku_challenges_subtitle',
-                              ),
-                            ),
-                          ),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: push.enabled,
+                      builder: (context, enabled, _) => SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
                         ),
-                        const Divider(height: 1),
-                        ValueListenableBuilder<bool>(
-                          valueListenable: push.enabled,
-                          builder: (context, enabled, _) => SwitchListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
-                            ),
-                            secondary: const Icon(
-                              Icons.notifications_outlined,
-                            ),
-                            value: enabled,
-                            onChanged: !socialAvailable || _pushBusy
-                                ? null
-                                : (value) => _setPush(push, value),
-                            title: Text(
-                              context.tr('online_challenge_notifications'),
-                            ),
-                            subtitle: Text(
-                              socialAvailable
-                                  ? context.tr(
-                                      'online_challenge_notifications_subtitle',
-                                    )
-                                  : context.tr(
-                                      'online_challenge_notifications_unavailable',
-                                    ),
-                            ),
-                          ),
+                        secondary: const Icon(Icons.notifications_outlined),
+                        value: enabled,
+                        onChanged: !socialAvailable || _pushBusy
+                            ? null
+                            : (value) => _setPush(push, value),
+                        title: Text(
+                          context.tr('online_challenge_notifications'),
                         ),
-                      ],
+                        subtitle: Text(
+                          socialAvailable
+                              ? context.tr(
+                                  'online_challenge_notifications_subtitle',
+                                )
+                              : context.tr(
+                                  'online_challenge_notifications_unavailable',
+                                ),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 22),
@@ -227,29 +193,10 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
       child: Text(
         text,
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
+          fontWeight: FontWeight.w900,
+        ),
       ),
     );
-  }
-
-  Future<void> _setDaily(
-    ReminderNotificationService service,
-    bool value,
-  ) async {
-    setState(() => _dailyBusy = true);
-    try {
-      if (value) {
-        final enabled = await service.requestPermissionAndEnable();
-        if (!enabled && mounted) {
-          _snack('daily_reminder_permission_denied');
-        }
-      } else {
-        await service.disable();
-      }
-    } finally {
-      if (mounted) setState(() => _dailyBusy = false);
-    }
   }
 
   Future<void> _setPush(PushNotificationService service, bool value) async {
