@@ -3,7 +3,9 @@ package com.devoviastudio.sudoku
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.util.Base64
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.api.ApiException
@@ -118,9 +120,6 @@ class MainActivity : FlutterActivity() {
         val task = if (prompt) client.signIn() else client.isAuthenticated
         task.addOnCompleteListener { completed ->
             if (!completed.isSuccessful) {
-                // isAuthenticated() is only a state probe. A failed probe must
-                // fall through to the explicit signIn() call in Flutter instead
-                // of aborting the entire connection flow.
                 if (!prompt) {
                     result.success(false)
                     return@addOnCompleteListener
@@ -260,12 +259,14 @@ class MainActivity : FlutterActivity() {
         if (!ensureConfigured(result)) return
         PlayGames.getPlayersClient(this).currentPlayer
             .addOnSuccessListener { player ->
+                val avatarUri = player.hiResImageUri ?: player.iconImageUri
                 result.success(
                     mapOf(
                         "platform" to "google_play_games",
                         "playerId" to player.playerId,
                         "displayName" to player.displayName,
-                        "avatarUrl" to player.hiResImageUri?.toString(),
+                        "avatarUrl" to avatarUri?.toString(),
+                        "avatarBytesBase64" to localAvatarBytesBase64(avatarUri),
                     ),
                 )
             }
@@ -276,6 +277,20 @@ class MainActivity : FlutterActivity() {
                     playGamesDiagnostics(exception),
                 )
             }
+    }
+
+    private fun localAvatarBytesBase64(uri: Uri?): String? {
+        if (uri == null) return null
+        val scheme = uri.scheme?.lowercase(Locale.US)
+        if (scheme != "content" && scheme != "file" && scheme != "android.resource") {
+            return null
+        }
+        return runCatching {
+            contentResolver.openInputStream(uri)?.use { stream ->
+                val bytes = stream.readBytes()
+                if (bytes.isEmpty()) null else Base64.encodeToString(bytes, Base64.NO_WRAP)
+            }
+        }.getOrNull()
     }
 
     private fun loadFriends(result: MethodChannel.Result) {
@@ -516,7 +531,6 @@ class MainActivity : FlutterActivity() {
             try {
                 return Class.forName(name)
             } catch (_: ClassNotFoundException) {
-                // Try the next SDK package used by current or preview releases.
             }
         }
         throw ClassNotFoundException("PlayerGameEvent.Builder was not found.")
