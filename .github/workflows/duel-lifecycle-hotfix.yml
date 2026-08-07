@@ -19,7 +19,9 @@ jobs:
           fetch-depth: 0
 
       - name: Apply lifecycle and arena patch
-        run: python3 .github/scripts/apply_duel_lifecycle_hotfix.py
+        run: |
+          python3 .github/scripts/apply_duel_lifecycle_hotfix.py
+          python3 .github/scripts/apply_duel_lifecycle_followup.py
 
       - uses: actions/setup-java@v5
         with:
@@ -72,6 +74,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/features/duel/online_duel_screen.dart lib/features/duel/pre_match_ready_screen.dart lib/features/social/challenge_invitation_screen.dart lib/features/social/ux_challenge_invitation_screen.dart lib/features/social/challenge_waiting_screen.dart test/online_duel_lifecycle_hotfix_test.dart
+          git add lib/features/duel/online_duel_screen.dart lib/features/duel/pre_match_ready_screen.dart lib/features/social/challenge_invitation_screen.dart lib/features/social/ux_challenge_invitation_screen.dart lib/features/social/challenge_waiting_screen.dart test/online_duel_lifecycle_hotfix_test.dart test/challenge_client_hardening_test.dart test/online_duel_screen_test.dart backend/social_worker/src/index.ts backend/social_worker/test/websocket_replacement.test.ts
           git commit -m "fix(duel): recover navigation and reconnect lifecycle"
           git push origin HEAD:main
