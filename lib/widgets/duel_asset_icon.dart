@@ -54,20 +54,17 @@ class DuelAsset {
   static const statusWarningPro = 'assets/images/ui/pro/status_warning.svg';
   static const statusOfflinePro = 'assets/images/ui/pro/status_offline.svg';
 
-  static const homePlayScene = 'assets/images/ui/pro/home_play_scene.svg';
-  static const homeDuelScene = 'assets/images/ui/pro/home_duel_scene.svg';
-  static const homeCareerScene = 'assets/images/ui/pro/home_career_scene.svg';
-  static const homeFriendsScene = 'assets/images/ui/pro/home_friends_scene.svg';
-  static const homeStoreScene = 'assets/images/ui/pro/home_store_scene.svg';
-  static const homeProfileScene = 'assets/images/ui/pro/home_profile_scene.svg';
-  static const dailyRewardPro = 'assets/images/ui/pro/reward_daily.svg';
-  static const walletCoinStackPro = 'assets/images/ui/pro/wallet_coin_stack.svg';
-  static const resultVictoryTrophyPro =
-      'assets/images/ui/pro/result_victory_trophy.svg';
-  static const resultDefeatTrophyPro =
-      'assets/images/ui/pro/result_defeat_trophy.svg';
-  static const leaderboardCrownPro =
-      'assets/images/ui/pro/leaderboard_crown.svg';
+  static const homePlayScene = 'assets/images/ui/home_play.png';
+  static const homeDuelScene = 'assets/images/ui/home_online_duel.png';
+  static const homeCareerScene = 'assets/images/ui/home_career.png';
+  static const homeFriendsScene = 'assets/images/ui/home_friends.png';
+  static const homeStoreScene = 'assets/images/ui/home_coin_store.png';
+  static const homeProfileScene = 'assets/images/ui/home_profile.png';
+  static const dailyRewardPro = 'assets/images/ui/daily_reward.png';
+  static const walletCoinStackPro = 'assets/images/ui/coin_stack.png';
+  static const resultVictoryTrophyPro = 'assets/images/ui/victory_trophy.png';
+  static const resultDefeatTrophyPro = 'assets/images/ui/defeat_trophy.png';
+  static const leaderboardCrownPro = 'assets/images/ui/leaderboard.png';
 }
 
 class DuelAssetIcon extends StatelessWidget {
@@ -78,6 +75,7 @@ class DuelAssetIcon extends StatelessWidget {
     this.color,
     this.semanticLabel,
     this.fit = BoxFit.contain,
+    this.alignment = Alignment.center,
   });
 
   final String asset;
@@ -85,6 +83,7 @@ class DuelAssetIcon extends StatelessWidget {
   final Color? color;
   final String? semanticLabel;
   final BoxFit fit;
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +93,7 @@ class DuelAssetIcon extends StatelessWidget {
         width: size,
         height: size,
         fit: fit,
+        alignment: alignment,
         semanticsLabel: semanticLabel,
         colorFilter: color == null
             ? null
@@ -105,9 +105,11 @@ class DuelAssetIcon extends StatelessWidget {
       width: size,
       height: size,
       fit: fit,
+      alignment: alignment,
       color: color,
       semanticLabel: semanticLabel,
       filterQuality: FilterQuality.high,
+      gaplessPlayback: true,
     );
   }
 }
