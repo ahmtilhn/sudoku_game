@@ -1,0 +1,1087 @@
+from pathlib import Path
+
+
+def read(path: str) -> str:
+    return Path(path).read_text(encoding='utf-8')
+
+
+def write(path: str, text: str) -> None:
+    Path(path).write_text(text, encoding='utf-8')
+
+
+def replace_once(path: str, old: str, new: str) -> None:
+    text = read(path)
+    if old not in text:
+        raise SystemExit(f'pattern not found in {path}: {old[:140]!r}')
+    write(path, text.replace(old, new, 1))
+
+
+def replace_section(path: str, start: str, end: str, new: str) -> None:
+    text = read(path)
+    i = text.find(start)
+    if i < 0:
+        raise SystemExit(f'start marker not found in {path}: {start!r}')
+    j = text.find(end, i + len(start))
+    if j < 0:
+        raise SystemExit(f'end marker not found in {path}: {end!r}')
+    write(path, text[:i] + new + text[j:])
+
+
+# ---------------------------------------------------------------------------
+# Backend: make disconnect a real 30-second authoritative pause.
+# ---------------------------------------------------------------------------
+model = 'backend/social_worker/src/online_duel_model.ts'
+replace_once(
+    model,
+    'export const DISCONNECT_GRACE_MS = 45_000;',
+    'export const DISCONNECT_GRACE_MS = 30_000;',
+)
+replace_once(
+    model,
+    '  turnStartedAt: number | null;\n  turnDeadline: number | null;\n  revision: number;',
+    '  turnStartedAt: number | null;\n'
+    '  turnDeadline: number | null;\n'
+    '  pauseStartedAt?: number | null;\n'
+    '  pausedTurnRemainingMs?: number | null;\n'
+    '  totalPausedMs?: number;\n'
+    '  revision: number;',
+)
+
+engine = 'backend/social_worker/src/online_duel_engine.ts'
+replace_once(
+    engine,
+    '    turnStartedAt: null,\n    turnDeadline: null,\n    revision: 1,',
+    '    turnStartedAt: null,\n'
+    '    turnDeadline: null,\n'
+    '    pauseStartedAt: null,\n'
+    '    pausedTurnRemainingMs: null,\n'
+    '    totalPausedMs: 0,\n'
+    '    revision: 1,',
+)
+replace_once(
+    engine,
+    "  if (\n"
+    "    (state.status === 'active' || state.status === 'paused') &&\n"
+    "    state.startedAt !== null &&\n"
+    "    now >= state.startedAt + MAX_MATCH_DURATION_MS\n"
+    "  ) {",
+    "  if (\n"
+    "    state.status === 'active' &&\n"
+    "    state.startedAt !== null &&\n"
+    "    now >= state.startedAt + MAX_MATCH_DURATION_MS + (state.totalPausedMs ?? 0)\n"
+    "  ) {",
+)
+replace_section(
+    engine,
+    'export function markConnected(',
+    'export function markDisconnected(',
+    '''export function markConnected(
+  state: DuelState,
+  seat: Seat,
+  now: number,
+): PublicEvent {
+  const current = seatFor(state, seat);
+  current.connected = true;
+  current.lastSeenAt = now;
+  current.disconnectDeadline = null;
+
+  if (
+    state.status === 'paused' &&
+    state.finishedAt === null &&
+    state.playerA.connected &&
+    state.playerB.connected
+  ) {
+    const pausedAt = state.pauseStartedAt ?? now;
+    const remaining = Math.max(
+      1_000,
+      Math.min(TURN_DURATION_MS, state.pausedTurnRemainingMs ?? TURN_DURATION_MS),
+    );
+    state.totalPausedMs =
+      (state.totalPausedMs ?? 0) + Math.max(0, now - pausedAt);
+    state.status = 'active';
+    state.turnDeadline = now + remaining;
+    state.turnStartedAt = now - Math.max(0, TURN_DURATION_MS - remaining);
+    state.pauseStartedAt = null;
+    state.pausedTurnRemainingMs = null;
+  }
+
+  state.revision++;
+  return event(
+    state,
+    'player_presence',
+    now,
+    readinessPayload(state, { seat, connected: true }),
+  );
+}
+
+''',
+)
+replace_section(
+    engine,
+    'export function markDisconnected(',
+    'function rejectMove(',
+    '''export function markDisconnected(
+  state: DuelState,
+  seat: Seat,
+  now: number,
+): PublicEvent {
+  const current = seatFor(state, seat);
+  current.connected = false;
+  current.screenLoaded = false;
+  current.lastSeenAt = now;
+
+  if (
+    state.startedAt !== null &&
+    (state.status === 'active' || state.status === 'paused')
+  ) {
+    current.disconnectDeadline = now + DISCONNECT_GRACE_MS;
+
+    if (state.status === 'active') {
+      const remaining = state.turnDeadline === null
+        ? TURN_DURATION_MS
+        : Math.max(1_000, Math.min(TURN_DURATION_MS, state.turnDeadline - now));
+      state.status = 'paused';
+      state.pauseStartedAt = now;
+      state.pausedTurnRemainingMs = remaining;
+      state.turnDeadline = null;
+    }
+  }
+
+  if (state.status === 'ready_window') {
+    state.status = 'waiting';
+    state.readyDeadline = null;
+  }
+  state.revision++;
+  return event(
+    state,
+    'player_presence',
+    now,
+    readinessPayload(state, { seat, connected: false }),
+  );
+}
+
+''',
+)
+
+view = 'backend/social_worker/src/online_duel_view.ts'
+replace_once(
+    view,
+    '    turnNumber: state.turnNumber,\n    turnDeadline: state.turnDeadline,',
+    '    turnNumber: state.turnNumber,\n'
+    '    turnDeadline: state.turnDeadline,\n'
+    '    pausedTurnRemainingMs: state.pausedTurnRemainingMs ?? null,',
+)
+replace_once(
+    view,
+    "    matchDeadline:\n      state.startedAt === null ? null : state.startedAt + MAX_MATCH_DURATION_MS,",
+    "    matchDeadline:\n"
+    "      state.startedAt === null\n"
+    "        ? null\n"
+    "        : state.startedAt + MAX_MATCH_DURATION_MS + (state.totalPausedMs ?? 0),",
+)
+replace_once(
+    view,
+    '''  return {
+    readyDeadline: state.readyDeadline,
+    ready: { A: state.playerA.ready, B: state.playerB.ready },
+    presence: { A: state.playerA.connected, B: state.playerB.connected },
+    screenLoaded: {
+      A: state.playerA.screenLoaded,
+      B: state.playerB.screenLoaded,
+    },
+    ...extra,
+  };''',
+    '''  return {
+    status: state.status,
+    readyDeadline: state.readyDeadline,
+    turnDeadline: state.turnDeadline,
+    pausedTurnRemainingMs: state.pausedTurnRemainingMs ?? null,
+    ready: { A: state.playerA.ready, B: state.playerB.ready },
+    presence: { A: state.playerA.connected, B: state.playerB.connected },
+    disconnectDeadlines: {
+      A: state.playerA.disconnectDeadline,
+      B: state.playerB.disconnectDeadline,
+    },
+    screenLoaded: {
+      A: state.playerA.screenLoaded,
+      B: state.playerB.screenLoaded,
+    },
+    ...extra,
+  };''',
+)
+
+# ---------------------------------------------------------------------------
+# Flutter protocol: preserve frozen turn time and pause immediately locally.
+# ---------------------------------------------------------------------------
+models = 'lib/services/online_duel_models.dart'
+replace_once(
+    models,
+    '    this.readyDeadline,\n    this.turnDeadline,\n    this.winnerSeat,',
+    '    this.readyDeadline,\n    this.turnDeadline,\n    this.pausedTurnRemainingMs,\n    this.winnerSeat,',
+)
+replace_once(
+    models,
+    '  final DateTime? readyDeadline;\n  final DateTime? turnDeadline;\n  final DateTime serverTime;',
+    '  final DateTime? readyDeadline;\n'
+    '  final DateTime? turnDeadline;\n'
+    '  final int? pausedTurnRemainingMs;\n'
+    '  final DateTime serverTime;',
+)
+replace_once(
+    models,
+    '    Object? readyDeadline = _unsetOnlineDuelValue,\n'
+    '    Object? turnDeadline = _unsetOnlineDuelValue,\n'
+    '    DateTime? serverTime,',
+    '    Object? readyDeadline = _unsetOnlineDuelValue,\n'
+    '    Object? turnDeadline = _unsetOnlineDuelValue,\n'
+    '    Object? pausedTurnRemainingMs = _unsetOnlineDuelValue,\n'
+    '    DateTime? serverTime,',
+)
+replace_once(
+    models,
+    '      turnDeadline: identical(turnDeadline, _unsetOnlineDuelValue)\n'
+    '          ? this.turnDeadline\n'
+    '          : turnDeadline as DateTime?,\n'
+    '      serverTime: serverTime ?? this.serverTime,',
+    '      turnDeadline: identical(turnDeadline, _unsetOnlineDuelValue)\n'
+    '          ? this.turnDeadline\n'
+    '          : turnDeadline as DateTime?,\n'
+    '      pausedTurnRemainingMs:\n'
+    '          identical(pausedTurnRemainingMs, _unsetOnlineDuelValue)\n'
+    '          ? this.pausedTurnRemainingMs\n'
+    '          : pausedTurnRemainingMs as int?,\n'
+    '      serverTime: serverTime ?? this.serverTime,',
+)
+replace_once(
+    models,
+    "      turnDeadline: _dateFromMillis(json['turnDeadline']),\n      serverTime:",
+    "      turnDeadline: _dateFromMillis(json['turnDeadline']),\n"
+    "      pausedTurnRemainingMs:\n"
+    "          (json['pausedTurnRemainingMs'] as num?)?.toInt(),\n"
+    "      serverTime:",
+)
+
+controller = 'lib/services/online_duel_controller.dart'
+replace_section(
+    controller,
+    '  void _handleConnectionState(OnlineDuelConnectionState state) {',
+    '  void _handleEvent(OnlineDuelEvent event) {',
+    '''  void _handleConnectionState(OnlineDuelConnectionState state) {
+    final current = _snapshot;
+    if (
+      current != null &&
+      current.status == OnlineDuelStatus.active &&
+      (state == OnlineDuelConnectionState.reconnecting ||
+          state == OnlineDuelConnectionState.failed)
+    ) {
+      final now = DateTime.now();
+      final remainingMs = current.turnDeadline == null
+          ? 0
+          : current.turnDeadline!
+                .difference(now)
+                .inMilliseconds
+                .clamp(0, 30000)
+                .toInt();
+      _snapshot = current.copyWith(
+        status: OnlineDuelStatus.paused,
+        turnDeadline: null,
+        pausedTurnRemainingMs: remainingMs,
+        serverTime: now,
+      );
+      _snapshots.add(_snapshot!);
+    }
+
+    AppMessenger.showOnlineConnectionState(state);
+    if (state == OnlineDuelConnectionState.resyncing) {
+      final pendingMove = _pendingMoveEnvelope;
+      if (pendingMove != null) {
+        _transport.send(pendingMove);
+      }
+      requestSnapshot();
+    }
+  }
+
+''',
+)
+replace_once(
+    controller,
+    '''      readyDeadline: event.payload.containsKey('readyDeadline')
+          ? _dateFromMillis(event.payload['readyDeadline'])
+          : snapshot.readyDeadline,
+      revision: event.revision,''',
+    '''      readyDeadline: event.payload.containsKey('readyDeadline')
+          ? _dateFromMillis(event.payload['readyDeadline'])
+          : snapshot.readyDeadline,
+      turnDeadline: event.payload.containsKey('turnDeadline')
+          ? _dateFromMillis(event.payload['turnDeadline'])
+          : snapshot.turnDeadline,
+      pausedTurnRemainingMs:
+          event.payload.containsKey('pausedTurnRemainingMs')
+          ? (event.payload['pausedTurnRemainingMs'] as num?)?.toInt()
+          : snapshot.pausedTurnRemainingMs,
+      revision: event.revision,''',
+)
+
+# ---------------------------------------------------------------------------
+# Result projection: show actual received pot (winner) / zero (loser), not net.
+# ---------------------------------------------------------------------------
+Path('lib/features/duel/duel_payout_display.dart').write_text(
+    '''import '../../services/online_duel_models.dart';
+
+class DuelPayoutDisplay {
+  const DuelPayoutDisplay({
+    required this.entryFee,
+    required this.pot,
+    required this.localPayout,
+    required this.opponentPayout,
+    required this.refunded,
+  });
+
+  final int entryFee;
+  final int pot;
+  final int localPayout;
+  final int opponentPayout;
+  final bool refunded;
+
+  factory DuelPayoutDisplay.fromSnapshot(
+    OnlineDuelSnapshot snapshot, {
+    required int entryFee,
+  }) {
+    final opponentSeat = snapshot.youSeat == OnlineDuelSeat.a
+        ? OnlineDuelSeat.b
+        : OnlineDuelSeat.a;
+    final settlement = snapshot.coinSettlement;
+    final fallbackPot = entryFee * 2;
+    final refunded = snapshot.winnerSeat == null;
+    final pot = settlement != null && settlement.amount > 0
+        ? settlement.amount
+        : fallbackPot;
+
+    int fallbackFor(OnlineDuelSeat seat) {
+      if (refunded) return entryFee;
+      return snapshot.winnerSeat == seat ? fallbackPot : 0;
+    }
+
+    return DuelPayoutDisplay(
+      entryFee: entryFee,
+      pot: pot,
+      localPayout:
+          settlement?.deltas[snapshot.youSeat] ?? fallbackFor(snapshot.youSeat),
+      opponentPayout:
+          settlement?.deltas[opponentSeat] ?? fallbackFor(opponentSeat),
+      refunded: refunded,
+    );
+  }
+}
+''',
+    encoding='utf-8',
+)
+
+screen = 'lib/features/duel/online_duel_screen.dart'
+replace_once(
+    screen,
+    "import 'pre_match_ready_screen.dart';",
+    "import 'pre_match_ready_screen.dart';\nimport 'duel_payout_display.dart';",
+)
+replace_once(
+    screen,
+    '    final activeArena = snapshot?.status == OnlineDuelStatus.active;',
+    '    final activeArena =\n'
+    '        snapshot?.status == OnlineDuelStatus.active ||\n'
+    '        snapshot?.status == OnlineDuelStatus.paused;',
+)
+replace_once(
+    screen,
+    '        if (snapshot.status == OnlineDuelStatus.active) {',
+    '        if (snapshot.status == OnlineDuelStatus.active ||\n'
+    '            snapshot.status == OnlineDuelStatus.paused) {',
+)
+replace_once(
+    screen,
+    "            statusText: _forfeiting\n                ? context.tr('connection_interrupted_retrying')",
+    "            statusText: snapshot.status == OnlineDuelStatus.paused\n"
+    "                ? context.tr('connection_interrupted_retrying')\n"
+    "                : _forfeiting\n"
+    "                ? context.tr('connection_interrupted_retrying')",
+)
+replace_once(
+    screen,
+    '''    final draw = snapshot.winnerSeat == null;
+    final localNetCoin = draw
+        ? 0
+        : won
+        ? entryFee
+        : -entryFee;
+    final opponentNetCoin = -localNetCoin;
+    String coinLabel(int value) =>
+        '${value > 0 ? '+' : ''}${context.tr('coin_amount', <Object>[value])}';''',
+    '''    final draw = snapshot.winnerSeat == null;
+    final payout = DuelPayoutDisplay.fromSnapshot(
+      snapshot,
+      entryFee: entryFee,
+    );
+    String coinAmount(int value) =>
+        context.tr('coin_amount', <Object>[value]);''',
+)
+replace_once(
+    screen,
+    '''              _ResultMetric(
+                label: context.tr('coin_result'),
+                localValue: coinLabel(localNetCoin),
+                opponentValue: coinLabel(opponentNetCoin),
+                asset: DuelAsset.coin,
+              ),''',
+    '''              _ResultMetric(
+                label: context.tr('entry_fee'),
+                localValue: coinAmount(payout.entryFee),
+                opponentValue: coinAmount(payout.entryFee),
+                asset: DuelAsset.coin,
+              ),
+              _ResultMetric(
+                label: context.tr(payout.refunded ? 'refund' : 'winner_pot'),
+                localValue: coinAmount(payout.localPayout),
+                opponentValue: coinAmount(payout.opponentPayout),
+                asset: DuelAsset.coin,
+              ),''',
+)
+replace_once(
+    screen,
+    '''            Positioned(
+              top: 0,
+              child: _TimerPill(
+                deadline: snapshot.turnDeadline,
+                compact: compact,
+                size: timerSize,
+              ),
+            ),''',
+    '''            Positioned(
+              top: 9.5,
+              child: _TimerPill(
+                deadline: snapshot.turnDeadline,
+                pausedRemainingMs:
+                    snapshot.status == OnlineDuelStatus.paused
+                    ? snapshot.pausedTurnRemainingMs
+                    : null,
+                compact: compact,
+                size: timerSize,
+              ),
+            ),''',
+)
+replace_once(
+    screen,
+    '  const _TimerPill({required this.deadline, required this.compact, this.size});',
+    '''  const _TimerPill({
+    required this.deadline,
+    required this.compact,
+    this.size,
+    this.pausedRemainingMs,
+  });''',
+)
+replace_once(
+    screen,
+    '  final double? size;\n\n  @override\n  State<_TimerPill> createState()',
+    '  final double? size;\n'
+    '  final int? pausedRemainingMs;\n\n'
+    '  @override\n  State<_TimerPill> createState()',
+)
+replace_once(
+    screen,
+    '    final seconds = _secondsUntil(widget.deadline);',
+    '    final seconds = widget.pausedRemainingMs == null\n'
+    '        ? _secondsUntil(widget.deadline)\n'
+    '        : (widget.pausedRemainingMs! / 1000).ceil();',
+)
+replace_once(
+    screen,
+    '    return Container(\n      width: size,\n      height: size,',
+    "    return Container(\n"
+    "      key: const ValueKey<String>('online-turn-timer'),\n"
+    "      width: size,\n      height: size,",
+)
+
+replace_section(
+    screen,
+    'class _DuelPlayerPlate extends StatelessWidget {',
+    'class _AvatarRing extends StatelessWidget {',
+    '''class _DuelPlayerPlate extends StatelessWidget {
+  const _DuelPlayerPlate({
+    required this.snapshot,
+    required this.seat,
+    required this.compact,
+    this.alignEnd = false,
+  });
+
+  final OnlineDuelSnapshot snapshot;
+  final OnlineDuelSeat seat;
+  final bool compact;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final player = snapshot.players[seat]!;
+    final active = snapshot.currentTurnSeat == seat;
+    final isLocalPlayer = snapshot.youSeat == seat;
+    final scheme = Theme.of(context).colorScheme;
+    final accent = seat == OnlineDuelSeat.a ? scheme.primary : scheme.tertiary;
+    final displayName = isLocalPlayer ? context.tr('you') : player.displayName;
+    final score = snapshot.scores[seat] ?? 0;
+    final avatarRadius = compact ? 17.0 : 23.0;
+    final seatKey = seat == OnlineDuelSeat.a ? 'A' : 'B';
+    final avatar = KeyedSubtree(
+      key: ValueKey<String>('duel-avatar-$seatKey'),
+      child: _AvatarRing(
+        color: accent,
+        active: active,
+        child: PlayerAvatar(
+          displayName: player.displayName,
+          avatarKey: player.avatarKey,
+          radius: avatarRadius,
+          semanticLabel: context.tr('player_avatar_semantics', <Object>[
+            displayName,
+          ]),
+        ),
+      ),
+    );
+    final info = Row(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: [
+        _ScoreValue(
+          key: ValueKey<String>('duel-score-$seatKey'),
+          score: score,
+        ),
+        SizedBox(width: compact ? 5 : 7),
+        Flexible(
+          child: Text(
+            displayName,
+            key: ValueKey<String>('duel-name-$seatKey'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: compact ? 12 : 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        SizedBox(width: compact ? 5 : 7),
+        DuelAssetIcon(
+          player.connected ? DuelAsset.wifi : DuelAsset.cloud,
+          size: compact ? 11 : 13,
+          color: player.connected ? accent : scheme.error,
+        ),
+      ],
+    );
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 4 : 10,
+        vertical: compact ? 4 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        boxShadow: active
+            ? [BoxShadow(color: accent.withValues(alpha: .18), blurRadius: 14)]
+            : null,
+      ),
+      child: Row(
+        children: alignEnd
+            ? [Expanded(child: info), SizedBox(width: compact ? 6 : 9), avatar]
+            : [avatar, SizedBox(width: compact ? 6 : 9), Expanded(child: info)],
+      ),
+    );
+  }
+}
+
+''',
+)
+replace_section(
+    screen,
+    'class _ScoreLine extends StatelessWidget {',
+    'class _ReadyPanel extends StatelessWidget {',
+    '''class _ScoreValue extends StatelessWidget {
+  const _ScoreValue({super.key, required this.score});
+
+  final int score;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const DuelAssetIcon(DuelAsset.trophy, size: 13),
+        const SizedBox(width: 3),
+        Text(
+          '$score',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .92),
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+''',
+)
+
+# Overlay the board while authoritative match state is paused.
+old_board = '''                  final boardWidget = Center(
+                    child: SizedBox.square(
+                      dimension: boardSize,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF3D74B6,
+                              ).withValues(alpha: .14),
+                              blurRadius: 18,
+                            ),
+                          ],
+                        ),
+                        child: board,
+                      ),
+                    ),
+                  );'''
+new_board = '''                  OnlineDuelSeat? disconnectedSeat;
+                  OnlineDuelPlayer? disconnectedPlayer;
+                  for (final entry in snapshot.players.entries) {
+                    if (!entry.value.connected) {
+                      disconnectedSeat = entry.key;
+                      disconnectedPlayer = entry.value;
+                      break;
+                    }
+                  }
+                  final pauseLabel = disconnectedSeat != null &&
+                          disconnectedSeat != snapshot.youSeat
+                      ? context.tr('opponent_connecting')
+                      : context.tr('reconnecting');
+                  final boardWidget = Center(
+                    child: SizedBox.square(
+                      dimension: boardSize,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF3D74B6).withValues(alpha: .14),
+                                  blurRadius: 18,
+                                ),
+                              ],
+                            ),
+                            child: board,
+                          ),
+                          if (snapshot.status == OnlineDuelStatus.paused)
+                            _ReconnectPauseOverlay(
+                              label: pauseLabel,
+                              deadline: disconnectedPlayer?.disconnectDeadline,
+                            ),
+                        ],
+                      ),
+                    ),
+                  );'''
+replace_once(screen, old_board, new_board)
+
+overlay_marker = 'class _ArenaToolRail extends StatelessWidget {'
+overlay = '''class _ReconnectPauseOverlay extends StatefulWidget {
+  const _ReconnectPauseOverlay({required this.label, this.deadline});
+
+  final String label;
+  final DateTime? deadline;
+
+  @override
+  State<_ReconnectPauseOverlay> createState() => _ReconnectPauseOverlayState();
+}
+
+class _ReconnectPauseOverlayState extends State<_ReconnectPauseOverlay> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final deadline = widget.deadline;
+    final remaining = deadline == null
+        ? null
+        : deadline.difference(DateTime.now()).inSeconds.clamp(0, 30);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF07111E).withValues(alpha: .78),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 260),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF18273A).withValues(alpha: .96),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFFFC94D).withValues(alpha: .45),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const DuelAssetIcon(DuelAsset.wifi, size: 34),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                  if (remaining != null) ...[
+                    const SizedBox(height: 5),
+                    Text(
+                      context.tr('turn_timer_seconds', <Object>[remaining]),
+                      style: const TextStyle(
+                        color: Color(0xFFFFC94D),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+'''
+text = read(screen)
+if overlay_marker not in text:
+    raise SystemExit('arena tool rail marker missing')
+write(screen, text.replace(overlay_marker, overlay + overlay_marker, 1))
+
+# ---------------------------------------------------------------------------
+# Backend regressions: exact 30s pause + no ticking during disconnect.
+# ---------------------------------------------------------------------------
+backend_test = 'backend/social_worker/test/online_duel.test.ts'
+replace_once(
+    backend_test,
+    '  LOBBY_DEADLINE_MS,\n  MAX_CONSECUTIVE_TIMEOUTS,',
+    '  DISCONNECT_GRACE_MS,\n  LOBBY_DEADLINE_MS,\n  MAX_CONSECUTIVE_TIMEOUTS,',
+)
+replace_section(
+    backend_test,
+    "  it('disconnect grace allows reconnect before forfeit', () => {",
+    "  it('disconnect grace expiry forfeits to the opponent', () => {",
+    '''  it('pauses the match and preserves the remaining turn time during reconnect', () => {
+    const duel = state();
+    startDuel(duel);
+    const disconnectAt = 5_000;
+    const originalDeadline = duel.turnDeadline!;
+    const remaining = originalDeadline - disconnectAt;
+
+    markDisconnected(duel, 'A', disconnectAt);
+
+    expect(duel.status).toBe('paused');
+    expect(duel.turnDeadline).toBeNull();
+    expect(duel.pausedTurnRemainingMs).toBe(remaining);
+    expect(duel.playerA.disconnectDeadline).toBe(
+      disconnectAt + DISCONNECT_GRACE_MS,
+    );
+
+    const reconnectAt = 20_000;
+    markConnected(duel, 'A', reconnectAt);
+
+    expect(duel.status).toBe('active');
+    expect(duel.playerA.disconnectDeadline).toBeNull();
+    expect(duel.pausedTurnRemainingMs).toBeNull();
+    expect(duel.turnDeadline).toBe(reconnectAt + remaining);
+
+    const events = applyDueDeadlines(duel, reconnectAt + remaining - 1);
+    expect(events.map((event) => event.type)).not.toContain('turn_timeout');
+  });
+
+  it('uses a 30 second reconnect window', () => {
+    expect(DISCONNECT_GRACE_MS).toBe(30_000);
+  });
+
+''',
+)
+replace_section(
+    backend_test,
+    "  it('disconnect grace expiry forfeits to the opponent', () => {",
+    "  it('migrates old stored state without timeout streak fields', () => {",
+    '''  it('disconnect grace expiry forfeits to the opponent', () => {
+    const duel = state();
+    startDuel(duel);
+    const disconnectAt = 5_000;
+    markDisconnected(duel, 'A', disconnectAt);
+
+    applyDueDeadlines(duel, disconnectAt + DISCONNECT_GRACE_MS);
+
+    expect(duel.status).toBe('forfeited');
+    expect(duel.winnerSeat).toBe('B');
+    expect(duel.finishReason).toBe('disconnect_forfeit');
+  });
+
+''',
+)
+
+Path('backend/social_worker/test/economy_payout_contract.test.ts').write_text(
+    '''import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+import { ENTRY_FEES, potForDifficulty } from '../src/economy';
+
+describe('dynamic duel escrow payout contract', () => {
+  it('keeps every winner pot equal to both entry fees', () => {
+    for (const [difficulty, entryFee] of Object.entries(ENTRY_FEES)) {
+      expect(potForDifficulty(difficulty)).toBe(entryFee * 2);
+    }
+  });
+
+  it('pays the persisted escrow pot to the winner and refunds draws dynamically', () => {
+    const migration = readFileSync(
+      new URL('../migrations/0019_dynamic_duel_fees_no_ads_entitlement.sql', import.meta.url),
+      'utf8',
+    );
+    expect(migration).toContain(
+      'SELECT pot_amount FROM match_coin_escrow WHERE match_id = NEW.match_id',
+    );
+    expect(migration).toContain("'match_payout'");
+    expect(migration).toContain(
+      'SELECT player_a_amount FROM match_coin_escrow WHERE match_id = NEW.id',
+    );
+    expect(migration).toContain(
+      'SELECT player_b_amount FROM match_coin_escrow WHERE match_id = NEW.id',
+    );
+  });
+});
+''',
+    encoding='utf-8',
+)
+
+# ---------------------------------------------------------------------------
+# Flutter payout projection tests.
+# ---------------------------------------------------------------------------
+Path('test/duel_payout_display_test.dart').write_text(
+    '''import 'package:flutter_test/flutter_test.dart';
+import 'package:sudoku_game/features/duel/duel_payout_display.dart';
+import 'package:sudoku_game/services/online_duel_models.dart';
+
+void main() {
+  test('beginner winner receives full 200 Coin pot and loser receives zero', () {
+    final snapshot = _snapshot(
+      youSeat: OnlineDuelSeat.a,
+      winnerSeat: OnlineDuelSeat.a,
+      amount: 200,
+      deltas: const {OnlineDuelSeat.a: 200, OnlineDuelSeat.b: 0},
+    );
+    final payout = DuelPayoutDisplay.fromSnapshot(snapshot, entryFee: 100);
+
+    expect(payout.entryFee, 100);
+    expect(payout.pot, 200);
+    expect(payout.localPayout, 200);
+    expect(payout.opponentPayout, 0);
+    expect(payout.refunded, isFalse);
+  });
+
+  test('dynamic difficulty payout uses the actual escrow amount', () {
+    final snapshot = _snapshot(
+      youSeat: OnlineDuelSeat.b,
+      winnerSeat: OnlineDuelSeat.a,
+      amount: 800,
+      deltas: const {OnlineDuelSeat.a: 800, OnlineDuelSeat.b: 0},
+    );
+    final payout = DuelPayoutDisplay.fromSnapshot(snapshot, entryFee: 400);
+
+    expect(payout.pot, 800);
+    expect(payout.localPayout, 0);
+    expect(payout.opponentPayout, 800);
+  });
+
+  test('draw displays each refunded entry instead of a winner payout', () {
+    final snapshot = _snapshot(
+      youSeat: OnlineDuelSeat.a,
+      winnerSeat: null,
+      amount: 0,
+      deltas: const {OnlineDuelSeat.a: 150, OnlineDuelSeat.b: 150},
+    );
+    final payout = DuelPayoutDisplay.fromSnapshot(snapshot, entryFee: 150);
+
+    expect(payout.refunded, isTrue);
+    expect(payout.localPayout, 150);
+    expect(payout.opponentPayout, 150);
+  });
+}
+
+OnlineDuelSnapshot _snapshot({
+  required OnlineDuelSeat youSeat,
+  required OnlineDuelSeat? winnerSeat,
+  required int amount,
+  required Map<OnlineDuelSeat, int> deltas,
+}) {
+  return OnlineDuelSnapshot(
+    roomId: 'room',
+    matchId: 'match',
+    mode: 'ranked',
+    difficulty: 'beginner',
+    status: OnlineDuelStatus.completed,
+    youSeat: youSeat,
+    players: const {
+      OnlineDuelSeat.a: OnlineDuelPlayer(
+        publicId: 'a',
+        username: 'alice',
+        displayName: 'Alice',
+        avatarKey: 'default',
+        ready: true,
+        screenLoaded: true,
+        connected: true,
+      ),
+      OnlineDuelSeat.b: OnlineDuelPlayer(
+        publicId: 'b',
+        username: 'bob',
+        displayName: 'Bob',
+        avatarKey: 'default',
+        ready: true,
+        screenLoaded: true,
+        connected: true,
+      ),
+    },
+    puzzle: List<int>.filled(81, 0),
+    board: List<int>.filled(81, 0),
+    scores: const {OnlineDuelSeat.a: 10, OnlineDuelSeat.b: 0},
+    mistakes: const {OnlineDuelSeat.a: 0, OnlineDuelSeat.b: 0},
+    correctMoves: const {OnlineDuelSeat.a: 1, OnlineDuelSeat.b: 0},
+    timeouts: const {OnlineDuelSeat.a: 0, OnlineDuelSeat.b: 0},
+    currentTurnSeat: OnlineDuelSeat.a,
+    turnNumber: 1,
+    serverTime: DateTime.fromMillisecondsSinceEpoch(0),
+    revision: 1,
+    winnerSeat: winnerSeat,
+    coinSettlement: OnlineDuelCoinSettlement(
+      amount: amount,
+      winnerSeat: winnerSeat,
+      loserSeat: winnerSeat == null
+          ? null
+          : winnerSeat == OnlineDuelSeat.a
+          ? OnlineDuelSeat.b
+          : OnlineDuelSeat.a,
+      balances: const {OnlineDuelSeat.a: 1000, OnlineDuelSeat.b: 900},
+      deltas: deltas,
+    ),
+  );
+}
+''',
+    encoding='utf-8',
+)
+
+flutter_test = 'test/online_duel_screen_test.dart'
+insert_marker = "  testWidgets('opponent turn keeps board readable and disables number input', ("
+extra_tests = '''  testWidgets('active header aligns timer with both avatars and puts score before names', (tester) async {
+    await _pumpOnlineDuel(tester, size: const Size(390, 844), status: 'active');
+
+    final timerCenter = tester.getCenter(
+      find.byKey(const ValueKey<String>('online-turn-timer')),
+    );
+    final avatarACenter = tester.getCenter(
+      find.byKey(const ValueKey<String>('duel-avatar-A')),
+    );
+    final avatarBCenter = tester.getCenter(
+      find.byKey(const ValueKey<String>('duel-avatar-B')),
+    );
+    expect((timerCenter.dy - avatarACenter.dy).abs(), lessThan(2));
+    expect((timerCenter.dy - avatarBCenter.dy).abs(), lessThan(2));
+
+    expect(
+      tester.getCenter(find.byKey(const ValueKey<String>('duel-score-A'))).dx,
+      lessThan(tester.getCenter(find.byKey(const ValueKey<String>('duel-name-A'))).dx),
+    );
+    expect(
+      tester.getCenter(find.byKey(const ValueKey<String>('duel-score-B'))).dx,
+      lessThan(tester.getCenter(find.byKey(const ValueKey<String>('duel-name-B'))).dx),
+    );
+  });
+
+  testWidgets('paused online duel blocks input and shows reconnect state', (tester) async {
+    await _pumpOnlineDuel(
+      tester,
+      size: const Size(390, 844),
+      status: 'paused',
+      opponentConnected: false,
+    );
+
+    expect(find.text('Opponent is connecting'), findsOneWidget);
+    final numberButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('number-1')),
+    );
+    expect(numberButton.onPressed, isNull);
+  });
+
+'''
+text = read(flutter_test)
+if insert_marker not in text:
+    raise SystemExit('online duel test insertion marker missing')
+write(flutter_test, text.replace(insert_marker, extra_tests + insert_marker, 1))
+replace_once(
+    flutter_test,
+    "  String currentTurnSeat = 'A',\n}) async {",
+    "  String currentTurnSeat = 'A',\n  bool opponentConnected = true,\n}) async {",
+)
+replace_once(
+    flutter_test,
+    "      _snapshot(status: status, currentTurnSeat: currentTurnSeat),",
+    "      _snapshot(\n"
+    "        status: status,\n"
+    "        currentTurnSeat: currentTurnSeat,\n"
+    "        opponentConnected: opponentConnected,\n"
+    "      ),",
+)
+replace_once(
+    flutter_test,
+    "Map<String, dynamic> _snapshot({\n  String status = 'active',\n  String currentTurnSeat = 'A',\n}) {",
+    "Map<String, dynamic> _snapshot({\n"
+    "  String status = 'active',\n"
+    "  String currentTurnSeat = 'A',\n"
+    "  bool opponentConnected = true,\n"
+    "}) {",
+)
+# Replace only Bob's connection field: the second occurrence in the fixture.
+text = read(flutter_test)
+needle = "        'displayName': 'Bob',\n        'avatarKey': 'default',\n        'ready': false,\n        'screenLoaded': true,\n        'connected': true,"
+replacement = "        'displayName': 'Bob',\n        'avatarKey': 'default',\n        'ready': false,\n        'screenLoaded': true,\n        'connected': opponentConnected,\n        'disconnectDeadline': opponentConnected\n            ? null\n            : now.add(const Duration(seconds: 30)).millisecondsSinceEpoch,"
+if needle not in text:
+    raise SystemExit('Bob connection fixture marker missing')
+write(flutter_test, text.replace(needle, replacement, 1))
+replace_once(
+    flutter_test,
+    "    'turnDeadline': now.add(const Duration(seconds: 30)).millisecondsSinceEpoch,",
+    "    'turnDeadline': status == 'paused'\n"
+    "        ? null\n"
+    "        : now.add(const Duration(seconds: 30)).millisecondsSinceEpoch,\n"
+    "    'pausedTurnRemainingMs': status == 'paused' ? 17000 : null,",
+)
+
+print('online duel reconnect/payout/header patch applied')
