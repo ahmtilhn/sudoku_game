@@ -39,6 +39,9 @@ void main() {
       'lib/features/duel/leaderboards_screen.dart',
     ).readAsStringSync();
     final outcomes = File('lib/widgets/ux_feedback.dart').readAsStringSync();
+    final soloGame = File(
+      'lib/features/game/enhanced_game_screen.dart',
+    ).readAsStringSync();
 
     expect(home, contains('DuelAsset.homePlayScene'));
     expect(home, contains('DuelAsset.homeDuelScene'));
@@ -51,5 +54,6 @@ void main() {
     expect(leaderboards, contains('DuelAsset.leaderboardCrownPro'));
     expect(outcomes, contains('DuelAsset.resultVictoryTrophyPro'));
     expect(outcomes, contains('DuelAsset.resultDefeatTrophyPro'));
+    expect(soloGame, contains('DuelAsset.resultVictoryTrophyPro'));
   });
 }
