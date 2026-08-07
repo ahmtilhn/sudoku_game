@@ -71,7 +71,7 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final compact = constraints.maxHeight < 720;
+              final compact = constraints.maxHeight < 700;
               final wide = constraints.maxWidth >= 780;
               return Center(
                 child: ConstrainedBox(
@@ -85,20 +85,23 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                     ),
                     child: Column(
                       children: [
-                        _header(),
-                        SizedBox(height: compact ? 7 : 12),
+                        _header(compact),
+                        SizedBox(height: compact ? 6 : 8),
                         _variantSelector(compact),
-                        SizedBox(height: compact ? 7 : 10),
+                        SizedBox(height: compact ? 6 : 8),
                         SegmentedButton<_CareerMode>(
                           segments: [
                             ButtonSegment<_CareerMode>(
                               value: _CareerMode.journey,
-                              icon: const Icon(Icons.route_rounded),
+                              icon: const Icon(Icons.route_rounded, size: 18),
                               label: Text(context.tr('career')),
                             ),
                             ButtonSegment<_CareerMode>(
                               value: _CareerMode.practice,
-                              icon: const Icon(Icons.sports_esports_rounded),
+                              icon: const Icon(
+                                Icons.sports_esports_rounded,
+                                size: 18,
+                              ),
                               label: Text(context.tr('practice')),
                             ),
                           ],
@@ -109,11 +112,12 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                           showSelectedIcon: false,
                           style: ButtonStyle(
                             minimumSize: WidgetStatePropertyAll<Size>(
-                              Size(0, compact ? 42 : 48),
+                              Size(0, compact ? 38 : 42),
                             ),
+                            visualDensity: VisualDensity.compact,
                           ),
                         ),
-                        SizedBox(height: compact ? 7 : 10),
+                        SizedBox(height: compact ? 6 : 8),
                         Expanded(
                           child: _mode == _CareerMode.journey
                               ? _journey(compact: compact, wide: wide)
@@ -131,29 +135,41 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
     );
   }
 
-  Widget _header() {
+  Widget _header(bool compact) {
     return SizedBox(
-      height: 48,
+      height: compact ? 42 : 46,
       child: Row(
         children: [
           IconButton.filledTonal(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_rounded),
+            style: IconButton.styleFrom(
+              fixedSize: const Size(40, 40),
+              padding: EdgeInsets.zero,
+            ),
+            icon: const Icon(Icons.arrow_back_rounded, size: 20),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               context.tr('career'),
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 23,
+                fontSize: compact ? 20 : 22,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ),
-          _resource(Icons.lightbulb_rounded, '${widget.store.hints}', const Color(0xFF35D2FF)),
-          const SizedBox(width: 6),
-          _resource(Icons.monetization_on_rounded, '${_economy.balance}', const Color(0xFFFFC73D)),
+          _resource(
+            Icons.lightbulb_rounded,
+            '${widget.store.hints}',
+            const Color(0xFF35D2FF),
+          ),
+          const SizedBox(width: 5),
+          _resource(
+            Icons.monetization_on_rounded,
+            '${_economy.balance}',
+            const Color(0xFFFFC73D),
+          ),
         ],
       ),
     );
@@ -161,8 +177,8 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
 
   Widget _resource(IconData icon, String value, Color color) {
     return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF0A1728).withValues(alpha: .92),
         borderRadius: BorderRadius.circular(999),
@@ -170,12 +186,13 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 5),
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 4),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white,
+              fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -186,13 +203,13 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
 
   Widget _variantSelector(bool compact) {
     return SizedBox(
-      height: compact ? 78 : 94,
+      height: compact ? 58 : 64,
       child: Row(
         children: [
           for (final variant in SudokuVariant.values) ...[
             Expanded(child: _variantButton(variant, compact)),
             if (variant != SudokuVariant.values.last)
-              const SizedBox(width: 9),
+              const SizedBox(width: 8),
           ],
         ],
       ),
@@ -214,26 +231,26 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                   _syncPageToProgress();
                 });
               },
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(15),
         child: Ink(
-          padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 12),
+          padding: const EdgeInsets.symmetric(horizontal: 9),
           decoration: BoxDecoration(
             color: selected
-                ? accent.withValues(alpha: .16)
+                ? accent.withValues(alpha: .15)
                 : const Color(0xFF0A1728).withValues(alpha: .9),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(15),
             border: Border.all(
-              color: selected ? accent : Colors.white.withValues(alpha: .12),
-              width: selected ? 2 : 1,
+              color: selected ? accent : Colors.white.withValues(alpha: .11),
+              width: selected ? 1.7 : 1,
             ),
           ),
           child: Row(
             children: [
               DuelAssetIcon(
                 is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                size: compact ? 54 : 70,
+                size: compact ? 38 : 44,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 7),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -241,22 +258,27 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                   children: [
                     Text(
                       variant.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: selected ? accent : Colors.white,
-                        fontSize: compact ? 16 : 19,
+                        fontSize: compact ? 13 : 15,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     Text(
                       is16 ? '1–16' : '1–9',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: .58),
+                        color: Colors.white.withValues(alpha: .55),
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
               ),
+              if (selected)
+                Icon(Icons.check_rounded, color: accent, size: 18),
             ],
           ),
         ),
@@ -271,39 +293,50 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
     return Column(
       children: [
         _nextLevelStrip(next),
-        SizedBox(height: compact ? 7 : 10),
-        Row(
-          children: [
-            IconButton.filledTonal(
-              onPressed: _page <= 0 || _busy
-                  ? null
-                  : () => setState(() => _page--),
-              icon: const Icon(Icons.chevron_left_rounded),
-            ),
-            Expanded(
-              child: Text(
-                '${context.tr('career')} · ${_page + 1}',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
+        SizedBox(height: compact ? 6 : 8),
+        SizedBox(
+          height: 40,
+          child: Row(
+            children: [
+              IconButton.filledTonal(
+                onPressed: _page <= 0 || _busy
+                    ? null
+                    : () => setState(() => _page--),
+                style: IconButton.styleFrom(
+                  fixedSize: const Size(38, 38),
+                  padding: EdgeInsets.zero,
+                ),
+                icon: const Icon(Icons.chevron_left_rounded),
+              ),
+              Expanded(
+                child: Text(
+                  '${context.tr('career')} · ${_page + 1}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-            ),
-            IconButton.filledTonal(
-              onPressed: _busy ? null : () => setState(() => _page++),
-              icon: const Icon(Icons.chevron_right_rounded),
-            ),
-          ],
+              IconButton.filledTonal(
+                onPressed: _busy ? null : () => setState(() => _page++),
+                style: IconButton.styleFrom(
+                  fixedSize: const Size(38, 38),
+                  padding: EdgeInsets.zero,
+                ),
+                icon: const Icon(Icons.chevron_right_rounded),
+              ),
+            ],
+          ),
         ),
-        SizedBox(height: compact ? 5 : 8),
+        SizedBox(height: compact ? 4 : 6),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
               final columns = wide ? 4 : 2;
               final rows = (_pageSize / columns).ceil();
-              final gap = compact ? 7.0 : 10.0;
+              final gap = compact ? 6.0 : 8.0;
               final extent =
                   (constraints.maxHeight - gap * (rows - 1)) / rows;
               return GridView.builder(
@@ -334,58 +367,60 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: _busy ? null : () => _openCareer(level),
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(15),
         child: Ink(
-          height: 62,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+          height: 54,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
             color: const Color(0xFF12352A).withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(17),
+            borderRadius: BorderRadius.circular(15),
             border: Border.all(
-              color: const Color(0xFF29D398).withValues(alpha: .58),
+              color: const Color(0xFF29D398).withValues(alpha: .55),
             ),
           ),
           child: Row(
             children: [
               _busyLevel == level
                   ? const SizedBox.square(
-                      dimension: 30,
+                      dimension: 26,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(
                       Icons.play_circle_fill_rounded,
                       color: Color(0xFF29D398),
-                      size: 38,
+                      size: 30,
                     ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr('continue_action'),
-                      style: const TextStyle(
-                        color: Color(0xFF29D398),
-                        fontWeight: FontWeight.w900,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${context.tr('continue_action')}  ',
+                        style: const TextStyle(
+                          color: Color(0xFF29D398),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${_variant.label} · ${context.strings.difficultyLabel(difficulty)} · $level',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
+                      TextSpan(
+                        text:
+                            '${_variant.label} · ${context.strings.difficultyLabel(difficulty)} · $level',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Text(
                 '${widget.store.completedCareerLevelCountFor(_variant)}',
                 style: const TextStyle(
                   color: Colors.white70,
+                  fontSize: 12,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -418,26 +453,26 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: unlocked && !_busy ? () => _openCareer(level) : null,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Ink(
           decoration: BoxDecoration(
             color: const Color(0xFF0A1728).withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: unlocked
-                  ? accent.withValues(alpha: current ? .75 : .34)
+                  ? accent.withValues(alpha: current ? .72 : .32)
                   : Colors.white.withValues(alpha: .08),
-              width: current ? 2 : 1,
+              width: current ? 1.7 : 1,
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(9),
+            padding: const EdgeInsets.all(7),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (_busyLevel == level)
                   const SizedBox.square(
-                    dimension: 30,
+                    dimension: 26,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else
@@ -448,14 +483,14 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                               : Icons.grid_4x4_rounded
                         : Icons.lock_rounded,
                     color: unlocked ? accent : Colors.white30,
-                    size: 30,
+                    size: 25,
                   ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   '$level',
                   style: TextStyle(
                     color: unlocked ? Colors.white : Colors.white38,
-                    fontSize: 19,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -465,9 +500,9 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: unlocked
-                        ? Colors.white.withValues(alpha: .6)
+                        ? Colors.white.withValues(alpha: .58)
                         : Colors.white30,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -476,7 +511,7 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                     stars,
                     style: const TextStyle(
                       color: Color(0xFFFFC73D),
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
               ],
@@ -516,7 +551,7 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
       builder: (context, constraints) {
         final columns = wide ? 3 : 2;
         final rows = (entries.length / columns).ceil();
-        final gap = compact ? 7.0 : 10.0;
+        final gap = compact ? 6.0 : 8.0;
         final extent = (constraints.maxHeight - gap * (rows - 1)) / rows;
         return GridView.builder(
           padding: EdgeInsets.zero,
@@ -558,21 +593,21 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
             : daily
             ? _openDaily
             : () => _openPractice(difficulty),
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(15),
         child: Ink(
           decoration: BoxDecoration(
             color: const Color(0xFF0A1728).withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: accent.withValues(alpha: .42)),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: accent.withValues(alpha: .4)),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (busy)
                   const SizedBox.square(
-                    dimension: 38,
+                    dimension: 32,
                     child: CircularProgressIndicator(strokeWidth: 3),
                   )
                 else
@@ -582,9 +617,9 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                         : daily
                         ? DuelAsset.statusSuccessPro
                         : DuelAsset.board9Pro,
-                    size: 58,
+                    size: 48,
                   ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Text(
                   title,
                   maxLines: 1,
@@ -600,7 +635,7 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: accent.withValues(alpha: .8),
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
