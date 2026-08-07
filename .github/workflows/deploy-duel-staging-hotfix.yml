@@ -1,0 +1,74 @@
+name: Temporary Staging Duel Hotfix Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/deploy-duel-staging-hotfix.trigger'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/social_worker/package-lock.json
+
+      - name: Verify Cloudflare credentials
+        shell: bash
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "CLOUDFLARE_API_TOKEN repository secret is not configured."
+            exit 78
+          fi
+
+      - name: Stamp staging build commit
+        working-directory: backend/social_worker
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('wrangler.staging.toml')
+          text = path.read_text(encoding='utf-8')
+          import re
+          text, count = re.subn(r'BUILD_COMMIT = "[^"]*"', 'BUILD_COMMIT = "d76126e4869a648be220c3e5bd0a293c58271529"', text, count=1)
+          if count != 1:
+              raise SystemExit('BUILD_COMMIT marker not found')
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Install backend dependencies
+        working-directory: backend/social_worker
+        run: npm ci
+
+      - name: Verify backend before deploy
+        working-directory: backend/social_worker
+        run: |
+          npm run typecheck
+          npm test
+          npm run puzzles:verify
+
+      - name: Deploy staging Worker
+        working-directory: backend/social_worker
+        run: npx wrangler deploy --config wrangler.staging.toml
+
+      - name: Verify live staging version and health
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(curl --fail --silent --show-error --retry 4 --retry-delay 2 https://sudoku-duel-social-staging.ilhanahmet246.workers.dev/version)"
+          HEALTH="$(curl --fail --silent --show-error --retry 4 --retry-delay 2 https://sudoku-duel-social-staging.ilhanahmet246.workers.dev/health)"
+          echo "$VERSION"
+          echo "$HEALTH"
+          echo "$VERSION" | grep -F 'd76126e4869a648be220c3e5bd0a293c58271529'
+          echo "$VERSION" | grep -F 'staging'
