@@ -61,6 +61,10 @@ def main() -> int:
             "DuelAsset.leaderboardCrownPro",
             "LeaderboardsScreen",
             "constraints: const BoxConstraints(maxWidth: 760)",
+            "home-logo-text",
+            "assets/images/ui/logo_text.png",
+            "errorBuilder:",
+            "allowNotes: true",
             "SudokuVariant.values",
             "SudokuVariantId.classic16",
             "Classic16PuzzleFactory.generate",
@@ -86,6 +90,8 @@ def main() -> int:
             "classic16-board-viewport",
             "16×16 · 1–16",
             "_fitBoard",
+            "_notes.putIfAbsent",
+            "_notes.remove(index)",
             "UxOutcomeSheet",
         )
         forbid(
@@ -114,10 +120,13 @@ def main() -> int:
             "VariantMatchmakingClient.instance",
             "SudokuVariant.values",
             "DuelAsset.board16Pro",
-            "DuelAsset.walletCoinStackPro",
+            "DuelAsset.coin",
+            "alignment: Alignment.topCenter",
+            "WrapAlignment.center",
             "context.tr('entry_fee')",
             "context.tr('winner_pot')",
             "Classic16PuzzleFactory.generate",
+            "allowNotes: true",
             "GameModal.error",
             "LayoutBuilder(",
             "Expanded(",
@@ -196,12 +205,28 @@ def main() -> int:
             "sudokuSymbol(value)",
             "selectedValue",
             "sameValue",
+            "_NotesCell(",
         )
         require(
             "lib/widgets/number_pad.dart",
             "_LargeNumberGrid",
             "sudokuSymbol(value)",
             "NumberPadDock",
+            "action-erase",
+            "action-notes",
+            "unlimitedHints",
+        )
+        require(
+            "lib/debug/debug_economy.dart",
+            "debugUnlimitedHintBalance",
+            "debugUnlimitedHintsEnabled",
+            "SUDOKU_DISABLE_DEBUG_UNLIMITED_HINTS",
+        )
+        require(
+            "lib/data/local_progress_store.dart",
+            "final bool unlimitedHints",
+            "if (unlimitedHints) return true",
+            "hints = debugUnlimitedHintBalance",
         )
         require(
             "lib/widgets/duel_asset_icon.dart",
@@ -321,7 +346,13 @@ def main() -> int:
         require(
             "test/gameplay_ux_test.dart",
             "selected user value uses readable white foreground",
+            "notes render inside the selected cell and erase clears them",
             "pause stops interaction",
+        )
+        require(
+            "test/debug_unlimited_hints_test.dart",
+            "unlimited hint inventory never decrements",
+            "normal hint inventory still decrements",
         )
         require(
             "test/game_pause_menu_test.dart",
@@ -338,7 +369,7 @@ def main() -> int:
         print(f"UX contract verification failed: {error}")
         return 1
 
-    print("Professional home, compact pause, variant, game, social, profile, safe-message, and common-feedback UX contracts are wired.")
+    print("Professional home, logo, aligned play/duel cards, notes, debug hints, variant, game, social, profile, safe-message, and common-feedback UX contracts are wired.")
     return 0
 
 
