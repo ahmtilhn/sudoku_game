@@ -211,8 +211,8 @@ class UxOutcomeHeader extends StatelessWidget {
         : icon == Icons.flag_rounded
         ? DuelAsset.resultDefeatTrophyPro
         : null;
-    final artworkSize = compact ? 64.0 : 110.0;
-    final fallbackSize = compact ? 58.0 : 88.0;
+    final artworkSize = compact ? 48.0 : 110.0;
+    final fallbackSize = compact ? 46.0 : 88.0;
     return Semantics(
       liveRegion: true,
       header: true,
@@ -232,23 +232,23 @@ class UxOutcomeHeader extends StatelessWidget {
                     ),
                     child: Icon(
                       icon,
-                      size: compact ? 32 : 46,
+                      size: compact ? 27 : 46,
                       color: color,
                     ),
                   ),
           ),
-          SizedBox(height: compact ? 5 : 10),
+          SizedBox(height: compact ? 2 : 10),
           Text(
             title,
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: (compact
-                    ? Theme.of(context).textTheme.titleLarge
+                    ? Theme.of(context).textTheme.titleMedium
                     : Theme.of(context).textTheme.headlineMedium)
                 ?.copyWith(fontWeight: FontWeight.w900),
           ),
-          SizedBox(height: compact ? 2 : 6),
+          SizedBox(height: compact ? 1 : 6),
           Text(
             subtitle,
             textAlign: TextAlign.center,
@@ -310,26 +310,26 @@ class UxOutcomeSheet extends StatelessWidget {
           compact: compact,
         ),
         if (metrics.isNotEmpty) ...[
-          SizedBox(height: compact ? 7 : 18),
+          SizedBox(height: compact ? 4 : 18),
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: compact ? 6 : 8,
-            runSpacing: compact ? 5 : 8,
+            spacing: compact ? 5 : 8,
+            runSpacing: compact ? 3 : 8,
             children: metrics,
           ),
         ],
         if (details != null) ...[
-          SizedBox(height: compact ? 7 : 18),
+          SizedBox(height: compact ? 4 : 18),
           details!,
         ],
         if (footer != null) ...[
-          SizedBox(height: compact ? 6 : 16),
+          SizedBox(height: compact ? 3 : 16),
           footer!,
         ],
         if (onPrimary != null && primaryLabel != null) ...[
-          SizedBox(height: compact ? 9 : 20),
+          SizedBox(height: compact ? 5 : 20),
           SizedBox(
-            height: compact ? 38 : null,
+            height: compact ? 34 : null,
             child: FilledButton(
               onPressed: onPrimary,
               child: FittedBox(
@@ -340,9 +340,9 @@ class UxOutcomeSheet extends StatelessWidget {
           ),
         ],
         if (onSecondary != null && secondaryLabel != null) ...[
-          SizedBox(height: compact ? 5 : 8),
+          SizedBox(height: compact ? 3 : 8),
           SizedBox(
-            height: compact ? 38 : null,
+            height: compact ? 34 : null,
             child: OutlinedButton(
               onPressed: onSecondary,
               child: FittedBox(
@@ -354,7 +354,7 @@ class UxOutcomeSheet extends StatelessWidget {
         ],
         if (onTertiary != null && tertiaryLabel != null)
           SizedBox(
-            height: compact ? 34 : null,
+            height: compact ? 28 : null,
             child: TextButton(
               onPressed: onTertiary,
               child: FittedBox(
@@ -375,7 +375,7 @@ class UxOutcomeSheet extends StatelessWidget {
       child: fixedResultStyle
           ? Padding(
               key: const ValueKey<String>('fixed-round-lost-outcome'),
-              padding: const EdgeInsets.fromLTRB(16, 9, 16, 10),
+              padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
               child: _buildContent(context, compact: true),
             )
           : SingleChildScrollView(
