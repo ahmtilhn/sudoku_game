@@ -53,6 +53,21 @@ class DuelAsset {
   static const statusSuccessPro = 'assets/images/ui/pro/status_success.svg';
   static const statusWarningPro = 'assets/images/ui/pro/status_warning.svg';
   static const statusOfflinePro = 'assets/images/ui/pro/status_offline.svg';
+
+  static const homePlayScene = 'assets/images/ui/pro/home_play_scene.svg';
+  static const homeDuelScene = 'assets/images/ui/pro/home_duel_scene.svg';
+  static const homeCareerScene = 'assets/images/ui/pro/home_career_scene.svg';
+  static const homeFriendsScene = 'assets/images/ui/pro/home_friends_scene.svg';
+  static const homeStoreScene = 'assets/images/ui/pro/home_store_scene.svg';
+  static const homeProfileScene = 'assets/images/ui/pro/home_profile_scene.svg';
+  static const dailyRewardPro = 'assets/images/ui/pro/reward_daily.svg';
+  static const walletCoinStackPro = 'assets/images/ui/pro/wallet_coin_stack.svg';
+  static const resultVictoryTrophyPro =
+      'assets/images/ui/pro/result_victory_trophy.svg';
+  static const resultDefeatTrophyPro =
+      'assets/images/ui/pro/result_defeat_trophy.svg';
+  static const leaderboardCrownPro =
+      'assets/images/ui/pro/leaderboard_crown.svg';
 }
 
 class DuelAssetIcon extends StatelessWidget {
