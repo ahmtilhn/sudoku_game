@@ -214,7 +214,10 @@ def main() -> int:
         require(
             "lib/services/player_profile_service.dart",
             "ValueNotifier<PlayerProfilePreferences?> current",
-            "preferences.profileConfirmed && preferences.nameSource == 'custom'",
+            "PlatformProfilePolicy.decideNameUpdate",
+            "profileConfirmed: preferences.profileConfirmed",
+            "currentNameSource: preferences.nameSource",
+            "platformDisplayName: platformName",
             "ensureProfile(displayName: platformName)",
         )
         require(
