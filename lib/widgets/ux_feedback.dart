@@ -217,27 +217,27 @@ class UxOutcomeHeader extends StatelessWidget {
         children: [
           Center(
             child: artwork != null
-                ? DuelAssetIcon(artwork, size: 94)
+                ? DuelAssetIcon(artwork, size: 110)
                 : Container(
-                    width: 76,
-                    height: 76,
+                    width: 88,
+                    height: 88,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: color.withValues(alpha: .16),
                       border: Border.all(color: color.withValues(alpha: .45)),
                     ),
-                    child: Icon(icon, size: 42, color: color),
+                    child: Icon(icon, size: 46, color: color),
                   ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             title,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 6),
           Text(
             subtitle,
             textAlign: TextAlign.center,
@@ -283,53 +283,65 @@ class UxOutcomeSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        UxOutcomeHeader(
+          icon: icon,
+          title: title,
+          subtitle: subtitle,
+          accent: accent,
+        ),
+        if (metrics.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: metrics,
+          ),
+        ],
+        if (details != null) ...[
+          const SizedBox(height: 18),
+          details!,
+        ],
+        if (footer != null) ...[
+          const SizedBox(height: 16),
+          footer!,
+        ],
+        if (onPrimary != null && primaryLabel != null) ...[
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: onPrimary,
+            child: Text(primaryLabel!),
+          ),
+        ],
+        if (onSecondary != null && secondaryLabel != null) ...[
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: onSecondary,
+            child: Text(secondaryLabel!),
+          ),
+        ],
+        if (onTertiary != null && tertiaryLabel != null)
+          TextButton(onPressed: onTertiary, child: Text(tertiaryLabel!)),
+      ],
+    );
+
+    final fixedResultStyle = icon == Icons.flag_rounded;
     return SafeArea(
       top: false,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            UxOutcomeHeader(
-              icon: icon,
-              title: title,
-              subtitle: subtitle,
-              accent: accent,
+      child: fixedResultStyle
+          ? Padding(
+              key: const ValueKey<String>('fixed-round-lost-outcome'),
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+              child: content,
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+              child: content,
             ),
-            if (metrics.isNotEmpty) ...[
-              const SizedBox(height: 18),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: metrics,
-              ),
-            ],
-            if (details != null) ...[
-              const SizedBox(height: 18),
-              details!,
-            ],
-            if (footer != null) ...[
-              const SizedBox(height: 16),
-              footer!,
-            ],
-            if (onPrimary != null && primaryLabel != null) ...[
-              const SizedBox(height: 20),
-              FilledButton(onPressed: onPrimary, child: Text(primaryLabel!)),
-            ],
-            if (onSecondary != null && secondaryLabel != null) ...[
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: onSecondary,
-                child: Text(secondaryLabel!),
-              ),
-            ],
-            if (onTertiary != null && tertiaryLabel != null)
-              TextButton(onPressed: onTertiary, child: Text(tertiaryLabel!)),
-          ],
-        ),
-      ),
     );
   }
 }
