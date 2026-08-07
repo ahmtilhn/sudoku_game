@@ -7,7 +7,6 @@ import '../debug/debug_economy.dart';
 import 'ads_service.dart';
 import 'economy_api_client.dart';
 
-@visibleForTesting
 int positiveCoinDelta(int before, int after) => after > before ? after - before : 0;
 
 class EconomyService extends ChangeNotifier {
