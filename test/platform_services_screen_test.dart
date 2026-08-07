@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/features/social/platform_services_screen.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
+import 'package:sudoku_game/widgets/duel_asset_icon.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +59,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Global ELO'), findsOneWidget);
     expect(find.byType(ListView), findsOneWidget);
+    expect(find.byType(DuelAssetIcon), findsAtLeastNWidgets(3));
 
     final scrollable = find.byType(Scrollable).first;
     final scrollState = tester.state<ScrollableState>(scrollable);
@@ -71,6 +73,5 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -900));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    expect(find.byType(Card), findsWidgets);
   });
 }
