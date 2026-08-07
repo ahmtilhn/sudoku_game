@@ -34,6 +34,8 @@ void main() {
     expect(source, contains('static const dailyRewardPro = gift;'));
     expect(source, contains('static const walletCoinStackPro = coin;'));
     expect(source, contains('static const removeAdsPro = shield;'));
+    expect(source, contains('static const Set<String> fullColorArtwork'));
+    expect(source, contains('preserveOriginalColor ? null : color'));
   });
 
   test('home is centered and consumes current coin and gift artwork', () {
@@ -53,7 +55,7 @@ void main() {
     expect(home, contains('child: Center('));
   });
 
-  test('coin store uses untinted current economy artwork without fixed overflow', () {
+  test('coin store uses current economy artwork without fixed overflow', () {
     final store = File(
       'lib/features/economy/coin_store_screen.dart',
     ).readAsStringSync();
@@ -62,9 +64,8 @@ void main() {
     expect(store, contains('DuelAsset.gift'));
     expect(store, contains('DuelAsset.removeAdsPro'));
     expect(store, contains('DuelAsset.diamond'));
+    expect(store, contains('_StoreArtwork'));
     expect(store, isNot(contains('width: 360')));
-    expect(store, isNot(contains('color: Color(0xFF29D398)')));
-    expect(store, isNot(contains('color: Color(0xFF3AA9FF)')));
   });
 
   test('leaderboard and outcome screens consume production artwork', () {
