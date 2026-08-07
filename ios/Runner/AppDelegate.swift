@@ -227,15 +227,23 @@ import UIKit
     }
   }
 
-  private func getLocalPlayer(result: FlutterResult) {
+  private func getLocalPlayer(result: @escaping FlutterResult) {
     guard ensureAuthenticated(result: result) else { return }
     let player = GKLocalPlayer.local
-    result([
-      "platform": "game_center",
-      "playerId": player.gamePlayerID,
-      "displayName": player.displayName,
-      "alias": player.alias,
-    ])
+    player.loadPhoto(for: .small) { image, _ in
+      DispatchQueue.main.async {
+        var payload: [String: Any] = [
+          "platform": "game_center",
+          "playerId": player.gamePlayerID,
+          "displayName": player.displayName,
+          "alias": player.alias,
+        ]
+        if let data = image?.jpegData(compressionQuality: 0.88), !data.isEmpty {
+          payload["avatarBytesBase64"] = data.base64EncodedString()
+        }
+        result(payload)
+      }
+    }
   }
 
   private func loadFriends(result: @escaping FlutterResult) {
