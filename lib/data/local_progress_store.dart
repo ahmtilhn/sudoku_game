@@ -124,7 +124,11 @@ class LevelProgress {
 }
 
 class LocalProgressStore extends ChangeNotifier {
-  LocalProgressStore._(this._preferences, {required this.unlimitedCoins});
+  LocalProgressStore._(
+    this._preferences, {
+    required this.unlimitedCoins,
+    required this.unlimitedHints,
+  });
 
   static const _progressKey = 'career_progress_v2';
   static const _legacyProgressKey = 'career_progress_v1';
@@ -139,6 +143,7 @@ class LocalProgressStore extends ChangeNotifier {
 
   final PreferencesBackend _preferences;
   final bool unlimitedCoins;
+  final bool unlimitedHints;
   final Map<String, LevelProgress> _progress = <String, LevelProgress>{};
 
   ThemeMode themeMode = ThemeMode.system;
@@ -151,6 +156,7 @@ class LocalProgressStore extends ChangeNotifier {
     final store = LocalProgressStore._(
       SharedPreferencesBackend(),
       unlimitedCoins: debugUnlimitedCoinsEnabled,
+      unlimitedHints: debugUnlimitedHintsEnabled,
     );
     await store._load();
     return store;
@@ -159,10 +165,12 @@ class LocalProgressStore extends ChangeNotifier {
   static Future<LocalProgressStore> createInMemory({
     Map<String, Object>? initialValues,
     bool unlimitedCoins = false,
+    bool unlimitedHints = false,
   }) async {
     final store = LocalProgressStore._(
       MemoryPreferencesBackend(initialValues),
       unlimitedCoins: unlimitedCoins,
+      unlimitedHints: unlimitedHints,
     );
     await store._load();
     return store;
@@ -294,6 +302,7 @@ class LocalProgressStore extends ChangeNotifier {
   }
 
   Future<bool> consumeHint() async {
+    if (unlimitedHints) return true;
     if (hints <= 0) return false;
     hints--;
     await _preferences.setInt(_hintsKey, hints);
@@ -302,13 +311,14 @@ class LocalProgressStore extends ChangeNotifier {
   }
 
   Future<void> addHints(int amount) async {
-    if (amount <= 0) return;
+    if (amount <= 0 || unlimitedHints) return;
     hints += amount;
     await _preferences.setInt(_hintsKey, hints);
     notifyListeners();
   }
 
   Future<bool> purchaseHint({required int coinCost}) async {
+    if (unlimitedHints) return true;
     if (coinCost <= 0 || coins < coinCost) return false;
     if (unlimitedCoins) {
       hints++;
@@ -373,6 +383,7 @@ class LocalProgressStore extends ChangeNotifier {
     coins = await _preferences.getInt(_coinsKey) ?? initialCoins;
     if (unlimitedCoins) coins = debugUnlimitedCoinBalance;
     hints = await _preferences.getInt(_hintsKey) ?? initialHints;
+    if (unlimitedHints) hints = debugUnlimitedHintBalance;
 
     final raw = await _preferences.getString(_progressKey);
     if (raw != null && raw.isNotEmpty) {
