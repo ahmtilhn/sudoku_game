@@ -132,6 +132,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
       );
       return false;
     }
+
     setState(() => _identityBusy = true);
     try {
       await FirebaseSessionService.ensureAnonymousSession();
@@ -289,6 +290,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
       claimed = await _economy.claimDailyRewardedAd();
     }
     if (!mounted) return;
+
     if (claimed) {
       await GameModal.success(
         context,
@@ -316,6 +318,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
     final rewardReady =
         _economy.wallet?.dailyLoginAvailable == true ||
         (_economy.wallet?.dailyAdAvailable == true && !_economy.noAds);
+
     final primaryItems = <_HomeModeData>[
       _HomeModeData(
         asset: DuelAsset.homePlayScene,
@@ -334,6 +337,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
         primary: true,
       ),
     ];
+
     final secondaryItems = <_HomeModeData>[
       _HomeModeData(
         asset: DuelAsset.homeCareerScene,
@@ -377,6 +381,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
             builder: (context, constraints) {
               final compact = constraints.maxHeight < 700;
               final wide = constraints.maxWidth >= 760;
+
               return Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 900),
@@ -404,41 +409,50 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
                             UxSettingsScreen(store: widget.store),
                           ),
                         ),
-                        SizedBox(height: compact ? 4 : 7),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            context.tr('app_name').toUpperCase(),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: compact ? 22 : 27,
-                              height: 1,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: .9,
+                        Expanded(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 760),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    context.tr('app_name').toUpperCase(),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: compact ? 22 : 27,
+                                      height: 1,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: .9,
+                                    ),
+                                  ),
+                                  if (_activeSession != null) ...[
+                                    SizedBox(height: compact ? 6 : 8),
+                                    _ResumeStrip(
+                                      session: _activeSession!,
+                                      busy: _openingGame,
+                                      onTap: _resume,
+                                    ),
+                                  ],
+                                  SizedBox(height: compact ? 9 : 13),
+                                  _PrimaryModes(
+                                    items: primaryItems,
+                                    compact: compact,
+                                    wide: wide,
+                                  ),
+                                  SizedBox(height: compact ? 8 : 10),
+                                  _SecondaryModes(
+                                    items: secondaryItems,
+                                    compact: compact,
+                                    wide: wide,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                        if (_activeSession != null) ...[
-                          SizedBox(height: compact ? 6 : 8),
-                          _ResumeStrip(
-                            session: _activeSession!,
-                            busy: _openingGame,
-                            onTap: _resume,
-                          ),
-                        ],
-                        SizedBox(height: compact ? 8 : 12),
-                        _PrimaryModes(
-                          items: primaryItems,
-                          compact: compact,
-                          wide: wide,
-                        ),
-                        SizedBox(height: compact ? 8 : 10),
-                        _SecondaryModes(
-                          items: secondaryItems,
-                          compact: compact,
-                          wide: wide,
-                        ),
-                        const Spacer(),
                       ],
                     ),
                   ),
@@ -480,6 +494,7 @@ class _HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = profile?.displayName ?? 'Sudoku Player';
+
     return SizedBox(
       height: 44,
       child: Row(
@@ -521,21 +536,28 @@ class _HomeHeader extends StatelessWidget {
               ),
             ),
           ),
-          if (rewardReady)
-            _HeaderButton(
-              tooltip: context.tr('home_daily_reward_title'),
-              onTap: onReward,
-              accent: const Color(0xFFFFC73D),
-              child: const DuelAssetIcon(DuelAsset.dailyRewardPro, size: 28),
+          _HeaderButton(
+            tooltip: context.tr('home_daily_reward_title'),
+            onTap: rewardReady ? onReward : null,
+            accent: rewardReady ? const Color(0xFFFFC73D) : null,
+            child: Opacity(
+              opacity: rewardReady ? 1 : .52,
+              child: const DuelAssetIcon(
+                DuelAsset.gift,
+                size: 30,
+                fit: BoxFit.contain,
+              ),
             ),
-          if (rewardReady) const SizedBox(width: 4),
+          ),
+          const SizedBox(width: 4),
           _HeaderButton(
             tooltip: context.tr('leaderboards'),
             onTap: identityBusy ? null : onLeaderboards,
             accent: const Color(0xFFFFC73D),
             child: const DuelAssetIcon(
               DuelAsset.leaderboardCrownPro,
-              size: 27,
+              size: 28,
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(width: 4),
@@ -545,13 +567,13 @@ class _HomeHeader extends StatelessWidget {
             child: Badge(
               isLabelVisible: badge > 0,
               label: Text('$badge'),
-              child: const DuelAssetIcon(DuelAsset.homeFriendsScene, size: 25),
+              child: const DuelAssetIcon(DuelAsset.people, size: 22),
             ),
           ),
           const SizedBox(width: 4),
           Container(
             height: 38,
-            padding: const EdgeInsets.only(left: 4, right: 8),
+            padding: const EdgeInsets.only(left: 3, right: 8),
             decoration: BoxDecoration(
               color: const Color(0xFF0A1728).withValues(alpha: .92),
               borderRadius: BorderRadius.circular(999),
@@ -560,8 +582,13 @@ class _HomeHeader extends StatelessWidget {
               ),
             ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const DuelAssetIcon(DuelAsset.walletCoinStackPro, size: 29),
+                const DuelAssetIcon(
+                  DuelAsset.coin,
+                  size: 30,
+                  fit: BoxFit.contain,
+                ),
                 const SizedBox(width: 2),
                 Text(
                   NumberFormat.compact().format(balance),
@@ -600,19 +627,23 @@ class _HeaderButton extends StatelessWidget {
   final Color? accent;
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    tooltip: tooltip,
-    onPressed: onTap,
-    style: IconButton.styleFrom(
-      fixedSize: const Size(38, 38),
-      padding: EdgeInsets.zero,
-      backgroundColor: const Color(0xFF0A1728).withValues(alpha: .92),
-      side: BorderSide(
-        color: (accent ?? Colors.white).withValues(alpha: accent == null ? .13 : .34),
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onTap,
+      style: IconButton.styleFrom(
+        fixedSize: const Size(38, 38),
+        padding: EdgeInsets.zero,
+        backgroundColor: const Color(0xFF0A1728).withValues(alpha: .92),
+        side: BorderSide(
+          color: (accent ?? Colors.white).withValues(
+            alpha: accent == null ? .13 : .34,
+          ),
+        ),
       ),
-    ),
-    icon: child,
-  );
+      icon: child,
+    );
+  }
 }
 
 class _ResumeStrip extends StatelessWidget {
@@ -629,6 +660,7 @@ class _ResumeStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final variant = session.puzzle.variant;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -726,6 +758,7 @@ class _PrimaryModes extends StatelessWidget {
       return SizedBox(
         height: compact ? 110 : 124,
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Expanded(child: _HomeModeTile(data: items[0], compact: compact)),
             const SizedBox(width: 10),
@@ -734,7 +767,9 @@ class _PrimaryModes extends StatelessWidget {
         ),
       );
     }
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
           height: compact ? 90 : 100,
@@ -766,6 +801,7 @@ class _SecondaryModes extends StatelessWidget {
     final columns = wide ? 4 : 2;
     final itemHeight = compact ? 78.0 : 88.0;
     final rows = (items.length / columns).ceil();
+
     return SizedBox(
       height: rows * itemHeight + (rows - 1) * 8,
       child: GridView.builder(
@@ -803,6 +839,7 @@ class _HomeModeTile extends StatelessWidget {
         : compact
         ? 52.0
         : 60.0;
+
     return Semantics(
       button: true,
       enabled: data.onTap != null,
@@ -841,18 +878,13 @@ class _HomeModeTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: artSize,
-                  height: artSize,
-                  padding: EdgeInsets.all(data.primary ? 2 : 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF07111E).withValues(alpha: .66),
-                    borderRadius: BorderRadius.circular(data.primary ? 17 : 14),
-                    border: Border.all(
-                      color: data.accent.withValues(alpha: .26),
-                    ),
+                SizedBox.square(
+                  dimension: artSize,
+                  child: DuelAssetIcon(
+                    data.asset,
+                    size: artSize,
+                    fit: BoxFit.contain,
                   ),
-                  child: DuelAssetIcon(data.asset, size: artSize - 4),
                 ),
                 SizedBox(width: data.primary ? 11 : 8),
                 Expanded(
@@ -1049,6 +1081,7 @@ class _DialogVariantCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final is16 = variant.id == SudokuVariantId.classic16;
     final accent = is16 ? const Color(0xFF35D2FF) : const Color(0xFFFFC73D);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1074,18 +1107,12 @@ class _DialogVariantCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 66,
-                height: 66,
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF07111E).withValues(alpha: .7),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: accent.withValues(alpha: .3)),
-                ),
+              SizedBox.square(
+                dimension: 66,
                 child: DuelAssetIcon(
                   is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                  size: 60,
+                  size: 66,
+                  fit: BoxFit.contain,
                 ),
               ),
               const SizedBox(width: 9),
