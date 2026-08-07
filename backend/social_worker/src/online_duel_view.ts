@@ -45,10 +45,13 @@ export function snapshot(
     currentTurnSeat: state.currentTurnSeat,
     turnNumber: state.turnNumber,
     turnDeadline: state.turnDeadline,
+    pausedTurnRemainingMs: state.pausedTurnRemainingMs ?? null,
     lobbyDeadline: state.lobbyDeadline ?? null,
     readyDeadline: state.readyDeadline,
     matchDeadline:
-      state.startedAt === null ? null : state.startedAt + MAX_MATCH_DURATION_MS,
+      state.startedAt === null
+        ? null
+        : state.startedAt + MAX_MATCH_DURATION_MS + (state.totalPausedMs ?? 0),
     serverTime: now,
     ready: { A: state.playerA.ready, B: state.playerB.ready },
     presence: { A: state.playerA.connected, B: state.playerB.connected },
@@ -94,9 +97,16 @@ export function readinessPayload(
   extra: Record<string, unknown> = {},
 ): Record<string, unknown> {
   return {
+    status: state.status,
     readyDeadline: state.readyDeadline,
+    turnDeadline: state.turnDeadline,
+    pausedTurnRemainingMs: state.pausedTurnRemainingMs ?? null,
     ready: { A: state.playerA.ready, B: state.playerB.ready },
     presence: { A: state.playerA.connected, B: state.playerB.connected },
+    disconnectDeadlines: {
+      A: state.playerA.disconnectDeadline,
+      B: state.playerB.disconnectDeadline,
+    },
     screenLoaded: {
       A: state.playerA.screenLoaded,
       B: state.playerB.screenLoaded,

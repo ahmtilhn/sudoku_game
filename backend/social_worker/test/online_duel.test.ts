@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  DISCONNECT_GRACE_MS,
   LOBBY_DEADLINE_MS,
   MAX_CONSECUTIVE_TIMEOUTS,
   MAX_MATCH_DURATION_MS,
@@ -259,26 +260,45 @@ describe('authoritative online duel engine', () => {
     expect(duel.finishReason).toBe('max_match_duration');
   });
 
-  it('disconnect grace allows reconnect before forfeit', () => {
+  it('pauses the match and preserves the remaining turn time during reconnect', () => {
     const duel = state();
     startDuel(duel);
-    markConnected(duel, 'A', 1_003);
-    markDisconnected(duel, 'A', 1_004);
-    expect(duel.playerA.disconnectDeadline).toBeGreaterThan(1_004);
+    const disconnectAt = 5_000;
+    const originalDeadline = duel.turnDeadline!;
+    const remaining = originalDeadline - disconnectAt;
 
-    markConnected(duel, 'A', 2_000);
-    applyDueDeadlines(duel, 50_000);
+    markDisconnected(duel, 'A', disconnectAt);
+
+    expect(duel.status).toBe('paused');
+    expect(duel.turnDeadline).toBeNull();
+    expect(duel.pausedTurnRemainingMs).toBe(remaining);
+    expect(duel.playerA.disconnectDeadline).toBe(
+      disconnectAt + DISCONNECT_GRACE_MS,
+    );
+
+    const reconnectAt = 20_000;
+    markConnected(duel, 'A', reconnectAt);
 
     expect(duel.status).toBe('active');
     expect(duel.playerA.disconnectDeadline).toBeNull();
+    expect(duel.pausedTurnRemainingMs).toBeNull();
+    expect(duel.turnDeadline).toBe(reconnectAt + remaining);
+
+    const events = applyDueDeadlines(duel, reconnectAt + remaining - 1);
+    expect(events.map((event) => event.type)).not.toContain('turn_timeout');
+  });
+
+  it('uses a 30 second reconnect window', () => {
+    expect(DISCONNECT_GRACE_MS).toBe(30_000);
   });
 
   it('disconnect grace expiry forfeits to the opponent', () => {
     const duel = state();
     startDuel(duel);
-    markDisconnected(duel, 'A', 1_003);
+    const disconnectAt = 5_000;
+    markDisconnected(duel, 'A', disconnectAt);
 
-    applyDueDeadlines(duel, 50_000);
+    applyDueDeadlines(duel, disconnectAt + DISCONNECT_GRACE_MS);
 
     expect(duel.status).toBe('forfeited');
     expect(duel.winnerSeat).toBe('B');

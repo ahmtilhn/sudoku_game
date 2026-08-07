@@ -125,6 +125,46 @@ void main() {
     expect(find.text('s'), findsOneWidget);
   });
 
+  testWidgets('active header aligns timer with both avatars and puts score before names', (tester) async {
+    await _pumpOnlineDuel(tester, size: const Size(390, 844), status: 'active');
+
+    final timerCenter = tester.getCenter(
+      find.byKey(const ValueKey<String>('online-turn-timer')),
+    );
+    final avatarACenter = tester.getCenter(
+      find.byKey(const ValueKey<String>('duel-avatar-A')),
+    );
+    final avatarBCenter = tester.getCenter(
+      find.byKey(const ValueKey<String>('duel-avatar-B')),
+    );
+    expect((timerCenter.dy - avatarACenter.dy).abs(), lessThan(2));
+    expect((timerCenter.dy - avatarBCenter.dy).abs(), lessThan(2));
+
+    expect(
+      tester.getCenter(find.byKey(const ValueKey<String>('duel-score-A'))).dx,
+      lessThan(tester.getCenter(find.byKey(const ValueKey<String>('duel-name-A'))).dx),
+    );
+    expect(
+      tester.getCenter(find.byKey(const ValueKey<String>('duel-score-B'))).dx,
+      lessThan(tester.getCenter(find.byKey(const ValueKey<String>('duel-name-B'))).dx),
+    );
+  });
+
+  testWidgets('paused online duel blocks input and shows reconnect state', (tester) async {
+    await _pumpOnlineDuel(
+      tester,
+      size: const Size(390, 844),
+      status: 'paused',
+      opponentConnected: false,
+    );
+
+    expect(find.text('Opponent is connecting'), findsOneWidget);
+    final numberButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('number-1')),
+    );
+    expect(numberButton.onPressed, isNull);
+  });
+
   testWidgets('opponent turn keeps board readable and disables number input', (
     tester,
   ) async {
@@ -151,6 +191,7 @@ Future<void> _pumpOnlineDuel(
   TextDirection textDirection = TextDirection.ltr,
   String status = 'ready_window',
   String currentTurnSeat = 'A',
+  bool opponentConnected = true,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -186,7 +227,11 @@ Future<void> _pumpOnlineDuel(
   transport.emit(
     _event(
       'snapshot',
-      _snapshot(status: status, currentTurnSeat: currentTurnSeat),
+      _snapshot(
+        status: status,
+        currentTurnSeat: currentTurnSeat,
+        opponentConnected: opponentConnected,
+      ),
     ),
   );
   await tester.pump();
@@ -223,6 +268,7 @@ OnlineDuelEvent _event(String type, Map<String, dynamic> payload) {
 Map<String, dynamic> _snapshot({
   String status = 'active',
   String currentTurnSeat = 'A',
+  bool opponentConnected = true,
 }) {
   final puzzle = List<int>.filled(81, 0)..[0] = 1;
   final now = DateTime.now();
@@ -250,7 +296,10 @@ Map<String, dynamic> _snapshot({
         'avatarKey': 'default',
         'ready': false,
         'screenLoaded': true,
-        'connected': true,
+        'connected': opponentConnected,
+        'disconnectDeadline': opponentConnected
+            ? null
+            : now.add(const Duration(seconds: 30)).millisecondsSinceEpoch,
       },
     },
     'puzzle': puzzle,
@@ -264,7 +313,10 @@ Map<String, dynamic> _snapshot({
     'readyDeadline': now
         .add(const Duration(seconds: 10))
         .millisecondsSinceEpoch,
-    'turnDeadline': now.add(const Duration(seconds: 30)).millisecondsSinceEpoch,
+    'turnDeadline': status == 'paused'
+        ? null
+        : now.add(const Duration(seconds: 30)).millisecondsSinceEpoch,
+    'pausedTurnRemainingMs': status == 'paused' ? 17000 : null,
     'serverTime': 1000,
     'revision': 2,
   };

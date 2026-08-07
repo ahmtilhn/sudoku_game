@@ -117,6 +117,30 @@ class OnlineDuelController with WidgetsBindingObserver {
   }
 
   void _handleConnectionState(OnlineDuelConnectionState state) {
+    final current = _snapshot;
+    if (
+      current != null &&
+      current.status == OnlineDuelStatus.active &&
+      (state == OnlineDuelConnectionState.reconnecting ||
+          state == OnlineDuelConnectionState.failed)
+    ) {
+      final now = DateTime.now();
+      final remainingMs = current.turnDeadline == null
+          ? 0
+          : current.turnDeadline!
+                .difference(now)
+                .inMilliseconds
+                .clamp(0, 30000)
+                .toInt();
+      _snapshot = current.copyWith(
+        status: OnlineDuelStatus.paused,
+        turnDeadline: null,
+        pausedTurnRemainingMs: remainingMs,
+        serverTime: now,
+      );
+      _snapshots.add(_snapshot!);
+    }
+
     AppMessenger.showOnlineConnectionState(state);
     if (state == OnlineDuelConnectionState.resyncing) {
       final pendingMove = _pendingMoveEnvelope;
@@ -268,6 +292,13 @@ class OnlineDuelController with WidgetsBindingObserver {
       readyDeadline: event.payload.containsKey('readyDeadline')
           ? _dateFromMillis(event.payload['readyDeadline'])
           : snapshot.readyDeadline,
+      turnDeadline: event.payload.containsKey('turnDeadline')
+          ? _dateFromMillis(event.payload['turnDeadline'])
+          : snapshot.turnDeadline,
+      pausedTurnRemainingMs:
+          event.payload.containsKey('pausedTurnRemainingMs')
+          ? (event.payload['pausedTurnRemainingMs'] as num?)?.toInt()
+          : snapshot.pausedTurnRemainingMs,
       revision: event.revision,
       serverTime: event.serverTime,
     );

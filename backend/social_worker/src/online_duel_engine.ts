@@ -82,6 +82,9 @@ export function createInitialDuelState(input: {
     turnNumber: 1,
     turnStartedAt: null,
     turnDeadline: null,
+    pauseStartedAt: null,
+    pausedTurnRemainingMs: null,
+    totalPausedMs: 0,
     revision: 1,
     lastProcessed: {},
     winnerSeat: null,
@@ -318,9 +321,9 @@ export function applyDueDeadlines(
   }
 
   if (
-    (state.status === 'active' || state.status === 'paused') &&
+    state.status === 'active' &&
     state.startedAt !== null &&
-    now >= state.startedAt + MAX_MATCH_DURATION_MS
+    now >= state.startedAt + MAX_MATCH_DURATION_MS + (state.totalPausedMs ?? 0)
   ) {
     finishByScore(state, now, 'max_match_duration');
     events.push(event(state, 'match_completed', now, publicResult(state)));
@@ -384,6 +387,27 @@ export function markConnected(
   current.connected = true;
   current.lastSeenAt = now;
   current.disconnectDeadline = null;
+
+  if (
+    state.status === 'paused' &&
+    state.finishedAt === null &&
+    state.playerA.connected &&
+    state.playerB.connected
+  ) {
+    const pausedAt = state.pauseStartedAt ?? now;
+    const remaining = Math.max(
+      1_000,
+      Math.min(TURN_DURATION_MS, state.pausedTurnRemainingMs ?? TURN_DURATION_MS),
+    );
+    state.totalPausedMs =
+      (state.totalPausedMs ?? 0) + Math.max(0, now - pausedAt);
+    state.status = 'active';
+    state.turnDeadline = now + remaining;
+    state.turnStartedAt = now - Math.max(0, TURN_DURATION_MS - remaining);
+    state.pauseStartedAt = null;
+    state.pausedTurnRemainingMs = null;
+  }
+
   state.revision++;
   return event(
     state,
@@ -402,14 +426,24 @@ export function markDisconnected(
   current.connected = false;
   current.screenLoaded = false;
   current.lastSeenAt = now;
-  if (state.startedAt !== null && state.status === 'active') {
-    const grace = Math.min(
-      DISCONNECT_GRACE_MS,
-      current.graceRemainingMs,
-    );
-    current.graceRemainingMs -= grace;
-    current.disconnectDeadline = now + Math.max(1_000, grace);
+
+  if (
+    state.startedAt !== null &&
+    (state.status === 'active' || state.status === 'paused')
+  ) {
+    current.disconnectDeadline = now + DISCONNECT_GRACE_MS;
+
+    if (state.status === 'active') {
+      const remaining = state.turnDeadline === null
+        ? TURN_DURATION_MS
+        : Math.max(1_000, Math.min(TURN_DURATION_MS, state.turnDeadline - now));
+      state.status = 'paused';
+      state.pauseStartedAt = now;
+      state.pausedTurnRemainingMs = remaining;
+      state.turnDeadline = null;
+    }
   }
+
   if (state.status === 'ready_window') {
     state.status = 'waiting';
     state.readyDeadline = null;
@@ -419,11 +453,7 @@ export function markDisconnected(
     state,
     'player_presence',
     now,
-    readinessPayload(state, {
-      seat,
-      connected: false,
-      disconnectDeadline: current.disconnectDeadline,
-    }),
+    readinessPayload(state, { seat, connected: false }),
   );
 }
 

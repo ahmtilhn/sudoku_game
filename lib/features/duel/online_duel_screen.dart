@@ -22,6 +22,7 @@ import '../../widgets/ux_feedback.dart';
 import '../economy/coin_store_screen.dart';
 import 'matchmaking_screen.dart';
 import 'pre_match_ready_screen.dart';
+import 'duel_payout_display.dart';
 
 class OnlineDuelScreen extends StatefulWidget {
   const OnlineDuelScreen({super.key, required this.roomId, this.controller});
@@ -308,7 +309,9 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
-    final activeArena = snapshot?.status == OnlineDuelStatus.active;
+    final activeArena =
+        snapshot?.status == OnlineDuelStatus.active ||
+        snapshot?.status == OnlineDuelStatus.paused;
     final inputLocked =
         snapshot != null &&
         (snapshot.isFinished ||
@@ -457,12 +460,15 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             ),
           ),
         );
-        if (snapshot.status == OnlineDuelStatus.active) {
+        if (snapshot.status == OnlineDuelStatus.active ||
+            snapshot.status == OnlineDuelStatus.paused) {
           return _ArenaMatchLayout(
             snapshot: snapshot,
             compact: compact,
             board: board,
-            statusText: _forfeiting
+            statusText: snapshot.status == OnlineDuelStatus.paused
+                ? context.tr('connection_interrupted_retrying')
+                : _forfeiting
                 ? context.tr('connection_interrupted_retrying')
                 : _controller?.pendingMove == true
                 ? context.tr('sending_move')
@@ -594,14 +600,12 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
         ? 0
         : invite.expiresAt.difference(DateTime.now()).inSeconds.clamp(0, 10);
     final draw = snapshot.winnerSeat == null;
-    final localNetCoin = draw
-        ? 0
-        : won
-        ? entryFee
-        : -entryFee;
-    final opponentNetCoin = -localNetCoin;
-    String coinLabel(int value) =>
-        '${value > 0 ? '+' : ''}${context.tr('coin_amount', <Object>[value])}';
+    final payout = DuelPayoutDisplay.fromSnapshot(
+      snapshot,
+      entryFee: entryFee,
+    );
+    String coinAmount(int value) =>
+        context.tr('coin_amount', <Object>[value]);
     final footer = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -719,9 +723,15 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                 asset: DuelAsset.lightbulb,
               ),
               _ResultMetric(
-                label: context.tr('coin_result'),
-                localValue: coinLabel(localNetCoin),
-                opponentValue: coinLabel(opponentNetCoin),
+                label: context.tr('entry_fee'),
+                localValue: coinAmount(payout.entryFee),
+                opponentValue: coinAmount(payout.entryFee),
+                asset: DuelAsset.coin,
+              ),
+              _ResultMetric(
+                label: context.tr(payout.refunded ? 'refund' : 'winner_pot'),
+                localValue: coinAmount(payout.localPayout),
+                opponentValue: coinAmount(payout.opponentPayout),
                 asset: DuelAsset.coin,
               ),
             ],
@@ -1483,22 +1493,43 @@ class _ArenaMatchLayout extends StatelessWidget {
                   final boardSize = wide
                       ? (boardMax - 10).clamp(280.0, 520.0)
                       : boardMax.clamp(260.0, 520.0);
+                  OnlineDuelSeat? disconnectedSeat;
+                  OnlineDuelPlayer? disconnectedPlayer;
+                  for (final entry in snapshot.players.entries) {
+                    if (!entry.value.connected) {
+                      disconnectedSeat = entry.key;
+                      disconnectedPlayer = entry.value;
+                      break;
+                    }
+                  }
+                  final pauseLabel = disconnectedSeat != null &&
+                          disconnectedSeat != snapshot.youSeat
+                      ? context.tr('opponent_connecting')
+                      : context.tr('reconnecting');
                   final boardWidget = Center(
                     child: SizedBox.square(
                       dimension: boardSize,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFF3D74B6,
-                              ).withValues(alpha: .14),
-                              blurRadius: 18,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF3D74B6).withValues(alpha: .14),
+                                  blurRadius: 18,
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: board,
+                            child: board,
+                          ),
+                          if (snapshot.status == OnlineDuelStatus.paused)
+                            _ReconnectPauseOverlay(
+                              label: pauseLabel,
+                              deadline: disconnectedPlayer?.disconnectDeadline,
+                            ),
+                        ],
                       ),
                     ),
                   );
@@ -1527,6 +1558,92 @@ class _ArenaMatchLayout extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReconnectPauseOverlay extends StatefulWidget {
+  const _ReconnectPauseOverlay({required this.label, this.deadline});
+
+  final String label;
+  final DateTime? deadline;
+
+  @override
+  State<_ReconnectPauseOverlay> createState() => _ReconnectPauseOverlayState();
+}
+
+class _ReconnectPauseOverlayState extends State<_ReconnectPauseOverlay> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final deadline = widget.deadline;
+    final remaining = deadline == null
+        ? null
+        : deadline.difference(DateTime.now()).inSeconds.clamp(0, 30);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF07111E).withValues(alpha: .78),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 260),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF18273A).withValues(alpha: .96),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFFFFC94D).withValues(alpha: .45),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const DuelAssetIcon(DuelAsset.wifi, size: 34),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.label,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                  if (remaining != null) ...[
+                    const SizedBox(height: 5),
+                    Text(
+                      context.tr('turn_timer_seconds', <Object>[remaining]),
+                      style: const TextStyle(
+                        color: Color(0xFFFFC94D),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -1765,9 +1882,13 @@ class _MatchHeader extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: 0,
+              top: 9.5,
               child: _TimerPill(
                 deadline: snapshot.turnDeadline,
+                pausedRemainingMs:
+                    snapshot.status == OnlineDuelStatus.paused
+                    ? snapshot.pausedTurnRemainingMs
+                    : null,
                 compact: compact,
                 size: timerSize,
               ),
@@ -1866,11 +1987,17 @@ class _HeaderCircuitPainter extends CustomPainter {
 }
 
 class _TimerPill extends StatefulWidget {
-  const _TimerPill({required this.deadline, required this.compact, this.size});
+  const _TimerPill({
+    required this.deadline,
+    required this.compact,
+    this.size,
+    this.pausedRemainingMs,
+  });
 
   final DateTime? deadline;
   final bool compact;
   final double? size;
+  final int? pausedRemainingMs;
 
   @override
   State<_TimerPill> createState() => _TimerPillState();
@@ -1897,7 +2024,9 @@ class _TimerPillState extends State<_TimerPill> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final gameColors = Theme.of(context).extension<GameColors>()!;
-    final seconds = _secondsUntil(widget.deadline);
+    final seconds = widget.pausedRemainingMs == null
+        ? _secondsUntil(widget.deadline)
+        : (widget.pausedRemainingMs! / 1000).ceil();
     final color = seconds != null && seconds <= 5
         ? gameColors.timerCritical
         : seconds != null && seconds <= 10
@@ -1905,6 +2034,7 @@ class _TimerPillState extends State<_TimerPill> {
         : scheme.primary;
     final size = widget.size ?? (widget.compact ? 52.0 : 70.0);
     return Container(
+      key: const ValueKey<String>('online-turn-timer'),
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -1999,103 +2129,51 @@ class _DuelPlayerPlate extends StatelessWidget {
     final displayName = isLocalPlayer ? context.tr('you') : player.displayName;
     final score = snapshot.scores[seat] ?? 0;
     final avatarRadius = compact ? 17.0 : 23.0;
-    final avatar = _AvatarRing(
-      color: accent,
-      active: active,
-      child: PlayerAvatar(
-        displayName: player.displayName,
-        avatarKey: player.avatarKey,
-        radius: avatarRadius,
-        semanticLabel: context.tr('player_avatar_semantics', <Object>[
-          displayName,
-        ]),
-      ),
-    );
-    final children = <Widget>[
-      avatar,
-      SizedBox(width: compact ? 6 : 9),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: alignEnd
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (compact)
-              Align(
-                alignment: alignEnd
-                    ? AlignmentDirectional.centerEnd
-                    : AlignmentDirectional.centerStart,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: alignEnd
-                      ? AlignmentDirectional.centerEnd
-                      : AlignmentDirectional.centerStart,
-                  child: Column(
-                    crossAxisAlignment: alignEnd
-                        ? CrossAxisAlignment.end
-                        : CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        displayName,
-                        maxLines: 1,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      _ScoreLine(
-                        score: score,
-                        connected: player.connected,
-                        color: accent,
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              Row(
-                mainAxisAlignment: alignEnd
-                    ? MainAxisAlignment.end
-                    : MainAxisAlignment.start,
-                children: [
-                  Flexible(
-                    child: Text(
-                      displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            if (!compact) ...[
-              const SizedBox(height: 3),
-              Align(
-                alignment: alignEnd
-                    ? AlignmentDirectional.centerEnd
-                    : AlignmentDirectional.centerStart,
-                child: _ScoreLine(
-                  score: score,
-                  connected: player.connected,
-                  color: accent,
-                ),
-              ),
-            ],
-          ],
+    final seatKey = seat == OnlineDuelSeat.a ? 'A' : 'B';
+    final avatar = KeyedSubtree(
+      key: ValueKey<String>('duel-avatar-$seatKey'),
+      child: _AvatarRing(
+        color: accent,
+        active: active,
+        child: PlayerAvatar(
+          displayName: player.displayName,
+          avatarKey: player.avatarKey,
+          radius: avatarRadius,
+          semanticLabel: context.tr('player_avatar_semantics', <Object>[
+            displayName,
+          ]),
         ),
       ),
-    ];
-    final compactChildren = <Widget>[
-      children[0],
-      children[1],
-      if (children[2] case final Expanded info) info.child else children[2],
-    ];
+    );
+    final info = Row(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: [
+        _ScoreValue(
+          key: ValueKey<String>('duel-score-$seatKey'),
+          score: score,
+        ),
+        SizedBox(width: compact ? 5 : 7),
+        Flexible(
+          child: Text(
+            displayName,
+            key: ValueKey<String>('duel-name-$seatKey'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: compact ? 12 : 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        SizedBox(width: compact ? 5 : 7),
+        DuelAssetIcon(
+          player.connected ? DuelAsset.wifi : DuelAsset.cloud,
+          size: compact ? 11 : 13,
+          color: player.connected ? accent : scheme.error,
+        ),
+      ],
+    );
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -2109,26 +2187,11 @@ class _DuelPlayerPlate extends StatelessWidget {
             ? [BoxShadow(color: accent.withValues(alpha: .18), blurRadius: 14)]
             : null,
       ),
-      child: compact
-          ? Align(
-              alignment: alignEnd
-                  ? AlignmentDirectional.centerEnd
-                  : AlignmentDirectional.centerStart,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  textDirection: alignEnd
-                      ? TextDirection.rtl
-                      : TextDirection.ltr,
-                  children: compactChildren,
-                ),
-              ),
-            )
-          : Row(
-              textDirection: alignEnd ? TextDirection.rtl : TextDirection.ltr,
-              children: children,
-            ),
+      child: Row(
+        children: alignEnd
+            ? [Expanded(child: info), SizedBox(width: compact ? 6 : 9), avatar]
+            : [avatar, SizedBox(width: compact ? 6 : 9), Expanded(child: info)],
+      ),
     );
   }
 }
@@ -2165,24 +2228,17 @@ class _AvatarRing extends StatelessWidget {
   }
 }
 
-class _ScoreLine extends StatelessWidget {
-  const _ScoreLine({
-    required this.score,
-    required this.connected,
-    required this.color,
-  });
+class _ScoreValue extends StatelessWidget {
+  const _ScoreValue({super.key, required this.score});
 
   final int score;
-  final bool connected;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        DuelAssetIcon(DuelAsset.trophy, size: 13, color: scheme.tertiary),
+        const DuelAssetIcon(DuelAsset.trophy, size: 13),
         const SizedBox(width: 3),
         Text(
           '$score',
@@ -2191,12 +2247,6 @@ class _ScoreLine extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w900,
           ),
-        ),
-        const SizedBox(width: 8),
-        DuelAssetIcon(
-          connected ? DuelAsset.wifi : DuelAsset.cloud,
-          size: 12,
-          color: connected ? color : scheme.error,
         ),
       ],
     );

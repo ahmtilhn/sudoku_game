@@ -125,6 +125,7 @@ class OnlineDuelSnapshot {
     required this.revision,
     this.readyDeadline,
     this.turnDeadline,
+    this.pausedTurnRemainingMs,
     this.winnerSeat,
     this.finishReason,
     this.rating,
@@ -149,6 +150,7 @@ class OnlineDuelSnapshot {
   final int turnNumber;
   final DateTime? readyDeadline;
   final DateTime? turnDeadline;
+  final int? pausedTurnRemainingMs;
   final DateTime serverTime;
   final int revision;
   final OnlineDuelSeat? winnerSeat;
@@ -181,6 +183,7 @@ class OnlineDuelSnapshot {
     int? turnNumber,
     Object? readyDeadline = _unsetOnlineDuelValue,
     Object? turnDeadline = _unsetOnlineDuelValue,
+    Object? pausedTurnRemainingMs = _unsetOnlineDuelValue,
     DateTime? serverTime,
     int? revision,
     Object? winnerSeat = _unsetOnlineDuelValue,
@@ -211,6 +214,10 @@ class OnlineDuelSnapshot {
       turnDeadline: identical(turnDeadline, _unsetOnlineDuelValue)
           ? this.turnDeadline
           : turnDeadline as DateTime?,
+      pausedTurnRemainingMs:
+          identical(pausedTurnRemainingMs, _unsetOnlineDuelValue)
+          ? this.pausedTurnRemainingMs
+          : pausedTurnRemainingMs as int?,
       serverTime: serverTime ?? this.serverTime,
       revision: revision ?? this.revision,
       winnerSeat: identical(winnerSeat, _unsetOnlineDuelValue)
@@ -254,6 +261,8 @@ class OnlineDuelSnapshot {
       turnNumber: (json['turnNumber'] as num?)?.toInt() ?? 1,
       readyDeadline: _dateFromMillis(json['readyDeadline']),
       turnDeadline: _dateFromMillis(json['turnDeadline']),
+      pausedTurnRemainingMs:
+          (json['pausedTurnRemainingMs'] as num?)?.toInt(),
       serverTime: _dateFromMillis(json['serverTime']) ?? DateTime.now(),
       revision: (json['revision'] as num?)?.toInt() ?? 0,
       winnerSeat: _seat(json['winnerSeat']?.toString()),

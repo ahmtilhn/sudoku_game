@@ -24,7 +24,7 @@ export const TURN_DURATION_MS = TURN_DURATION_SECONDS * 1_000;
 export const READY_WINDOW_SECONDS = 10;
 export const READY_DEADLINE_MS = READY_WINDOW_SECONDS * 1_000;
 export const LOBBY_DEADLINE_MS = 2 * 60 * 1_000;
-export const DISCONNECT_GRACE_MS = 45_000;
+export const DISCONNECT_GRACE_MS = 30_000;
 export const MAX_GRACE_BUDGET_MS = 60_000;
 export const MAX_MATCH_DURATION_MS = 30 * 60 * 1_000;
 export const MAX_CONSECUTIVE_TIMEOUTS = 3;
@@ -96,6 +96,9 @@ export type DuelState = {
   turnNumber: number;
   turnStartedAt: number | null;
   turnDeadline: number | null;
+  pauseStartedAt?: number | null;
+  pausedTurnRemainingMs?: number | null;
+  totalPausedMs?: number;
   revision: number;
   lastProcessed: Record<string, Record<string, PublicEvent>>;
   winnerSeat: Seat | null;
