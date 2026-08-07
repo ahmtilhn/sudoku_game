@@ -1,0 +1,77 @@
+name: Temporary Duel Lifecycle Hotfix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/duel-lifecycle-hotfix.trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Apply lifecycle and arena patch
+        run: python3 .github/scripts/apply_duel_lifecycle_hotfix.py
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter packages
+        run: flutter pub get
+
+      - name: Validate localization catalog
+        run: python3 tool/validate_localizations.py
+
+      - name: Verify user-safe messages
+        run: python3 tool/verify_user_facing_messages.py
+
+      - name: Verify UX contracts
+        run: python3 tool/verify_ux_contracts.py
+
+      - name: Verify UX audit
+        run: python3 tool/generate_ux_audit.py --check
+
+      - name: Flutter analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Lifecycle hotfix contract test
+        run: flutter test test/online_duel_lifecycle_hotfix_test.dart --reporter expanded
+
+      - name: Full Flutter tests
+        run: timeout --signal=TERM 12m flutter test --reporter expanded --concurrency=1
+
+      - name: Android debug build
+        run: flutter build apk --debug
+
+      - name: Backend full typecheck and tests
+        working-directory: backend/social_worker
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+
+      - name: Verify diff
+        run: git diff --check
+
+      - name: Commit hotfix directly to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/duel/online_duel_screen.dart lib/features/duel/pre_match_ready_screen.dart lib/features/social/challenge_invitation_screen.dart lib/features/social/ux_challenge_invitation_screen.dart lib/features/social/challenge_waiting_screen.dart test/online_duel_lifecycle_hotfix_test.dart
+          git commit -m "fix(duel): recover navigation and reconnect lifecycle"
+          git push origin HEAD:main
