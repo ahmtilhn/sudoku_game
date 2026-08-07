@@ -75,7 +75,7 @@ void main() {
 
     expect(source, contains("context.tr('entry_fee')"));
     expect(source, contains("context.tr('winner_pot')"));
-    expect(source, isNot(contains("'$fee → $pot'")));
+    expect(source, isNot(contains(r"'$fee → $pot'")));
   });
 
   test('outcome header uses dedicated victory and defeat trophies', () {
