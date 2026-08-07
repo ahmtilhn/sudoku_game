@@ -1,2 +1,2 @@
-run=2026-08-07T20:02+02:00
-scope=reconnect-pause,pot-payout,arena-header
+run=2026-08-07T20:09+02:00
+scope=flutter-backend-full-validation
