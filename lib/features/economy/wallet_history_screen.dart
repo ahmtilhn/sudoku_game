@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
+import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/ux_feedback.dart';
 
 class WalletHistoryScreen extends StatefulWidget {
@@ -37,7 +38,7 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
           IconButton(
             tooltip: context.tr('refresh'),
             onPressed: _reload,
-            icon: const Icon(Icons.refresh),
+            icon: const DuelAssetIcon(DuelAsset.refresh, size: 22),
           ),
         ],
       ),
@@ -115,6 +116,14 @@ class _LedgerTile extends StatelessWidget {
       fontWeight: FontWeight.w900,
       color: positive ? scheme.primary : scheme.onSurface,
     );
+    final amountWidget = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const DuelAssetIcon(DuelAsset.coin, size: 19),
+        const SizedBox(width: 4),
+        Text(amountLabel, style: amountStyle),
+      ],
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -151,11 +160,11 @@ class _LedgerTile extends StatelessWidget {
               ),
               if (compact) ...[
                 const SizedBox(height: 4),
-                Text(amountLabel, style: amountStyle),
+                amountWidget,
               ],
             ],
           ),
-          trailing: compact ? null : Text(amountLabel, style: amountStyle),
+          trailing: compact ? null : amountWidget,
         );
       },
     );
