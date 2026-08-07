@@ -276,12 +276,10 @@ class _StoreArtwork extends StatelessWidget {
   const _StoreArtwork({
     required this.asset,
     this.size = 54,
-    this.background,
   });
 
   final String asset;
   final double size;
-  final Color? background;
 
   @override
   Widget build(BuildContext context) {
@@ -290,7 +288,7 @@ class _StoreArtwork extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(size * .24),
         child: DecoratedBox(
-          decoration: BoxDecoration(color: background ?? Colors.transparent),
+          decoration: const BoxDecoration(color: Colors.transparent),
           child: Padding(
             padding: const EdgeInsets.all(2),
             child: DuelAssetIcon(
