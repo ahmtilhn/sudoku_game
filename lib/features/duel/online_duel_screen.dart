@@ -599,7 +599,6 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     final seconds = invite == null
         ? 0
         : invite.expiresAt.difference(DateTime.now()).inSeconds.clamp(0, 10);
-    final draw = snapshot.winnerSeat == null;
     final payout = DuelPayoutDisplay.fromSnapshot(
       snapshot,
       entryFee: entryFee,
@@ -1593,10 +1592,10 @@ class _ReconnectPauseOverlayState extends State<_ReconnectPauseOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final deadline = widget.deadline;
-    final remaining = deadline == null
-        ? null
-        : deadline.difference(DateTime.now()).inSeconds.clamp(0, 30);
+    final remaining = widget.deadline
+        ?.difference(DateTime.now())
+        .inSeconds
+        .clamp(0, 30);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFF07111E).withValues(alpha: .78),
