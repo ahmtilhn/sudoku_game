@@ -133,6 +133,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                           SizedBox(
                             height: compact ? 116 : 124,
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Expanded(child: _variantSection(compact)),
                                 const SizedBox(width: 10),
@@ -241,6 +242,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     return _SectionCard(
       title: 'Sudoku',
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (final variant in SudokuVariant.values) ...[
             Expanded(
@@ -266,10 +268,12 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         builder: (context, constraints) {
           final buttonWidth = (constraints.maxWidth - 12) / 3;
           return Align(
-            alignment: Alignment.topLeft,
+            alignment: Alignment.topCenter,
             child: Wrap(
               spacing: 6,
               runSpacing: 6,
+              alignment: WrapAlignment.center,
+              runAlignment: WrapAlignment.center,
               children: [
                 for (final difficulty in SudokuDifficulty.values)
                   SizedBox(
@@ -329,6 +333,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         builder: (_) => EnhancedGameScreen(
           puzzle: puzzle,
           store: store,
+          allowNotes: true,
           showNextAction: false,
           onCompleted:
               ({required seconds, required mistakes, required hints}) =>
@@ -605,7 +610,7 @@ class _Header extends StatelessWidget {
               minimumSize: const Size(0, 40),
               padding: const EdgeInsets.symmetric(horizontal: 8),
             ),
-            icon: const DuelAssetIcon(DuelAsset.walletCoinStackPro, size: 26),
+            icon: const DuelAssetIcon(DuelAsset.coin, size: 26),
             label: Text(
               NumberFormat.compact().format(balance),
               style: const TextStyle(fontWeight: FontWeight.w900),
@@ -684,7 +689,10 @@ class _VariantCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(13),
           child: Ink(
-            padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 9),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 7 : 9,
+              vertical: 6,
+            ),
             decoration: BoxDecoration(
               color: selected
                   ? accent.withValues(alpha: .15)
@@ -698,14 +706,22 @@ class _VariantCard extends StatelessWidget {
               ),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                DuelAssetIcon(
-                  is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                  size: compact ? 40 : 46,
+                SizedBox(
+                  width: compact ? 42 : 48,
+                  height: compact ? 42 : 48,
+                  child: Center(
+                    child: DuelAssetIcon(
+                      is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
+                      size: compact ? 38 : 44,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 7),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -713,22 +729,35 @@ class _VariantCard extends StatelessWidget {
                         variant.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        strutStyle: const StrutStyle(
+                          forceStrutHeight: true,
+                          height: 1.05,
+                        ),
                         style: TextStyle(
                           color: selected ? accent : Colors.white,
                           fontSize: compact ? 13 : 15,
+                          height: 1.05,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
+                      const SizedBox(height: 3),
                       Text(
                         is16 ? '1–16' : '1–9',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .55),
                           fontSize: 10,
+                          height: 1.05,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
                   ),
+                ),
+                SizedBox(
+                  width: 19,
+                  child: selected
+                      ? Icon(Icons.check_rounded, color: accent, size: 18)
+                      : const SizedBox.shrink(),
                 ),
               ],
             ),
@@ -771,7 +800,7 @@ class _EntryBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const DuelAssetIcon(DuelAsset.walletCoinStackPro, size: 40),
+          const DuelAssetIcon(DuelAsset.coin, size: 40),
           const SizedBox(width: 6),
           Expanded(
             child: Row(
