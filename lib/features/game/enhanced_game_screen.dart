@@ -587,10 +587,21 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     setState(() => _completed = true);
     _saveDebounce?.cancel();
     await _sessions.clear();
+
+    final economy = EconomyService.instance;
+    if (economy.wallet == null) {
+      await economy.refresh(showLoading: false);
+    }
+    final balanceBeforeCompletion = economy.balance;
     await widget.onCompleted?.call(
       seconds: _elapsedSeconds,
       mistakes: _totalMistakes,
       hints: _hintsUsed,
+    );
+    final balanceAfterCompletion = economy.balance;
+    final completionCoinReward = positiveCoinDelta(
+      balanceBeforeCompletion,
+      balanceAfterCompletion,
     );
     if (!mounted) return;
 
@@ -613,6 +624,8 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
         mistakes: _totalMistakes,
         hints: _hintsUsed,
         showNextAction: widget.showNextAction,
+        initialEarnedCoins: completionCoinReward,
+        initialBalance: balanceAfterCompletion,
       ),
     );
     if (!mounted) return;
@@ -912,6 +925,8 @@ class _GameResultSheet extends StatefulWidget {
     required this.mistakes,
     required this.hints,
     required this.showNextAction,
+    required this.initialEarnedCoins,
+    required this.initialBalance,
   });
 
   final String title;
@@ -920,6 +935,8 @@ class _GameResultSheet extends StatefulWidget {
   final int mistakes;
   final int hints;
   final bool showNextAction;
+  final int initialEarnedCoins;
+  final int initialBalance;
 
   @override
   State<_GameResultSheet> createState() => _GameResultSheetState();
@@ -929,6 +946,15 @@ class _GameResultSheetState extends State<_GameResultSheet> {
   bool _rewardBusy = false;
   bool _rewardClaimed = false;
   String? _message;
+  late int _earnedCoins;
+  late int _balance;
+
+  @override
+  void initState() {
+    super.initState();
+    _earnedCoins = widget.initialEarnedCoins;
+    _balance = widget.initialBalance;
+  }
 
   Future<void> _claimReward() async {
     if (_rewardBusy || _rewardClaimed) return;
@@ -936,14 +962,18 @@ class _GameResultSheetState extends State<_GameResultSheet> {
       _rewardBusy = true;
       _message = null;
     });
-    final claimed =
-        await EconomyService.instance.claimCareerRewardedInterstitial();
+    final reward =
+        await EconomyService.instance.claimCareerRewardedInterstitialCoins();
     if (!mounted) return;
     setState(() {
       _rewardBusy = false;
-      _rewardClaimed = claimed;
-      _message = claimed
-          ? context.tr('coin_added_wallet', const <Object>[25])
+      _rewardClaimed = reward > 0;
+      if (reward > 0) {
+        _earnedCoins += reward;
+        _balance = EconomyService.instance.balance;
+      }
+      _message = reward > 0
+          ? context.tr('coin_added_wallet', <Object>[reward])
           : context.tr('rewarded_ad_unavailable');
     });
   }
@@ -1008,6 +1038,66 @@ class _GameResultSheetState extends State<_GameResultSheet> {
                   icon: Icons.lightbulb_outline_rounded,
                 ),
               ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFC94D).withValues(alpha: .10),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFFFC94D).withValues(alpha: .34),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const DuelAssetIcon(DuelAsset.coin, size: 48),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr('coin_result'),
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: .72),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '+${context.tr('coin_amount', <Object>[_earnedCoins])}',
+                            maxLines: 1,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${context.tr('current_balance')}: ${context.tr('coin_amount', <Object>[_balance])}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: .66),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             if (!AdsService.instance.noAds && !_rewardClaimed) ...[
               const SizedBox(height: 14),
