@@ -43,6 +43,51 @@ void main() {
     expect(store.nextCareerLevelNumberFor(SudokuVariant.classic16), 2);
   });
 
+  test('runtime career-1 result unlocks level 2 and exposes stars', () async {
+    final store = await LocalProgressStore.createInMemory();
+
+    await store.recordResult(
+      puzzleId: 'career-1',
+      seconds: 75,
+      mistakes: 0,
+      hints: 0,
+      variant: SudokuVariant.classic9,
+    );
+
+    expect(store.isCareerLevelUnlocked(2), isTrue);
+    expect(store.nextCareerLevelNumberFor(SudokuVariant.classic9), 2);
+    expect(store.progressForCareerLevel(1)?.stars, 3);
+    expect(store.progressFor('career-001')?.stars, 3);
+    expect(store.progressFor('career-1')?.stars, 3);
+  });
+
+  test('unpadded v2 progress migrates without duplicate levels', () async {
+    final store = await LocalProgressStore.createInMemory(
+      initialValues: <String, Object>{
+        'career_progress_v2': jsonEncode(<String, Object>{
+          'classic9:career-1': <String, Object>{
+            'stars': 2,
+            'bestSeconds': 100,
+            'bestMistakes': 1,
+            'bestHints': 1,
+          },
+          'classic9:career-001': <String, Object>{
+            'stars': 3,
+            'bestSeconds': 90,
+            'bestMistakes': 0,
+            'bestHints': 0,
+          },
+        }),
+      },
+    );
+
+    expect(store.completedCareerLevelCountFor(SudokuVariant.classic9), 1);
+    expect(store.nextCareerLevelNumberFor(SudokuVariant.classic9), 2);
+    expect(store.progressForCareerLevel(1)?.stars, 3);
+    expect(store.progressForCareerLevel(1)?.bestSeconds, 90);
+    expect(store.isCareerLevelUnlocked(2), isTrue);
+  });
+
   test('legacy career_progress_v1 migrates to classic9 only', () async {
     final store = await LocalProgressStore.createInMemory(
       initialValues: <String, Object>{
