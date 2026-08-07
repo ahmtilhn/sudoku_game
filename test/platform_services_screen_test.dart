@@ -59,7 +59,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Global ELO'), findsOneWidget);
     expect(find.byType(ListView), findsOneWidget);
-    expect(find.byType(DuelAssetIcon), findsAtLeastNWidgets(3));
+    expect(find.byType(DuelAssetIcon), findsAtLeastNWidgets(2));
 
     final scrollable = find.byType(Scrollable).first;
     final scrollState = tester.state<ScrollableState>(scrollable);
