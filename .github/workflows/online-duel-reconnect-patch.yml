@@ -1,4 +1,4 @@
-name: Temporary Online Duel Reconnect Patch
+name: Temporary Online Duel Reconnect Validation
 
 on:
   push:
@@ -10,27 +10,75 @@ permissions:
   contents: write
 
 jobs:
-  patch:
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Apply reconnect payout and header patch
-        run: python3 .github/scripts/apply_online_duel_reconnect_patch.py
+      - name: Remove obsolete result local
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/features/duel/online_duel_screen.dart')
+          text = path.read_text(encoding='utf-8')
+          old = '    final draw = snapshot.winnerSeat == null;\n'
+          if old in text:
+              text = text.replace(old, '', 1)
+              path.write_text(text, encoding='utf-8')
+          PY
 
-      - name: Verify backend duel engine
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter packages
+        run: flutter pub get
+
+      - name: Validate localization catalog
+        run: python3 tool/validate_localizations.py
+
+      - name: Verify user-safe messages
+        run: python3 tool/verify_user_facing_messages.py
+
+      - name: Verify UX contracts
+        run: python3 tool/verify_ux_contracts.py
+
+      - name: Verify UX audit
+        run: python3 tool/generate_ux_audit.py --check
+
+      - name: Flutter analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Flutter tests
+        run: timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
+
+      - name: Android debug build
+        run: flutter build apk --debug
+
+      - name: Backend full typecheck and tests
         working-directory: backend/social_worker
         run: |
           npm ci
           npm run typecheck
-          npm test -- test/online_duel.test.ts test/economy.test.ts test/economy_payout_contract.test.ts
+          npm test
 
-      - name: Commit patch directly to main
+      - name: Commit analyzer cleanup
         run: |
+          if git diff --quiet; then
+            echo "No cleanup commit needed."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backend/social_worker/src/online_duel_model.ts backend/social_worker/src/online_duel_engine.ts backend/social_worker/src/online_duel_view.ts backend/social_worker/test/online_duel.test.ts backend/social_worker/test/economy_payout_contract.test.ts lib/services/online_duel_models.dart lib/services/online_duel_controller.dart lib/features/duel/online_duel_screen.dart lib/features/duel/duel_payout_display.dart test/online_duel_screen_test.dart test/duel_payout_display_test.dart
-          git commit -m "fix(duel): pause reconnects and clarify pot payouts"
+          git add lib/features/duel/online_duel_screen.dart
+          git commit -m "fix(duel): clean reconnect result presentation"
           git push origin HEAD:main
