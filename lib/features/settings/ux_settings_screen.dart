@@ -9,6 +9,7 @@ import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../economy/wallet_history_screen.dart';
 import 'account_protection_screen.dart';
+import 'service_diagnostics_screen.dart';
 
 class UxSettingsScreen extends StatefulWidget {
   const UxSettingsScreen({super.key, required this.store});
@@ -25,16 +26,15 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
   bool _crashBusy = false;
 
   void _open(Widget screen) {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => screen),
-    );
+    Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => screen));
   }
 
   @override
   Widget build(BuildContext context) {
     final push = PushNotificationService.instance;
     final firebase = FirebaseServices.instance;
-    final socialAvailable = push.configured && SocialApiClient.instance.configured;
+    final socialAvailable =
+        push.configured && SocialApiClient.instance.configured;
     return Scaffold(
       appBar: AppBar(title: Text(context.tr('settings'))),
       body: SafeArea(
@@ -58,8 +58,18 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                             context.tr('account_protection_banner_body'),
                           ),
                           trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () =>
-                              _open(const AccountProtectionScreen()),
+                          onTap: () => _open(const AccountProtectionScreen()),
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          minTileHeight: 58,
+                          leading: const Icon(Icons.health_and_safety_outlined),
+                          title: Text(context.tr('service_diagnostics')),
+                          subtitle: Text(
+                            context.tr('service_diagnostics_subtitle'),
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () => _open(const ServiceDiagnosticsScreen()),
                         ),
                         const Divider(height: 1),
                         ListTile(
@@ -192,9 +202,9 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.w900,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -255,8 +265,8 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
   }
 
   void _snack(String key) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr(key))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.tr(key))));
   }
 }

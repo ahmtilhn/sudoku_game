@@ -14,6 +14,7 @@ import '../../services/social_api_client.dart';
 import '../economy/coin_store_screen.dart';
 import '../economy/wallet_history_screen.dart';
 import 'account_protection_screen.dart';
+import 'service_diagnostics_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key, required this.store});
@@ -87,16 +88,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 10),
                       Card(
-                        child: ListTile(
-                          leading: const Icon(
-                            Icons.admin_panel_settings_outlined,
-                          ),
-                          title: const Text('Account & data'),
-                          subtitle: const Text(
-                            'Protect or recover the player account, sign out, and permanently delete the account and server data.',
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () => _open(const AccountProtectionScreen()),
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: const Icon(
+                                Icons.admin_panel_settings_outlined,
+                              ),
+                              title: Text(context.tr('account_data')),
+                              subtitle: Text(context.tr('account_data_body')),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () =>
+                                  _open(const AccountProtectionScreen()),
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              leading: const Icon(
+                                Icons.health_and_safety_outlined,
+                              ),
+                              title: Text(context.tr('service_diagnostics')),
+                              subtitle: Text(
+                                context.tr('service_diagnostics_subtitle'),
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () =>
+                                  _open(const ServiceDiagnosticsScreen()),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 22),

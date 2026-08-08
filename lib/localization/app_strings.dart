@@ -349,6 +349,17 @@ class AppStrings {
     'protect_account_before_buying': 'Protect your account before buying',
     'paid_coins_protection_body':
         'Paid Coins must be linked to a recoverable email account. Your current guest wallet and Friend ID are preserved when you protect this account.',
+    'account_data': 'Account & data',
+    'account_data_body':
+        'Protect or recover the player account, sign out, and permanently delete the account and server data.',
+    'service_diagnostics': 'Service diagnostics',
+    'service_diagnostics_subtitle':
+        'Check the installed build, Firebase session and social server.',
+    'service_diagnostics_ready': 'Online services are reachable',
+    'service_diagnostics_needs_attention':
+        'One or more online checks need attention',
+    'service_diagnostics_copied': 'Diagnostics copied.',
+    'copy_diagnostics': 'Copy diagnostics',
     'create_player_profile': 'Create your player profile',
     'create_player_profile_body':
         'Your display name is shown in matches. Your unique username can be searched, while your permanent Friend ID never changes.',

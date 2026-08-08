@@ -4755,6 +4755,86 @@
         }
       }
     },
+    "account_data": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account & data"
+          }
+        }
+      }
+    },
+    "account_data_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect or recover the player account, sign out, and permanently delete the account and server data."
+          }
+        }
+      }
+    },
+    "service_diagnostics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service diagnostics"
+          }
+        }
+      }
+    },
+    "service_diagnostics_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the installed build, Firebase session and social server."
+          }
+        }
+      }
+    },
+    "service_diagnostics_ready": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online services are reachable"
+          }
+        }
+      }
+    },
+    "service_diagnostics_needs_attention": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One or more online checks need attention"
+          }
+        }
+      }
+    },
+    "service_diagnostics_copied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostics copied."
+          }
+        }
+      }
+    },
+    "copy_diagnostics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy diagnostics"
+          }
+        }
+      }
+    },
     "create_player_profile": {
       "localizations": {
         "en": {
