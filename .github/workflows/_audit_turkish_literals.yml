@@ -27,36 +27,11 @@ jobs:
         run: |
           from pathlib import Path
 
-          def replace_once(source, old, new, label):
-              count = source.count(old)
-              if count != 1:
-                  raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
-              return source.replace(old, new, 1)
-
           online = Path('lib/features/duel/online_duel_screen.dart')
           source = online.read_text(encoding='utf-8')
 
-          old_return = """  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
-            if (_exitingToMenu || !mounted) return;
-            _disconnectEscapeTimer?.cancel();
-            _disconnectEscapeTimer = null;
-            setState(() {
-              _exitingToMenu = true;
-              if (sendForfeit) _forfeiting = true;
-            });
-
-            if (sendForfeit) {
-              _controller?.forfeit();
-              if (_connectionState == OnlineDuelConnectionState.connected ||
-                  _connectionState == OnlineDuelConnectionState.resyncing) {
-                await Future<void>.delayed(const Duration(milliseconds: 180));
-              }
-            }
-
-            if (!mounted) return;
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          }
-          """
+          start = source.index('  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {')
+          end = source.index('  Future<void> _requestForfeit() async {', start)
           new_return = """  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
             if (_exitingToMenu || _forfeiting || !mounted) return;
             _disconnectEscapeTimer?.cancel();
@@ -79,110 +54,99 @@ jobs:
             if (!mounted) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
           }
+
           """
-          source = replace_once(source, old_return, new_return, '_returnToMainMenu')
+          source = source[:start] + new_return + source[end:]
 
-          source = replace_once(
-              source,
-              """    if (snapshot == null || snapshot.isFinished) {
-                return;
-              }
-          """,
-              """    if (snapshot == null ||
-                  snapshot.isFinished ||
-                  _forfeiting ||
-                  _exitingToMenu) {
-                return;
-              }
-          """,
-              '_selectCell guard',
-          )
+          select_start = source.index('  void _selectCell(int index) {')
+          select_end = source.index('  void _enterNumber(int value) {', select_start)
+          new_select = """  void _selectCell(int index) {
+            final snapshot = _snapshot;
+            if (snapshot == null ||
+                snapshot.isFinished ||
+                _forfeiting ||
+                _exitingToMenu) {
+              return;
+            }
+            if (snapshot.puzzle[index] != 0 ||
+                snapshot.board[index] != 0 ||
+                _controller?.pendingMove == true) {
+              return;
+            }
+            setState(() => _selectedIndex = index);
+          }
 
-          source = replace_once(
-              source,
-              """            ignoring:
-                          snapshot.isFinished ||
-                          snapshot.status == OnlineDuelStatus.paused ||
-                          _localConnectionInterrupted ||
+          """
+          source = source[:select_start] + new_select + source[select_end:]
+
+          replacements = [
+              (
+                  "title: 'Online Duel',",
+                  "title: context.tr('online_duel'),",
+                  'online puzzle title',
+              ),
+              (
+                  """                _localConnectionInterrupted ||
                           !snapshot.isLocalTurn,
           """,
-              """            ignoring:
-                          snapshot.isFinished ||
-                          snapshot.status == OnlineDuelStatus.paused ||
-                          _localConnectionInterrupted ||
+                  """                _localConnectionInterrupted ||
                           _forfeiting ||
                           _exitingToMenu ||
                           !snapshot.isLocalTurn,
           """,
-              'board IgnorePointer',
-          )
-
-          source = replace_once(
-              source,
-              """              enabled:
-                          !snapshot.isFinished &&
-                          snapshot.status != OnlineDuelStatus.paused &&
-                          !_localConnectionInterrupted &&
+                  'board input lock',
+              ),
+              (
+                  """                  !_localConnectionInterrupted &&
                           snapshot.isLocalTurn,
           """,
-              """              enabled:
-                          !snapshot.isFinished &&
-                          snapshot.status != OnlineDuelStatus.paused &&
-                          !_localConnectionInterrupted &&
+                  """                  !_localConnectionInterrupted &&
                           !_forfeiting &&
                           !_exitingToMenu &&
                           snapshot.isLocalTurn,
           """,
-              'board enabled',
-          )
-
-          source = replace_once(
-              source,
-              """                : _forfeiting
+                  'board enabled lock',
+              ),
+              (
+                  """                : _forfeiting
                           ? context.tr('connection_interrupted_retrying')
           """,
-              """                : _forfeiting
+                  """                : _forfeiting
                           ? context.tr('online_waiting_snapshot')
           """,
-              'forfeit status text',
-          )
-
-          source = replace_once(
-              source,
-              "title: 'Online Duel',",
-              "title: context.tr('online_duel'),",
-              'online puzzle title',
-          )
+                  'forfeit status text',
+              ),
+          ]
+          for old, new, label in replacements:
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+              source = source.replace(old, new, 1)
           online.write_text(source, encoding='utf-8')
 
           account = Path('lib/features/settings/account_protection_screen.dart')
           source = account.read_text(encoding='utf-8')
-          source = replace_once(
-              source,
-              "import 'package:firebase_auth/firebase_auth.dart';",
-              "import 'dart:ui';\n\nimport 'package:firebase_auth/firebase_auth.dart';",
-              'account dart:ui import',
-          )
-          source = replace_once(
-              source,
-              """String _accountText(
-            BuildContext context, {
-            required String en,
-            required String tr,
-          }) {
-            return Localizations.localeOf(context).languageCode == 'tr' ? tr : en;
-          }
-          """,
-              """String _accountText(
+          if "import 'dart:ui';" not in source:
+              anchor = "import 'package:firebase_auth/firebase_auth.dart';"
+              if source.count(anchor) != 1:
+                  raise SystemExit('account import anchor not found')
+              source = source.replace(
+                  anchor,
+                  "import 'dart:ui';\n\n" + anchor,
+                  1,
+              )
+          helper_start = source.index('String _accountText(')
+          helper_end = source.index('class AccountProtectionScreen', helper_start)
+          new_helper = """String _accountText(
             BuildContext _, {
             required String en,
             required String tr,
           }) {
             return PlatformDispatcher.instance.locale.languageCode == 'tr' ? tr : en;
           }
-          """,
-              'account locale helper',
-          )
+
+          """
+          source = source[:helper_start] + new_helper + source[helper_end:]
           account.write_text(source, encoding='utf-8')
 
       - uses: actions/setup-java@v5
