@@ -2,6 +2,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/services/platform_game_services.dart';
 
 void main() {
+  group('GameCenterIdentityProof', () {
+    test('accepts the iOS bridge playerId fallback', () {
+      final proof = GameCenterIdentityProof.fromMap(<Object?, Object?>{
+        'playerId': 'G:12345',
+        'displayName': 'Sudoku Pilot',
+        'publicKeyUrl': 'https://static.gc.apple.com/public-key.cer',
+        'signature': 'c2lnbmF0dXJl',
+        'salt': 'c2FsdA==',
+        'timestamp': 1234567890,
+        'bundleId': 'com.devovia.sudokuduel',
+      });
+
+      expect(proof.hasSignatureMaterial, isTrue);
+      expect(proof.gamePlayerId, 'G:12345');
+      expect(proof.toJson()['platformPlayerId'], 'G:12345');
+      expect(proof.toJson()['bundleId'], 'com.devovia.sudokuduel');
+    });
+  });
+
   group('PlayGamesDiagnostics', () {
     test('recognizes the Google Play app-signing certificate', () {
       final diagnostics = PlayGamesDiagnostics.fromMap(<Object?, Object?>{
@@ -46,5 +65,22 @@ void main() {
 
     expect(exception.toString(), contains('status=10 (DEVELOPER_ERROR)'));
     expect(exception.diagnostics['certificateSha1'], 'AA:BB');
+  });
+
+  test('platform exceptions summarize Game Center diagnostics', () {
+    const exception = PlatformGameServicesException(
+      'not_configured',
+      'Game Center is not configured.',
+      diagnostics: <String, String>{
+        'platform': 'game_center',
+        'bundleIdentifier': 'com.devovia.sudokuduel',
+        'configured': 'false',
+        'gameCenterEntitlement': 'false',
+      },
+    );
+
+    expect(exception.toString(), contains('platform=game_center'));
+    expect(exception.toString(), contains('bundle=com.devovia.sudokuduel'));
+    expect(exception.toString(), contains('gameCenterEntitlement=false'));
   });
 }

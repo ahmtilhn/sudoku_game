@@ -98,6 +98,7 @@ class GameCenterIdentityProof {
       gamePlayerId:
           map['gamePlayerId']?.toString() ??
           map['platformPlayerId']?.toString() ??
+          map['playerId']?.toString() ??
           '',
       displayName: map['displayName']?.toString() ?? 'Player',
       publicKeyUrl: map['publicKeyUrl']?.toString() ?? '',
@@ -130,6 +131,13 @@ class PlayGamesDiagnostics {
   String get playServicesStatus => values['playServicesStatus'] ?? '';
   String get apiStatusCode => values['apiStatusCode'] ?? '';
   String get apiStatusName => values['apiStatusName'] ?? '';
+  String get platform => values['platform'] ?? '';
+  String get bundleIdentifier => values['bundleIdentifier'] ?? '';
+  String get configured => values['configured'] ?? '';
+  String get gameCenterEntitlement => values['gameCenterEntitlement'] ?? '';
+  String get gameCenterAuthenticated => values['authenticated'] ?? '';
+  String get gamePlayerIdPresent => values['gamePlayerIdPresent'] ?? '';
+  String get osVersion => values['osVersion'] ?? '';
 
   bool get installedFromGooglePlay => installer == 'com.android.vending';
 
@@ -138,6 +146,22 @@ class PlayGamesDiagnostics {
       _normalizeFingerprint(expectedPlayAppSigningSha1);
 
   String get conciseSummary {
+    if (platform == 'game_center') {
+      final parts = <String>[
+        'platform=game_center',
+        if (bundleIdentifier.isNotEmpty) 'bundle=$bundleIdentifier',
+        if (configured.isNotEmpty) 'configured=$configured',
+        if (gameCenterEntitlement.isNotEmpty)
+          'gameCenterEntitlement=$gameCenterEntitlement',
+        if (gameCenterAuthenticated.isNotEmpty)
+          'authenticated=$gameCenterAuthenticated',
+        if (gamePlayerIdPresent.isNotEmpty)
+          'gamePlayerIdPresent=$gamePlayerIdPresent',
+        if (osVersion.isNotEmpty) 'ios=$osVersion',
+      ];
+      return parts.join(', ');
+    }
+
     final parts = <String>[
       if (packageName.isNotEmpty) 'package=$packageName',
       if (projectId.isNotEmpty) 'playGamesProject=$projectId',
@@ -221,7 +245,7 @@ class PlatformGameServices {
       final diagnostics = await _safeDiagnostics();
       final exception = PlatformGameServicesException(
         'authentication_failed',
-        'Google Play Games did not authenticate the current account.',
+        '$_serviceName did not authenticate the current account.',
         diagnostics: diagnostics.values,
       );
       lastError.value = exception.toString();
@@ -238,7 +262,7 @@ class PlatformGameServices {
         final diagnostics = await _safeDiagnostics();
         final exception = PlatformGameServicesException(
           'account_link_failed',
-          'Google Play Games connected, but the Firebase player account could not be linked: $error',
+          '$_serviceName connected, but the Firebase player account could not be linked: $error',
           diagnostics: diagnostics.values,
         );
         lastError.value = exception.toString();
@@ -357,6 +381,15 @@ class PlatformGameServices {
       lastError.value = 'unexpected_error: $error';
       rethrow;
     }
+  }
+
+  String get _serviceName {
+    if (kIsWeb) return 'Platform game services';
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.iOS => 'Game Center',
+      TargetPlatform.android => 'Google Play Games',
+      _ => 'Platform game services',
+    };
   }
 }
 

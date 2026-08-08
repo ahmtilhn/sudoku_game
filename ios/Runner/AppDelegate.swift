@@ -7,6 +7,7 @@ import UIKit
   private var localizationChannel: FlutterMethodChannel?
   private var gameServicesChannel: FlutterMethodChannel?
   private var pendingAuthenticationResult: FlutterResult?
+  private var pendingAuthenticationViewController: UIViewController?
 
   private var isGameCenterConfigured: Bool {
     guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return false }
@@ -31,6 +32,7 @@ import UIKit
 
     configureLocalizationChannel(messenger: registrar.messenger())
     configureGameServicesChannel(messenger: registrar.messenger())
+    installGameCenterAuthenticationHandler()
   }
 
   private func configureLocalizationChannel(messenger: FlutterBinaryMessenger) {
@@ -87,6 +89,8 @@ import UIKit
       switch call.method {
       case "isConfigured":
         result(self.isGameCenterConfigured)
+      case "getDiagnostics":
+        result(self.gameCenterDiagnostics())
       case "isAuthenticated":
         result(GKLocalPlayer.local.isAuthenticated)
       case "authenticate":
@@ -145,8 +149,8 @@ import UIKit
     guard isGameCenterConfigured else {
       result(FlutterError(
         code: "not_configured",
-        message: "Replace the iOS bundle ID and enable Game Center in App Store Connect.",
-        details: nil
+        message: "Enable the Game Center capability for this iOS app identifier and provisioning profile.",
+        details: gameCenterDiagnostics()
       ))
       return false
     }
@@ -183,38 +187,62 @@ import UIKit
     }
 
     pendingAuthenticationResult = result
+    if let viewController = pendingAuthenticationViewController {
+      pendingAuthenticationViewController = nil
+      presentGameCenterAuthentication(viewController)
+      return
+    }
+
+    installGameCenterAuthenticationHandler()
+  }
+
+  private func installGameCenterAuthenticationHandler() {
+    guard isGameCenterConfigured else { return }
     GKLocalPlayer.local.authenticateHandler = { [weak self] viewController, error in
       guard let self else { return }
       DispatchQueue.main.async {
         if let viewController {
-          guard let presenter = self.topViewController() else {
-            self.completeAuthentication(
-              error: FlutterError(
-                code: "presentation_failed",
-                message: "Unable to present the Game Center sign-in screen.",
-                details: nil
-              )
-            )
+          guard self.pendingAuthenticationResult != nil else {
+            self.pendingAuthenticationViewController = viewController
             return
           }
-          presenter.present(viewController, animated: true)
+          self.presentGameCenterAuthentication(viewController)
           return
         }
 
+        self.pendingAuthenticationViewController = nil
         if let error {
-          self.completeAuthentication(
-            error: FlutterError(
-              code: "authentication_failed",
-              message: error.localizedDescription,
-              details: nil
+          if self.pendingAuthenticationResult != nil {
+            self.completeAuthentication(
+              error: FlutterError(
+                code: "authentication_failed",
+                message: error.localizedDescription,
+                details: self.gameCenterDiagnostics()
+              )
             )
-          )
+          }
           return
         }
 
-        self.completeAuthentication(value: GKLocalPlayer.local.isAuthenticated)
+        if self.pendingAuthenticationResult != nil {
+          self.completeAuthentication(value: GKLocalPlayer.local.isAuthenticated)
+        }
       }
     }
+  }
+
+  private func presentGameCenterAuthentication(_ viewController: UIViewController) {
+    guard let presenter = topViewController() else {
+      completeAuthentication(
+        error: FlutterError(
+          code: "presentation_failed",
+          message: "Unable to present the Game Center sign-in screen.",
+          details: gameCenterDiagnostics()
+        )
+      )
+      return
+    }
+    presenter.present(viewController, animated: true)
   }
 
   private func completeAuthentication(value: Bool? = nil, error: FlutterError? = nil) {
@@ -447,7 +475,10 @@ import UIKit
         }
         result([
           "platform": "game_center",
+          "gamePlayerId": GKLocalPlayer.local.gamePlayerID,
+          "platformPlayerId": GKLocalPlayer.local.gamePlayerID,
           "playerId": GKLocalPlayer.local.gamePlayerID,
+          "displayName": GKLocalPlayer.local.displayName,
           "publicKeyUrl": publicKeyURL.absoluteString,
           "signature": signature.base64EncodedString(),
           "salt": salt.base64EncodedString(),
@@ -461,6 +492,20 @@ import UIKit
   private func nonPlaceholder(_ value: String?) -> String? {
     guard let value, !value.isEmpty, !value.hasPrefix("REPLACE_") else { return nil }
     return value
+  }
+
+  private func gameCenterDiagnostics() -> [String: String] {
+    let player = GKLocalPlayer.local
+    return [
+      "platform": "game_center",
+      "bundleIdentifier": Bundle.main.bundleIdentifier ?? "",
+      "configured": String(isGameCenterConfigured),
+      "gameCenterEntitlement": "declared",
+      "authenticated": String(player.isAuthenticated),
+      "gamePlayerIdPresent": String(!player.gamePlayerID.isEmpty),
+      "displayNamePresent": String(!player.displayName.isEmpty),
+      "osVersion": UIDevice.current.systemVersion,
+    ]
   }
 
   private func topViewController() -> UIViewController? {
