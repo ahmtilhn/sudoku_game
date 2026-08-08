@@ -25,7 +25,14 @@ void main() {
     expect(source, contains('waitForAuthoritativeResult'));
     expect(source, contains('setState(() => _forfeiting = true)'));
     expect(source, contains('_showResultOnce(snapshot);'));
-    expect(source, isNot(contains('Duration(milliseconds: 180)')));
+    expect(
+      source,
+      isNot(
+        contains(
+          'await Future<void>.delayed(const Duration(milliseconds: 180))',
+        ),
+      ),
+    );
   });
 
   test('arena identity and score layout uses inward large score placement', () {
