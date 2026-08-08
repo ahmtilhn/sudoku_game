@@ -32,7 +32,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | career | `CareerScreen`<br>`lib/features/career/career_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | daily | `DailyScreen`<br>`lib/features/daily/daily_screen.dart` | Production screen | — | — | — | — | Yes | — | Yes | Yes | No explicit responsive primitive detected |
 | duel | `DuelScreen`<br>`lib/features/duel/duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| duel | `LeaderboardsScreen`<br>`lib/features/duel/leaderboards_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
+| duel | `LeaderboardsScreen`<br>`lib/features/duel/leaderboards_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | duel | `MatchmakingScreen`<br>`lib/features/duel/matchmaking_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | duel | `OnlineDuelScreen`<br>`lib/features/duel/online_duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | duel | `PreMatchReadyScreen`<br>`lib/features/duel/pre_match_ready_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
