@@ -13,10 +13,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Scan Dart source for Turkish literals
+      - name: Scan Dart source and English catalog for Turkish leaks
         shell: bash
         run: |
           echo '=== Turkish-specific characters in lib/**/*.dart ==='
           grep -RInE --include='*.dart' '[çğıöşüÇĞİÖŞÜ]' lib || true
-          echo '=== Common Turkish UI words in lib/**/*.dart ==='
-          grep -RInEi --include='*.dart' "(kaybettin|kazandın|kazandin|iptal|tamam|devam|maç|mac |rakip|oyuncu|bağlantı|baglanti|hazır|hazir|bekle|çık|cik|ana menü|ana menu|yeniden|hata|başar|basar|puan|sıra|sira|hamle|oyun bitti)" lib || true
+          echo '=== English xcstrings values that look Turkish ==='
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          path = Path('assets/localization/Localizable.xcstrings')
+          data = json.loads(path.read_text(encoding='utf-8'))
+          char_re = re.compile(r'[çğıöşüÇĞİÖŞÜ]')
+          word_re = re.compile(r'\b(kaybettin|kazandın|iptal|tamam|devam|maç|rakip|oyuncu|bağlantı|hazır|bekle|çık|yeniden|hata|başarım|puan|sıra|hamle)\b', re.I)
+          hits = []
+          for key, entry in data.get('strings', {}).items():
+              en = entry.get('localizations', {}).get('en', {}).get('stringUnit', {}).get('value')
+              if isinstance(en, str) and (char_re.search(en) or word_re.search(en)):
+                  hits.append((key, en))
+          if hits:
+              for key, value in hits:
+                  print(f'{key}: {value}')
+          else:
+              print('NONE')
+          PY
+          echo '=== English Android/iOS resource files with Turkish-looking text ==='
+          find android ios -type f \( -name '*.xml' -o -name '*.strings' -o -name '*.xcstrings' \) -print0 | xargs -0 grep -InE '[çğıöşüÇĞİÖŞÜ]' || true
