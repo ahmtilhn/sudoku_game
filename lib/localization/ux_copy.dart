@@ -59,7 +59,8 @@ class UxCopy {
       ? 'Google Play Games bağlı'
       : 'Google Play Games connected';
 
-  static String platformNotConnected(BuildContext context) => _isTurkish(context)
+  static String platformNotConnected(BuildContext context) =>
+      _isTurkish(context)
       ? 'Google Play Games bağlı değil'
       : 'Google Play Games not connected';
 

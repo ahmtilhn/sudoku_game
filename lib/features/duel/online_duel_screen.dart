@@ -52,7 +52,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   Timer? _resultSettlementTimer;
   Timer? _disconnectEscapeTimer;
   DateTime? _localDisconnectDeadline;
-  OnlineDuelConnectionState _connectionState = OnlineDuelConnectionState.connecting;
+  OnlineDuelConnectionState _connectionState =
+      OnlineDuelConnectionState.connecting;
   String? _shownResultFor;
   int _resultSettlementAttempts = 0;
   bool _forfeiting = false;
@@ -192,7 +193,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       final deadline = DateTime.now().add(_disconnectFailSafe);
       _disconnectEscapeTimer?.cancel();
       _disconnectEscapeTimer = Timer(_disconnectFailSafe, () {
-        if (!mounted || _connectionState == OnlineDuelConnectionState.connected) {
+        if (!mounted ||
+            _connectionState == OnlineDuelConnectionState.connected) {
           return;
         }
         unawaited(_returnToMainMenu());
@@ -211,21 +213,27 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
 
   Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
     if (_exitingToMenu || !mounted) return;
+    if (sendForfeit && _forfeiting) return;
     _disconnectEscapeTimer?.cancel();
     _disconnectEscapeTimer = null;
-    setState(() {
-      _exitingToMenu = true;
-      if (sendForfeit) _forfeiting = true;
-    });
+
+    final waitForAuthoritativeResult =
+        sendForfeit &&
+        (_connectionState == OnlineDuelConnectionState.connected ||
+            _connectionState == OnlineDuelConnectionState.resyncing);
 
     if (sendForfeit) {
-      _controller?.forfeit();
-      if (_connectionState == OnlineDuelConnectionState.connected ||
-          _connectionState == OnlineDuelConnectionState.resyncing) {
-        await Future<void>.delayed(const Duration(milliseconds: 180));
+      if (waitForAuthoritativeResult) {
+        setState(() => _forfeiting = true);
       }
+      _controller?.forfeit();
+      if (waitForAuthoritativeResult) return;
     }
 
+    setState(() {
+      _forfeiting = false;
+      _exitingToMenu = true;
+    });
     if (!mounted) return;
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
@@ -262,7 +270,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
 
   void _selectCell(int index) {
     final snapshot = _snapshot;
-    if (snapshot == null || snapshot.isFinished) {
+    if (snapshot == null ||
+        snapshot.isFinished ||
+        _forfeiting ||
+        _exitingToMenu) {
       return;
     }
     if (snapshot.puzzle[index] != 0 ||
@@ -276,7 +287,13 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   void _enterNumber(int value) {
     final snapshot = _snapshot;
     final index = _selectedIndex;
-    if (snapshot == null || index == null) return;
+    if (snapshot == null ||
+        index == null ||
+        snapshot.isFinished ||
+        _forfeiting ||
+        _exitingToMenu) {
+      return;
+    }
     _controller?.move(index, value);
   }
 
@@ -393,6 +410,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         (snapshot.isFinished ||
             snapshot.status == OnlineDuelStatus.paused ||
             _localConnectionInterrupted ||
+            _forfeiting ||
             _exitingToMenu ||
             !snapshot.isLocalTurn ||
             _controller?.pendingMove == true);
@@ -515,7 +533,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     }
     final puzzle = SudokuPuzzle(
       id: 'online-${snapshot.matchId}',
-      title: 'Online Duel',
+      title: context.tr('online_duel'),
       difficulty: _difficulty(snapshot.difficulty),
       puzzle: snapshot.puzzle,
       solution: List<int>.filled(81, 1),
@@ -530,6 +548,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                 snapshot.isFinished ||
                 snapshot.status == OnlineDuelStatus.paused ||
                 _localConnectionInterrupted ||
+                _forfeiting ||
+                _exitingToMenu ||
                 !snapshot.isLocalTurn,
             child: SudokuBoard(
               puzzle: puzzle,
@@ -542,6 +562,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                   !snapshot.isFinished &&
                   snapshot.status != OnlineDuelStatus.paused &&
                   !_localConnectionInterrupted &&
+                  !_forfeiting &&
+                  !_exitingToMenu &&
                   snapshot.isLocalTurn,
               onCellTap: _selectCell,
             ),
@@ -560,7 +582,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                     _localConnectionInterrupted
                 ? context.tr('connection_interrupted_retrying')
                 : _forfeiting
-                ? context.tr('connection_interrupted_retrying')
+                ? context.tr('online_waiting_snapshot')
                 : _controller?.pendingMove == true
                 ? context.tr('sending_move')
                 : snapshot.isLocalTurn
@@ -690,12 +712,8 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     final seconds = invite == null
         ? 0
         : invite.expiresAt.difference(DateTime.now()).inSeconds.clamp(0, 10);
-    final payout = DuelPayoutDisplay.fromSnapshot(
-      snapshot,
-      entryFee: entryFee,
-    );
-    String coinAmount(int value) =>
-        context.tr('coin_amount', <Object>[value]);
+    final payout = DuelPayoutDisplay.fromSnapshot(snapshot, entryFee: entryFee);
+    String coinAmount(int value) => context.tr('coin_amount', <Object>[value]);
     final footer = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1619,7 +1637,9 @@ class _ArenaMatchLayout extends StatelessWidget {
                               borderRadius: BorderRadius.circular(14),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF3D74B6).withValues(alpha: .14),
+                                  color: const Color(
+                                    0xFF3D74B6,
+                                  ).withValues(alpha: .14),
                                   blurRadius: 18,
                                 ),
                               ],
@@ -1999,8 +2019,7 @@ class _MatchHeader extends StatelessWidget {
               top: 9.5,
               child: _TimerPill(
                 deadline: snapshot.turnDeadline,
-                pausedRemainingMs:
-                    snapshot.status == OnlineDuelStatus.paused
+                pausedRemainingMs: snapshot.status == OnlineDuelStatus.paused
                     ? snapshot.pausedTurnRemainingMs
                     : null,
                 compact: compact,
