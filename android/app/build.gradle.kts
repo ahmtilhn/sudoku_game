@@ -137,10 +137,6 @@ dependencies {
     implementation("androidx.work:work-runtime:2.11.2")
     implementation("androidx.startup:startup-runtime:1.2.0")
 
-    // Meta Audience Network 6.21.x references these compile-time annotations.
-    // Keeping the tiny annotation JAR on the release classpath prevents R8
-    // from treating Nullsafe/Nullsafe.Mode as missing classes.
-    implementation("com.facebook.infer.annotation:infer-annotation:0.18.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 

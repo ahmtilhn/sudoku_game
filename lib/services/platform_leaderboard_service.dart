@@ -47,17 +47,17 @@ class PlatformLeaderboardIds {
     },
     this.ios = const <PlatformLeaderboardScope, String>{
       PlatformLeaderboardScope.global:
-          'REPLACE_WITH_GAME_CENTER_GLOBAL_PEAK_ELO_ID',
+          'com.devovia.sudokuduel.leaderboard.global_peak_elo',
       PlatformLeaderboardScope.beginner:
-          'REPLACE_WITH_GAME_CENTER_BEGINNER_PEAK_ELO_ID',
+          'com.devovia.sudokuduel.leaderboard.beginner_peak_elo',
       PlatformLeaderboardScope.easy:
-          'REPLACE_WITH_GAME_CENTER_EASY_PEAK_ELO_ID',
+          'com.devovia.sudokuduel.leaderboard.easy_peak_elo',
       PlatformLeaderboardScope.medium:
-          'REPLACE_WITH_GAME_CENTER_MEDIUM_PEAK_ELO_ID',
+          'com.devovia.sudokuduel.leaderboard.medium_peak_elo',
       PlatformLeaderboardScope.hard:
-          'REPLACE_WITH_GAME_CENTER_HARD_PEAK_ELO_ID',
+          'com.devovia.sudokuduel.leaderboard.hard_peak_elo',
       PlatformLeaderboardScope.expert:
-          'REPLACE_WITH_GAME_CENTER_EXPERT_PEAK_ELO_ID',
+          'com.devovia.sudokuduel.leaderboard.expert_peak_elo',
     },
   });
 

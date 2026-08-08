@@ -37,14 +37,12 @@ class DefaultFirebaseOptions {
   );
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCBhzcaJRs1KrbwPQOeBfg657RW8XZmrI0',
-    appId: '1:31445697560:ios:1f72f9fe671c75340b2f6d',
+    appId: '1:31445697560:ios:44db104825e7d34e0b2f6d',
     messagingSenderId: '31445697560',
     projectId: 'focus-sweep-503417-d7',
     storageBucket: 'focus-sweep-503417-d7.firebasestorage.app',
-    androidClientId:
-        '31445697560-je35cv393qqb01v45j2f3edilmcp5g4l.apps.googleusercontent.com',
     iosClientId:
-        '31445697560-cc144fncsuise033sulqkt92o635ncd9.apps.googleusercontent.com',
-    iosBundleId: 'com.devoviastudio.sudoku',
+        '31445697560-7pllolpll0e6eccr7eudk32mhg7e88nh.apps.googleusercontent.com',
+    iosBundleId: 'com.devovia.sudokuduel',
   );
 }

@@ -80,7 +80,7 @@ describe('store notification routes', () => {
           DB: emptyDb,
           FIREBASE_PROJECT_ID: 'project-id',
           ENVIRONMENT: 'production',
-          APPLE_BUNDLE_ID: 'com.devoviastudio.sudoku',
+          APPLE_BUNDLE_ID: 'com.devovia.sudokuduel',
           APPLE_ROOT_CERTIFICATES_PEM: [
             '-----BEGIN CERTIFICATE-----',
             'invalid',

@@ -37,7 +37,7 @@ describe('platform identity and integrity policy', () => {
   it('rejects invalid and expired Game Center signatures', async () => {
     const proof = {
       platformPlayerId: 'game-player-1',
-      bundleId: 'com.devoviastudio.sudoku',
+      bundleId: 'com.devovia.sudokuduel',
       publicKeyUrl: 'https://static.gc.apple.com/public-key.cer',
       signatureBase64: 'signature',
       saltBase64: 'salt',
@@ -62,13 +62,13 @@ describe('platform identity and integrity policy', () => {
       {
         platformPlayerId: 'game-player-1',
         displayName: 'Ahmet',
-        bundleId: 'com.devoviastudio.sudoku',
+        bundleId: 'com.devovia.sudokuduel',
         publicKeyUrl: 'https://static.gc.apple.com/public-key.cer',
         signatureBase64: 'signature',
         saltBase64: 'salt',
         timestampMs: nowMs,
       },
-      { bundleId: 'com.devoviastudio.sudoku', nowMs },
+      { bundleId: 'com.devovia.sudokuduel', nowMs },
       async () => true,
     );
 

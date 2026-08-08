@@ -33,15 +33,6 @@
 		<string>bn</string>
 		<string>ur</string>
 	</array>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>fb000000000000000</string>
-			</array>
-		</dict>
-	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -64,20 +55,6 @@
 	<string>ca-app-pub-8422988604275177~3293784266</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>Your permission helps us measure advertising performance and keep optional rewards available.</string>
-
-	<!-- Meta App Events remains disabled until real values are supplied. -->
-	<key>FacebookAppID</key>
-	<string>000000000000000</string>
-	<key>FacebookClientToken</key>
-	<string>REPLACE_WITH_META_CLIENT_TOKEN</string>
-	<key>FacebookDisplayName</key>
-	<string>Sudoku Duel</string>
-	<key>FacebookAutoInitEnabled</key>
-	<false/>
-	<key>FacebookAutoLogAppEventsEnabled</key>
-	<false/>
-	<key>FacebookAdvertiserIDCollectionEnabled</key>
-	<false/>
 
 	<key>SKAdNetworkItems</key>
 	<array>

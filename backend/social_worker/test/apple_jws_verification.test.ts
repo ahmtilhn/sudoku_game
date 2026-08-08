@@ -17,7 +17,7 @@ describe('Apple StoreKit JWS verification', () => {
     await expect(
       verifyAppleStoreKitJws('not-a-jws', {
         trustedRootCertificatesPem: 'unused',
-        expectedBundleId: 'com.devoviastudio.sudoku',
+        expectedBundleId: 'com.devovia.sudokuduel',
       }),
     ).rejects.toMatchObject<Partial<AppleJwsVerificationError>>({
       code: 'invalid_apple_signature',
@@ -27,14 +27,14 @@ describe('Apple StoreKit JWS verification', () => {
   it('rejects unsupported signing algorithms before payload trust', async () => {
     const value = [
       encodeJson({ alg: 'none', x5c: ['fake', 'fake'] }),
-      encodeJson({ bundleId: 'com.devoviastudio.sudoku' }),
+      encodeJson({ bundleId: 'com.devovia.sudokuduel' }),
       'signature',
     ].join('.');
 
     await expect(
       verifyAppleStoreKitJws(value, {
         trustedRootCertificatesPem: 'unused',
-        expectedBundleId: 'com.devoviastudio.sudoku',
+        expectedBundleId: 'com.devovia.sudokuduel',
       }),
     ).rejects.toThrow('does not use ES256');
   });
@@ -42,14 +42,14 @@ describe('Apple StoreKit JWS verification', () => {
   it('rejects ES256 JWS without an Apple certificate chain', async () => {
     const value = [
       encodeJson({ alg: 'ES256' }),
-      encodeJson({ bundleId: 'com.devoviastudio.sudoku' }),
+      encodeJson({ bundleId: 'com.devovia.sudokuduel' }),
       encodeJson('signature'),
     ].join('.');
 
     await expect(
       verifyAppleStoreKitJws(value, {
         trustedRootCertificatesPem: 'unused',
-        expectedBundleId: 'com.devoviastudio.sudoku',
+        expectedBundleId: 'com.devovia.sudokuduel',
       }),
     ).rejects.toThrow('certificate chain is missing');
   });

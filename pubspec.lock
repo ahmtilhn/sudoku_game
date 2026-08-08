@@ -97,14 +97,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  facebook_app_events:
-    dependency: "direct main"
-    description:
-      name: facebook_app_events
-      sha256: "2c08c3ad67114b2303c604619f23186b76d93c912a0e47d5afadd6a0b4f744e9"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.30.3"
   fake_async:
     dependency: transitive
     description:
@@ -349,14 +341,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  gma_mediation_meta:
-    dependency: "direct main"
-    description:
-      name: gma_mediation_meta
-      sha256: "3fd41a4e6605553d906ba5983bc1bd90518d9e60d20ff656b4d16a6130fc3476"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.5.3"
   gma_mediation_unity:
     dependency: "direct main"
     description:

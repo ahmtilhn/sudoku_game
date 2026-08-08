@@ -13,7 +13,11 @@ class CoinStoreService extends ChangeNotifier {
 
   static final CoinStoreService instance = CoinStoreService._();
 
-  static const String noAdsProductId = 'no_ads';
+  static const String androidNoAdsProductId = 'no_ads';
+  static const String iosNoAdsProductId = 'sudoku_duel_no_ads';
+
+  static String get noAdsProductId =>
+      Platform.isIOS ? iosNoAdsProductId : androidNoAdsProductId;
 
   static const Set<String> coinProductIds = <String>{
     'coins_100',
@@ -24,8 +28,8 @@ class CoinStoreService extends ChangeNotifier {
     'coins_50000',
     'coins_100000',
   };
-  static const Set<String> entitlementProductIds = <String>{noAdsProductId};
-  static const Set<String> productIds = <String>{
+  static Set<String> get entitlementProductIds => <String>{noAdsProductId};
+  static Set<String> get productIds => <String>{
     ...coinProductIds,
     ...entitlementProductIds,
   };

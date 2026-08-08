@@ -6,12 +6,14 @@ import {
   DAILY_AD_REWARD,
   DAILY_LOGIN_REWARD,
   ENTRY_FEES,
+  IOS_NO_ADS_PRODUCT_ID,
   MATCH_ENTRY_FEE,
   MATCH_POT,
   NO_ADS_PRODUCT_ID,
   REMATCH_WINDOW_MS,
   STARTER_COINS,
   entryFeeForDifficulty,
+  isNoAdsProductId,
   potForDifficulty,
 } from '../src/economy';
 
@@ -52,6 +54,11 @@ describe('online Coin economy defaults', () => {
       coins_100000: 100000,
     });
     expect(COIN_PRODUCTS).not.toHaveProperty(NO_ADS_PRODUCT_ID);
+    expect(COIN_PRODUCTS).not.toHaveProperty(IOS_NO_ADS_PRODUCT_ID);
     expect(NO_ADS_PRODUCT_ID).toBe('no_ads');
+    expect(IOS_NO_ADS_PRODUCT_ID).toBe('sudoku_duel_no_ads');
+    expect(isNoAdsProductId(NO_ADS_PRODUCT_ID)).toBe(true);
+    expect(isNoAdsProductId(IOS_NO_ADS_PRODUCT_ID)).toBe(true);
+    expect(isNoAdsProductId('coins_100')).toBe(false);
   });
 });

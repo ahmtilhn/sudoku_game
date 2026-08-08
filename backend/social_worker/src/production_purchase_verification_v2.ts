@@ -27,6 +27,11 @@ const COIN_PRODUCTS: Readonly<Record<string, number>> = Object.freeze({
   coins_100000: 100000,
 });
 const NO_ADS_PRODUCT_ID = 'no_ads';
+const IOS_NO_ADS_PRODUCT_ID = 'sudoku_duel_no_ads';
+
+function isNoAdsProductId(productId: string): boolean {
+  return productId === NO_ADS_PRODUCT_ID || productId === IOS_NO_ADS_PRODUCT_ID;
+}
 
 const FIREBASE_JWKS = createRemoteJWKSet(
   new URL(
@@ -301,7 +306,7 @@ async function readPurchaseInput(request: Request): Promise<PurchaseInput> {
     1,
     24_000,
   );
-  if (!COIN_PRODUCTS[productId] && productId !== NO_ADS_PRODUCT_ID) {
+  if (!COIN_PRODUCTS[productId] && !isNoAdsProductId(productId)) {
     throw new ProductionVerificationError(400, 'Unknown store product.', 'unknown_product');
   }
   return { productId, transactionId, verificationData };
@@ -367,7 +372,7 @@ async function verifyGooglePlayPurchase(
   const orderId = stringOrNull(purchase.orderId);
   const testContext = asObject(purchase.testPurchaseContext);
   const storeEnvironment = testContext?.fopType === 'TEST' ? 'sandbox' : 'production';
-  const noAds = input.productId === NO_ADS_PRODUCT_ID;
+  const noAds = isNoAdsProductId(input.productId);
 
   return {
     platform: 'android',
@@ -527,7 +532,7 @@ async function verifyAppStorePurchase(
     );
   }
   const productType = stringOrNull(payload.type);
-  const expectedType = productId === NO_ADS_PRODUCT_ID ? 'non-consumable' : 'consumable';
+  const expectedType = isNoAdsProductId(productId) ? 'non-consumable' : 'consumable';
   if (productType && productType.toLowerCase() !== expectedType) {
     throw new ProductionVerificationError(
       409,
@@ -548,7 +553,7 @@ async function verifyAppStorePurchase(
     storeEnvironment: expectedEnvironment,
     storeOrderId: stringOrNull(payload.originalTransactionId),
     verificationSource: 'app_store_server_api_verified_jws',
-    productType: productId === NO_ADS_PRODUCT_ID ? 'non_consumable' : 'consumable',
+    productType: isNoAdsProductId(productId) ? 'non_consumable' : 'consumable',
   };
 }
 
@@ -600,13 +605,13 @@ async function grantVerifiedPurchase(
         'purchase_replayed',
       );
     }
-    if (purchase.productId === NO_ADS_PRODUCT_ID) {
+    if (isNoAdsProductId(purchase.productId)) {
       await upsertNoAdsEntitlement(env, playerId, purchase, verificationHash);
     }
     return false;
   }
 
-  if (purchase.productId === NO_ADS_PRODUCT_ID) {
+  if (isNoAdsProductId(purchase.productId)) {
     return grantNoAdsEntitlement(env, playerId, purchase, verificationHash);
   }
   return grantCoinPurchase(env, playerId, purchase, verificationHash);

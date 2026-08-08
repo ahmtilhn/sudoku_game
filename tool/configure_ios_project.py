@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 PROJECT_FILE = Path("ios/Runner.xcodeproj/project.pbxproj")
-APP_BUNDLE_ID = "com.devoviastudio.sudoku"
+APP_BUNDLE_ID = "com.devovia.sudokuduel"
 TEST_BUNDLE_ID = f"{APP_BUNDLE_ID}.RunnerTests"
 DEPLOYMENT_TARGET = "15.0"
 

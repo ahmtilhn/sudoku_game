@@ -54,9 +54,9 @@ post_install do |installer|
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = if target.name == 'Runner'
-        'com.devoviastudio.sudoku'
+        'com.devovia.sudokuduel'
       else
-        'com.devoviastudio.sudoku.RunnerTests'
+        'com.devovia.sudokuduel.RunnerTests'
       end
 
       if target.name == 'Runner'

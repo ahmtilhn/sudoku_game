@@ -18,6 +18,11 @@ const COIN_PRODUCTS: Readonly<Record<string, number>> = Object.freeze({
   coins_100000: 100000,
 });
 const NO_ADS_PRODUCT_ID = 'no_ads';
+const IOS_NO_ADS_PRODUCT_ID = 'sudoku_duel_no_ads';
+
+function isNoAdsProductId(productId: string): boolean {
+  return productId === NO_ADS_PRODUCT_ID || productId === IOS_NO_ADS_PRODUCT_ID;
+}
 
 const FIREBASE_JWKS = createRemoteJWKSet(
   new URL(
@@ -200,7 +205,7 @@ async function readPurchaseInput(request: Request): Promise<PurchaseInput> {
     1,
     24_000,
   );
-  if (!COIN_PRODUCTS[productId] && productId !== NO_ADS_PRODUCT_ID) {
+  if (!COIN_PRODUCTS[productId] && !isNoAdsProductId(productId)) {
     throw new ProductionVerificationError(400, 'Unknown store product.', 'unknown_product');
   }
   return { productId, transactionId, verificationData };
@@ -273,9 +278,9 @@ async function verifyGooglePlayPurchase(
     storeEnvironment,
     storeOrderId: orderId,
     verificationSource: 'google_play_developer_api_v2',
-    productType: input.productId === NO_ADS_PRODUCT_ID ? 'non_consumable' : 'consumable',
+    productType: isNoAdsProductId(input.productId) ? 'non_consumable' : 'consumable',
     consume:
-      input.productId === NO_ADS_PRODUCT_ID
+      isNoAdsProductId(input.productId)
         ? undefined
         : async () => consumeGooglePurchase(env, packageName, input.productId, purchaseToken),
   };
@@ -498,7 +503,7 @@ async function verifyAppStorePurchase(
     );
   }
   const productType = stringOrNull(payload.type);
-  const expectedType = productId === NO_ADS_PRODUCT_ID ? 'non-consumable' : 'consumable';
+  const expectedType = isNoAdsProductId(productId) ? 'non-consumable' : 'consumable';
   if (productType && productType.toLowerCase() !== expectedType) {
     throw new ProductionVerificationError(
       409,
@@ -520,7 +525,7 @@ async function verifyAppStorePurchase(
       stringOrNull(payload.environment)?.toLowerCase() ?? storeEnvironment,
     storeOrderId: stringOrNull(payload.originalTransactionId),
     verificationSource: 'app_store_server_api_transaction_info',
-    productType: productId === NO_ADS_PRODUCT_ID ? 'non_consumable' : 'consumable',
+    productType: isNoAdsProductId(productId) ? 'non_consumable' : 'consumable',
   };
 }
 
@@ -556,7 +561,7 @@ async function grantVerifiedPurchase(
   playerId: string,
   purchase: VerifiedPurchase,
 ): Promise<boolean> {
-  if (purchase.productId === NO_ADS_PRODUCT_ID) {
+  if (isNoAdsProductId(purchase.productId)) {
     return grantNoAdsEntitlement(env, playerId, purchase);
   }
   const amount = COIN_PRODUCTS[purchase.productId];

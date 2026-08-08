@@ -3,11 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>31445697560-cc144fncsuise033sulqkt92o635ncd9.apps.googleusercontent.com</string>
+	<string>31445697560-7pllolpll0e6eccr7eudk32mhg7e88nh.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.31445697560-cc144fncsuise033sulqkt92o635ncd9</string>
-	<key>ANDROID_CLIENT_ID</key>
-	<string>31445697560-je35cv393qqb01v45j2f3edilmcp5g4l.apps.googleusercontent.com</string>
+	<string>com.googleusercontent.apps.31445697560-7pllolpll0e6eccr7eudk32mhg7e88nh</string>
 	<key>API_KEY</key>
 	<string>AIzaSyCBhzcaJRs1KrbwPQOeBfg657RW8XZmrI0</string>
 	<key>GCM_SENDER_ID</key>
@@ -15,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.devoviastudio.sudoku</string>
+	<string>com.devovia.sudokuduel</string>
 	<key>PROJECT_ID</key>
 	<string>focus-sweep-503417-d7</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:31445697560:ios:1f72f9fe671c75340b2f6d</string>
+	<string>1:31445697560:ios:44db104825e7d34e0b2f6d</string>
 </dict>
 </plist>

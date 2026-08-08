@@ -17,6 +17,7 @@ export const CAREER_AD_REWARD = 25;
 export const REMATCH_WINDOW_MS = 10_000;
 export const DEBUG_UNLIMITED_COINS_BALANCE = 999999999;
 export const NO_ADS_PRODUCT_ID = 'no_ads';
+export const IOS_NO_ADS_PRODUCT_ID = 'sudoku_duel_no_ads';
 
 export type DuelDifficultyKey = 'beginner' | 'easy' | 'medium' | 'hard' | 'expert';
 
@@ -29,6 +30,10 @@ export const COIN_PRODUCTS: Readonly<Record<string, number>> = Object.freeze({
   coins_50000: 50000,
   coins_100000: 100000,
 });
+
+export function isNoAdsProductId(productId: string): boolean {
+  return productId === NO_ADS_PRODUCT_ID || productId === IOS_NO_ADS_PRODUCT_ID;
+}
 
 export function entryFeeForDifficulty(difficulty: string): number {
   const fee = ENTRY_FEES[difficulty as DuelDifficultyKey];
@@ -677,7 +682,7 @@ export async function grantTestPurchase(
     verificationData: string;
   },
 ): Promise<Record<string, unknown>> {
-  if (input.productId === NO_ADS_PRODUCT_ID) {
+  if (isNoAdsProductId(input.productId)) {
     const granted = await grantNoAdsEntitlement(env, {
       playerId: input.playerId,
       platform: input.platform,
@@ -766,7 +771,7 @@ export async function grantNoAdsEntitlement(
     verificationData: string;
   },
 ): Promise<boolean> {
-  if (input.productId !== NO_ADS_PRODUCT_ID) {
+  if (!isNoAdsProductId(input.productId)) {
     throw new EconomyError(400, 'Unknown entitlement product.', 'unknown_product');
   }
   const verificationHash = await sha256Hex(

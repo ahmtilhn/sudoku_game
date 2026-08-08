@@ -8,7 +8,7 @@ void main() {
         'packageName': 'com.devoviastudio.sudoku',
         'projectId': '917838292556',
         'certificateSha1':
-            '53:b0:f0:ff:89:6c:50:ae:b0:86:f2:04:a2:2e:ed:e2:9f:1b:f3:0b',
+            'c0:4c:3a:ab:7d:76:6c:2e:87:c9:53:98:eb:4b:59:97:52:cd:25:a1',
         'installer': 'com.android.vending',
         'apiStatusCode': 'none',
       });

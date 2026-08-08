@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
-import 'package:facebook_app_events/facebook_app_events.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -10,15 +9,6 @@ class AdsService {
   AdsService._();
 
   static final AdsService instance = AdsService._();
-
-  static const bool _metaSdkEnabled = bool.fromEnvironment(
-    'META_SDK_ENABLED',
-    defaultValue: false,
-  );
-  static const bool _metaAdvertiserTrackingEnabled = bool.fromEnvironment(
-    'META_ADVERTISER_TRACKING_ENABLED',
-    defaultValue: false,
-  );
 
   static const String _androidRewardedProductionId =
       'ca-app-pub-8422988604275177/3474727600';
@@ -38,7 +28,6 @@ class AdsService {
   static const String _iosRewardedInterstitialTestId =
       'ca-app-pub-3940256099942544/6978759866';
 
-  final FacebookAppEvents _facebookEvents = FacebookAppEvents();
   final ValueNotifier<bool> adsAvailable = ValueNotifier<bool>(false);
   final ValueNotifier<bool> privacyOptionsRequired = ValueNotifier<bool>(false);
 
@@ -126,7 +115,6 @@ class AdsService {
       await MobileAds.instance.initialize();
       _mobileAdsInitialized = true;
       adsAvailable.value = true;
-      await _configureMetaAppEvents();
       unawaited(_loadRewardedAd());
       unawaited(_loadRewardedInterstitialAd());
       finish();
@@ -405,16 +393,6 @@ class AdsService {
       await Future<void>.delayed(const Duration(milliseconds: 500));
       await AppTrackingTransparency.requestTrackingAuthorization();
     }
-  }
-
-  Future<void> _configureMetaAppEvents() async {
-    if (!_metaSdkEnabled) return;
-
-    await _facebookEvents.setAutoLogAppEventsEnabled(true);
-    await _facebookEvents.setAdvertiserIdCollectionEnabled(
-      _metaAdvertiserTrackingEnabled,
-    );
-    await _facebookEvents.activateApp();
   }
 
   Future<void> _disposeLoadedAds() async {

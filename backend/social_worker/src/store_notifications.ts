@@ -7,6 +7,11 @@ const GOOGLE_OIDC_JWKS = createRemoteJWKSet(
   new URL('https://www.googleapis.com/oauth2/v3/certs'),
 );
 const NO_ADS_PRODUCT_ID = 'no_ads';
+const IOS_NO_ADS_PRODUCT_ID = 'sudoku_duel_no_ads';
+
+function isNoAdsProductId(productId: string): boolean {
+  return productId === NO_ADS_PRODUCT_ID || productId === IOS_NO_ADS_PRODUCT_ID;
+}
 
 export type StoreNotificationEnv = ProductionPurchaseEnv & {
   GOOGLE_PUBSUB_AUDIENCE?: string;
@@ -301,7 +306,7 @@ export async function applyPurchaseRevocation(
   }
 
   const now = new Date().toISOString();
-  if (purchase.product_id === NO_ADS_PRODUCT_ID) {
+  if (isNoAdsProductId(purchase.product_id)) {
     await env.DB.batch([
       env.DB.prepare(
         `UPDATE purchase_grants
@@ -428,7 +433,7 @@ export async function reversePurchaseRevocation(
   if (!purchase || purchase.refund_status !== 'refunded') return false;
   const now = new Date().toISOString();
 
-  if (purchase.product_id === NO_ADS_PRODUCT_ID) {
+  if (isNoAdsProductId(purchase.product_id)) {
     await env.DB.batch([
       env.DB.prepare(
         `UPDATE purchase_grants

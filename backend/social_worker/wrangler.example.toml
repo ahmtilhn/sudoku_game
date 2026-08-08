@@ -14,7 +14,7 @@ ENVIRONMENT = "production"
 ALLOW_TEST_PURCHASE_GRANTS = "false"
 DEBUG_UNLIMITED_COINS = "false"
 GOOGLE_PLAY_PACKAGE_NAME = "com.devoviastudio.sudoku"
-APPLE_BUNDLE_ID = "com.devoviastudio.sudoku"
+APPLE_BUNDLE_ID = "com.devovia.sudokuduel"
 ADMOB_REWARDED_AD_UNITS = "ca-app-pub-8422988604275177/3474727600,ca-app-pub-8422988604275177/4787809275,ca-app-pub-8422988604275177/3366916396,ca-app-pub-8422988604275177/4982984468"
 
 [[d1_databases]]
