@@ -32,7 +32,7 @@ jobs:
 
           start = source.index('  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {')
           end = source.index('  Future<void> _requestForfeit() async {', start)
-          new_return = """  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
+          source = source[:start] + """  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
             if (_exitingToMenu || _forfeiting || !mounted) return;
             _disconnectEscapeTimer?.cancel();
             _disconnectEscapeTimer = null;
@@ -55,12 +55,11 @@ jobs:
             Navigator.of(context).popUntil((route) => route.isFirst);
           }
 
-          """
-          source = source[:start] + new_return + source[end:]
+          """ + source[end:]
 
-          select_start = source.index('  void _selectCell(int index) {')
-          select_end = source.index('  void _enterNumber(int value) {', select_start)
-          new_select = """  void _selectCell(int index) {
+          start = source.index('  void _selectCell(int index) {')
+          end = source.index('  void _markProgress(', start)
+          source = source[:start] + """  void _selectCell(int index) {
             final snapshot = _snapshot;
             if (snapshot == null ||
                 snapshot.isFinished ||
@@ -76,52 +75,75 @@ jobs:
             setState(() => _selectedIndex = index);
           }
 
-          """
-          source = source[:select_start] + new_select + source[select_end:]
+          void _enterNumber(int value) {
+            final snapshot = _snapshot;
+            final index = _selectedIndex;
+            if (snapshot == null ||
+                index == null ||
+                snapshot.isFinished ||
+                _forfeiting ||
+                _exitingToMenu) {
+              return;
+            }
+            _controller?.move(index, value);
+          }
 
-          replacements = [
-              (
-                  "title: 'Online Duel',",
-                  "title: context.tr('online_duel'),",
-                  'online puzzle title',
-              ),
-              (
-                  """                _localConnectionInterrupted ||
-                          !snapshot.isLocalTurn,
-          """,
-                  """                _localConnectionInterrupted ||
-                          _forfeiting ||
-                          _exitingToMenu ||
-                          !snapshot.isLocalTurn,
-          """,
-                  'board input lock',
-              ),
-              (
-                  """                  !_localConnectionInterrupted &&
-                          snapshot.isLocalTurn,
-          """,
-                  """                  !_localConnectionInterrupted &&
-                          !_forfeiting &&
-                          !_exitingToMenu &&
-                          snapshot.isLocalTurn,
-          """,
-                  'board enabled lock',
-              ),
-              (
-                  """                : _forfeiting
+          """ + source[end:]
+
+          puzzle_start = source.index('    final puzzle = SudokuPuzzle(')
+          arena_start = source.index(
+              '        if (snapshot.status == OnlineDuelStatus.active ||',
+              puzzle_start,
+          )
+          source = source[:puzzle_start] + """    final puzzle = SudokuPuzzle(
+            id: 'online-${snapshot.matchId}',
+            title: context.tr('online_duel'),
+            difficulty: _difficulty(snapshot.difficulty),
+            puzzle: snapshot.puzzle,
+            solution: List<int>.filled(81, 1),
+          );
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final compact =
+                  constraints.maxHeight < 720 || constraints.maxWidth <= 520;
+              final board = RepaintBoundary(
+                child: IgnorePointer(
+                  ignoring:
+                      snapshot.isFinished ||
+                      snapshot.status == OnlineDuelStatus.paused ||
+                      _localConnectionInterrupted ||
+                      _forfeiting ||
+                      _exitingToMenu ||
+                      !snapshot.isLocalTurn,
+                  child: SudokuBoard(
+                    puzzle: puzzle,
+                    board: snapshot.board,
+                    selectedIndex: _selectedIndex,
+                    errorIndex: _feedbackCell,
+                    localMoveIndexes: _localMoveIndexes,
+                    opponentMoveIndexes: _opponentMoveIndexes,
+                    enabled:
+                        !snapshot.isFinished &&
+                        snapshot.status != OnlineDuelStatus.paused &&
+                        !_localConnectionInterrupted &&
+                        !_forfeiting &&
+                        !_exitingToMenu &&
+                        snapshot.isLocalTurn,
+                    onCellTap: _selectCell,
+                  ),
+                ),
+              );
+          """ + source[arena_start:]
+
+          old_status = """                : _forfeiting
                           ? context.tr('connection_interrupted_retrying')
-          """,
-                  """                : _forfeiting
+          """
+          new_status = """                : _forfeiting
                           ? context.tr('online_waiting_snapshot')
-          """,
-                  'forfeit status text',
-              ),
-          ]
-          for old, new, label in replacements:
-              count = source.count(old)
-              if count != 1:
-                  raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
-              source = source.replace(old, new, 1)
+          """
+          if source.count(old_status) != 1:
+              raise SystemExit(f'forfeit status text match count: {source.count(old_status)}')
+          source = source.replace(old_status, new_status, 1)
           online.write_text(source, encoding='utf-8')
 
           account = Path('lib/features/settings/account_protection_screen.dart')
@@ -130,14 +152,10 @@ jobs:
               anchor = "import 'package:firebase_auth/firebase_auth.dart';"
               if source.count(anchor) != 1:
                   raise SystemExit('account import anchor not found')
-              source = source.replace(
-                  anchor,
-                  "import 'dart:ui';\n\n" + anchor,
-                  1,
-              )
+              source = source.replace(anchor, "import 'dart:ui';\n\n" + anchor, 1)
           helper_start = source.index('String _accountText(')
           helper_end = source.index('class AccountProtectionScreen', helper_start)
-          new_helper = """String _accountText(
+          source = source[:helper_start] + """String _accountText(
             BuildContext _, {
             required String en,
             required String tr,
@@ -145,8 +163,7 @@ jobs:
             return PlatformDispatcher.instance.locale.languageCode == 'tr' ? tr : en;
           }
 
-          """
-          source = source[:helper_start] + new_helper + source[helper_end:]
+          """ + source[helper_end:]
           account.write_text(source, encoding='utf-8')
 
       - uses: actions/setup-java@v5
