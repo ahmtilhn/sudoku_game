@@ -33,7 +33,8 @@ jobs:
           start = source.index('  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {')
           end = source.index('  Future<void> _requestForfeit() async {', start)
           source = source[:start] + """  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
-            if (_exitingToMenu || _forfeiting || !mounted) return;
+            if (_exitingToMenu || !mounted) return;
+            if (sendForfeit && _forfeiting) return;
             _disconnectEscapeTimer?.cancel();
             _disconnectEscapeTimer = null;
 
@@ -50,7 +51,10 @@ jobs:
               if (waitForAuthoritativeResult) return;
             }
 
-            setState(() => _exitingToMenu = true);
+            setState(() {
+              _forfeiting = false;
+              _exitingToMenu = true;
+            });
             if (!mounted) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
           }
@@ -89,6 +93,19 @@ jobs:
           }
 
           """ + source[end:]
+
+          input_lock = """            _localConnectionInterrupted ||
+            _exitingToMenu ||
+            !snapshot.isLocalTurn ||
+          """
+          input_lock_fixed = """            _localConnectionInterrupted ||
+            _forfeiting ||
+            _exitingToMenu ||
+            !snapshot.isLocalTurn ||
+          """
+          if source.count(input_lock) != 1:
+              raise SystemExit(f'input lock match count: {source.count(input_lock)}')
+          source = source.replace(input_lock, input_lock_fixed, 1)
 
           puzzle_start = source.index('    final puzzle = SudokuPuzzle(')
           arena_start = source.index(
