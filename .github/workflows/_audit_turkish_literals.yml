@@ -22,14 +22,21 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Apply online forfeit and locale fixes
+      - name: Apply source fixes
         shell: python
         run: |
           from pathlib import Path
 
+          def replace_once(source, old, new, label):
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+              return source.replace(old, new, 1)
+
           online = Path('lib/features/duel/online_duel_screen.dart')
           source = online.read_text(encoding='utf-8')
-          old = '''  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
+
+          old_return = """  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
             if (_exitingToMenu || !mounted) return;
             _disconnectEscapeTimer?.cancel();
             _disconnectEscapeTimer = null;
@@ -49,8 +56,8 @@ jobs:
             if (!mounted) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
           }
-          '''
-          new = '''  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
+          """
+          new_return = """  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
             if (_exitingToMenu || _forfeiting || !mounted) return;
             _disconnectEscapeTimer?.cancel();
             _disconnectEscapeTimer = null;
@@ -65,137 +72,118 @@ jobs:
                 setState(() => _forfeiting = true);
               }
               _controller?.forfeit();
-              if (waitForAuthoritativeResult) {
-                return;
-              }
+              if (waitForAuthoritativeResult) return;
             }
 
             setState(() => _exitingToMenu = true);
             if (!mounted) return;
             Navigator.of(context).popUntil((route) => route.isFirst);
           }
-          '''
-          if old not in source:
-              raise SystemExit('Expected _returnToMainMenu block was not found.')
-          source = source.replace(old, new, 1)
-          source = source.replace(
-              'if (snapshot == null || snapshot.isFinished) {\n      return;\n    }',
-              'if (snapshot == null ||\n        snapshot.isFinished ||\n        _forfeiting ||\n        _exitingToMenu) {\n      return;\n    }',
-              1,
-          )
-          source = source.replace(
-              'snapshot.status == OnlineDuelStatus.paused ||\n                _localConnectionInterrupted ||\n                !snapshot.isLocalTurn,',
-              'snapshot.status == OnlineDuelStatus.paused ||\n                _localConnectionInterrupted ||\n                _forfeiting ||\n                _exitingToMenu ||\n                !snapshot.isLocalTurn,',
-              1,
-          )
-          source = source.replace(
-              '!snapshot.isFinished &&\n                  snapshot.status != OnlineDuelStatus.paused &&\n                  !_localConnectionInterrupted &&\n                  snapshot.isLocalTurn,',
-              '!snapshot.isFinished &&\n                  snapshot.status != OnlineDuelStatus.paused &&\n                  !_localConnectionInterrupted &&\n                  !_forfeiting &&\n                  !_exitingToMenu &&\n                  snapshot.isLocalTurn,',
-              1,
-          )
-          source = source.replace(
-              ": _forfeiting\n                ? context.tr('connection_interrupted_retrying')",
-              ": _forfeiting\n                ? context.tr('online_waiting_snapshot')",
-              1,
-          )
-          source = source.replace("title: 'Online Duel',", "title: context.tr('online_duel'),", 1)
-          online.write_text(source, encoding='utf-8')
+          """
+          source = replace_once(source, old_return, new_return, '_returnToMainMenu')
 
-          ux = Path('lib/localization/ux_copy.dart')
-          source = ux.read_text(encoding='utf-8')
-          source = source.replace(
-              "import 'package:flutter/material.dart';",
-              "import 'dart:ui';\n\nimport 'package:flutter/material.dart';",
-              1,
+          source = replace_once(
+              source,
+              """    if (snapshot == null || snapshot.isFinished) {
+                return;
+              }
+          """,
+              """    if (snapshot == null ||
+                  snapshot.isFinished ||
+                  _forfeiting ||
+                  _exitingToMenu) {
+                return;
+              }
+          """,
+              '_selectCell guard',
           )
-          source = source.replace(
-              '  static bool _isTurkish(BuildContext context) =>\n      Localizations.localeOf(context).languageCode == \'tr\';',
-              "  static bool _isTurkish(BuildContext _) =>\n      PlatformDispatcher.instance.locale.languageCode == 'tr';",
-              1,
+
+          source = replace_once(
+              source,
+              """            ignoring:
+                          snapshot.isFinished ||
+                          snapshot.status == OnlineDuelStatus.paused ||
+                          _localConnectionInterrupted ||
+                          !snapshot.isLocalTurn,
+          """,
+              """            ignoring:
+                          snapshot.isFinished ||
+                          snapshot.status == OnlineDuelStatus.paused ||
+                          _localConnectionInterrupted ||
+                          _forfeiting ||
+                          _exitingToMenu ||
+                          !snapshot.isLocalTurn,
+          """,
+              'board IgnorePointer',
           )
-          ux.write_text(source, encoding='utf-8')
+
+          source = replace_once(
+              source,
+              """              enabled:
+                          !snapshot.isFinished &&
+                          snapshot.status != OnlineDuelStatus.paused &&
+                          !_localConnectionInterrupted &&
+                          snapshot.isLocalTurn,
+          """,
+              """              enabled:
+                          !snapshot.isFinished &&
+                          snapshot.status != OnlineDuelStatus.paused &&
+                          !_localConnectionInterrupted &&
+                          !_forfeiting &&
+                          !_exitingToMenu &&
+                          snapshot.isLocalTurn,
+          """,
+              'board enabled',
+          )
+
+          source = replace_once(
+              source,
+              """                : _forfeiting
+                          ? context.tr('connection_interrupted_retrying')
+          """,
+              """                : _forfeiting
+                          ? context.tr('online_waiting_snapshot')
+          """,
+              'forfeit status text',
+          )
+
+          source = replace_once(
+              source,
+              "title: 'Online Duel',",
+              "title: context.tr('online_duel'),",
+              'online puzzle title',
+          )
+          online.write_text(source, encoding='utf-8')
 
           account = Path('lib/features/settings/account_protection_screen.dart')
           source = account.read_text(encoding='utf-8')
-          source = source.replace(
+          source = replace_once(
+              source,
               "import 'package:firebase_auth/firebase_auth.dart';",
               "import 'dart:ui';\n\nimport 'package:firebase_auth/firebase_auth.dart';",
-              1,
+              'account dart:ui import',
           )
-          source = source.replace(
-              '  BuildContext context, {\n  required String en,\n  required String tr,\n}) {\n  return Localizations.localeOf(context).languageCode == \'tr\' ? tr : en;\n}',
-              "  BuildContext _, {\n  required String en,\n  required String tr,\n}) {\n  return PlatformDispatcher.instance.locale.languageCode == 'tr' ? tr : en;\n}",
-              1,
+          source = replace_once(
+              source,
+              """String _accountText(
+            BuildContext context, {
+            required String en,
+            required String tr,
+          }) {
+            return Localizations.localeOf(context).languageCode == 'tr' ? tr : en;
+          }
+          """,
+              """String _accountText(
+            BuildContext _, {
+            required String en,
+            required String tr,
+          }) {
+            return PlatformDispatcher.instance.locale.languageCode == 'tr' ? tr : en;
+          }
+          """,
+              'account locale helper',
           )
           account.write_text(source, encoding='utf-8')
-
-          test = Path('test/online_duel_lifecycle_hotfix_test.dart')
-          source = test.read_text(encoding='utf-8')
-          old_test = '''  test('forfeit leaves immediately instead of waiting for a server snapshot', () {
-            final source = File('lib/features/duel/online_duel_screen.dart').readAsStringSync();
-            expect(source, contains('await _returnToMainMenu(sendForfeit: true)'));
-            expect(source, isNot(contains('Timer(const Duration(seconds: 8)')));
-          });
-          '''
-          new_test = '''  test('forfeit waits for the authoritative result before leaving', () {
-            final source = File('lib/features/duel/online_duel_screen.dart').readAsStringSync();
-            expect(source, contains('await _returnToMainMenu(sendForfeit: true)'));
-            expect(source, contains('waitForAuthoritativeResult'));
-            expect(source, contains('setState(() => _forfeiting = true)'));
-            expect(source, contains('_showResultOnce(snapshot);'));
-            expect(source, isNot(contains('Duration(milliseconds: 180)')));
-          });
-          '''
-          if old_test not in source:
-              raise SystemExit('Expected lifecycle forfeit regression test was not found.')
-          test.write_text(source.replace(old_test, new_test, 1), encoding='utf-8')
-
-          locale_test = Path('test/localization_locale_consistency_test.dart')
-          locale_test.write_text(r'''import 'dart:convert';
-          import 'dart:io';
-
-          import 'package:flutter_test/flutter_test.dart';
-
-          void main() {
-            test('legacy bilingual copy follows the same platform locale as AppStrings', () {
-              final appStrings = File('lib/localization/app_strings.dart').readAsStringSync();
-              final uxCopy = File('lib/localization/ux_copy.dart').readAsStringSync();
-              final account = File('lib/features/settings/account_protection_screen.dart').readAsStringSync();
-
-              expect(appStrings, contains('PlatformDispatcher.instance.locale'));
-              expect(uxCopy, contains('PlatformDispatcher.instance.locale.languageCode'));
-              expect(account, contains('PlatformDispatcher.instance.locale.languageCode'));
-              expect(uxCopy, isNot(contains('Localizations.localeOf(context).languageCode')));
-              expect(account, isNot(contains('Localizations.localeOf(context).languageCode')));
-            });
-
-            test('English localization catalog does not contain Turkish UI copy', () {
-              final raw = File('assets/localization/Localizable.xcstrings').readAsStringSync();
-              final catalog = jsonDecode(raw) as Map<String, dynamic>;
-              final strings = (catalog['strings'] as Map).cast<String, dynamic>();
-              final turkishCharacters = RegExp(r'[çğıöşüÇĞİÖŞÜ]');
-
-              for (final entry in strings.entries) {
-                final definition = entry.value;
-                if (definition is! Map) continue;
-                final localizations = definition['localizations'];
-                if (localizations is! Map) continue;
-                final english = localizations['en'];
-                if (english is! Map) continue;
-                final unit = english['stringUnit'];
-                if (unit is! Map) continue;
-                final value = unit['value'];
-                if (value is String) {
-                  expect(
-                    turkishCharacters.hasMatch(value),
-                    isFalse,
-                    reason: 'English localization ${entry.key} contains Turkish text: $value',
-                  );
-                }
-              }
-            });
-          }
-          '''.replaceAll(RegExp(r'^          ', multiLine: true), ''), encoding='utf-8')
 
       - uses: actions/setup-java@v5
         with:
@@ -208,7 +196,7 @@ jobs:
           cache: true
 
       - run: flutter pub get
-      - run: dart format lib/features/duel/online_duel_screen.dart lib/localization/ux_copy.dart lib/features/settings/account_protection_screen.dart test/online_duel_lifecycle_hotfix_test.dart test/localization_locale_consistency_test.dart
+      - run: dart format lib/features/duel/online_duel_screen.dart lib/features/settings/account_protection_screen.dart lib/localization/ux_copy.dart test/online_duel_lifecycle_hotfix_test.dart test/localization_locale_consistency_test.dart
       - run: python3 tool/validate_localizations.py
       - run: python3 tool/verify_user_facing_messages.py
       - run: python3 tool/verify_duel_ui_contract.py
@@ -222,8 +210,8 @@ jobs:
           set -euo pipefail
           git rm .github/workflows/_audit_turkish_literals.yml
           git add lib/features/duel/online_duel_screen.dart \
-                  lib/localization/ux_copy.dart \
                   lib/features/settings/account_protection_screen.dart \
+                  lib/localization/ux_copy.dart \
                   test/online_duel_lifecycle_hotfix_test.dart \
                   test/localization_locale_consistency_test.dart
           git diff --cached --check
