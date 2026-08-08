@@ -125,7 +125,7 @@ void main() {
     expect(find.text('s'), findsOneWidget);
   });
 
-  testWidgets('active header aligns timer with both avatars and puts score before names', (tester) async {
+  testWidgets('active header aligns timer, puts names below avatars and scores inward', (tester) async {
     await _pumpOnlineDuel(tester, size: const Size(390, 844), status: 'active');
 
     final timerCenter = tester.getCenter(
@@ -140,13 +140,21 @@ void main() {
     expect((timerCenter.dy - avatarACenter.dy).abs(), lessThan(2));
     expect((timerCenter.dy - avatarBCenter.dy).abs(), lessThan(2));
 
+    final nameACenter = tester.getCenter(
+      find.byKey(const ValueKey<String>('duel-name-A')),
+    );
+    final nameBCenter = tester.getCenter(
+      find.byKey(const ValueKey<String>('duel-name-B')),
+    );
+    expect(nameACenter.dy, greaterThan(avatarACenter.dy));
+    expect(nameBCenter.dy, greaterThan(avatarBCenter.dy));
     expect(
       tester.getCenter(find.byKey(const ValueKey<String>('duel-score-A'))).dx,
-      lessThan(tester.getCenter(find.byKey(const ValueKey<String>('duel-name-A'))).dx),
+      greaterThan(nameACenter.dx),
     );
     expect(
       tester.getCenter(find.byKey(const ValueKey<String>('duel-score-B'))).dx,
-      lessThan(tester.getCenter(find.byKey(const ValueKey<String>('duel-name-B'))).dx),
+      lessThan(nameBCenter.dx),
     );
   });
 

@@ -112,10 +112,10 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   }
 
   void _handlePushRoom() {
-    final roomId = _push.openedRoomId.value;
+    final roomId = _push.openedRoomId.value?.trim();
     if (roomId == null || roomId.isEmpty) return;
     _push.openedRoomId.value = null;
-    unawaited(_checkStatus());
+    unawaited(_openRoom(roomId));
   }
 
   Future<void> _checkStatus() async {

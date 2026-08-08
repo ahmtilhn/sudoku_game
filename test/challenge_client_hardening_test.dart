@@ -21,7 +21,7 @@ void main() {
     expect(invitation, contains('activeChallengeId == widget.challengeId'));
   });
 
-  test('online duel exposes surrender and waits for settlement', () {
+  test('online duel exposes surrender without trapping navigation', () {
     final duel = File(
       'lib/features/duel/online_duel_screen.dart',
     ).readAsStringSync();
@@ -32,8 +32,9 @@ void main() {
     expect(duel, contains("context.tr('forfeit_and_leave')"));
     expect(duel, contains('needsSettlement'));
     expect(duel, contains("action.startsWith('rematch:')"));
-    expect(prematch, contains('controller.forfeit();'));
-    expect(prematch, contains('snapshot.coinSettlement != null'));
-    expect(prematch, contains('await controller.dispose();'));
+    expect(prematch, contains('controller?.forfeit();'));
+    expect(prematch, contains('Duration(milliseconds: 180)'));
+    expect(prematch, contains('await controller?.dispose();'));
+    expect(prematch, contains('Navigator.of(context).pop();'));
   });
 }

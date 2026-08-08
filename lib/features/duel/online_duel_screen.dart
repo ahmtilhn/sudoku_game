@@ -38,6 +38,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   OnlineDuelController? _controller;
   StreamSubscription<OnlineDuelSnapshot>? _subscription;
   StreamSubscription<OnlineDuelFeedback>? _feedbackSubscription;
+  StreamSubscription<OnlineDuelConnectionState>? _connectionSubscription;
   OnlineDuelSnapshot? _snapshot;
   Object? _error;
   int? _selectedIndex;
@@ -49,9 +50,15 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   Timer? _feedbackTimer;
   Timer? _progressTimer;
   Timer? _resultSettlementTimer;
+  Timer? _disconnectEscapeTimer;
+  DateTime? _localDisconnectDeadline;
+  OnlineDuelConnectionState _connectionState = OnlineDuelConnectionState.connecting;
   String? _shownResultFor;
   int _resultSettlementAttempts = 0;
   bool _forfeiting = false;
+  bool _exitingToMenu = false;
+
+  static const Duration _disconnectFailSafe = Duration(seconds: 30);
 
   @override
   void initState() {
@@ -63,10 +70,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   void dispose() {
     unawaited(_subscription?.cancel());
     unawaited(_feedbackSubscription?.cancel());
+    unawaited(_connectionSubscription?.cancel());
     unawaited(_controller?.dispose());
     _feedbackTimer?.cancel();
     _progressTimer?.cancel();
     _resultSettlementTimer?.cancel();
+    _disconnectEscapeTimer?.cancel();
     super.dispose();
   }
 
@@ -78,6 +87,9 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             await WebSocketOnlineDuelTransport.connect(widget.roomId),
           );
       controller.start();
+      final connectionSubscription = controller.connectionStates.listen(
+        _handleConnectionState,
+      );
       final subscription = controller.snapshots.listen((snapshot) {
         if (!mounted) return;
         final previous = _snapshot;
@@ -137,7 +149,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         _controller = controller;
         _subscription = subscription;
         _feedbackSubscription = feedbackSubscription;
+        _connectionSubscription = connectionSubscription;
+        _connectionState = controller.connectionState;
       });
+      _handleConnectionState(controller.connectionState);
       controller.requestSnapshot();
     } catch (error) {
       if (!mounted) return;
@@ -148,9 +163,80 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     }
   }
 
+  bool get _localConnectionInterrupted =>
+      _snapshot != null &&
+      (_connectionState == OnlineDuelConnectionState.reconnecting ||
+          _connectionState == OnlineDuelConnectionState.resyncing ||
+          _connectionState == OnlineDuelConnectionState.failed);
+
+  void _handleConnectionState(OnlineDuelConnectionState state) {
+    if (!mounted) return;
+    final shouldStartFailSafe =
+        _snapshot != null &&
+        (state == OnlineDuelConnectionState.reconnecting ||
+            state == OnlineDuelConnectionState.failed);
+
+    if (state == OnlineDuelConnectionState.connected) {
+      _disconnectEscapeTimer?.cancel();
+      _disconnectEscapeTimer = null;
+      if (_connectionState != state || _localDisconnectDeadline != null) {
+        setState(() {
+          _connectionState = state;
+          _localDisconnectDeadline = null;
+        });
+      }
+      return;
+    }
+
+    if (shouldStartFailSafe && _localDisconnectDeadline == null) {
+      final deadline = DateTime.now().add(_disconnectFailSafe);
+      _disconnectEscapeTimer?.cancel();
+      _disconnectEscapeTimer = Timer(_disconnectFailSafe, () {
+        if (!mounted || _connectionState == OnlineDuelConnectionState.connected) {
+          return;
+        }
+        unawaited(_returnToMainMenu());
+      });
+      setState(() {
+        _connectionState = state;
+        _localDisconnectDeadline = deadline;
+      });
+      return;
+    }
+
+    if (_connectionState != state) {
+      setState(() => _connectionState = state);
+    }
+  }
+
+  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
+    if (_exitingToMenu || !mounted) return;
+    _disconnectEscapeTimer?.cancel();
+    _disconnectEscapeTimer = null;
+    setState(() {
+      _exitingToMenu = true;
+      if (sendForfeit) _forfeiting = true;
+    });
+
+    if (sendForfeit) {
+      _controller?.forfeit();
+      if (_connectionState == OnlineDuelConnectionState.connected ||
+          _connectionState == OnlineDuelConnectionState.resyncing) {
+        await Future<void>.delayed(const Duration(milliseconds: 180));
+      }
+    }
+
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   Future<void> _requestForfeit() async {
     final snapshot = _snapshot;
-    if (snapshot == null || snapshot.isFinished || _forfeiting || !mounted) {
+    if (snapshot == null ||
+        snapshot.isFinished ||
+        _forfeiting ||
+        _exitingToMenu ||
+        !mounted) {
       return;
     }
     final forfeit = await showDialog<bool>(
@@ -171,17 +257,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       ),
     );
     if (forfeit != true || !mounted) return;
-    setState(() => _forfeiting = true);
-    _controller?.forfeit();
-    _controller?.requestSnapshot();
-    Timer(const Duration(seconds: 8), () {
-      if (!mounted || _snapshot?.isFinished == true) return;
-      setState(() => _forfeiting = false);
-      _controller?.requestSnapshot();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('connection_interrupted_retrying'))),
-      );
-    });
+    await _returnToMainMenu(sendForfeit: true);
   }
 
   void _selectCell(int index) {
@@ -315,10 +391,13 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     final inputLocked =
         snapshot != null &&
         (snapshot.isFinished ||
+            snapshot.status == OnlineDuelStatus.paused ||
+            _localConnectionInterrupted ||
+            _exitingToMenu ||
             !snapshot.isLocalTurn ||
             _controller?.pendingMove == true);
     return PopScope(
-      canPop: snapshot?.isFinished ?? true,
+      canPop: _exitingToMenu || (snapshot?.isFinished ?? true),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_requestForfeit());
       },
@@ -447,7 +526,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             constraints.maxHeight < 720 || constraints.maxWidth <= 520;
         final board = RepaintBoundary(
           child: IgnorePointer(
-            ignoring: snapshot.isFinished || !snapshot.isLocalTurn,
+            ignoring:
+                snapshot.isFinished ||
+                snapshot.status == OnlineDuelStatus.paused ||
+                _localConnectionInterrupted ||
+                !snapshot.isLocalTurn,
             child: SudokuBoard(
               puzzle: puzzle,
               board: snapshot.board,
@@ -455,7 +538,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
               errorIndex: _feedbackCell,
               localMoveIndexes: _localMoveIndexes,
               opponentMoveIndexes: _opponentMoveIndexes,
-              enabled: !snapshot.isFinished && snapshot.isLocalTurn,
+              enabled:
+                  !snapshot.isFinished &&
+                  snapshot.status != OnlineDuelStatus.paused &&
+                  !_localConnectionInterrupted &&
+                  snapshot.isLocalTurn,
               onCellTap: _selectCell,
             ),
           ),
@@ -466,7 +553,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             snapshot: snapshot,
             compact: compact,
             board: board,
-            statusText: snapshot.status == OnlineDuelStatus.paused
+            localConnectionInterrupted: _localConnectionInterrupted,
+            localDisconnectDeadline: _localDisconnectDeadline,
+            statusText:
+                snapshot.status == OnlineDuelStatus.paused ||
+                    _localConnectionInterrupted
                 ? context.tr('connection_interrupted_retrying')
                 : _forfeiting
                 ? context.tr('connection_interrupted_retrying')
@@ -1434,6 +1525,8 @@ class _ArenaMatchLayout extends StatelessWidget {
     required this.statusText,
     required this.onForfeit,
     required this.forfeiting,
+    required this.localConnectionInterrupted,
+    required this.localDisconnectDeadline,
   });
 
   final OnlineDuelSnapshot snapshot;
@@ -1442,6 +1535,8 @@ class _ArenaMatchLayout extends StatelessWidget {
   final String statusText;
   final VoidCallback onForfeit;
   final bool forfeiting;
+  final bool localConnectionInterrupted;
+  final DateTime? localDisconnectDeadline;
 
   @override
   Widget build(BuildContext context) {
@@ -1501,10 +1596,18 @@ class _ArenaMatchLayout extends StatelessWidget {
                       break;
                     }
                   }
-                  final pauseLabel = disconnectedSeat != null &&
-                          disconnectedSeat != snapshot.youSeat
+                  final connectionInterrupted =
+                      snapshot.status == OnlineDuelStatus.paused ||
+                      localConnectionInterrupted;
+                  final pauseLabel = localConnectionInterrupted
+                      ? context.tr('reconnecting')
+                      : disconnectedSeat != null &&
+                            disconnectedSeat != snapshot.youSeat
                       ? context.tr('opponent_connecting')
                       : context.tr('reconnecting');
+                  final reconnectDeadline = localConnectionInterrupted
+                      ? localDisconnectDeadline
+                      : disconnectedPlayer?.disconnectDeadline;
                   final boardWidget = Center(
                     child: SizedBox.square(
                       dimension: boardSize,
@@ -1523,10 +1626,11 @@ class _ArenaMatchLayout extends StatelessWidget {
                             ),
                             child: board,
                           ),
-                          if (snapshot.status == OnlineDuelStatus.paused)
+                          if (connectionInterrupted)
                             _ReconnectPauseOverlay(
                               label: pauseLabel,
-                              deadline: disconnectedPlayer?.disconnectDeadline,
+                              deadline: reconnectDeadline,
+                              onLeave: onForfeit,
                             ),
                         ],
                       ),
@@ -1564,10 +1668,15 @@ class _ArenaMatchLayout extends StatelessWidget {
 }
 
 class _ReconnectPauseOverlay extends StatefulWidget {
-  const _ReconnectPauseOverlay({required this.label, this.deadline});
+  const _ReconnectPauseOverlay({
+    required this.label,
+    required this.onLeave,
+    this.deadline,
+  });
 
   final String label;
   final DateTime? deadline;
+  final VoidCallback onLeave;
 
   @override
   State<_ReconnectPauseOverlay> createState() => _ReconnectPauseOverlayState();
@@ -1639,6 +1748,12 @@ class _ReconnectPauseOverlayState extends State<_ReconnectPauseOverlay> {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: widget.onLeave,
+                    icon: const Icon(Icons.flag_rounded, size: 17),
+                    label: Text(context.tr('forfeit_and_leave')),
+                  ),
                 ],
               ),
             ),
@@ -1805,7 +1920,7 @@ class _MatchHeader extends StatelessWidget {
     final total = (scoreA + scoreB).clamp(1, 999999);
     final aShare = scoreA / total;
     final scheme = Theme.of(context).colorScheme;
-    final height = compact ? 76.0 : 88.0;
+    final height = compact ? 106.0 : 122.0;
     final timerSize = compact ? 58.0 : 70.0;
 
     return Semantics(
@@ -1857,7 +1972,7 @@ class _MatchHeader extends StatelessWidget {
               ),
             ),
             Positioned.fill(
-              top: compact ? 12 : 14,
+              top: compact ? 15 : 14,
               bottom: compact ? 11 : 13,
               child: Row(
                 children: [
@@ -2127,8 +2242,9 @@ class _DuelPlayerPlate extends StatelessWidget {
     final accent = seat == OnlineDuelSeat.a ? scheme.primary : scheme.tertiary;
     final displayName = isLocalPlayer ? context.tr('you') : player.displayName;
     final score = snapshot.scores[seat] ?? 0;
-    final avatarRadius = compact ? 17.0 : 23.0;
+    final avatarRadius = compact ? 18.0 : 24.0;
     final seatKey = seat == OnlineDuelSeat.a ? 'A' : 'B';
+
     final avatar = KeyedSubtree(
       key: ValueKey<String>('duel-avatar-$seatKey'),
       child: _AvatarRing(
@@ -2144,41 +2260,46 @@ class _DuelPlayerPlate extends StatelessWidget {
         ),
       ),
     );
-    final info = Row(
-      mainAxisSize: MainAxisSize.max,
-      mainAxisAlignment: alignEnd ? MainAxisAlignment.end : MainAxisAlignment.start,
+
+    final nameAndPresence = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _ScoreValue(
-          key: ValueKey<String>('duel-score-$seatKey'),
-          score: score,
-        ),
-        SizedBox(width: compact ? 5 : 7),
         Flexible(
           child: Text(
             displayName,
             key: ValueKey<String>('duel-name-$seatKey'),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: compact ? 12 : 14,
+              fontSize: compact ? 13.5 : 16.5,
               fontWeight: FontWeight.w900,
+              letterSpacing: .1,
             ),
           ),
         ),
-        SizedBox(width: compact ? 5 : 7),
+        SizedBox(width: compact ? 4 : 6),
         DuelAssetIcon(
           player.connected ? DuelAsset.wifi : DuelAsset.cloud,
-          size: compact ? 11 : 13,
+          size: compact ? 12 : 14,
           color: player.connected ? accent : scheme.error,
         ),
       ],
     );
 
+    final scoreValue = _ScoreValue(
+      key: ValueKey<String>('duel-score-$seatKey'),
+      score: score,
+      compact: compact,
+      color: accent,
+    );
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 4 : 10,
-        vertical: compact ? 4 : 6,
+        horizontal: compact ? 5 : 11,
+        vertical: compact ? 3 : 5,
       ),
       decoration: BoxDecoration(
         color: Colors.transparent,
@@ -2186,10 +2307,25 @@ class _DuelPlayerPlate extends StatelessWidget {
             ? [BoxShadow(color: accent.withValues(alpha: .18), blurRadius: 14)]
             : null,
       ),
-      child: Row(
-        children: alignEnd
-            ? [Expanded(child: info), SizedBox(width: compact ? 6 : 9), avatar]
-            : [avatar, SizedBox(width: compact ? 6 : 9), Expanded(child: info)],
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          avatar,
+          SizedBox(height: compact ? 3 : 5),
+          Row(
+            children: alignEnd
+                ? [
+                    scoreValue,
+                    SizedBox(width: compact ? 7 : 11),
+                    Expanded(child: nameAndPresence),
+                  ]
+                : [
+                    Expanded(child: nameAndPresence),
+                    SizedBox(width: compact ? 7 : 11),
+                    scoreValue,
+                  ],
+          ),
+        ],
       ),
     );
   }
@@ -2228,26 +2364,41 @@ class _AvatarRing extends StatelessWidget {
 }
 
 class _ScoreValue extends StatelessWidget {
-  const _ScoreValue({super.key, required this.score});
+  const _ScoreValue({
+    super.key,
+    required this.score,
+    required this.compact,
+    required this.color,
+  });
 
   final int score;
+  final bool compact;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const DuelAssetIcon(DuelAsset.trophy, size: 13),
-        const SizedBox(width: 3),
-        Text(
-          '$score',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: .92),
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
+    return Padding(
+      padding: EdgeInsets.only(bottom: compact ? 1 : 2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DuelAssetIcon(
+            DuelAsset.trophy,
+            size: compact ? 17 : 21,
+            color: const Color(0xFFFFC94D),
           ),
-        ),
-      ],
+          SizedBox(width: compact ? 4 : 5),
+          Text(
+            '$score',
+            style: TextStyle(
+              color: color,
+              fontSize: compact ? 20 : 25,
+              height: 1,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
