@@ -23,7 +23,10 @@ void main() {
     }
     expect(source, contains('LeaderboardsScreen'));
     expect(source, contains('localAvatarBytes: platformPlayer?.avatarBytes'));
-    expect(source, contains('constraints: const BoxConstraints(maxWidth: 760)'));
+    expect(
+      source,
+      contains('constraints: const BoxConstraints(maxWidth: 760)'),
+    );
   });
 
   test('profile cards stay compact and expose leaderboard entry', () {
@@ -86,14 +89,21 @@ void main() {
     expect(source, contains('DuelAsset.resultDefeatTrophyPro'));
   });
 
-  test('leaderboards show own rank before opening platform boards', () {
-    final source = File(
-      'lib/features/duel/leaderboards_screen.dart',
-    ).readAsStringSync();
+  test(
+    'leaderboards open native ELO boards without Firebase ranking dependency',
+    () {
+      final source = File(
+        'lib/features/duel/leaderboards_screen.dart',
+      ).readAsStringSync();
 
-    expect(source, contains("mode: 'around_me'"));
-    expect(source, contains("current?['rank']"));
-    expect(source, contains('_platform.show(scope)'));
-    expect(source, contains('UxStatePanel.error'));
-  });
+      expect(
+        source,
+        contains('PlatformLeaderboardIds().idFor(platform, scope)'),
+      );
+      expect(source, contains('showLeaderboard(leaderboardId: leaderboardId)'));
+      expect(source, contains("'ELO'"));
+      expect(source, isNot(contains('SocialApiClient')));
+      expect(source, isNot(contains('FirebaseSessionService')));
+    },
+  );
 }

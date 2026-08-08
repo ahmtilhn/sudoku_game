@@ -70,6 +70,7 @@ class PlayGamesFirebaseAuthService {
           return user;
         })
         .catchError((Object error) {
+          debugPrint('Silent Play Games Firebase restore failed: $error');
           _lastSilentFailureAt = DateTime.now();
           _lastSilentFailure = error;
           return null;
@@ -104,6 +105,7 @@ class PlayGamesFirebaseAuthService {
       _lastSilentFailureAt = null;
       _lastSilentFailure = null;
     } catch (error) {
+      debugPrint('Play Games Firebase account bridge failed: $error');
       _lastSilentFailureAt = DateTime.now();
       _lastSilentFailure = error;
       rethrow;
@@ -143,6 +145,9 @@ class PlayGamesFirebaseAuthService {
     } on PlayGamesFirebaseAuthException {
       rethrow;
     } on FirebaseAuthException catch (error) {
+      debugPrint(
+        'Play Games Firebase connect failed: ${error.code}: ${error.message}',
+      );
       throw _mapFirebaseError(error);
     } on PlatformGameServicesException catch (error) {
       throw PlayGamesFirebaseAuthException(error.toString(), code: error.code);

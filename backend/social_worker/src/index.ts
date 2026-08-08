@@ -31,6 +31,7 @@ import {
   markConnected,
   markDisconnected,
   snapshot,
+  stateVariant,
 } from './online_duel';
 
 export interface Env {
@@ -202,7 +203,7 @@ export default {
       ) {
         response = await matchDetail(env, player, url.pathname.split('/')[3]);
       } else if (url.pathname === '/v1/me/ratings' && request.method === 'GET') {
-        response = await myRatings(env, player);
+        response = await myRatings(url, env, player);
       } else if (
         /^\/v1\/leaderboards\/[^/]+$/.test(url.pathname) &&
         request.method === 'GET'
@@ -1049,15 +1050,18 @@ async function matchDetail(
   return reply(env, { match: publicMatch(match, current.id), players: players.results });
 }
 
-async function myRatings(env: Env, current: PlayerRow): Promise<Response> {
-  await ensureRatingRows(env, current.id);
+async function myRatings(url: URL, env: Env, current: PlayerRow): Promise<Response> {
+  const variant = normalizeRatingVariant(url.searchParams.get('variant'));
+  await ensureVariantRatingRows(env, current.id, variant);
   const rows = await env.DB.prepare(
-    `SELECT scope, rating, games_played, wins, losses, draws, best_rating, provisional_games
-     FROM player_ratings WHERE player_id = ? ORDER BY scope`,
+     `SELECT scope, rating, games_played, wins, losses, draws, best_rating, provisional_games
+      FROM player_variant_ratings
+      WHERE player_id = ? AND variant = ?
+      ORDER BY scope`,
   )
-    .bind(current.id)
+    .bind(current.id, variant)
     .all<Record<string, unknown>>();
-  return reply(env, { ratings: rows.results });
+  return reply(env, { variant, ratings: rows.results });
 }
 
 async function leaderboard(
@@ -1069,32 +1073,36 @@ async function leaderboard(
   if (scope !== 'global' && !DIFFICULTIES.has(scope)) {
     throw new HttpError(400, 'Invalid leaderboard scope.');
   }
+  const variant = normalizeRatingVariant(url.searchParams.get('variant'));
+  await ensureVariantRatingRows(env, current.id, variant);
   const limit = clampLimit(url.searchParams.get('limit'), 50, 100);
   const rows = await env.DB.prepare(
     `SELECT pr.*, p.public_id, p.username, p.display_name, p.avatar_key
-     FROM player_ratings pr
+     FROM player_variant_ratings pr
      JOIN players p ON p.id = pr.player_id
-     WHERE pr.scope = ?
+     WHERE pr.variant = ? AND pr.scope = ?
      ORDER BY pr.rating DESC, pr.games_played DESC, pr.updated_at ASC
      LIMIT ?`,
   )
-    .bind(scope, limit)
+    .bind(variant, scope, limit)
     .all<Record<string, unknown>>();
   const rank = await env.DB.prepare(
     `SELECT COUNT(*) + 1 AS rank
-     FROM player_ratings mine
-     JOIN player_ratings other ON other.scope = mine.scope
-     WHERE mine.player_id = ? AND mine.scope = ?
+     FROM player_variant_ratings mine
+     JOIN player_variant_ratings other
+       ON other.variant = mine.variant AND other.scope = mine.scope
+     WHERE mine.player_id = ? AND mine.variant = ? AND mine.scope = ?
        AND (other.rating > mine.rating
          OR (other.rating = mine.rating AND other.games_played > mine.games_played)
          OR (other.rating = mine.rating AND other.games_played = mine.games_played
              AND other.updated_at < mine.updated_at))`,
   )
-    .bind(current.id, scope)
+    .bind(current.id, variant, scope)
     .first<{ rank: number }>();
-  const currentRating = await ratingFor(env, current.id, scope);
+  const currentRating = await variantRatingFor(env, current.id, variant, scope);
   return reply(env, {
     scope,
+    variant,
     entries: rows.results.map((row, index) => ({
       rank: index + 1,
       publicId: row.public_id,
@@ -1244,6 +1252,35 @@ async function ensureRatingRows(env: Env, playerId: string): Promise<void> {
   );
 }
 
+async function ensureVariantRatingRows(env: Env, playerId: string, variant: string): Promise<void> {
+  const now = new Date().toISOString();
+  if (variant === 'classic9') {
+    await ensureRatingRows(env, playerId);
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO player_variant_ratings (
+         player_id, variant, scope, rating, games_played, wins, losses,
+         draws, win_streak, best_rating, provisional_games, updated_at
+       )
+       SELECT player_id, 'classic9', scope, rating, games_played, wins, losses,
+              draws, win_streak, best_rating, provisional_games, COALESCE(updated_at, ?)
+       FROM player_ratings
+       WHERE player_id = ?`,
+    )
+      .bind(now, playerId)
+      .run();
+    return;
+  }
+  await env.DB.batch(
+    ['global', ...DIFFICULTIES].map((scope) =>
+      env.DB.prepare(
+        `INSERT INTO player_variant_ratings (player_id, variant, scope, updated_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(player_id, variant, scope) DO NOTHING`,
+      ).bind(playerId, variant, scope, now),
+    ),
+  );
+}
+
 async function ratingFor(env: Env, playerId: string, scope: string): Promise<number> {
   await ensureRatingRows(env, playerId);
   const row = await env.DB.prepare(
@@ -1252,6 +1289,21 @@ async function ratingFor(env: Env, playerId: string, scope: string): Promise<num
     .bind(playerId, scope)
     .first<{ rating: number }>();
   return row?.rating ?? 1000;
+}
+
+async function variantRatingFor(env: Env, playerId: string, variant: string, scope: string): Promise<number> {
+  await ensureVariantRatingRows(env, playerId, variant);
+  const row = await env.DB.prepare(
+    `SELECT rating FROM player_variant_ratings
+     WHERE player_id = ? AND variant = ? AND scope = ?`,
+  )
+    .bind(playerId, variant, scope)
+    .first<{ rating: number }>();
+  return row?.rating ?? 1000;
+}
+
+function normalizeRatingVariant(value: string | null): string {
+  return value === 'classic16' ? 'classic16' : 'classic9';
 }
 
 function clampLimit(value: string | null, fallback: number, max: number): number {
@@ -1813,6 +1865,7 @@ export class GameRoom {
       challengeId: match.challenge_id ?? null,
       mode: match.mode as DuelMode,
       difficulty: match.difficulty as DuelDifficulty,
+      variant: match.variant === 'classic16' ? 'classic16' : 'classic9',
       playerA: publicPlayer(match.player_a_id, match.a_public_id, match.a_username, match.a_display_name, match.a_avatar_key),
       playerB: publicPlayer(match.player_b_id, match.b_public_id, match.b_username, match.b_display_name, match.b_avatar_key),
       now,
@@ -1892,10 +1945,11 @@ export class GameRoom {
           ? duel.playerB.player.id
           : null;
     const rated = duel.mode === 'ranked' && duel.startedAt !== null && duel.status !== 'cancelled';
-    const globalA = await this.ratingRow(duel.playerA.player.id, 'global');
-    const globalB = await this.ratingRow(duel.playerB.player.id, 'global');
-    const diffA = await this.ratingRow(duel.playerA.player.id, duel.difficulty);
-    const diffB = await this.ratingRow(duel.playerB.player.id, duel.difficulty);
+    const variant = stateVariant(duel);
+    const globalA = await this.ratingRow(duel.playerA.player.id, variant, 'global');
+    const globalB = await this.ratingRow(duel.playerB.player.id, variant, 'global');
+    const diffA = await this.ratingRow(duel.playerA.player.id, variant, duel.difficulty);
+    const diffB = await this.ratingRow(duel.playerB.player.id, variant, duel.difficulty);
     let resultA: 0 | 0.5 | 1 = 0.5;
     if (duel.winnerSeat === 'A') resultA = 1;
     if (duel.winnerSeat === 'B') resultA = 0;
@@ -2056,14 +2110,44 @@ export class GameRoom {
     return row?.online_coins ?? 0;
   }
 
-  private async ratingRow(playerId: string, scope: string): Promise<{ rating: number; games_played: number }> {
-    await ensureRatingRows(this.env, playerId);
+  private async ratingRow(playerId: string, variant: string, scope: string): Promise<{ rating: number; games_played: number }> {
+    await this.ensureVariantRatingRows(playerId, variant);
     const row = await this.env.DB.prepare(
-      'SELECT rating, games_played FROM player_ratings WHERE player_id = ? AND scope = ?',
+      `SELECT rating, games_played FROM player_variant_ratings
+       WHERE player_id = ? AND variant = ? AND scope = ?`,
     )
-      .bind(playerId, scope)
+      .bind(playerId, variant, scope)
       .first<{ rating: number; games_played: number }>();
     return row ?? { rating: 1000, games_played: 0 };
+  }
+
+  private async ensureVariantRatingRows(playerId: string, variant: string): Promise<void> {
+    const now = new Date().toISOString();
+    if (variant === 'classic9') {
+      await ensureRatingRows(this.env, playerId);
+      await this.env.DB.prepare(
+        `INSERT OR IGNORE INTO player_variant_ratings (
+           player_id, variant, scope, rating, games_played, wins, losses,
+           draws, win_streak, best_rating, provisional_games, updated_at
+         )
+         SELECT player_id, 'classic9', scope, rating, games_played, wins, losses,
+                draws, win_streak, best_rating, provisional_games, COALESCE(updated_at, ?)
+         FROM player_ratings
+         WHERE player_id = ?`,
+      )
+        .bind(now, playerId)
+        .run();
+      return;
+    }
+    await this.env.DB.batch(
+      ['global', ...DIFFICULTIES].map((scope) =>
+        this.env.DB.prepare(
+          `INSERT INTO player_variant_ratings (player_id, variant, scope, updated_at)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(player_id, variant, scope) DO NOTHING`,
+        ).bind(playerId, variant, scope, now),
+      ),
+    );
   }
 
   private matchPlayerStatement(
@@ -2111,10 +2195,33 @@ export class GameRoom {
   ): D1PreparedStatement[] {
     if (!rated) return [];
     const playerId = seat === 'A' ? duel.playerA.player.id : duel.playerB.player.id;
+    const variant = stateVariant(duel);
     const win = result === 1 ? 1 : 0;
     const loss = result === 0 ? 1 : 0;
     const draw = result === 0.5 ? 1 : 0;
+    const statements = [
+      this.env.DB.prepare(
+        `UPDATE player_variant_ratings
+         SET rating = ?, games_played = games_played + 1, wins = wins + ?,
+             losses = losses + ?, draws = draws + ?,
+             win_streak = CASE WHEN ? = 1 THEN win_streak + 1 ELSE 0 END,
+             best_rating = MAX(best_rating, ?), provisional_games = MAX(0, provisional_games - 1),
+             updated_at = ?
+         WHERE player_id = ? AND variant = ? AND scope = 'global'`,
+      ).bind(rating.afterGlobal, win, loss, draw, win, rating.afterGlobal, now, playerId, variant),
+      this.env.DB.prepare(
+        `UPDATE player_variant_ratings
+         SET rating = ?, games_played = games_played + 1, wins = wins + ?,
+             losses = losses + ?, draws = draws + ?,
+             win_streak = CASE WHEN ? = 1 THEN win_streak + 1 ELSE 0 END,
+             best_rating = MAX(best_rating, ?), provisional_games = MAX(0, provisional_games - 1),
+             updated_at = ?
+         WHERE player_id = ? AND variant = ? AND scope = ?`,
+      ).bind(rating.afterDifficulty, win, loss, draw, win, rating.afterDifficulty, now, playerId, variant, duel.difficulty),
+    ];
+    if (variant !== 'classic9') return statements;
     return [
+      ...statements,
       this.env.DB.prepare(
         `UPDATE player_ratings
          SET rating = ?, games_played = games_played + 1, wins = wins + ?,

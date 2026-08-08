@@ -10,7 +10,7 @@ $expectedFirebaseProjectNumber = "31445697560"
 $expectedFirebaseAppId = "1:31445697560:android:ed951eabf51d75800b2f6d"
 $expectedPlayGamesProjectId = "917838292556"
 $expectedPlayGamesServerClientId = "917838292556-bbq7a36t2kulodpqfd9p3aqkkcs58jhj.apps.googleusercontent.com"
-$expectedPlaySigningSha1 = "53:B0:F0:FF:89:6C:50:AE:B0:86:F2:04:A2:2E:ED:E2:9F:1B:F3:0B"
+$expectedPlaySigningSha1 = "C0:4C:3A:AB:7D:76:6C:2E:87:C9:53:98:EB:4B:59:97:52:CD:25:A1"
 
 $googleServicesPath = Join-Path $ProjectRoot "android\app\google-services.json"
 $servicesXmlPath = Join-Path $ProjectRoot "android\app\src\main\res\values\services.xml"

@@ -4,14 +4,7 @@ import 'online_duel_models.dart';
 import 'platform_game_services.dart';
 import 'social_api_client.dart';
 
-enum PlatformLeaderboardScope {
-  global,
-  beginner,
-  easy,
-  medium,
-  hard,
-  expert,
-}
+enum PlatformLeaderboardScope { global, beginner, easy, medium, hard, expert }
 
 enum PlatformLeaderboardMirrorStatus {
   submitted,
@@ -87,13 +80,10 @@ class PlatformLeaderboardIds {
 typedef PlatformConfiguredCheck = Future<bool> Function();
 typedef PlatformAuthenticationRefresh = Future<bool> Function();
 typedef PlatformAuthenticationRequest = Future<bool> Function();
-typedef PlatformScoreSubmitter = Future<bool> Function({
-  required int score,
-  String? leaderboardId,
-});
-typedef PlatformLeaderboardPresenter = Future<bool> Function({
-  String? leaderboardId,
-});
+typedef PlatformScoreSubmitter =
+    Future<bool> Function({required int score, String? leaderboardId});
+typedef PlatformLeaderboardPresenter =
+    Future<bool> Function({String? leaderboardId});
 typedef PlatformRatingsLoader = Future<Map<String, dynamic>> Function();
 
 class PlatformLeaderboardService implements PlatformLeaderboardMirror {
@@ -181,10 +171,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       );
     }
 
-    final globalId = _ids.idFor(
-      platform,
-      PlatformLeaderboardScope.global,
-    );
+    final globalId = _ids.idFor(platform, PlatformLeaderboardScope.global);
     final difficultyId = _ids.idFor(platform, difficultyScope);
     if (globalId == null || difficultyId == null) {
       return const PlatformLeaderboardMirrorResult(
@@ -209,6 +196,18 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
         _processedMatchIds.remove(snapshot.matchId);
         return const PlatformLeaderboardMirrorResult(
           status: PlatformLeaderboardMirrorStatus.notAuthenticated,
+        );
+      }
+      if (!_isValidElo(localRating.afterGlobal) ||
+          !_isValidElo(localRating.afterDifficulty)) {
+        _processedMatchIds.remove(snapshot.matchId);
+        return PlatformLeaderboardMirrorResult(
+          status: PlatformLeaderboardMirrorStatus.failed,
+          error: ArgumentError.value(
+            '${localRating.afterGlobal}/${localRating.afterDifficulty}',
+            'rating',
+            'Platform leaderboard ELO must be between 100 and 3000.',
+          ),
         );
       }
 
@@ -282,7 +281,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
             : scopeName == null
             ? null
             : scopeForDifficulty(scopeName);
-        if (scope == null || score == null) continue;
+        if (scope == null || score == null || !_isValidElo(score)) continue;
         final leaderboardId = _ids.idFor(platform, scope);
         if (leaderboardId == null) continue;
         if (await _submitScore(score: score, leaderboardId: leaderboardId)) {
@@ -328,3 +327,5 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     };
   }
 }
+
+bool _isValidElo(int value) => value >= 100 && value <= 3000;

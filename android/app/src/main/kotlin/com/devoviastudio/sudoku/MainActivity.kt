@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.util.Base64
+import android.util.Log
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.api.ApiException
@@ -22,6 +23,9 @@ import java.security.MessageDigest
 import java.util.Locale
 
 class MainActivity : FlutterActivity() {
+    private val logTag = "SudokuPlayGames"
+    private val playGamesServerClientId =
+        "917838292556-bbq7a36t2kulodpqfd9p3aqkkcs58jhj.apps.googleusercontent.com"
     private val localizationChannel = "com.devovia.sudoku/localization"
     private val gameServicesChannel = "com.devoviastudio.sudoku/game_services"
     private val friendsConsentRequestCode = 9401
@@ -599,15 +603,20 @@ class MainActivity : FlutterActivity() {
 
     private fun requestServerAuthCode(result: MethodChannel.Result) {
         if (!ensureConfigured(result)) return
-        val webClientId = getString(R.string.game_services_web_client_id).trim()
+        val webClientId = playGamesServerClientId
         if (webClientId.startsWith("REPLACE_")) {
             result.error("not_configured", "Replace the Play Games web client ID.", null)
             return
         }
+        Log.i(logTag, "Requesting Play Games server auth code with clientId=$webClientId")
         PlayGames.getGamesSignInClient(this)
             .requestServerSideAccess(webClientId, false)
-            .addOnSuccessListener(result::success)
+            .addOnSuccessListener { authCode ->
+                Log.i(logTag, "Play Games server auth code received.")
+                result.success(authCode)
+            }
             .addOnFailureListener { exception ->
+                Log.e(logTag, "Play Games server auth code failed.", exception)
                 result.error(
                     "server_auth_failed",
                     exception.localizedMessage,

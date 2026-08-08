@@ -8,9 +8,18 @@ void main() {
       'lib/features/duel/matchmaking_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('final buttonWidth = (constraints.maxWidth - 12) / 3;'));
-    expect(source, contains('for (final difficulty in SudokuDifficulty.values)'));
-    expect(source, contains('Future<VariantMatchmakingResult> _joinSelectedQueue()'));
+    expect(
+      source,
+      contains('final buttonWidth = (constraints.maxWidth - 12) / 3;'),
+    );
+    expect(
+      source,
+      contains('for (final difficulty in SudokuDifficulty.values)'),
+    );
+    expect(
+      source,
+      contains('Future<VariantMatchmakingResult> _joinSelectedQueue()'),
+    );
     expect(source, contains("roomId.startsWith('classic16:')"));
     expect(source, isNot(contains('SocialApiClient.instance.activeMatch()')));
   });
@@ -57,5 +66,47 @@ void main() {
     expect(facade, contains("from './online_duel_factory'"));
     expect(factory, contains("roomId.startsWith('classic16:')"));
     expect(matchmaking, contains('roomIdForVariant(input.variant)'));
+  });
+
+  test('backend settlement updates variant-scoped ELO rows', () {
+    final source = File(
+      'backend/social_worker/src/index.ts',
+    ).readAsStringSync();
+
+    expect(source, contains("variant: match.variant === 'classic16'"));
+    expect(source, contains('stateVariant(duel)'));
+    expect(source, contains('FROM player_variant_ratings'));
+    expect(source, contains('UPDATE player_variant_ratings'));
+    expect(source, contains("if (variant !== 'classic9') return statements;"));
+  });
+
+  test('backend ELO endpoints read variant-scoped leaderboard rows', () {
+    final mainRouter = File(
+      'backend/social_worker/src/index.ts',
+    ).readAsStringSync();
+    final competitive = File(
+      'backend/social_worker/src/competitive.ts',
+    ).readAsStringSync();
+    final profileWrapper = File(
+      'backend/social_worker/src/profile_wrapper.ts',
+    ).readAsStringSync();
+
+    expect(mainRouter, contains('normalizeRatingVariant'));
+    expect(mainRouter, contains('FROM player_variant_ratings'));
+    expect(mainRouter, contains("SELECT player_id, 'classic9', scope, rating"));
+    expect(mainRouter, contains('WHERE player_id = ? AND variant = ?'));
+    expect(mainRouter, contains('WHERE pr.variant = ? AND pr.scope = ?'));
+    expect(competitive, contains('variant?: \'classic9\' | \'classic16\''));
+    expect(competitive, contains('FROM player_variant_ratings pr'));
+    expect(competitive, contains("SELECT player_id, 'classic9', scope, rating"));
+    expect(
+      competitive,
+      contains('ON other.variant = mine.variant AND other.scope = mine.scope'),
+    );
+    expect(profileWrapper, contains('normalizeRatingVariant'));
+    expect(
+      profileWrapper,
+      contains("value === 'classic16' ? 'classic16' : 'classic9'"),
+    );
   });
 }

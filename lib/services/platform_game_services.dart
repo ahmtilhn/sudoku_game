@@ -114,7 +114,7 @@ class PlayGamesDiagnostics {
   const PlayGamesDiagnostics(this.values);
 
   static const String expectedPlayAppSigningSha1 =
-      '53:B0:F0:FF:89:6C:50:AE:B0:86:F2:04:A2:2E:ED:E2:9F:1B:F3:0B';
+      'C0:4C:3A:AB:7D:76:6C:2E:87:C9:53:98:EB:4B:59:97:52:CD:25:A1';
 
   final Map<String, String> values;
 

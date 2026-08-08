@@ -160,6 +160,7 @@ async function handleCompetitive(
         200,
         await leaderboardPage(env, {
           scope: ratingScope(scope),
+          variant: normalizeRatingVariant(url.searchParams.get('variant')),
           viewerId: player.id,
           limit,
           cursor: url.searchParams.get('cursor'),
@@ -506,6 +507,10 @@ function validLeaderboardScope(scope: string): boolean {
 
 function normalizeLeaderboardMode(value: string | null): 'top' | 'around_me' | 'friends' {
   return value === 'around_me' || value === 'friends' ? value : 'top';
+}
+
+function normalizeRatingVariant(value: string | null): 'classic9' | 'classic16' {
+  return value === 'classic16' ? 'classic16' : 'classic9';
 }
 
 function ratingScope(scope: string): string {

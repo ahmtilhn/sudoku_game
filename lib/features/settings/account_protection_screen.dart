@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +14,7 @@ String _accountText(
   required String en,
   required String tr,
 }) {
-  return Localizations.localeOf(context).languageCode == 'tr' ? tr : en;
+  return PlatformDispatcher.instance.locale.languageCode == 'tr' ? tr : en;
 }
 
 class AccountProtectionScreen extends StatefulWidget {

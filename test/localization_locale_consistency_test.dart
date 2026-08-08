@@ -60,4 +60,58 @@ void main() {
       }
     }
   });
+
+  test('profile edit copy is available for every iOS catalog locale', () {
+    final raw = File(
+      'assets/localization/Localizable.xcstrings',
+    ).readAsStringSync();
+    final catalog = jsonDecode(raw) as Map<String, dynamic>;
+    final strings = (catalog['strings'] as Map).cast<String, dynamic>();
+    final expectedLocales = <String>{
+      'en',
+      'tr',
+      'de',
+      'fr',
+      'es',
+      'pt',
+      'it',
+      'nl',
+      'pl',
+      'ru',
+      'uk',
+      'ar',
+      'hi',
+      'id',
+      'ja',
+      'ko',
+      'zh-Hans',
+      'zh-Hant',
+      'th',
+      'vi',
+      'bn',
+      'ur',
+    };
+
+    for (final key in <String>[
+      'profile_edit_preview_body',
+      'profile_display_helper',
+      'profile_display_error',
+      'profile_search_name',
+      'profile_search_helper',
+      'profile_search_error',
+      'profile_discovery_title',
+      'profile_discovery_on',
+      'profile_discovery_off',
+    ]) {
+      final definition = strings[key];
+      expect(definition, isA<Map>(), reason: '$key is missing');
+      final localizations =
+          ((definition as Map)['localizations'] as Map).cast<String, dynamic>();
+      expect(localizations.keys.toSet(), expectedLocales, reason: key);
+      for (final locale in expectedLocales) {
+        final unit = localizations[locale]['stringUnit'] as Map;
+        expect((unit['value'] as String).trim(), isNotEmpty);
+      }
+    }
+  });
 }

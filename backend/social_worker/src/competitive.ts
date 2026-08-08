@@ -376,28 +376,30 @@ export async function leaderboardPage(
   env: CompetitiveEnv,
   input: {
     scope: string;
+    variant?: 'classic9' | 'classic16';
     viewerId: string;
     limit: number;
     cursor?: string | null;
     mode?: 'top' | 'around_me' | 'friends';
   },
 ): Promise<Record<string, unknown>> {
-  await ensureRatingRows(env, input.viewerId);
+  const variant = input.variant ?? 'classic9';
+  await ensureVariantRatingRows(env, input.viewerId, variant);
   const limit = Math.max(1, Math.min(100, Math.trunc(input.limit)));
   const cursor = decodeLeaderboardCursor(input.cursor ?? null);
   const mode = input.mode ?? 'top';
   if (mode === 'around_me') {
-    return aroundMeLeaderboard(env, input.scope, input.viewerId, limit);
+    return aroundMeLeaderboard(env, input.scope, variant, input.viewerId, limit);
   }
   if (mode === 'friends') {
-    return friendsLeaderboard(env, input.scope, input.viewerId, limit);
+    return friendsLeaderboard(env, input.scope, variant, input.viewerId, limit);
   }
   const rows = await env.DB.prepare(
     `SELECT pr.*, p.public_id, p.username, p.display_name, p.avatar_key,
             p.country_code
-     FROM player_ratings pr
+     FROM player_variant_ratings pr
      JOIN players p ON p.id = pr.player_id
-     WHERE pr.scope = ?
+     WHERE pr.variant = ? AND pr.scope = ?
        AND (
          ? IS NULL
          OR pr.rating < ?
@@ -414,6 +416,7 @@ export async function leaderboardPage(
      LIMIT ?`,
   )
     .bind(
+      variant,
       input.scope,
       cursor?.playerId ?? null,
       cursor?.rating ?? 0,
@@ -440,7 +443,7 @@ export async function leaderboardPage(
       limit + 1,
     )
     .all<Record<string, unknown>>();
-  return leaderboardResponse(env, input.scope, input.viewerId, rows.results, limit, mode);
+  return leaderboardResponse(env, input.scope, variant, input.viewerId, rows.results, limit, mode);
 }
 
 export async function applyDailyRewardState(
@@ -478,6 +481,7 @@ export async function applyDailyRewardState(
 async function leaderboardResponse(
   env: CompetitiveEnv,
   scope: string,
+  variant: 'classic9' | 'classic16',
   viewerId: string,
   rows: Record<string, unknown>[],
   limit: number,
@@ -486,9 +490,10 @@ async function leaderboardResponse(
   const visible = rows.slice(0, limit);
   const next = rows.length > limit ? rows[limit - 1] : null;
   const rankOffset = mode === 'top' ? 0 : 0;
-  const version = await leaderboardVersion(env, scope);
+  const version = await leaderboardVersion(env, scope, variant);
   return {
     scope,
+    variant,
     mode,
     snapshotVersion: version.snapshotVersion,
     generatedAt: version.generatedAt,
@@ -510,8 +515,8 @@ async function leaderboardResponse(
       })),
     ),
     currentPlayer: {
-      rank: await leaderboardRank(env, viewerId, scope),
-      rating: Number((await ratingRow(env, viewerId, scope))?.rating ?? 1000),
+      rank: await leaderboardRank(env, viewerId, scope, variant),
+      rating: Number((await variantRatingRow(env, viewerId, scope, variant))?.rating ?? 1000),
     },
     nextCursor: next
       ? encodeLeaderboardCursor({
@@ -529,10 +534,11 @@ async function leaderboardResponse(
 async function aroundMeLeaderboard(
   env: CompetitiveEnv,
   scope: string,
+  variant: 'classic9' | 'classic16',
   viewerId: string,
   limit: number,
 ): Promise<Record<string, unknown>> {
-  const rank = await leaderboardRank(env, viewerId, scope);
+  const rank = await leaderboardRank(env, viewerId, scope, variant);
   const offset = Math.max(0, (rank ?? 1) - Math.ceil(limit / 2));
   const rows = await env.DB.prepare(
     `SELECT ranked.*
@@ -543,31 +549,32 @@ async function aroundMeLeaderboard(
                 ORDER BY pr.rating DESC, pr.games_played DESC, pr.wins DESC,
                          pr.draws DESC, pr.updated_at ASC, pr.player_id ASC
               ) AS rank
-       FROM player_ratings pr
+       FROM player_variant_ratings pr
        JOIN players p ON p.id = pr.player_id
-       WHERE pr.scope = ?
+       WHERE pr.variant = ? AND pr.scope = ?
      ) ranked
      WHERE ranked.rank > ?
      ORDER BY ranked.rank ASC
      LIMIT ?`,
   )
-    .bind(scope, offset, limit)
+    .bind(variant, scope, offset, limit)
     .all<Record<string, unknown>>();
-  return leaderboardResponse(env, scope, viewerId, rows.results, limit, 'around_me');
+  return leaderboardResponse(env, scope, variant, viewerId, rows.results, limit, 'around_me');
 }
 
 async function friendsLeaderboard(
   env: CompetitiveEnv,
   scope: string,
+  variant: 'classic9' | 'classic16',
   viewerId: string,
   limit: number,
 ): Promise<Record<string, unknown>> {
   const rows = await env.DB.prepare(
     `SELECT pr.*, p.public_id, p.username, p.display_name, p.avatar_key,
             p.country_code
-     FROM player_ratings pr
+     FROM player_variant_ratings pr
      JOIN players p ON p.id = pr.player_id
-     WHERE pr.scope = ?
+     WHERE pr.variant = ? AND pr.scope = ?
        AND (
          pr.player_id = ?
          OR pr.player_id IN (
@@ -581,9 +588,9 @@ async function friendsLeaderboard(
               pr.updated_at ASC, pr.player_id ASC
      LIMIT ?`,
   )
-    .bind(scope, viewerId, viewerId, viewerId, viewerId, limit)
+    .bind(variant, scope, viewerId, viewerId, viewerId, viewerId, limit)
     .all<Record<string, unknown>>();
-  return leaderboardResponse(env, scope, viewerId, rows.results, limit, 'friends');
+  return leaderboardResponse(env, scope, variant, viewerId, rows.results, limit, 'friends');
 }
 
 async function achievementShowcase(
@@ -639,6 +646,41 @@ async function ensureRatingRows(env: CompetitiveEnv, playerId: string): Promise<
     .run();
 }
 
+async function ensureVariantRatingRows(
+  env: CompetitiveEnv,
+  playerId: string,
+  variant: 'classic9' | 'classic16',
+): Promise<void> {
+  const now = new Date().toISOString();
+  if (variant === 'classic9') {
+    await ensureRatingRows(env, playerId);
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO player_variant_ratings (
+         player_id, variant, scope, rating, games_played, wins, losses,
+         draws, win_streak, best_rating, provisional_games, updated_at
+       )
+       SELECT player_id, 'classic9', scope, rating, games_played, wins, losses,
+              draws, win_streak, best_rating, provisional_games, COALESCE(updated_at, ?)
+       FROM player_ratings
+       WHERE player_id = ?`,
+    )
+      .bind(now, playerId)
+      .run();
+    return;
+  }
+  await env.DB.batch(
+    ['global', 'beginner', 'easy', 'medium', 'hard', 'expert'].map((scope) =>
+      env.DB.prepare(
+        `INSERT INTO player_variant_ratings (
+           player_id, variant, scope, rating, games_played, wins, losses,
+           draws, win_streak, best_rating, provisional_games, updated_at
+         ) VALUES (?, ?, ?, 1000, 0, 0, 0, 0, 0, 1000, 20, ?)
+         ON CONFLICT(player_id, variant, scope) DO NOTHING`,
+      ).bind(playerId, variant, scope, now),
+    ),
+  );
+}
+
 async function ratingRow(
   env: CompetitiveEnv,
   playerId: string,
@@ -646,6 +688,20 @@ async function ratingRow(
 ): Promise<Record<string, unknown> | null> {
   return env.DB.prepare('SELECT * FROM player_ratings WHERE player_id = ? AND scope = ?')
     .bind(playerId, scope)
+    .first<Record<string, unknown>>();
+}
+
+async function variantRatingRow(
+  env: CompetitiveEnv,
+  playerId: string,
+  scope: string,
+  variant: 'classic9' | 'classic16',
+): Promise<Record<string, unknown> | null> {
+  return env.DB.prepare(
+    `SELECT * FROM player_variant_ratings
+     WHERE player_id = ? AND variant = ? AND scope = ?`,
+  )
+    .bind(playerId, variant, scope)
     .first<Record<string, unknown>>();
 }
 
@@ -678,12 +734,14 @@ async function leaderboardRank(
   env: CompetitiveEnv,
   playerId: string,
   scope: string,
+  variant: 'classic9' | 'classic16' = 'classic9',
 ): Promise<number | null> {
   const row = await env.DB.prepare(
     `SELECT COUNT(*) + 1 AS rank
-     FROM player_ratings mine
-     JOIN player_ratings other ON other.scope = mine.scope
-     WHERE mine.player_id = ? AND mine.scope = ?
+     FROM player_variant_ratings mine
+     JOIN player_variant_ratings other
+       ON other.variant = mine.variant AND other.scope = mine.scope
+     WHERE mine.player_id = ? AND mine.variant = ? AND mine.scope = ?
        AND (
          other.rating > mine.rating
          OR (other.rating = mine.rating AND other.games_played > mine.games_played)
@@ -699,7 +757,7 @@ async function leaderboardRank(
              AND other.updated_at = mine.updated_at AND other.player_id < mine.player_id)
        )`,
   )
-    .bind(playerId, scope)
+    .bind(playerId, variant, scope)
     .first<{ rank: number | null }>();
   return row?.rank ?? null;
 }
@@ -707,17 +765,18 @@ async function leaderboardRank(
 async function leaderboardVersion(
   env: CompetitiveEnv,
   scope: string,
+  variant: 'classic9' | 'classic16' = 'classic9',
 ): Promise<{ snapshotVersion: string; generatedAt: string | null; stale: boolean }> {
   const row = await env.DB.prepare(
     `SELECT MAX(updated_at) AS generated_at, COUNT(*) AS count
-     FROM player_ratings WHERE scope = ?`,
+     FROM player_variant_ratings WHERE variant = ? AND scope = ?`,
   )
-    .bind(scope)
+    .bind(variant, scope)
     .first<{ generated_at: string | null; count: number }>();
   const generatedAt = row?.generated_at ?? null;
   const stale = generatedAt == null || Date.now() - Date.parse(generatedAt) > 5 * 60 * 1000;
   return {
-    snapshotVersion: `${scope}:${row?.count ?? 0}:${generatedAt ?? 'empty'}`,
+    snapshotVersion: `${variant}:${scope}:${row?.count ?? 0}:${generatedAt ?? 'empty'}`,
     generatedAt,
     stale,
   };

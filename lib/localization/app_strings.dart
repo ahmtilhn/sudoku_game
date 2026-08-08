@@ -391,6 +391,18 @@ class AppStrings {
     'try_again': 'Try again',
     'retry': 'Retry',
     'edit_player_profile': 'Edit player profile',
+    'profile_edit_preview_body':
+        'Choose how other players see you in matches and search.',
+    'profile_display_helper': 'Use the name you want shown on leaderboards.',
+    'profile_display_error': 'Enter at least 2 characters.',
+    'profile_search_name': 'Search name',
+    'profile_search_helper':
+        'Lowercase letters, numbers and underscore are allowed.',
+    'profile_search_error': 'Use 3-20 letters, numbers or underscore.',
+    'profile_discovery_title': 'Let players find me',
+    'profile_discovery_on': 'Other players can find you by name or Friend ID.',
+    'profile_discovery_off':
+        'New players cannot find you in search. Friends stay connected.',
     'friend_id': 'Friend ID',
     'copy_friend_id': 'Copy Friend ID',
     'discoverable_by_players': 'Discoverable by other players',

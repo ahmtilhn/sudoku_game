@@ -96,6 +96,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     if (current == null) return;
     final display = TextEditingController(text: current.displayName);
     final username = TextEditingController(text: current.username);
+    final platformPlayer = _games.localPlayer.value;
     var discoverable = current.discoverable;
     var saving = false;
 
@@ -104,21 +105,31 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
           final normalized = username.text.trim().toLowerCase();
+          final displayName = display.text.trim();
+          final usernameStarted = username.text.trim().isNotEmpty;
+          final displayStarted = displayName.isNotEmpty;
+          final usernameValid = RegExp(
+            r'^[a-z0-9_]{3,20}$',
+          ).hasMatch(normalized);
           final valid =
-              display.text.trim().length >= 2 &&
-              RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(normalized);
+              displayName.length >= 2 &&
+              usernameValid;
           return Dialog(
             insetPadding: const EdgeInsets.symmetric(
               horizontal: 18,
               vertical: 20,
             ),
+            backgroundColor: const Color(0xFF07111E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
-                  20,
                   18,
-                  20,
+                  16,
+                  18,
                   18 + MediaQuery.viewInsetsOf(context).bottom,
                 ),
                 child: SingleChildScrollView(
@@ -126,104 +137,224 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              context.tr('edit_player_profile'),
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.w900),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0A1728),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(
+                              0xFF7A5CFF,
+                            ).withValues(alpha: .35),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            PlayerAvatar(
+                              displayName: displayName.isEmpty
+                                  ? current.displayName
+                                  : displayName,
+                              avatarKey: current.avatarUrl ?? current.publicId,
+                              localAvatarBytes: platformPlayer?.avatarBytes,
+                              remoteApprovedImageUrl:
+                                  platformPlayer?.avatarUrl ??
+                                  current.avatarUrl,
+                              radius: 28,
                             ),
-                          ),
-                          IconButton(
-                            onPressed: saving
-                                ? null
-                                : () => Navigator.of(
-                                    dialogContext,
-                                  ).pop(false),
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    context.tr('edit_player_profile'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      height: 1.05,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    context.tr('profile_edit_preview_body'),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(
+                                        alpha: .62,
+                                      ),
+                                      fontSize: 11,
+                                      height: 1.2,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: context.tr('cancel'),
+                              onPressed: saving
+                                  ? null
+                                  : () => Navigator.of(
+                                      dialogContext,
+                                    ).pop(false),
+                              icon: const Icon(
+                                Icons.close_rounded,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 14),
                       TextField(
                         controller: display,
                         maxLength: 24,
                         textInputAction: TextInputAction.next,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
                         decoration: InputDecoration(
-                          labelText: context.tr('display_name'),
+                          counterText: '',
+                          prefixIcon: const Icon(Icons.badge_rounded),
+                          labelText: context.tr('shown_to_other_players'),
+                          hintText: context.tr('display_name'),
+                          helperText: context.tr('profile_display_helper'),
+                          errorText: displayStarted && displayName.length < 2
+                              ? context.tr('profile_display_error')
+                              : null,
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: .06),
                           border: const OutlineInputBorder(),
                         ),
                         onChanged: (_) => setDialogState(() {}),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 10),
                       TextField(
                         controller: username,
                         maxLength: 20,
                         autocorrect: false,
                         enableSuggestions: false,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
                         decoration: InputDecoration(
-                          labelText: context.tr('unique_username'),
-                          helperText: context.tr('username_helper'),
+                          counterText: '',
+                          prefixIcon: const Icon(Icons.alternate_email_rounded),
+                          labelText: context.tr('profile_search_name'),
+                          hintText: 'sudoku_master',
+                          helperText: context.tr('profile_search_helper'),
+                          errorText: usernameStarted && !usernameValid
+                              ? context.tr('profile_search_error')
+                              : null,
+                          filled: true,
+                          fillColor: Colors.white.withValues(alpha: .06),
                           border: const OutlineInputBorder(),
                         ),
                         onChanged: (_) => setDialogState(() {}),
                       ),
-                      SwitchListTile.adaptive(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(context.tr('discoverable_by_players')),
-                        subtitle: Text(
-                          context.tr('discoverable_by_players_body'),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .05),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: .1),
+                          ),
                         ),
-                        value: discoverable,
-                        onChanged: saving
-                            ? null
-                            : (value) => setDialogState(
-                                () => discoverable = value,
-                              ),
-                      ),
-                      const SizedBox(height: 8),
-                      FilledButton.icon(
-                        onPressed: !valid || saving
-                            ? null
-                            : () async {
-                                setDialogState(() => saving = true);
-                                try {
-                                  await _preferencesService.update(
-                                    username: normalized,
-                                    displayName: display.text.trim(),
-                                    discoverable: discoverable,
-                                    nameSource: 'custom',
-                                  );
-                                  if (dialogContext.mounted) {
-                                    Navigator.of(dialogContext).pop(true);
-                                  }
-                                } catch (error) {
-                                  if (!dialogContext.mounted) return;
-                                  setDialogState(() => saving = false);
-                                  await GameModal.error(
-                                    dialogContext,
-                                    title: context.tr('edit_player_profile'),
-                                    message: UserSafeError.message(
-                                      dialogContext,
-                                      error,
-                                    ),
-                                    retryLabel: context.tr('try_again'),
-                                    cancelLabel: context.tr('cancel'),
-                                  );
-                                }
-                              },
-                        icon: saving
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                        child: SwitchListTile.adaptive(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          secondary: const Icon(Icons.search_rounded),
+                          title: Text(
+                            context.tr('profile_discovery_title'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          subtitle: Text(
+                            discoverable
+                                ? context.tr('profile_discovery_on')
+                                : context.tr('profile_discovery_off'),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .6),
+                            ),
+                          ),
+                          value: discoverable,
+                          onChanged: saving
+                              ? null
+                              : (value) => setDialogState(
+                                  () => discoverable = value,
                                 ),
-                              )
-                            : const Icon(Icons.save_rounded),
-                        label: Text(context.tr('save')),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: saving
+                                  ? null
+                                  : () => Navigator.of(
+                                      dialogContext,
+                                    ).pop(false),
+                              child: Text(context.tr('cancel')),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: !valid || saving
+                                  ? null
+                                  : () async {
+                                      setDialogState(() => saving = true);
+                                      try {
+                                        await _preferencesService.update(
+                                          username: normalized,
+                                          displayName: displayName,
+                                          discoverable: discoverable,
+                                          nameSource: 'custom',
+                                        );
+                                        if (dialogContext.mounted) {
+                                          Navigator.of(dialogContext).pop(true);
+                                        }
+                                      } catch (error) {
+                                        if (!dialogContext.mounted) return;
+                                        setDialogState(() => saving = false);
+                                        await GameModal.error(
+                                          dialogContext,
+                                          title: context.tr(
+                                            'edit_player_profile',
+                                          ),
+                                          message: UserSafeError.message(
+                                            dialogContext,
+                                            error,
+                                          ),
+                                          retryLabel: context.tr('try_again'),
+                                          cancelLabel: context.tr('cancel'),
+                                        );
+                                      }
+                                    },
+                              icon: saving
+                                  ? const SizedBox.square(
+                                      dimension: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.check_rounded),
+                              label: Text(context.tr('save')),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

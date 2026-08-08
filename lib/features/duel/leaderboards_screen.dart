@@ -8,13 +8,10 @@ import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
-import '../../services/player_profile_service.dart';
-import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/game_modal.dart';
 import '../../widgets/player_avatar.dart';
-import '../../widgets/ux_feedback.dart';
 
 class LeaderboardsScreen extends StatefulWidget {
   const LeaderboardsScreen({super.key});
@@ -34,18 +31,11 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
         PlatformLeaderboardScope.expert,
       ];
 
-  final SocialApiClient _social = SocialApiClient.instance;
-  final PlatformLeaderboardService _platform =
-      PlatformLeaderboardService.instance;
   final PlatformGameServices _games = PlatformGameServices.instance;
 
-  final Map<PlatformLeaderboardScope, _LeaderboardSnapshot> _snapshots =
-      <PlatformLeaderboardScope, _LeaderboardSnapshot>{};
-
-  PlayerProfilePreferences? _profile;
   bool _loading = true;
   bool _openingNative = false;
-  Object? _error;
+  PlatformLeaderboardScope _selectedScope = PlatformLeaderboardScope.global;
 
   @override
   void initState() {
@@ -68,30 +58,18 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     if (mounted) {
       setState(() {
         _loading = true;
-        _error = null;
       });
     }
     try {
-      final profileFuture = PlayerProfileService.instance.load();
-      final results = await Future.wait(
-        _scopes.map((scope) async {
-          final response = await _social.loadCompetitiveLeaderboard(
-            _scopeKey(scope),
-            mode: 'around_me',
-          );
-          return MapEntry(scope, _LeaderboardSnapshot.fromJson(response));
-        }),
-      );
-      final profile = await profileFuture;
+      if (!await _games.isConfigured()) return;
+      final authenticated = await _games.refreshAuthentication();
+      if (authenticated && _games.localPlayer.value == null) {
+        _games.localPlayer.value = await _games.getLocalPlayer();
+      }
       if (!mounted) return;
-      setState(() {
-        _profile = profile;
-        _snapshots
-          ..clear()
-          ..addEntries(results);
-      });
+      setState(() {});
     } catch (error) {
-      if (mounted) setState(() => _error = error);
+      debugPrint('Leaderboard load failed: $error');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -101,7 +79,21 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     if (_openingNative) return;
     setState(() => _openingNative = true);
     try {
-      final opened = await _platform.show(scope);
+      final platform = kIsWeb ? null : defaultTargetPlatform;
+      final leaderboardId = platform == null
+          ? null
+          : const PlatformLeaderboardIds().idFor(platform, scope);
+      var opened = false;
+      if (leaderboardId != null && await _games.isConfigured()) {
+        var authenticated = await _games.refreshAuthentication();
+        if (!authenticated) {
+          authenticated = await _games.authenticate(notifyAccountBridge: false);
+        }
+        if (authenticated) {
+          opened = await _games.showLeaderboard(leaderboardId: leaderboardId);
+        }
+      }
+      debugPrint('Native leaderboard ${scope.name} opened=$opened');
       if (!opened && defaultTargetPlatform == TargetPlatform.iOS) {
         final fallback = await _games.showLeaderboard();
         if (fallback) return;
@@ -115,6 +107,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
         );
       }
     } catch (error) {
+      debugPrint('Native leaderboard ${scope.name} failed: $error');
       if (mounted) {
         await GameModal.error(
           context,
@@ -132,9 +125,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   @override
   Widget build(BuildContext context) {
     final platformPlayer = _games.localPlayer.value;
-    final name = _profile?.displayName.trim().isNotEmpty == true
-        ? _profile!.displayName
-        : platformPlayer?.displayName ?? 'Sudoku Player';
+    final name = platformPlayer?.displayName ?? 'Sudoku Player';
     final platformName = defaultTargetPlatform == TargetPlatform.iOS
         ? 'Game Center'
         : 'Google Play Games';
@@ -160,7 +151,6 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                       name: name,
                       platformName: platformName,
                       player: platformPlayer,
-                      global: _snapshots[PlatformLeaderboardScope.global],
                     ),
                     const SizedBox(height: 10),
                     Expanded(child: _body(platformName)),
@@ -175,45 +165,56 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   }
 
   Widget _body(String platformName) {
-    if (_loading && _snapshots.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null && _snapshots.isEmpty) {
-      return Center(
-        child: UxStatePanel.error(
-          context,
-          message: UserSafeError.message(context, _error),
-          onRetry: _load,
-        ),
-      );
-    }
+    if (_loading) return const Center(child: CircularProgressIndicator());
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 760
-            ? 3
-            : constraints.maxWidth >= 460
-            ? 2
-            : 1;
-        return GridView.builder(
+        final compact = constraints.maxWidth < 560;
+        return ListView(
           padding: const EdgeInsets.only(bottom: 8),
-          itemCount: _scopes.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 9,
-            mainAxisSpacing: 9,
-            mainAxisExtent: 142,
-          ),
-          itemBuilder: (context, index) {
-            final scope = _scopes[index];
-            return _LeaderboardCard(
-              label: _scopeLabel(context, scope),
+          children: [
+            _SelectedLeaderboardPanel(
+              label: _scopeLabel(context, _selectedScope),
+              scopeName: _scopeSubtitle(context, _selectedScope),
               platformName: platformName,
-              snapshot: _snapshots[scope],
-              accent: _scopeColor(scope),
+              accent: _scopeColor(_selectedScope),
               busy: _openingNative,
-              onTap: () => _openNative(scope),
-            );
-          },
+              onOpen: () => _openNative(_selectedScope),
+            ),
+            const SizedBox(height: 10),
+            if (compact)
+              for (final scope in _scopes) ...[
+                _LeaderboardRow(
+                  label: _scopeLabel(context, scope),
+                  subtitle: _scopeSubtitle(context, scope),
+                  accent: _scopeColor(scope),
+                  selected: scope == _selectedScope,
+                  busy: _openingNative,
+                  onSelect: () => setState(() => _selectedScope = scope),
+                  onOpen: () => _openNative(scope),
+                ),
+                const SizedBox(height: 8),
+              ]
+            else
+              Wrap(
+                spacing: 9,
+                runSpacing: 9,
+                children: [
+                  for (final scope in _scopes)
+                    SizedBox(
+                      width: (constraints.maxWidth - 18) / 3,
+                      child: _LeaderboardRow(
+                        label: _scopeLabel(context, scope),
+                        subtitle: _scopeSubtitle(context, scope),
+                        accent: _scopeColor(scope),
+                        selected: scope == _selectedScope,
+                        busy: _openingNative,
+                        onSelect: () => setState(() => _selectedScope = scope),
+                        onOpen: () => _openNative(scope),
+                      ),
+                    ),
+                ],
+              ),
+          ],
         );
       },
     );
@@ -279,13 +280,11 @@ class _Hero extends StatelessWidget {
     required this.name,
     required this.platformName,
     required this.player,
-    required this.global,
   });
 
   final String name;
   final String platformName;
   final PlatformPlayer? player;
-  final _LeaderboardSnapshot? global;
 
   @override
   Widget build(BuildContext context) {
@@ -312,16 +311,10 @@ class _Hero extends StatelessWidget {
         children: [
           const DuelAssetIcon(DuelAsset.leaderboardCrownPro, size: 88),
           const SizedBox(width: 10),
-          PlayerAvatar(
-            displayName: name,
-            avatarKey: 'leaderboards-$name',
-            localAvatarBytes: player?.avatarBytes,
-            remoteApprovedImageUrl: player?.avatarUrl,
-            radius: 30,
-            semanticLabel: context.tr(
-              'player_avatar_semantics',
-              <Object>[name],
-            ),
+          _PlatformAvatarBadge(
+            name: name,
+            player: player,
+            platformName: platformName,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -353,15 +346,9 @@ class _Hero extends StatelessWidget {
                 const SizedBox(height: 7),
                 Row(
                   children: [
-                    _HeroValue(
-                      label: context.tr('rank'),
-                      value: global?.rank == null ? '—' : '#${global!.rank}',
-                    ),
+                    _HeroValue(label: context.tr('current_elo'), value: 'ELO'),
                     const SizedBox(width: 14),
-                    _HeroValue(
-                      label: context.tr('current_elo'),
-                      value: '${global?.rating ?? 1000}',
-                    ),
+                    _HeroValue(label: context.tr('leaderboards'), value: '6'),
                   ],
                 ),
               ],
@@ -404,75 +391,246 @@ class _HeroValue extends StatelessWidget {
   }
 }
 
-class _LeaderboardCard extends StatelessWidget {
-  const _LeaderboardCard({
-    required this.label,
+class _PlatformAvatarBadge extends StatelessWidget {
+  const _PlatformAvatarBadge({
+    required this.name,
+    required this.player,
     required this.platformName,
-    required this.snapshot,
-    required this.accent,
-    required this.busy,
-    required this.onTap,
   });
 
-  final String label;
+  final String name;
+  final PlatformPlayer? player;
   final String platformName;
-  final _LeaderboardSnapshot? snapshot;
-  final Color accent;
-  final bool busy;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final rank = snapshot?.rank;
-    final neighbors =
-        snapshot?.nearby.take(2).toList() ?? const <_NearbyPlayer>[];
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: busy ? null : onTap,
-        borderRadius: BorderRadius.circular(19),
-        child: Ink(
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+    final hasImage =
+        player?.avatarBytes != null ||
+        (player?.avatarUrl?.trim().isNotEmpty ?? false);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                accent.withValues(alpha: .16),
-                const Color(0xFF0A1728).withValues(alpha: .98),
-              ],
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: hasImage
+                  ? const Color(0xFF29D398)
+                  : Colors.white.withValues(alpha: .22),
+              width: 2,
             ),
-            borderRadius: BorderRadius.circular(19),
-            border: Border.all(color: accent.withValues(alpha: .45)),
             boxShadow: [
               BoxShadow(
-                color: accent.withValues(alpha: .07),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
+                color: const Color(0xFF29D398).withValues(
+                  alpha: hasImage ? .24 : 0,
+                ),
+                blurRadius: 18,
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: PlayerAvatar(
+            displayName: name,
+            avatarKey: 'leaderboards-google-play-$name',
+            localAvatarBytes: player?.avatarBytes,
+            remoteApprovedImageUrl: player?.avatarUrl,
+            radius: 31,
+            semanticLabel: context.tr('player_avatar_semantics', <Object>[
+              name,
+            ]),
+          ),
+        ),
+        Positioned(
+          right: -2,
+          bottom: -2,
+          child: Tooltip(
+            message: platformName,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: hasImage
+                    ? const Color(0xFF29D398)
+                    : const Color(0xFF7A8496),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF07111E), width: 2),
+              ),
+              child: const Icon(
+                Icons.sports_esports_rounded,
+                color: Colors.white,
+                size: 12,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SelectedLeaderboardPanel extends StatelessWidget {
+  const _SelectedLeaderboardPanel({
+    required this.label,
+    required this.scopeName,
+    required this.platformName,
+    required this.accent,
+    required this.busy,
+    required this.onOpen,
+  });
+
+  final String label;
+  final String scopeName;
+  final String platformName;
+  final Color accent;
+  final bool busy;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(15, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A1728).withValues(alpha: .92),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: .55)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: .16),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const DuelAssetIcon(
+              DuelAsset.leaderboardCrownPro,
+              size: 42,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$scopeName · $platformName',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .62),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          FilledButton.icon(
+            onPressed: busy ? null : onOpen,
+            style: FilledButton.styleFrom(
+              backgroundColor: accent,
+              foregroundColor: const Color(0xFF07111E),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: busy
+                ? const SizedBox.square(
+                    dimension: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.open_in_new_rounded, size: 18),
+            label: Text(
+              context.tr('continue_action'),
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeaderboardRow extends StatelessWidget {
+  const _LeaderboardRow({
+    required this.label,
+    required this.subtitle,
+    required this.accent,
+    required this.selected,
+    required this.busy,
+    required this.onSelect,
+    required this.onOpen,
+  });
+
+  final String label;
+  final String subtitle;
+  final Color accent;
+  final bool selected;
+  final bool busy;
+  final VoidCallback onSelect;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = selected
+        ? accent
+        : Colors.white.withValues(alpha: .11);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onSelect,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          decoration: BoxDecoration(
+            color: selected
+                ? accent.withValues(alpha: .14)
+                : const Color(0xFF0A1728).withValues(alpha: .72),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 37,
-                    height: 37,
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF07111E).withValues(alpha: .65),
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: const DuelAssetIcon(
-                      DuelAsset.leaderboardCrownPro,
-                      size: 31,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: selected ? .2 : .11),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    _scopeMark(label),
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -482,73 +640,36 @@ class _LeaderboardCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                  ),
-                  Icon(
-                    Icons.open_in_new_rounded,
-                    color: accent,
-                    size: 18,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    rank == null ? '—' : '#$rank',
-                    style: TextStyle(
-                      color: accent,
-                      fontSize: 26,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${context.tr('current_elo')}: ${snapshot?.rating ?? 1000}',
+                    const SizedBox(height: 2),
+                    Text(
+                      selected ? context.tr('current_elo') : subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: .68),
+                        color: Colors.white.withValues(alpha: .52),
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              if (neighbors.isNotEmpty)
-                Row(
-                  children: [
-                    for (var index = 0; index < neighbors.length; index++) ...[
-                      Expanded(
-                        child: Text(
-                          '#${neighbors[index].rank} ${neighbors[index].name}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .48),
-                            fontSize: 9,
-                          ),
-                        ),
-                      ),
-                      if (index != neighbors.length - 1)
-                        const SizedBox(width: 6),
-                    ],
                   ],
-                )
-              else
-                Text(
-                  platformName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .43),
-                    fontSize: 9,
-                  ),
                 ),
+              ),
+              IconButton(
+                tooltip: context.tr('leaderboards'),
+                onPressed: busy ? null : onOpen,
+                style: IconButton.styleFrom(
+                  foregroundColor: accent,
+                  fixedSize: const Size(38, 38),
+                  padding: EdgeInsets.zero,
+                ),
+                icon: Icon(
+                  selected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.open_in_new_rounded,
+                  color: accent,
+                  size: 19,
+                ),
+              ),
             ],
           ),
         ),
@@ -557,49 +678,25 @@ class _LeaderboardCard extends StatelessWidget {
   }
 }
 
-class _LeaderboardSnapshot {
-  const _LeaderboardSnapshot({
-    required this.rank,
-    required this.rating,
-    required this.nearby,
-  });
+String _scopeSubtitle(BuildContext context, PlatformLeaderboardScope scope) {
+  return scope == PlatformLeaderboardScope.global
+      ? context.tr('current_elo')
+      : 'ELO';
+}
 
-  final int? rank;
-  final int rating;
-  final List<_NearbyPlayer> nearby;
-
-  factory _LeaderboardSnapshot.fromJson(Map<String, dynamic> json) {
-    final current = (json['currentPlayer'] as Map?)?.cast<String, dynamic>();
-    final values = (json['entries'] as List?) ?? const <Object?>[];
-    return _LeaderboardSnapshot(
-      rank: (current?['rank'] as num?)?.toInt(),
-      rating: (current?['rating'] as num?)?.toInt() ?? 1000,
-      nearby: values
-          .whereType<Map>()
-          .map((raw) {
-            final value = raw.cast<String, dynamic>();
-            return _NearbyPlayer(
-              rank: (value['rank'] as num?)?.toInt() ?? 0,
-              name: value['displayName']?.toString() ?? 'Player',
-            );
-          })
-          .where((player) => player.rank > 0)
-          .toList(growable: false),
-    );
+String _scopeMark(String label) {
+  final parts = label
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList(growable: false);
+  if (parts.isEmpty) return '?';
+  if (parts.length == 1) {
+    return parts.first.substring(0, 1).toUpperCase();
   }
+  return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+      .toUpperCase();
 }
-
-class _NearbyPlayer {
-  const _NearbyPlayer({required this.rank, required this.name});
-
-  final int rank;
-  final String name;
-}
-
-String _scopeKey(PlatformLeaderboardScope scope) => switch (scope) {
-  PlatformLeaderboardScope.global => 'global',
-  _ => scope.name,
-};
 
 String _scopeLabel(BuildContext context, PlatformLeaderboardScope scope) {
   if (scope == PlatformLeaderboardScope.global) return context.tr('global_elo');

@@ -73,7 +73,7 @@ Google Play uses two different certificate roles:
 Google Play Games Android credentials must use the package name and SHA-1 of the certificate that signs the installed APK. For Play-distributed builds, that is the classic Play app-signing SHA-1 currently recorded for the Android credential:
 
 ```text
-53:B0:F0:FF:89:6C:50:AE:B0:86:F2:04:A2:2E:ED:E2:9F:1B:F3:0B
+C0:4C:3A:AB:7D:76:6C:2E:87:C9:53:98:EB:4B:59:97:52:CD:25:A1
 ```
 
 The upload-key SHA-1 must not be substituted for the Play app-signing SHA-1 when creating the Play Games Android credential. Internal App Sharing may use a different certificate and must not be confused with the normal internal testing track.
