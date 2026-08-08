@@ -95,14 +95,10 @@ jobs:
           """ + source[end:]
 
           input_lock = """            _localConnectionInterrupted ||
-            _exitingToMenu ||
-            !snapshot.isLocalTurn ||
-          """
+            _exitingToMenu ||"""
           input_lock_fixed = """            _localConnectionInterrupted ||
             _forfeiting ||
-            _exitingToMenu ||
-            !snapshot.isLocalTurn ||
-          """
+            _exitingToMenu ||"""
           if source.count(input_lock) != 1:
               raise SystemExit(f'input lock match count: {source.count(input_lock)}')
           source = source.replace(input_lock, input_lock_fixed, 1)
