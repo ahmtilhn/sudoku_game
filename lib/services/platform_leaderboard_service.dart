@@ -103,7 +103,10 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       isConfigured ?? PlatformGameServices.instance.isConfigured,
       refreshAuthentication ??
           PlatformGameServices.instance.refreshAuthentication,
-      authenticate ?? PlatformGameServices.instance.authenticate,
+      authenticate ??
+          () => PlatformGameServices.instance.authenticate(
+            notifyAccountBridge: false,
+          ),
       submitScore ?? PlatformGameServices.instance.submitScore,
       showLeaderboard ?? PlatformGameServices.instance.showLeaderboard,
       loadRatings ?? SocialApiClient.instance.loadRatings,

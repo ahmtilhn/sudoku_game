@@ -9,15 +9,11 @@ import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/player_profile_service.dart';
 
-<<<<<<< HEAD
 String _accountText(
   BuildContext context, {
   required String en,
   required String tr,
 }) {
-=======
-String _accountText(BuildContext _, {required String en, required String tr}) {
->>>>>>> ec4fedd761480e7f22910fff07a11db7447615b6
   return PlatformDispatcher.instance.locale.languageCode == 'tr' ? tr : en;
 }
 

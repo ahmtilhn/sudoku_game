@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../localization/ux_copy.dart';
-import '../../services/firebase_session_service.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
 import '../../widgets/app_backdrop.dart';
@@ -69,14 +68,7 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
 
       var authenticated = await _games.refreshAuthentication();
       if (!authenticated && prompt) {
-        authenticated = await _games.authenticate();
-      }
-
-      // A successful Play Games connection must also become the permanent
-      // Firebase account. This preserves the same backend UID, nickname, Coin,
-      // ELO and social profile after reinstalling the game.
-      if (authenticated && prompt) {
-        await FirebaseSessionService.connectPlayGamesAccount();
+        authenticated = await _games.authenticate(notifyAccountBridge: false);
       }
 
       if (!mounted) return;
@@ -87,14 +79,6 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
         if (!authenticated && prompt) {
           _error = UxCopy.accountError(context);
         }
-      });
-    } on FirebaseSessionException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _configured = true;
-        _authenticated = _games.authenticated.value;
-        _player = _games.localPlayer.value;
-        _error = UserSafeError.message(context, error);
       });
     } on PlatformGameServicesException catch (error) {
       if (!mounted) return;
@@ -120,10 +104,7 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
     if (!await _games.isConfigured()) return false;
     var authenticated = await _games.refreshAuthentication();
     if (!authenticated) {
-      authenticated = await _games.authenticate();
-    }
-    if (authenticated) {
-      await FirebaseSessionService.connectPlayGamesAccount();
+      authenticated = await _games.authenticate(notifyAccountBridge: false);
     }
     if (mounted) {
       setState(() {
@@ -183,10 +164,6 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
           'achievements_unavailable',
           'Google Play achievements could not be opened.',
         );
-      }
-    } on FirebaseSessionException catch (error) {
-      if (mounted) {
-        setState(() => _error = UserSafeError.message(context, error));
       }
     } on PlatformGameServicesException catch (error) {
       if (mounted) {

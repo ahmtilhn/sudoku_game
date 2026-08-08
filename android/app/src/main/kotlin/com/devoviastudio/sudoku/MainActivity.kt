@@ -19,6 +19,9 @@ import com.google.android.gms.tasks.Task
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.security.MessageDigest
 import java.util.Locale
 
@@ -29,6 +32,7 @@ class MainActivity : FlutterActivity() {
     private val localizationChannel = "com.devovia.sudoku/localization"
     private val gameServicesChannel = "com.devoviastudio.sudoku/game_services"
     private val friendsConsentRequestCode = 9401
+    private val maxAvatarBytes = 512 * 1024
     private var pendingFriendsResult: MethodChannel.Result? = null
 
     private val isPlayGamesConfigured: Boolean
@@ -264,15 +268,20 @@ class MainActivity : FlutterActivity() {
         PlayGames.getPlayersClient(this).currentPlayer
             .addOnSuccessListener { player ->
                 val avatarUri = player.hiResImageUri ?: player.iconImageUri
-                result.success(
-                    mapOf(
-                        "platform" to "google_play_games",
-                        "playerId" to player.playerId,
-                        "displayName" to player.displayName,
-                        "avatarUrl" to avatarUri?.toString(),
-                        "avatarBytesBase64" to localAvatarBytesBase64(avatarUri),
-                    ),
-                )
+                Thread {
+                    val avatarBytes = avatarBytesBase64(avatarUri)
+                    runOnUiThread {
+                        result.success(
+                            mapOf(
+                                "platform" to "google_play_games",
+                                "playerId" to player.playerId,
+                                "displayName" to player.displayName,
+                                "avatarUrl" to avatarUri?.toString(),
+                                "avatarBytesBase64" to avatarBytes,
+                            ),
+                        )
+                    }
+                }.start()
             }
             .addOnFailureListener { exception ->
                 result.error(
@@ -283,18 +292,52 @@ class MainActivity : FlutterActivity() {
             }
     }
 
-    private fun localAvatarBytesBase64(uri: Uri?): String? {
+    private fun avatarBytesBase64(uri: Uri?): String? {
         if (uri == null) return null
         val scheme = uri.scheme?.lowercase(Locale.US)
-        if (scheme != "content" && scheme != "file" && scheme != "android.resource") {
-            return null
-        }
         return runCatching {
-            contentResolver.openInputStream(uri)?.use { stream ->
-                val bytes = stream.readBytes()
+            val bytes = when (scheme) {
+                "content", "file", "android.resource" ->
+                    contentResolver.openInputStream(uri)?.use { stream ->
+                        stream.readLimitedBytes(maxAvatarBytes)
+                    }
+                "https", "http" -> downloadAvatarBytes(uri.toString())
+                else -> null
+            }
+            bytes?.let {
                 if (bytes.isEmpty()) null else Base64.encodeToString(bytes, Base64.NO_WRAP)
             }
         }.getOrNull()
+    }
+
+    private fun downloadAvatarBytes(url: String): ByteArray? {
+        val connection = URL(url).openConnection() as? HttpURLConnection ?: return null
+        return try {
+            connection.connectTimeout = 2500
+            connection.readTimeout = 2500
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("User-Agent", "SudokuDuel/1.0")
+            if (connection.responseCode !in 200..299) return null
+            connection.inputStream.use { stream ->
+                stream.readLimitedBytes(maxAvatarBytes)
+            }
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun java.io.InputStream.readLimitedBytes(limit: Int): ByteArray? {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8 * 1024)
+        var total = 0
+        while (true) {
+            val read = read(buffer)
+            if (read == -1) break
+            total += read
+            if (total > limit) return null
+            output.write(buffer, 0, read)
+        }
+        return output.toByteArray()
     }
 
     private fun loadFriends(result: MethodChannel.Result) {

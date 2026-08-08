@@ -66,7 +66,8 @@ void main() {
 
     expect(dart, contains('avatarBytesBase64'));
     expect(dart, contains('Uint8List? get avatarBytes'));
-    expect(android, contains('localAvatarBytesBase64'));
+    expect(android, contains('avatarBytesBase64'));
+    expect(android, contains('downloadAvatarBytes'));
     expect(android, contains('"avatarBytesBase64"'));
     expect(ios, contains('loadPhoto(for: .small)'));
     expect(ios, contains('payload["avatarBytesBase64"]'));
