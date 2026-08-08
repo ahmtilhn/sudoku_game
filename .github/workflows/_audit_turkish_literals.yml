@@ -94,14 +94,16 @@ jobs:
 
           """ + source[end:]
 
-          input_lock = """            _localConnectionInterrupted ||
-            _exitingToMenu ||"""
-          input_lock_fixed = """            _localConnectionInterrupted ||
-            _forfeiting ||
-            _exitingToMenu ||"""
-          if source.count(input_lock) != 1:
-              raise SystemExit(f'input lock match count: {source.count(input_lock)}')
-          source = source.replace(input_lock, input_lock_fixed, 1)
+          build_start = source.index('    final inputLocked =')
+          build_end = source.index('    return PopScope(', build_start)
+          input_block = source[build_start:build_end]
+          if '_forfeiting ||' not in input_block:
+              input_block = input_block.replace(
+                  '_localConnectionInterrupted ||\n',
+                  '_localConnectionInterrupted ||\n            _forfeiting ||\n',
+                  1,
+              )
+          source = source[:build_start] + input_block + source[build_end:]
 
           puzzle_start = source.index('    final puzzle = SudokuPuzzle(')
           arena_start = source.index(
@@ -148,15 +150,14 @@ jobs:
               );
           """ + source[arena_start:]
 
-          old_status = """                : _forfeiting
-                          ? context.tr('connection_interrupted_retrying')
-          """
-          new_status = """                : _forfeiting
-                          ? context.tr('online_waiting_snapshot')
-          """
-          if source.count(old_status) != 1:
-              raise SystemExit(f'forfeit status text match count: {source.count(old_status)}')
-          source = source.replace(old_status, new_status, 1)
+          forfeit_status_start = source.index(': _forfeiting')
+          old_key = "context.tr('connection_interrupted_retrying')"
+          old_key_start = source.index(old_key, forfeit_status_start)
+          source = (
+              source[:old_key_start]
+              + "context.tr('online_waiting_snapshot')"
+              + source[old_key_start + len(old_key):]
+          )
           online.write_text(source, encoding='utf-8')
 
           account = Path('lib/features/settings/account_protection_screen.dart')
