@@ -1,10 +1,12 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 class UxCopy {
   const UxCopy._();
 
-  static bool _isTurkish(BuildContext context) =>
-      Localizations.localeOf(context).languageCode == 'tr';
+  static bool _isTurkish(BuildContext _) =>
+      PlatformDispatcher.instance.locale.languageCode == 'tr';
 
   static String pause(BuildContext context) =>
       _isTurkish(context) ? 'Oyunu duraklat' : 'Pause game';
