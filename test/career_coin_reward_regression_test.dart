@@ -78,27 +78,32 @@ void main() {
     expect(source, isNot(contains('Icons.monetization_on_rounded')));
   });
 
-  test('game result displays verified Coin delta and updates after ad reward', () {
+  test('game result uses verified Career Coin delta and no generic +25 ad', () {
     final game = File(
       'lib/features/game/enhanced_game_screen.dart',
     ).readAsStringSync();
     final economy = File(
       'lib/services/economy_service.dart',
     ).readAsStringSync();
+    final sync = File(
+      'lib/services/career_reward_sync_service.dart',
+    ).readAsStringSync();
 
     expect(game, contains('balanceBeforeCompletion'));
     expect(game, contains('completionCoinReward'));
     expect(game, contains('initialEarnedCoins'));
-    expect(game, contains('claimCareerRewardedInterstitialCoins'));
-    expect(game, contains('_earnedCoins += reward'));
+    expect(game, contains('GameInterstitialService.instance.recordAndMaybeShow'));
     expect(game, contains('DuelAsset.coin'));
+    expect(game, isNot(contains('watch_and_earn_coin')));
+    expect(game, isNot(contains('claimCareerRewardedInterstitialCoins')));
 
-    expect(economy, contains('final before = balance;'));
     expect(
       economy,
-      contains('EconomyApiClient.instance.confirmCareerAd(prepared.token)'),
+      contains('Future<int> claimCareerRewardedInterstitialCoins() async => 0;'),
     );
-    expect(economy, contains('positiveCoinDelta(before, balance)'));
+    expect(economy, isNot(contains('confirmCareerAd(prepared.token)')));
+    expect(sync, contains('_economy.claimCareer('));
+    expect(sync, contains('await pending.future'));
   });
 
   test('active Coin balance and spend surfaces use the current Coin artwork', () {
