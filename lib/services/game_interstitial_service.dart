@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ads_service.dart';
+import 'career_reward_sync_service.dart';
+import 'economy_service.dart';
 
 enum GameInterstitialContext { careerWin, careerLoss, practice, normalPlay }
 
@@ -57,6 +59,14 @@ class GameInterstitialService {
   /// Records an eligible natural transition and, when the frequency gate is
   /// reached, waits until the interstitial is dismissed before returning.
   Future<bool> recordAndMaybeShow(GameInterstitialContext context) async {
+    // Career progress is written locally first. Drain the V3 reward sync and
+    // refresh the wallet before any early return so the result sheet observes
+    // the authoritative Career Coin grant even for No Ads / odd ad counters.
+    if (context == GameInterstitialContext.careerWin) {
+      await CareerRewardSyncService.instance.waitForIdle();
+      await EconomyService.instance.refresh(showLoading: false);
+    }
+
     if (_ads.noAds || !_supported) return false;
 
     final count = (_eligibleResults[context] ?? 0) + 1;
