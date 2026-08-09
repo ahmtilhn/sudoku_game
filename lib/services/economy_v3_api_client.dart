@@ -135,7 +135,10 @@ class EconomyV3ClaimResult {
     final rewardMap = (json['reward'] as Map?)?.cast<String, dynamic>();
     return EconomyV3ClaimResult(
       state: EconomyV3State.fromJson(json),
-      granted: json['granted'] == true || json['grantedHint'] == true,
+      granted:
+          json['granted'] == true ||
+          json['grantedHint'] == true ||
+          json['consumed'] == true,
       reward: rewardMap == null ? null : EconomyV3Reward.fromJson(rewardMap),
       amount: (json['amount'] as num?)?.toInt() ?? 0,
       cycleDay: (json['cycleDay'] as num?)?.toInt(),
