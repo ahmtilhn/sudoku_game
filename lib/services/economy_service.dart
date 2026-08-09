@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import '../debug/debug_economy.dart';
 import 'ads_service.dart';
 import 'economy_api_client.dart';
+import 'economy_v3_api_client.dart';
 
 int positiveCoinDelta(int before, int after) => after > before ? after - before : 0;
 
@@ -85,15 +86,19 @@ class EconomyService extends ChangeNotifier {
     }
   }
 
+  /// Compatibility bridge for older screens. The flat +50 daily-login reward
+  /// no longer exists; this now claims the next Economy V3 calendar entry.
   Future<bool> claimDailyLogin() async {
-    if (claimingDaily || wallet?.dailyLoginAvailable == false) return false;
+    if (claimingDaily) return false;
     claimingDaily = true;
     error = null;
     notifyListeners();
     try {
-      wallet = await EconomyApiClient.instance.claimDailyLogin();
-      return true;
+      final result = await EconomyV3ApiClient.instance.claimDaily();
+      await refresh(showLoading: false);
+      return result.granted;
     } on EconomyApiException catch (exception) {
+      if (exception.code == 'already_claimed_today') return false;
       error = exception.message;
       return false;
     } catch (_) {
@@ -105,22 +110,25 @@ class EconomyService extends ChangeNotifier {
     }
   }
 
+  /// Compatibility bridge for older screens. The old flat +50 daily ad has
+  /// become a one-time double of the current day's Coin calendar reward.
   Future<bool> claimDailyRewardedAd() async {
-    if (noAds || showingDailyAd || wallet?.dailyAdAvailable == false) {
-      return false;
-    }
+    if (noAds || showingDailyAd) return false;
     showingDailyAd = true;
     error = null;
     notifyListeners();
     try {
-      final prepared = await EconomyApiClient.instance.prepareDailyAd();
+      final prepared = await EconomyV3ApiClient.instance.prepareDailyDouble();
       final earned = await AdsService.instance.showRewarded(
         verificationToken: prepared.token,
       );
       if (!earned) return false;
-      wallet = await EconomyApiClient.instance.confirmDailyAd(prepared.token);
+      final result = await EconomyV3ApiClient.instance.confirmDailyDouble(
+        prepared.token,
+      );
+      await refresh(showLoading: false);
       _syncAdEntitlement();
-      return true;
+      return result.granted;
     } on EconomyApiException catch (exception) {
       error = exception.message;
       return false;
@@ -133,35 +141,12 @@ class EconomyService extends ChangeNotifier {
     }
   }
 
-  Future<int> claimCareerRewardedInterstitialCoins() async {
-    if (noAds) return 0;
-    final before = balance;
-    try {
-      final prepared = await EconomyApiClient.instance.prepareCareerAd();
-      final earned = await AdsService.instance.showRewardedInterstitial(
-        verificationToken: prepared.token,
-      );
-      if (!earned) return 0;
-      wallet = await EconomyApiClient.instance.confirmCareerAd(prepared.token);
-      _syncAdEntitlement();
-      error = null;
-      notifyListeners();
-      final verifiedDelta = positiveCoinDelta(before, balance);
-      if (verifiedDelta > 0) return verifiedDelta;
-      return debugUnlimitedCoinsEnabled ? prepared.amount : 0;
-    } on EconomyApiException catch (exception) {
-      error = exception.message;
-      notifyListeners();
-      return 0;
-    } catch (_) {
-      error = 'The career reward ad is not available right now.';
-      notifyListeners();
-      return 0;
-    }
-  }
+  /// Economy V3 intentionally removed the generic repeatable +25 Career ad.
+  /// Keeping this method as a no-op avoids breaking older result widgets while
+  /// guaranteeing they cannot mint Coins through the retired flow.
+  Future<int> claimCareerRewardedInterstitialCoins() async => 0;
 
-  Future<bool> claimCareerRewardedInterstitial() async =>
-      await claimCareerRewardedInterstitialCoins() > 0;
+  Future<bool> claimCareerRewardedInterstitial() async => false;
 
   Future<bool> spendCareerContinue() async {
     if (debugUnlimitedCoinsEnabled) {
