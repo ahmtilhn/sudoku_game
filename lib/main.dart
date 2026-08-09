@@ -7,8 +7,10 @@ import 'app.dart';
 import 'data/local_progress_store.dart';
 import 'localization/app_strings.dart';
 import 'services/ads_service.dart';
+import 'services/career_reward_sync_service.dart';
 import 'services/coin_store_service.dart';
 import 'services/economy_service.dart';
+import 'services/economy_v3_service.dart';
 import 'services/firebase_services.dart';
 import 'services/play_games_firebase_auth_service.dart';
 import 'services/platform_game_services.dart';
@@ -69,7 +71,11 @@ Future<void> main() async {
     unawaited(
       _initializeOptionalService(
         'online Coin economy',
-        EconomyService.instance.initialize,
+        () async {
+          await EconomyService.instance.initialize();
+          await EconomyV3Service.instance.initialize();
+          CareerRewardSyncService.instance.bind(store);
+        },
         timeout: const Duration(seconds: 30),
       ),
     );
