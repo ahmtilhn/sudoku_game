@@ -35,131 +35,80 @@ jobs:
                   raise SystemExit(f'{label}: anchor not found')
               return source.replace(old, new, 1)
 
-          # Shared game result ordering and mode-specific forced interstitials.
           path = Path('lib/features/game/enhanced_game_screen.dart')
           source = path.read_text()
-          source = replace_once(
-              source,
-              "import '../../services/economy_service.dart';\n",
-              "import '../../services/economy_service.dart';\nimport '../../services/game_interstitial_service.dart';\n",
-              'enhanced import',
-          )
-          source = replace_once(
-              source,
-              "    this.showNextAction = true,\n  });\n",
-              "    this.showNextAction = true,\n    this.interstitialContext = GameInterstitialContext.normalPlay,\n  });\n",
-              'enhanced constructor',
-          )
-          source = replace_once(
-              source,
-              "  final bool showNextAction;\n\n  @override\n",
-              "  final bool showNextAction;\n  final GameInterstitialContext interstitialContext;\n\n  @override\n",
-              'enhanced field',
-          )
-          source = replace_once(
-              source,
-              "    if (action == _LossAction.restart) {\n      _restartPuzzle();\n      return;\n    }\n    await _exitToMenu();\n",
-              "    if (action == _LossAction.restart) {\n      if (widget.interstitialContext == GameInterstitialContext.careerWin) {\n        await GameInterstitialService.instance.recordAndMaybeShow(\n          GameInterstitialContext.careerLoss,\n        );\n        if (!mounted) return;\n      }\n      _restartPuzzle();\n      return;\n    }\n    if (widget.interstitialContext == GameInterstitialContext.careerWin) {\n      await GameInterstitialService.instance.recordAndMaybeShow(\n        GameInterstitialContext.careerLoss,\n      );\n      if (!mounted) return;\n    }\n    await _exitToMenu();\n",
-              'career loss interstitial',
-          )
-          source = replace_once(
-              source,
-              "    await widget.onCompleted?.call(\n      seconds: _elapsedSeconds,\n      mistakes: _totalMistakes,\n      hints: _hintsUsed,\n    );\n    final balanceAfterCompletion = economy.balance;\n",
-              "    await widget.onCompleted?.call(\n      seconds: _elapsedSeconds,\n      mistakes: _totalMistakes,\n      hints: _hintsUsed,\n    );\n    await GameInterstitialService.instance.recordAndMaybeShow(\n      widget.interstitialContext,\n    );\n    if (!mounted) return;\n    final balanceAfterCompletion = economy.balance;\n",
-              'completion interstitial',
-          )
+          source = replace_once(source, "import '../../services/economy_service.dart';\n", "import '../../services/economy_service.dart';\nimport '../../services/game_interstitial_service.dart';\n", 'enhanced import')
+          source = replace_once(source, "    this.showNextAction = true,\n  });\n", "    this.showNextAction = true,\n    this.interstitialContext = GameInterstitialContext.normalPlay,\n  });\n", 'enhanced constructor')
+          source = replace_once(source, "  final bool showNextAction;\n\n  @override\n", "  final bool showNextAction;\n  final GameInterstitialContext interstitialContext;\n\n  @override\n", 'enhanced field')
+          source = replace_once(source, "    if (action == _LossAction.restart) {\n      _restartPuzzle();\n      return;\n    }\n    await _exitToMenu();\n", "    if (action == _LossAction.restart) {\n      if (widget.interstitialContext == GameInterstitialContext.careerWin) {\n        await GameInterstitialService.instance.recordAndMaybeShow(\n          GameInterstitialContext.careerLoss,\n        );\n        if (!mounted) return;\n      }\n      _restartPuzzle();\n      return;\n    }\n    if (widget.interstitialContext == GameInterstitialContext.careerWin) {\n      await GameInterstitialService.instance.recordAndMaybeShow(\n        GameInterstitialContext.careerLoss,\n      );\n      if (!mounted) return;\n    }\n    await _exitToMenu();\n", 'career loss interstitial')
+          source = replace_once(source, "    await widget.onCompleted?.call(\n      seconds: _elapsedSeconds,\n      mistakes: _totalMistakes,\n      hints: _hintsUsed,\n    );\n    final balanceAfterCompletion = economy.balance;\n", "    await widget.onCompleted?.call(\n      seconds: _elapsedSeconds,\n      mistakes: _totalMistakes,\n      hints: _hintsUsed,\n    );\n    await GameInterstitialService.instance.recordAndMaybeShow(\n      widget.interstitialContext,\n    );\n    if (!mounted) return;\n    final balanceAfterCompletion = economy.balance;\n", 'completion interstitial')
           path.write_text(source)
 
-          # Explicit Career and Practice contexts. Normal Play keeps the default.
           path = Path('lib/features/career/career_hub_screen.dart')
           source = path.read_text()
-          source = replace_once(
-              source,
-              "import '../../services/economy_service.dart';\n",
-              "import '../../services/economy_service.dart';\nimport '../../services/game_interstitial_service.dart';\n",
-              'career import',
-          )
-          source = replace_once(
-              source,
-              "              puzzle: puzzle,\n              store: widget.store,\n              completionTitle:\n",
-              "              puzzle: puzzle,\n              store: widget.store,\n              interstitialContext: GameInterstitialContext.careerWin,\n              completionTitle:\n",
-              'career win context',
-          )
-          source = replace_once(
-              source,
-              "        builder: (_) => EnhancedGameScreen(\n          puzzle: puzzle,\n          store: widget.store,\n          showNextAction: false,\n",
-              "        builder: (_) => EnhancedGameScreen(\n          puzzle: puzzle,\n          store: widget.store,\n          showNextAction: false,\n          interstitialContext: GameInterstitialContext.practice,\n",
-              'practice context',
-          )
+          source = replace_once(source, "import '../../services/economy_service.dart';\n", "import '../../services/economy_service.dart';\nimport '../../services/game_interstitial_service.dart';\n", 'career import')
+          source = replace_once(source, "              puzzle: puzzle,\n              store: widget.store,\n              completionTitle:\n", "              puzzle: puzzle,\n              store: widget.store,\n              interstitialContext: GameInterstitialContext.careerWin,\n              completionTitle:\n", 'career win context')
+          source = replace_once(source, "        builder: (_) => EnhancedGameScreen(\n          puzzle: puzzle,\n          store: widget.store,\n          showNextAction: false,\n", "        builder: (_) => EnhancedGameScreen(\n          puzzle: puzzle,\n          store: widget.store,\n          showNextAction: false,\n          interstitialContext: GameInterstitialContext.practice,\n", 'practice context')
           path.write_text(source)
 
-          # Verified duel-loss Recovery offer before the result sheet.
           path = Path('lib/features/duel/online_duel_screen.dart')
           source = path.read_text()
-          source = replace_once(
-              source,
-              "import '../../services/economy_service.dart';\n",
-              "import '../../services/economy_service.dart';\nimport '../../services/economy_v3_service.dart';\n",
-              'duel v3 import',
-          )
-          helper = r'''  Future<void> _maybeOfferRecovery(OnlineDuelSnapshot snapshot) async {
-    if (snapshot.mode == 'friendly' ||
-        snapshot.winnerSeat == null ||
-        snapshot.winnerSeat == snapshot.youSeat ||
-        !mounted) {
-      return;
-    }
-    final offer = await EconomyV3Service.instance.prepareRecovery(snapshot.matchId);
-    if (!mounted || offer == null || !offer.eligible || offer.amount <= 0) {
-      return;
-    }
-    final watch = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(dialogContext.tr('you_lost')),
-        content: Text(
-          '${dialogContext.tr('watch_rewarded_ad')} · ${dialogContext.tr('coin_amount', <Object>[offer.amount])}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(dialogContext.tr('cancel')),
-          ),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            icon: const Icon(Icons.ondemand_video_rounded),
-            label: Text(dialogContext.tr('watch_rewarded_ad')),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    if (watch != true) {
-      await EconomyV3Service.instance.dismissRecovery(snapshot.matchId);
-      return;
-    }
-    final result = await EconomyV3Service.instance.claimRecovery(offer);
-    if (!mounted || result == null || !result.granted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.tr('coin_added_wallet', <Object>[result.amount])),
-      ),
-    );
-  }
-
-'''
+          source = replace_once(source, "import '../../services/economy_service.dart';\n", "import '../../services/economy_service.dart';\nimport '../../services/economy_v3_service.dart';\n", 'duel v3 import')
+          helper = "\n".join([
+              "  Future<void> _maybeOfferRecovery(OnlineDuelSnapshot snapshot) async {",
+              "    if (snapshot.mode == 'friendly' ||",
+              "        snapshot.winnerSeat == null ||",
+              "        snapshot.winnerSeat == snapshot.youSeat ||",
+              "        !mounted) {",
+              "      return;",
+              "    }",
+              "    final offer = await EconomyV3Service.instance.prepareRecovery(snapshot.matchId);",
+              "    if (!mounted || offer == null || !offer.eligible || offer.amount <= 0) {",
+              "      return;",
+              "    }",
+              "    final watch = await showDialog<bool>(",
+              "      context: context,",
+              "      barrierDismissible: false,",
+              "      builder: (dialogContext) => AlertDialog(",
+              "        title: Text(dialogContext.tr('you_lost')),",
+              "        content: Text(",
+              "          \"${dialogContext.tr('watch_rewarded_ad')} · ${dialogContext.tr('coin_amount', <Object>[offer.amount])}\",",
+              "        ),",
+              "        actions: [",
+              "          TextButton(",
+              "            onPressed: () => Navigator.of(dialogContext).pop(false),",
+              "            child: Text(dialogContext.tr('cancel')),",
+              "          ),",
+              "          FilledButton.icon(",
+              "            onPressed: () => Navigator.of(dialogContext).pop(true),",
+              "            icon: const Icon(Icons.ondemand_video_rounded),",
+              "            label: Text(dialogContext.tr('watch_rewarded_ad')),",
+              "          ),",
+              "        ],",
+              "      ),",
+              "    );",
+              "    if (!mounted) return;",
+              "    if (watch != true) {",
+              "      await EconomyV3Service.instance.dismissRecovery(snapshot.matchId);",
+              "      return;",
+              "    }",
+              "    final result = await EconomyV3Service.instance.claimRecovery(offer);",
+              "    if (!mounted || result == null || !result.granted) return;",
+              "    ScaffoldMessenger.of(context).showSnackBar(",
+              "      SnackBar(",
+              "        content: Text(context.tr('coin_added_wallet', <Object>[result.amount])),",
+              "      ),",
+              "    );",
+              "  }",
+              "",
+              "",
+          ])
           marker = "  void _showResultOnce(OnlineDuelSnapshot snapshot) {\n"
           if helper not in source:
               if marker not in source:
                   raise SystemExit('duel recovery helper anchor not found')
               source = source.replace(marker, helper + marker, 1)
-          source = replace_once(
-              source,
-              "      await EconomyService.instance.refresh(showLoading: false);\n      if (!mounted) return;\n      final action = await showModalBottomSheet<String>(\n",
-              "      await EconomyService.instance.refresh(showLoading: false);\n      if (!mounted) return;\n      await _maybeOfferRecovery(snapshot);\n      if (!mounted) return;\n      final action = await showModalBottomSheet<String>(\n",
-              'duel recovery call',
-          )
+          source = replace_once(source, "      await EconomyService.instance.refresh(showLoading: false);\n      if (!mounted) return;\n      final action = await showModalBottomSheet<String>(\n", "      await EconomyService.instance.refresh(showLoading: false);\n      if (!mounted) return;\n      await _maybeOfferRecovery(snapshot);\n      if (!mounted) return;\n      final action = await showModalBottomSheet<String>(\n", 'duel recovery call')
           path.write_text(source)
 
       - name: Check patch
@@ -169,13 +118,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add lib/features/game/enhanced_game_screen.dart \
-                  lib/features/career/career_hub_screen.dart \
-                  lib/features/duel/online_duel_screen.dart
+          git add lib/features/game/enhanced_game_screen.dart lib/features/career/career_hub_screen.dart lib/features/duel/online_duel_screen.dart
           git diff --cached --check
-          if git diff --cached --quiet; then
-            exit 0
-          fi
+          if git diff --cached --quiet; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'economy: wire V3 result ads and duel recovery'
