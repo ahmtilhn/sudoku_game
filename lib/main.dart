@@ -27,6 +27,7 @@ Future<void> main() async {
 
   final store = await LocalProgressStore.create();
   final strings = await AppStrings.load();
+  CareerRewardSyncService.instance.bind(store);
 
   runApp(SudokuApp(store: store, strings: strings));
 
@@ -74,7 +75,7 @@ Future<void> main() async {
         () async {
           await EconomyService.instance.initialize();
           await EconomyV3Service.instance.initialize();
-          CareerRewardSyncService.instance.bind(store);
+          await CareerRewardSyncService.instance.syncNow();
         },
         timeout: const Duration(seconds: 30),
       ),
