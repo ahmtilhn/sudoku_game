@@ -15,6 +15,9 @@ class CareerRewardSyncService {
   LocalProgressStore? _store;
   bool _syncing = false;
   bool _syncAgain = false;
+  Completer<void>? _idleCompleter;
+
+  bool get syncing => _syncing;
 
   void bind(LocalProgressStore store) {
     if (identical(_store, store)) return;
@@ -28,15 +31,26 @@ class CareerRewardSyncService {
     unawaited(syncNow());
   }
 
+  Future<void> waitForIdle() async {
+    while (_syncing) {
+      final pending = _idleCompleter;
+      if (pending == null) return;
+      await pending.future;
+    }
+  }
+
   Future<void> syncNow() async {
     if (_syncing) {
       _syncAgain = true;
+      await waitForIdle();
       return;
     }
     final store = _store;
     if (store == null) return;
 
     _syncing = true;
+    final idle = Completer<void>();
+    _idleCompleter = idle;
     try {
       do {
         _syncAgain = false;
@@ -45,6 +59,8 @@ class CareerRewardSyncService {
       } while (_syncAgain);
     } finally {
       _syncing = false;
+      if (!idle.isCompleted) idle.complete();
+      if (identical(_idleCompleter, idle)) _idleCompleter = null;
     }
   }
 
