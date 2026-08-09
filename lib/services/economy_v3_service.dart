@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import 'ads_service.dart';
+import 'economy_api_client.dart';
 import 'economy_service.dart';
 import 'economy_v3_api_client.dart';
 
@@ -70,7 +71,9 @@ class EconomyV3Service extends ChangeNotifier {
         verificationToken: preparation.token,
       );
       if (!earned) return null;
-      final result = await _api.confirmDailyDouble(preparation.token);
+      final result = await _confirmAfterSsv(
+        () => _api.confirmDailyDouble(preparation.token),
+      );
       _state = result.state;
       _error = null;
       await _syncLegacyWallet();
@@ -125,7 +128,9 @@ class EconomyV3Service extends ChangeNotifier {
         verificationToken: preparation.token,
       );
       if (!earned) return false;
-      final result = await _api.confirmHintReward(preparation.token);
+      final result = await _confirmAfterSsv(
+        () => _api.confirmHintReward(preparation.token),
+      );
       _state = result.state;
       _error = null;
       notifyListeners();
@@ -173,7 +178,9 @@ class EconomyV3Service extends ChangeNotifier {
     try {
       final earned = await _ads.showRewarded(verificationToken: token);
       if (!earned) return null;
-      final result = await _api.confirmRecovery(token);
+      final result = await _confirmAfterSsv(
+        () => _api.confirmRecovery(token),
+      );
       _state = result.state;
       _error = null;
       await _syncLegacyWallet();
@@ -193,6 +200,22 @@ class EconomyV3Service extends ChangeNotifier {
       _error = error.toString();
       notifyListeners();
     }
+  }
+
+  Future<EconomyV3ClaimResult> _confirmAfterSsv(
+    Future<EconomyV3ClaimResult> Function() confirm,
+  ) async {
+    const attempts = 8;
+    for (var attempt = 0; attempt < attempts; attempt++) {
+      try {
+        return await confirm();
+      } on EconomyApiException catch (error) {
+        final waiting = error.code == 'reward_waiting_for_ssv';
+        if (!waiting || attempt == attempts - 1) rethrow;
+        await Future<void>.delayed(const Duration(seconds: 1));
+      }
+    }
+    throw StateError('Reward confirmation retry exhausted.');
   }
 
   Future<void> _syncLegacyWallet() async {
