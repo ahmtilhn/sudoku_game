@@ -12,6 +12,7 @@ import '../../localization/app_strings.dart';
 import '../../localization/ux_copy.dart';
 import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
+import '../../services/game_interstitial_service.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/game_modal.dart';
 import '../../widgets/game_pause_menu.dart';
@@ -43,6 +44,7 @@ class EnhancedGameScreen extends StatefulWidget {
     this.allowNotes = true,
     this.allowHints = true,
     this.showNextAction = true,
+    this.interstitialContext = GameInterstitialContext.normalPlay,
   });
 
   final SudokuPuzzle puzzle;
@@ -53,6 +55,7 @@ class EnhancedGameScreen extends StatefulWidget {
   final bool allowNotes;
   final bool allowHints;
   final bool showNextAction;
+  final GameInterstitialContext interstitialContext;
 
   @override
   State<EnhancedGameScreen> createState() => _EnhancedGameScreenState();
@@ -521,8 +524,20 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       return;
     }
     if (action == _LossAction.restart) {
+      if (widget.interstitialContext == GameInterstitialContext.careerWin) {
+        await GameInterstitialService.instance.recordAndMaybeShow(
+          GameInterstitialContext.careerLoss,
+        );
+        if (!mounted) return;
+      }
       _restartPuzzle();
       return;
+    }
+    if (widget.interstitialContext == GameInterstitialContext.careerWin) {
+      await GameInterstitialService.instance.recordAndMaybeShow(
+        GameInterstitialContext.careerLoss,
+      );
+      if (!mounted) return;
     }
     await _exitToMenu();
   }
@@ -598,6 +613,10 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       mistakes: _totalMistakes,
       hints: _hintsUsed,
     );
+    await GameInterstitialService.instance.recordAndMaybeShow(
+      widget.interstitialContext,
+    );
+    if (!mounted) return;
     final balanceAfterCompletion = economy.balance;
     final completionCoinReward = positiveCoinDelta(
       balanceBeforeCompletion,

@@ -11,6 +11,7 @@ import '../../domain/sudoku.dart';
 import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
+import '../../services/game_interstitial_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/game_modal.dart';
@@ -737,6 +738,7 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
             builder: (_) => EnhancedGameScreen(
               puzzle: puzzle,
               store: widget.store,
+              interstitialContext: GameInterstitialContext.careerWin,
               completionTitle:
                   '${_variant.label} · ${context.strings.difficultyLabel(puzzle.difficulty)} · $level',
               onCompleted:
@@ -842,6 +844,7 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
           puzzle: puzzle,
           store: widget.store,
           showNextAction: false,
+          interstitialContext: GameInterstitialContext.practice,
           onCompleted:
               ({required seconds, required mistakes, required hints}) async {
                 await widget.store.recordResult(

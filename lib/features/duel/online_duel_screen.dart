@@ -9,6 +9,7 @@ import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
+import '../../services/economy_v3_service.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
@@ -347,6 +348,52 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     });
   }
 
+  Future<void> _maybeOfferRecovery(OnlineDuelSnapshot snapshot) async {
+    if (snapshot.mode == 'friendly' ||
+        snapshot.winnerSeat == null ||
+        snapshot.winnerSeat == snapshot.youSeat ||
+        !mounted) {
+      return;
+    }
+    final offer = await EconomyV3Service.instance.prepareRecovery(snapshot.matchId);
+    if (!mounted || offer == null || !offer.eligible || offer.amount <= 0) {
+      return;
+    }
+    final watch = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(dialogContext.tr('you_lost')),
+        content: Text(
+          "${dialogContext.tr('watch_rewarded_ad')} · ${dialogContext.tr('coin_amount', <Object>[offer.amount])}",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(dialogContext.tr('cancel')),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            icon: const Icon(Icons.ondemand_video_rounded),
+            label: Text(dialogContext.tr('watch_rewarded_ad')),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (watch != true) {
+      await EconomyV3Service.instance.dismissRecovery(snapshot.matchId);
+      return;
+    }
+    final result = await EconomyV3Service.instance.claimRecovery(offer);
+    if (!mounted || result == null || !result.granted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(context.tr('coin_added_wallet', <Object>[result.amount])),
+      ),
+    );
+  }
+
   void _showResultOnce(OnlineDuelSnapshot snapshot) {
     if (!snapshot.isFinished || _shownResultFor == snapshot.matchId) return;
     final needsSettlement =
@@ -369,6 +416,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await EconomyService.instance.refresh(showLoading: false);
+      if (!mounted) return;
+      await _maybeOfferRecovery(snapshot);
       if (!mounted) return;
       final action = await showModalBottomSheet<String>(
         context: context,
