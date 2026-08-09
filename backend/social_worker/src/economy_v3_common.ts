@@ -11,7 +11,7 @@ import {
 import { ensureEconomyV3Schema } from './economy_v3_schema';
 
 export type EconomyV3Env = EconomyEnv & {
-  FIREBASE_PROJECT_ID?: string;
+  FIREBASE_PROJECT_ID: string;
   FIREBASE_PROJECT_NUMBER?: string;
   ALLOWED_APP_CHECK_APP_IDS?: string;
   REQUIRE_APP_CHECK?: string;
