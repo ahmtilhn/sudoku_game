@@ -1,0 +1,39 @@
+name: Economy V3 Flutter verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/economy-v3-verify-main.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Verify user-facing messages
+        run: python3 tool/verify_user_facing_messages.py
+      - name: Verify UX contracts
+        run: python3 tool/verify_ux_contracts.py
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+      - name: Test
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
+      - name: Build debug APK
+        run: flutter build apk --debug
