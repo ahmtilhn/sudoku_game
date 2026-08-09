@@ -97,7 +97,9 @@ jobs:
           EOF
 
       - name: Build release app bundle
-        run: flutter build appbundle --release
+        run: >-
+          flutter build appbundle --release
+          --dart-define=ADMOB_ANDROID_INTERSTITIAL_ID=${{ vars.ADMOB_ANDROID_INTERSTITIAL_ID }}
 
       - name: Inspect release app bundle
         shell: pwsh
