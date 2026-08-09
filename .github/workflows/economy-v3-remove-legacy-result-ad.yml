@@ -1,0 +1,99 @@
+name: Remove retired result reward ad UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/economy-v3-remove-legacy-result-ad.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Remove retired generic Career ad from result sheet
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/features/game/enhanced_game_screen.dart')
+          source = path.read_text()
+
+          source = source.replace(
+              "  bool _rewardBusy = false;\n  bool _rewardClaimed = false;\n  String? _message;\n  late int _earnedCoins;\n",
+              "  late int _earnedCoins;\n",
+              1,
+          )
+
+          method = """  Future<void> _claimReward() async {
+    if (_rewardBusy || _rewardClaimed) return;
+    setState(() {
+      _rewardBusy = true;
+      _message = null;
+    });
+    final reward =
+        await EconomyService.instance.claimCareerRewardedInterstitialCoins();
+    if (!mounted) return;
+    setState(() {
+      _rewardBusy = false;
+      _rewardClaimed = reward > 0;
+      if (reward > 0) {
+        _earnedCoins += reward;
+        _balance = EconomyService.instance.balance;
+      }
+      _message = reward > 0
+          ? context.tr('coin_added_wallet', <Object>[reward])
+          : context.tr('rewarded_ad_unavailable');
+    });
+  }
+
+"""
+          if method not in source:
+              raise SystemExit('retired result reward method anchor not found')
+          source = source.replace(method, '', 1)
+
+          ui = """            if (!AdsService.instance.noAds && !_rewardClaimed) ...[
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                onPressed: _rewardBusy ? null : _claimReward,
+                icon: _rewardBusy
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.ondemand_video_outlined),
+                label: Text(
+                  context.tr('watch_and_earn_coin', const <Object>[25]),
+                ),
+              ),
+            ],
+            if (_message != null) ...[
+              const SizedBox(height: 8),
+              Text(_message!, textAlign: TextAlign.center),
+            ],
+"""
+          if ui not in source:
+              raise SystemExit('retired result reward UI anchor not found')
+          source = source.replace(ui, '', 1)
+          path.write_text(source)
+      - run: git diff --check
+      - name: Commit directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib/features/game/enhanced_game_screen.dart
+          git diff --cached --check
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'economy: remove retired generic result reward ad'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
