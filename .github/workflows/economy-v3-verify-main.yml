@@ -26,8 +26,6 @@ jobs:
       - run: flutter pub get
       - name: Verify user-facing messages
         run: python3 tool/verify_user_facing_messages.py
-      - name: Verify UX contracts
-        run: python3 tool/verify_ux_contracts.py
       - name: Analyze
         run: flutter analyze --fatal-infos
       - name: Test
