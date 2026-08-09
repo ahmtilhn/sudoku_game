@@ -25,11 +25,11 @@ class CareerLevel {
   bool get isChapterStart => chapterLevel == 1;
 
   int get coinReward => switch (difficulty) {
-    SudokuDifficulty.beginner => 10,
-    SudokuDifficulty.easy => 15,
-    SudokuDifficulty.medium => 20,
-    SudokuDifficulty.hard => 30,
-    SudokuDifficulty.expert => 45,
+    SudokuDifficulty.beginner => 20,
+    SudokuDifficulty.easy => 25,
+    SudokuDifficulty.medium => 35,
+    SudokuDifficulty.hard => 40,
+    SudokuDifficulty.expert => 50,
   };
 
   int get hintReward => chapterLevel == 10 ? 2 : chapterLevel == 5 ? 1 : 0;
