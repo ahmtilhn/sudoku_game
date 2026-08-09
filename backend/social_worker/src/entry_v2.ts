@@ -8,6 +8,13 @@ import {
   handleVariantChallengeRequest,
   isVariantChallengeRoute,
 } from './variant_challenges';
+import {
+  handleEconomyV3Request,
+  isEconomyV3Route,
+  isLegacyEconomyRewardRoute,
+  legacyEconomyRewardResponse,
+} from './economy_v3';
+import type { EconomyV3Env } from './economy_v3_common';
 
 export { GameRoom, MatchmakingQueue };
 
@@ -18,6 +25,17 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
+    if (request.method !== 'OPTIONS' && isLegacyEconomyRewardRoute(url.pathname)) {
+      return legacyEconomyRewardResponse(env as unknown as EconomyV3Env);
+    }
+    if (request.method !== 'OPTIONS' && isEconomyV3Route(url.pathname)) {
+      return handleEconomyV3Request(
+        request,
+        env as unknown as EconomyV3Env,
+        ctx,
+        (forwarded) => legacyWorker.fetch(forwarded, env as never, ctx),
+      );
+    }
     if (
       url.pathname === '/v1/matchmaking/queue' &&
       request.method !== 'OPTIONS'
