@@ -38,6 +38,17 @@ const LEGACY_REWARD_ROUTES = new Set([
   '/v1/rewards/career-ad/confirm',
 ]);
 
+type SsvVerificationRequest = Parameters<
+  typeof assertProductionRewardConfirmedBySsv
+>[0];
+
+function cloneForSsv(request: Request): SsvVerificationRequest {
+  // Cloudflare's handler Request carries host metadata generics that differ
+  // from the shared verifier's default Request generic. Runtime objects are the
+  // same Fetch API Request; narrow only the type at this boundary.
+  return request.clone() as unknown as SsvVerificationRequest;
+}
+
 export function isEconomyV3Route(pathname: string): boolean {
   return pathname === '/v1/economy/v3/state' || pathname.startsWith('/v1/economy/v3/');
 }
@@ -80,7 +91,7 @@ export async function handleEconomyV3Request(
       url.pathname === '/v1/economy/v3/daily/double/confirm' &&
       request.method === 'POST'
     ) {
-      await assertProductionRewardConfirmedBySsv(request.clone(), env);
+      await assertProductionRewardConfirmedBySsv(cloneForSsv(request), env);
       const body = await readJson(request);
       return json(
         env,
@@ -123,7 +134,7 @@ export async function handleEconomyV3Request(
       url.pathname === '/v1/economy/v3/hints/reward/confirm' &&
       request.method === 'POST'
     ) {
-      await assertProductionRewardConfirmedBySsv(request.clone(), env);
+      await assertProductionRewardConfirmedBySsv(cloneForSsv(request), env);
       const body = await readJson(request);
       return json(
         env,
@@ -152,7 +163,7 @@ export async function handleEconomyV3Request(
       url.pathname === '/v1/economy/v3/recovery/confirm' &&
       request.method === 'POST'
     ) {
-      await assertProductionRewardConfirmedBySsv(request.clone(), env);
+      await assertProductionRewardConfirmedBySsv(cloneForSsv(request), env);
       const body = await readJson(request);
       return json(
         env,
