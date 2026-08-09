@@ -9,8 +9,10 @@ export type DailyReward =
   | { kind: 'coin'; amount: number }
   | { kind: 'hint_refill'; amount: 1 };
 
+// 30-day rolling track: exactly 1,560 Coins + 6 Hint Refills.
+// Missing a calendar day never resets the sequence.
 export const DAILY_REWARD_CALENDAR: ReadonlyArray<DailyReward> = Object.freeze([
-  { kind: 'coin', amount: 40 },
+  { kind: 'coin', amount: 50 },
   { kind: 'coin', amount: 50 },
   { kind: 'coin', amount: 50 },
   { kind: 'hint_refill', amount: 1 },
@@ -18,7 +20,7 @@ export const DAILY_REWARD_CALENDAR: ReadonlyArray<DailyReward> = Object.freeze([
   { kind: 'coin', amount: 50 },
   { kind: 'coin', amount: 100 },
   { kind: 'coin', amount: 50 },
-  { kind: 'coin', amount: 60 },
+  { kind: 'coin', amount: 70 },
   { kind: 'hint_refill', amount: 1 },
   { kind: 'coin', amount: 50 },
   { kind: 'coin', amount: 70 },
@@ -27,17 +29,17 @@ export const DAILY_REWARD_CALENDAR: ReadonlyArray<DailyReward> = Object.freeze([
   { kind: 'hint_refill', amount: 1 },
   { kind: 'coin', amount: 50 },
   { kind: 'coin', amount: 70 },
-  { kind: 'coin', amount: 60 },
+  { kind: 'coin', amount: 50 },
   { kind: 'hint_refill', amount: 1 },
-  { kind: 'coin', amount: 80 },
-  { kind: 'coin', amount: 150 },
+  { kind: 'coin', amount: 70 },
+  { kind: 'coin', amount: 50 },
   { kind: 'coin', amount: 50 },
   { kind: 'coin', amount: 70 },
-  { kind: 'coin', amount: 80 },
+  { kind: 'coin', amount: 50 },
   { kind: 'hint_refill', amount: 1 },
-  { kind: 'coin', amount: 60 },
-  { kind: 'coin', amount: 80 },
-  { kind: 'coin', amount: 120 },
+  { kind: 'coin', amount: 50 },
+  { kind: 'coin', amount: 70 },
+  { kind: 'coin', amount: 50 },
   { kind: 'hint_refill', amount: 1 },
   { kind: 'coin', amount: 150 },
 ]);
