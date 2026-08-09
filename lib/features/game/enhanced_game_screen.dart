@@ -962,9 +962,6 @@ class _GameResultSheet extends StatefulWidget {
 }
 
 class _GameResultSheetState extends State<_GameResultSheet> {
-  bool _rewardBusy = false;
-  bool _rewardClaimed = false;
-  String? _message;
   late int _earnedCoins;
   late int _balance;
 
@@ -973,28 +970,6 @@ class _GameResultSheetState extends State<_GameResultSheet> {
     super.initState();
     _earnedCoins = widget.initialEarnedCoins;
     _balance = widget.initialBalance;
-  }
-
-  Future<void> _claimReward() async {
-    if (_rewardBusy || _rewardClaimed) return;
-    setState(() {
-      _rewardBusy = true;
-      _message = null;
-    });
-    final reward =
-        await EconomyService.instance.claimCareerRewardedInterstitialCoins();
-    if (!mounted) return;
-    setState(() {
-      _rewardBusy = false;
-      _rewardClaimed = reward > 0;
-      if (reward > 0) {
-        _earnedCoins += reward;
-        _balance = EconomyService.instance.balance;
-      }
-      _message = reward > 0
-          ? context.tr('coin_added_wallet', <Object>[reward])
-          : context.tr('rewarded_ad_unavailable');
-    });
   }
 
   @override
@@ -1118,25 +1093,6 @@ class _GameResultSheetState extends State<_GameResultSheet> {
                 ],
               ),
             ),
-            if (!AdsService.instance.noAds && !_rewardClaimed) ...[
-              const SizedBox(height: 14),
-              OutlinedButton.icon(
-                onPressed: _rewardBusy ? null : _claimReward,
-                icon: _rewardBusy
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.ondemand_video_outlined),
-                label: Text(
-                  context.tr('watch_and_earn_coin', const <Object>[25]),
-                ),
-              ),
-            ],
-            if (_message != null) ...[
-              const SizedBox(height: 8),
-              Text(_message!, textAlign: TextAlign.center),
-            ],
             const SizedBox(height: 18),
             FilledButton.icon(
               onPressed: () => Navigator.of(context).pop(
