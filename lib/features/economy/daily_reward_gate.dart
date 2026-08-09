@@ -71,10 +71,14 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  DuelAssetIcon(
-                    reward.isCoin ? 'assets/duel/coin.png' : 'assets/duel/hint.png',
-                    size: 54,
-                  ),
+                  if (reward.isCoin)
+                    const DuelAssetIcon(DuelAsset.coin, size: 54)
+                  else
+                    const Icon(
+                      Icons.refresh_rounded,
+                      size: 54,
+                      color: Color(0xFFFFC94D),
+                    ),
                   const SizedBox(height: 14),
                   Text(
                     reward.isCoin
