@@ -166,8 +166,8 @@ class _CareerHubScreenState extends State<CareerHubScreen>
           builder: (context, constraints) {
             final maxWidth = constraints.maxWidth >= 840 ? 760.0 : 680.0;
             final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.3;
-            final cardExtent = largeText ? 248.0 : 196.0;
-            final cardMaxExtent = largeText ? 340.0 : 246.0;
+            final cardExtent = largeText ? 268.0 : 218.0;
+            final cardMaxExtent = largeText ? 360.0 : 260.0;
             final completed = widget.store.completedCareerLevelCountFor(
               variant,
             );
@@ -334,7 +334,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   subtitle: context.tr('career_random_intro'),
                   icon: DuelAsset.grid,
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 _PracticeCard(
                   icon: Icons.today_rounded,
                   title: context.tr('daily_sudoku'),
@@ -349,7 +349,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   loading: _generatingDaily,
                   onTap: _busy ? null : _openDaily,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 _PracticeCard(
                   icon: Icons.dashboard_customize_rounded,
                   title: context.tr('samurai_sudoku'),
@@ -358,7 +358,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   loading: _generatingSamurai,
                   onTap: _busy ? null : _openSamurai,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 for (final difficulty in SudokuDifficulty.values) ...[
                   _PracticeCard(
                     icon: Icons.grid_4x4_rounded,
@@ -376,7 +376,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                     loading: _generatingPractice == difficulty,
                     onTap: _busy ? null : () => _openPractice(difficulty),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                 ],
               ],
             ),
@@ -609,14 +609,7 @@ class _HeroPanel extends StatelessWidget {
         MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF172B37).withValues(alpha: .96),
-            const Color(0xFF101B20).withValues(alpha: .96),
-          ],
-        ),
+        color: Colors.white.withValues(alpha: .05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: .08)),
       ),
@@ -698,7 +691,7 @@ class _CareerHeaderControls extends StatelessWidget {
             const SizedBox(height: 10),
             DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xFF101B20).withValues(alpha: .9),
+                color: Colors.black.withValues(alpha: .18),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: Colors.white.withValues(alpha: .07)),
               ),
@@ -747,44 +740,115 @@ class _CareerVariantSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFF101B20).withValues(alpha: .88),
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.black.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.white.withValues(alpha: .07)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: SegmentedButton<SudokuVariant>(
-          segments: [
-            for (final variant in SudokuVariant.values)
-              ButtonSegment<SudokuVariant>(
-                value: variant,
-                icon: Icon(
-                  variant.id == SudokuVariantId.classic16
-                      ? Icons.grid_on_rounded
-                      : Icons.grid_4x4_rounded,
-                ),
-                label: Text(variant.label),
+        padding: const EdgeInsets.all(10),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 430;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final variant in SudokuVariant.values)
+                  SizedBox(
+                    width: compact
+                        ? constraints.maxWidth
+                        : (constraints.maxWidth - 10) / 2,
+                    child: _CareerVariantCard(
+                      variant: variant,
+                      selected: selected == variant,
+                      enabled: enabled,
+                      onTap: () => onSelected(variant),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _CareerVariantCard extends StatelessWidget {
+  const _CareerVariantCard({
+    required this.variant,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final SudokuVariant variant;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final is16 = variant.id == SudokuVariantId.classic16;
+    final accent = is16 ? const Color(0xFF35D2FF) : const Color(0xFFFFC94D);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          height: 86,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected
+                ? accent.withValues(alpha: .12)
+                : Colors.white.withValues(alpha: .045),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected ? accent : Colors.white.withValues(alpha: .10),
+              width: selected ? 1.7 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              DuelAssetIcon(
+                is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
+                size: 54,
               ),
-          ],
-          selected: <SudokuVariant>{selected},
-          onSelectionChanged: enabled
-              ? (values) => onSelected(values.first)
-              : null,
-          style: ButtonStyle(
-            visualDensity: VisualDensity.compact,
-            foregroundColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? Colors.black.withValues(alpha: .84)
-                  : Colors.white,
-            ),
-            backgroundColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
-                  ? const Color(0xFFFFC94D)
-                  : Colors.white.withValues(alpha: .04),
-            ),
-            side: WidgetStateProperty.all(
-              BorderSide(color: Colors.white.withValues(alpha: .10)),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      variant.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: selected ? accent : Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      is16 ? '1-16' : '1-9',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .58),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                color: selected ? accent : Colors.white.withValues(alpha: .26),
+              ),
+            ],
           ),
         ),
       ),
@@ -815,7 +879,7 @@ class _CareerProgressPanel extends StatelessWidget {
     final percent = (progress * 100).round();
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFF101B20).withValues(alpha: .92),
+        color: Colors.black.withValues(alpha: .18),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withValues(alpha: .07)),
       ),
@@ -1007,14 +1071,7 @@ class _NextLevelCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                accent.withValues(alpha: .18),
-                const Color(0xFF101B20).withValues(alpha: .94),
-              ],
-            ),
+            color: Colors.white.withValues(alpha: .055),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: accent.withValues(alpha: .36)),
           ),
@@ -1174,6 +1231,37 @@ class _DifficultyChip extends StatelessWidget {
   }
 }
 
+class _MiniStatusPill extends StatelessWidget {
+  const _MiniStatusPill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .22)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _InfoPill extends StatelessWidget {
   const _InfoPill({
     required this.icon,
@@ -1318,17 +1406,26 @@ class _LevelCard extends StatelessWidget {
     final accent = _difficultyAccent(level.difficulty);
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.3;
     final completed = progress != null;
+    final status = !unlocked
+        ? context.tr('complete_previous_level')
+        : completed
+        ? context.tr('best_time', <Object>[
+            formatDuration(progress!.bestSeconds),
+          ])
+        : current
+        ? context.tr('continue_action')
+        : context.tr('new_level');
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Ink(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
             color: unlocked
-                ? const Color(0xFF101B20).withValues(alpha: .95)
-                : const Color(0xFF0B1215).withValues(alpha: .78),
+                ? Colors.white.withValues(alpha: .055)
+                : Colors.black.withValues(alpha: .18),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: current
@@ -1343,9 +1440,11 @@ class _LevelCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CircleAvatar(
                     backgroundColor: accent.withValues(alpha: .16),
+                    radius: largeText ? 19 : 18,
                     child: loading
                         ? Padding(
                             padding: const EdgeInsets.all(10),
@@ -1360,6 +1459,7 @@ class _LevelCard extends StatelessWidget {
                                 : completed
                                 ? Icons.check_rounded
                                 : Icons.grid_4x4_rounded,
+                            size: 20,
                             color: unlocked
                                 ? accent
                                 : Colors.white.withValues(alpha: .36),
@@ -1367,67 +1467,48 @@ class _LevelCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: 6,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _DifficultyChip(
-                          label: context.strings.difficultyLabel(
-                            level.difficulty,
+                        Text(
+                          'Level ${level.number}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: unlocked
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: .42),
+                            fontSize: largeText ? 15 : 16,
+                            fontWeight: FontWeight.w900,
                           ),
-                          color: accent,
                         ),
-                        if (current)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: accent.withValues(alpha: .14),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              context.tr('continue_action'),
-                              style: TextStyle(
-                                color: accent,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
+                        const SizedBox(height: 5),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _DifficultyChip(
+                              label: context.strings.difficultyLabel(
+                                level.difficulty,
                               ),
+                              color: accent,
                             ),
-                          ),
-                        if (progress != null)
-                          _StarRow(stars: progress!.stars, color: accent),
+                            if (current)
+                              _MiniStatusPill(
+                                label: context.tr('continue_action'),
+                                color: accent,
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
-              const Spacer(),
+              const SizedBox(height: 12),
               Text(
-                'Level ${level.number}',
-                maxLines: largeText ? 2 : 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: unlocked
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: .42),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                !unlocked
-                    ? context.tr('complete_previous_level')
-                    : progress == null
-                    ? context.tr('new_level')
-                    : context.tr('best_time', <Object>[
-                        formatDuration(progress!.bestSeconds),
-                      ]),
-                maxLines: largeText ? 2 : 1,
+                status,
+                maxLines: largeText ? 3 : 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: unlocked
@@ -1437,30 +1518,11 @@ class _LevelCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _RewardPill(level: level),
-                  if (progress == null)
-                    _InfoPill(
-                      icon: unlocked
-                          ? Icons.radio_button_checked_rounded
-                          : Icons.lock_outline_rounded,
-                      label: current
-                          ? context.tr('continue_action')
-                          : unlocked
-                          ? context.tr('new_level')
-                          : 'Locked',
-                      color: unlocked
-                          ? accent
-                          : Colors.white.withValues(alpha: .46),
-                    ),
-                ],
-              ),
+              const Spacer(),
+              _RewardPill(level: level),
               if (progress != null) ...[
+                const SizedBox(height: 8),
+                _StarRow(stars: progress!.stars, color: accent),
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
@@ -1505,39 +1567,39 @@ class _PracticeCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(17),
         child: Ink(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF101B20).withValues(alpha: .95),
+            color: Colors.white.withValues(alpha: .05),
             borderRadius: BorderRadius.circular(17),
             border: Border.all(color: accent.withValues(alpha: .22)),
           ),
           child: Row(
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: .13),
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(13),
                 ),
                 child: loading
                     ? Padding(
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.all(11),
                         child: CircularProgressIndicator(
                           color: accent,
                           strokeWidth: 2.4,
                         ),
                       )
-                    : Icon(icon, color: accent, size: 31),
+                    : Icon(icon, color: accent, size: 25),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
@@ -1547,19 +1609,19 @@ class _PracticeCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      maxLines: 3,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: .64),
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, color: accent),
+              const SizedBox(width: 6),
+              Icon(Icons.arrow_forward_rounded, color: accent, size: 20),
             ],
           ),
         ),

@@ -45,6 +45,19 @@ void main() {
     expect(source, isNot(contains('SocialHubScreen')));
   });
 
+  test('store and page chrome use transparent glass styling', () {
+    final theme = File('lib/core/app_theme.dart').readAsStringSync();
+    final store = File(
+      'lib/features/economy/coin_store_screen.dart',
+    ).readAsStringSync();
+
+    expect(theme, contains('backgroundColor: Colors.transparent'));
+    expect(theme, contains('surfaceTintColor: Colors.transparent'));
+    expect(store, contains('class _StorePanel'));
+    expect(store, contains('Colors.white.withValues(alpha: .045)'));
+    expect(store, isNot(contains('return Card(')));
+  });
+
   test('daily reminders follow system permission without settings toggle', () {
     final service = File(
       'lib/services/reminder_notification_service.dart',

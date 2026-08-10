@@ -220,11 +220,11 @@ class AppTheme {
           .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface),
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: scheme.brightness == Brightness.light
-            ? const Color(0xFFF4F6F8)
-            : const Color(0xFF0B1215),
+        backgroundColor: Colors.transparent,
         foregroundColor: scheme.onSurface,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
         margin: EdgeInsets.zero,

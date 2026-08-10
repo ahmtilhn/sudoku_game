@@ -175,12 +175,13 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                             constraints: BoxConstraints(maxWidth: maxWidth),
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                              child: Card(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.errorContainer,
+                              child: _StorePanel(
+                                accent: Theme.of(context).colorScheme.error,
                                 child: ListTile(
-                                  leading: const Icon(Icons.cloud_off_outlined),
+                                  leading: Icon(
+                                    Icons.cloud_off_outlined,
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
                                   title: Text(_store.error ?? _economy.error!),
                                   trailing: IconButton(
                                     tooltip: context.tr('retry'),
@@ -232,7 +233,7 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                 crossAxisCount: columns,
                                 mainAxisSpacing: 12,
                                 crossAxisSpacing: 12,
-                                childAspectRatio: columns == 1 ? 2.2 : 1.12,
+                                childAspectRatio: columns == 1 ? 2.35 : 1.02,
                               ),
                           itemCount: _store.coinProducts.length,
                           itemBuilder: (context, index) {
@@ -260,6 +261,30 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
   }
 }
 
+class _StorePanel extends StatelessWidget {
+  const _StorePanel({
+    required this.child,
+    this.accent = const Color(0xFF3AA9FF),
+    this.padding = const EdgeInsets.all(16),
+  });
+
+  final Widget child;
+  final Color accent;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .045),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: accent.withValues(alpha: .24)),
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({required this.balance, required this.loading});
 
@@ -268,42 +293,42 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFF101B20).withValues(alpha: .96),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            const DuelAssetIcon(DuelAsset.coinStoreBalancePro, size: 58),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.tr('your_balance'),
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .68),
-                      fontWeight: FontWeight.w800,
-                    ),
+    return _StorePanel(
+      accent: const Color(0xFFFFC94D),
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          const DuelAssetIcon(DuelAsset.coinStoreBalancePro, size: 58),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('your_balance'),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .68),
+                    fontWeight: FontWeight.w800,
                   ),
-                  Text(
-                    loading
-                        ? '…'
-                        : context.tr('coin_amount', <Object>[
-                            NumberFormat.decimalPattern().format(balance),
-                          ]),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 25,
-                      fontWeight: FontWeight.w900,
-                    ),
+                ),
+                Text(
+                  loading
+                      ? '...'
+                      : context.tr('coin_amount', <Object>[
+                          NumberFormat.decimalPattern().format(balance),
+                        ]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -331,78 +356,97 @@ class _DailyRewardsCard extends StatelessWidget {
     final loginAvailable = wallet?.dailyLoginAvailable == true;
     final adAvailable = wallet?.dailyAdAvailable == true && !noAds;
     final reset = wallet?.nextDailyResetAt as DateTime?;
-    return Card(
-      color: const Color(0xFF14231D).withValues(alpha: .96),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const DuelAssetIcon(
-                  DuelAsset.dailyRewardPro,
-                  size: 34,
-                  color: Color(0xFF29D398),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    context.tr('home_daily_reward_title'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
-                    ),
+    return _StorePanel(
+      accent: const Color(0xFF29D398),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const DuelAssetIcon(
+                DuelAsset.dailyRewardPro,
+                size: 34,
+                color: Color(0xFF29D398),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr('home_daily_reward_title'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-              ],
-            ),
-            if (reset != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                '${context.tr('time')}: ${DateFormat.Hm().format(reset.toLocal())}',
-                style: TextStyle(color: Colors.white.withValues(alpha: .62)),
               ),
             ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton.icon(
-                  onPressed: loginAvailable && !loginBusy ? onClaimLogin : null,
-                  icon: loginBusy
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.card_giftcard_rounded),
-                  label: Text(
-                    context.tr('claim_daily_coin', <Object>[
-                      wallet?.dailyLoginAmount ?? 50,
-                    ]),
-                  ),
-                ),
-                if (!noAds)
-                  OutlinedButton.icon(
-                    onPressed: adAvailable && !adBusy ? onClaimAd : null,
-                    icon: adBusy
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.ondemand_video_outlined),
-                    label: Text(
-                      context.tr('watch_ad_for_coin', <Object>[
-                        wallet?.dailyAdAmount ?? 50,
-                      ]),
-                    ),
-                  ),
-              ],
+          ),
+          if (reset != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              '${context.tr('time')}: ${DateFormat.Hm().format(reset.toLocal())}',
+              style: TextStyle(color: Colors.white.withValues(alpha: .62)),
             ),
           ],
-        ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final stacked = constraints.maxWidth < 460;
+              final buttonWidth = stacked
+                  ? constraints.maxWidth
+                  : (constraints.maxWidth - 8) / (noAds ? 1 : 2);
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  SizedBox(
+                    width: buttonWidth,
+                    child: FilledButton.icon(
+                      onPressed: loginAvailable && !loginBusy
+                          ? onClaimLogin
+                          : null,
+                      icon: loginBusy
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.card_giftcard_rounded),
+                      label: Text(
+                        context.tr('claim_daily_coin', <Object>[
+                          wallet?.dailyLoginAmount ?? 50,
+                        ]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  if (!noAds)
+                    SizedBox(
+                      width: buttonWidth,
+                      child: OutlinedButton.icon(
+                        onPressed: adAvailable && !adBusy ? onClaimAd : null,
+                        icon: adBusy
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.ondemand_video_outlined),
+                        label: Text(
+                          context.tr('watch_ad_for_coin', <Object>[
+                            wallet?.dailyAdAmount ?? 50,
+                          ]),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -427,76 +471,75 @@ class _NoAdsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFF111D27).withValues(alpha: .96),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          runSpacing: 10,
-          children: [
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Row(
-                children: [
-                  const DuelAssetIcon(
-                    DuelAsset.shield,
-                    size: 34,
-                    color: Color(0xFF3AA9FF),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.tr('no_ads_title'),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
-                          ),
+    return _StorePanel(
+      accent: const Color(0xFF3AA9FF),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 10,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Row(
+              children: [
+                const DuelAssetIcon(
+                  DuelAsset.shield,
+                  size: 34,
+                  color: Color(0xFF3AA9FF),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('no_ads_title'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
                         ),
-                        Text(
-                          owned
-                              ? context.tr('no_ads_owned')
-                              : context.tr('no_ads_body'),
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .68),
-                          ),
+                      ),
+                      Text(
+                        owned
+                            ? context.tr('no_ads_owned')
+                            : context.tr('no_ads_body'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .68),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            if (owned)
-              const Icon(Icons.check_circle_rounded, color: Color(0xFF29D398))
-            else
-              Wrap(
-                spacing: 6,
-                children: [
-                  FilledButton.tonal(
-                    onPressed: enabled && !pending ? onBuy : null,
-                    child: pending
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            product?.price ?? context.tr('not_available_short'),
-                          ),
-                  ),
-                  TextButton(
-                    onPressed: enabled ? onRestore : null,
-                    child: Text(context.tr('restore_purchases')),
-                  ),
-                ],
-              ),
-          ],
-        ),
+          ),
+          if (owned)
+            const Icon(Icons.check_circle_rounded, color: Color(0xFF29D398))
+          else
+            Wrap(
+              spacing: 6,
+              children: [
+                FilledButton.tonal(
+                  onPressed: enabled && !pending ? onBuy : null,
+                  child: pending
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          product?.price ?? context.tr('not_available_short'),
+                        ),
+                ),
+                TextButton(
+                  onPressed: enabled ? onRestore : null,
+                  child: Text(context.tr('restore_purchases')),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }
@@ -520,70 +563,115 @@ class _CoinPackageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final popular = product.id == 'coins_5000';
-    return Card(
-      color: const Color(0xFF101B20).withValues(alpha: .96),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: (popular ? const Color(0xFFFFC94D) : const Color(0xFF29D398))
-              .withValues(alpha: .32),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    product.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                if (popular)
-                  Chip(
-                    avatar: const DuelAssetIcon(DuelAsset.diamond, size: 18),
-                    label: Text(context.tr('popular')),
-                    visualDensity: VisualDensity.compact,
-                  ),
-              ],
-            ),
-            Row(
-              children: [
-                const DuelAssetIcon(
-                  DuelAsset.coin,
-                  size: 26,
-                  color: Color(0xFFFFC94D),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  NumberFormat.decimalPattern().format(coins),
+    final accent = popular ? const Color(0xFFFFC94D) : const Color(0xFF29D398);
+    return _StorePanel(
+      accent: accent,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  product.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 25,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+              ),
+              if (popular) ...[
+                const SizedBox(width: 8),
+                _StoreChip(
+                  label: context.tr('popular'),
+                  asset: DuelAsset.diamond,
+                  color: accent,
+                ),
               ],
+            ],
+          ),
+          Row(
+            children: [
+              const DuelAssetIcon(
+                DuelAsset.coin,
+                size: 26,
+                color: Color(0xFFFFC94D),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  NumberFormat.decimalPattern().format(coins),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: enabled && !pending ? onBuy : null,
+              child: pending
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      product.price,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
             ),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: enabled && !pending ? onBuy : null,
-                child: pending
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(product.price),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StoreChip extends StatelessWidget {
+  const _StoreChip({
+    required this.label,
+    required this.asset,
+    required this.color,
+  });
+
+  final String label;
+  final String asset;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .24)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DuelAssetIcon(asset, size: 16),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
