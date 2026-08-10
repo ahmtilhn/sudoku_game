@@ -74,8 +74,16 @@ void main() {
     expect(android, contains('avatarBytesBase64'));
     expect(android, contains('downloadAvatarBytes'));
     expect(android, contains('"avatarBytesBase64"'));
+    expect(
+      android,
+      contains('"loadRecentPlayers" -> loadRecentPlayers(result)'),
+    );
+    expect(android, contains('"showFriends" -> showFriends(result)'));
     expect(ios, contains('loadPhoto(for: .small)'));
     expect(ios, contains('payload["avatarBytesBase64"]'));
+    expect(ios, contains('case "leaderboardIds"'));
+    expect(ios, contains('authentication_timeout'));
+    expect(ios, contains('leaderboardsConfigured'));
   });
 
   test('duel fee copy describes entry fee and winner pot separately', () {

@@ -18,7 +18,10 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    let launched = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    configureFlutterBridgesIfPossible()
+    installGameCenterAuthenticationHandler()
+    return launched
   }
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
@@ -30,9 +33,23 @@ import UIKit
       return
     }
 
-    configureLocalizationChannel(messenger: registrar.messenger())
-    configureGameServicesChannel(messenger: registrar.messenger())
+    configureFlutterBridges(messenger: registrar.messenger())
     installGameCenterAuthenticationHandler()
+  }
+
+  private func configureFlutterBridgesIfPossible() {
+    guard localizationChannel == nil || gameServicesChannel == nil else { return }
+    guard let controller = window?.rootViewController as? FlutterViewController else { return }
+    configureFlutterBridges(messenger: controller.binaryMessenger)
+  }
+
+  private func configureFlutterBridges(messenger: FlutterBinaryMessenger) {
+    if localizationChannel == nil {
+      configureLocalizationChannel(messenger: messenger)
+    }
+    if gameServicesChannel == nil {
+      configureGameServicesChannel(messenger: messenger)
+    }
   }
 
   private func configureLocalizationChannel(messenger: FlutterBinaryMessenger) {
@@ -111,6 +128,8 @@ import UIKit
         )
       case "showAchievements":
         self.showDashboard(state: .achievements, result: result)
+      case "leaderboardIds":
+        result(self.leaderboardIds())
       case "showLeaderboard":
         let arguments = call.arguments as? [String: Any]
         self.showLeaderboard(
@@ -163,7 +182,7 @@ import UIKit
       result(FlutterError(
         code: "not_authenticated",
         message: "Sign in to Game Center first.",
-        details: nil
+        details: gameCenterDiagnostics()
       ))
       return false
     }
@@ -187,6 +206,16 @@ import UIKit
     }
 
     pendingAuthenticationResult = result
+    DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
+      guard let self, self.pendingAuthenticationResult != nil else { return }
+      self.completeAuthentication(
+        error: FlutterError(
+          code: "authentication_timeout",
+          message: "Game Center authentication did not finish in time.",
+          details: self.gameCenterDiagnostics()
+        )
+      )
+    }
     if let viewController = pendingAuthenticationViewController {
       pendingAuthenticationViewController = nil
       presentGameCenterAuthentication(viewController)
@@ -225,7 +254,17 @@ import UIKit
         }
 
         if self.pendingAuthenticationResult != nil {
-          self.completeAuthentication(value: GKLocalPlayer.local.isAuthenticated)
+          if GKLocalPlayer.local.isAuthenticated {
+            self.completeAuthentication(value: true)
+          } else {
+            self.completeAuthentication(
+              error: FlutterError(
+                code: "authentication_failed",
+                message: "Game Center did not authenticate the current Apple ID.",
+                details: self.gameCenterDiagnostics()
+              )
+            )
+          }
         }
       }
     }
@@ -381,6 +420,24 @@ import UIKit
     }
   }
 
+  private func leaderboardIds() -> [String: String] {
+    let keys: [String: String] = [
+      "global": "SudokuLeaderboardGlobalRating",
+      "beginner": "SudokuLeaderboardBeginnerRating",
+      "easy": "SudokuLeaderboardEasyRating",
+      "medium": "SudokuLeaderboardMediumRating",
+      "hard": "SudokuLeaderboardHardRating",
+      "expert": "SudokuLeaderboardExpertRating",
+    ]
+    var values: [String: String] = [:]
+    for (scope, plistKey) in keys {
+      if let id = nonPlaceholder(Bundle.main.object(forInfoDictionaryKey: plistKey) as? String) {
+        values[scope] = id
+      }
+    }
+    return values
+  }
+
   private func showDashboard(state: GKGameCenterViewControllerState, result: FlutterResult) {
     guard ensureAuthenticated(result: result) else { return }
     presentGameCenter(GKGameCenterViewController(state: state), result: result)
@@ -504,6 +561,7 @@ import UIKit
       "authenticated": String(player.isAuthenticated),
       "gamePlayerIdPresent": String(!player.gamePlayerID.isEmpty),
       "displayNamePresent": String(!player.displayName.isEmpty),
+      "leaderboardsConfigured": String(!leaderboardIds().isEmpty),
       "osVersion": UIDevice.current.systemVersion,
     ]
   }

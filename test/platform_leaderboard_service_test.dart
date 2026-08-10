@@ -72,33 +72,36 @@ void main() {
     expect(submissions, hasLength(2));
   });
 
-  test('resubmits authoritative backend ratings after a missed match mirror', () async {
-    final submissions = <({String id, int score})>[];
-    final service = PlatformLeaderboardService(
-      ids: ids,
-      platform: TargetPlatform.android,
-      isConfigured: () async => true,
-      refreshAuthentication: () async => true,
-      loadRatings: () async => <String, dynamic>{
-        'ratings': <Map<String, Object>>[
-          <String, Object>{'scope': 'global', 'rating': 1310},
-          <String, Object>{'scope': 'easy', 'rating': 1275},
-        ],
-      },
-      submitScore: ({required score, leaderboardId}) async {
-        submissions.add((id: leaderboardId!, score: score));
-        return true;
-      },
-    );
+  test(
+    'resubmits authoritative backend ratings after a missed match mirror',
+    () async {
+      final submissions = <({String id, int score})>[];
+      final service = PlatformLeaderboardService(
+        ids: ids,
+        platform: TargetPlatform.android,
+        isConfigured: () async => true,
+        refreshAuthentication: () async => true,
+        loadRatings: () async => <String, dynamic>{
+          'ratings': <Map<String, Object>>[
+            <String, Object>{'scope': 'global', 'rating': 1310},
+            <String, Object>{'scope': 'easy', 'rating': 1275},
+          ],
+        },
+        submitScore: ({required score, leaderboardId}) async {
+          submissions.add((id: leaderboardId!, score: score));
+          return true;
+        },
+      );
 
-    final result = await service.syncAuthoritativeRatings();
+      final result = await service.syncAuthoritativeRatings();
 
-    expect(result.status, PlatformLeaderboardMirrorStatus.submitted);
-    expect(submissions, <({String id, int score})>[
-      (id: 'android-global', score: 1310),
-      (id: 'android-easy', score: 1275),
-    ]);
-  });
+      expect(result.status, PlatformLeaderboardMirrorStatus.submitted);
+      expect(submissions, <({String id, int score})>[
+        (id: 'android-global', score: 1310),
+        (id: 'android-easy', score: 1275),
+      ]);
+    },
+  );
 
   test('loads Android leaderboard IDs from the platform resources', () async {
     final submissions = <({String id, int score})>[];
@@ -124,6 +127,57 @@ void main() {
       (id: 'resource-easy', score: 1175),
     ]);
   });
+
+  test(
+    'loads iOS leaderboard IDs from the native Game Center bridge',
+    () async {
+      final submissions = <({String id, int score})>[];
+      final service = PlatformLeaderboardService(
+        platform: TargetPlatform.iOS,
+        isConfigured: () async => true,
+        refreshAuthentication: () async => true,
+        loadLeaderboardIds: () async => <String, String>{
+          'global': 'gc-global',
+          'easy': 'gc-easy',
+        },
+        submitScore: ({required score, leaderboardId}) async {
+          submissions.add((id: leaderboardId!, score: score));
+          return true;
+        },
+      );
+
+      final result = await service.mirrorFinalRatings(_snapshot());
+
+      expect(result.status, PlatformLeaderboardMirrorStatus.submitted);
+      expect(submissions, <({String id, int score})>[
+        (id: 'gc-global', score: 1210),
+        (id: 'gc-easy', score: 1175),
+      ]);
+    },
+  );
+
+  test(
+    'opens iOS Game Center dashboard when a scoped ID is unavailable',
+    () async {
+      String? openedId = 'not-called';
+      final service = PlatformLeaderboardService(
+        platform: TargetPlatform.iOS,
+        isConfigured: () async => true,
+        refreshAuthentication: () async => false,
+        authenticate: () async => true,
+        loadLeaderboardIds: () async => const <String, String>{},
+        showLeaderboard: ({leaderboardId}) async {
+          openedId = leaderboardId;
+          return true;
+        },
+      );
+
+      final opened = await service.show(PlatformLeaderboardScope.global);
+
+      expect(opened, isTrue);
+      expect(openedId, isNull);
+    },
+  );
 
   test('uses the local player seat rating', () async {
     final submissions = <int>[];

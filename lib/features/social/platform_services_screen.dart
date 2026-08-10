@@ -12,8 +12,7 @@ class PlatformServicesScreen extends StatefulWidget {
   const PlatformServicesScreen({super.key});
 
   @override
-  State<PlatformServicesScreen> createState() =>
-      _PlatformServicesScreenState();
+  State<PlatformServicesScreen> createState() => _PlatformServicesScreenState();
 }
 
 class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
@@ -21,7 +20,8 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
   bool _busy = false;
   String? _error;
 
-  String get _platformTitle => Platform.isIOS ? 'Game Center' : 'Google Play Games';
+  String get _platformTitle =>
+      Platform.isIOS ? 'Game Center' : 'Google Play Games';
 
   Future<bool> _authenticate() async {
     if (!await _games.isConfigured()) return false;
@@ -51,7 +51,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
         );
       }
     } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) setState(() => _error = error.toString());
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
@@ -135,10 +135,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   ])
                     _tile(
                       item.$1,
-                      const DuelAssetIcon(
-                        DuelAsset.trophy,
-                        size: 28,
-                      ),
+                      const DuelAssetIcon(DuelAsset.trophy, size: 28),
                       () => _run(
                         () => PlatformLeaderboardService.instance.show(item.$2),
                       ),

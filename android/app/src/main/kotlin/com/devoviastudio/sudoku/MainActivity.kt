@@ -83,6 +83,8 @@ class MainActivity : FlutterActivity() {
                 "authenticate" -> checkAuthentication(result, prompt = true)
                 "getLocalPlayer" -> getLocalPlayer(result)
                 "loadFriends" -> loadFriends(result)
+                "loadRecentPlayers" -> loadRecentPlayers(result)
+                "showFriends" -> showFriends(result)
                 "showPlayerProfile" -> {
                     val playerId = call.argument<String>("playerId").orEmpty()
                     showPlayerProfile(playerId, result)
@@ -354,28 +356,7 @@ class MainActivity : FlutterActivity() {
         PlayGames.getPlayersClient(this)
             .loadFriends(50, false)
             .addOnSuccessListener { data: AnnotatedData<PlayerBuffer> ->
-                val buffer = data.get()
-                if (buffer == null) {
-                    result.success(emptyList<Map<String, String?>>())
-                    return@addOnSuccessListener
-                }
-                try {
-                    val friends = mutableListOf<Map<String, String?>>()
-                    for (index in 0 until buffer.count) {
-                        val player = buffer[index]
-                        friends.add(
-                            mapOf(
-                                "platform" to "google_play_games",
-                                "playerId" to player.playerId,
-                                "displayName" to player.displayName,
-                                "avatarUrl" to player.iconImageUri?.toString(),
-                            ),
-                        )
-                    }
-                    result.success(friends)
-                } finally {
-                    buffer.release()
-                }
+                result.success(playerBufferMap(data))
             }
             .addOnFailureListener { exception ->
                 if (exception is FriendsResolutionRequiredException) {
@@ -397,6 +378,60 @@ class MainActivity : FlutterActivity() {
                 }
                 result.error("friends_unavailable", exception.localizedMessage, null)
             }
+    }
+
+    private fun loadRecentPlayers(result: MethodChannel.Result) {
+        if (!ensureConfigured(result)) return
+        val client = PlayGames.getPlayersClient(this)
+        val method = client.javaClass.methods.firstOrNull { method ->
+            method.name == "loadRecentlyPlayedWithPlayers" && method.parameterCount == 1
+        }
+        if (method == null) {
+            result.success(emptyList<Map<String, String?>>())
+            return
+        }
+        val task = method.invoke(client, false) as? Task<*>
+        if (task == null) {
+            result.success(emptyList<Map<String, String?>>())
+            return
+        }
+        task
+            .addOnSuccessListener { data ->
+                @Suppress("UNCHECKED_CAST")
+                result.success(playerBufferMap(data as? AnnotatedData<PlayerBuffer>))
+            }
+            .addOnFailureListener { exception ->
+                result.error("recent_players_unavailable", exception.localizedMessage, null)
+            }
+    }
+
+    private fun showFriends(result: MethodChannel.Result) {
+        if (!ensureConfigured(result)) return
+        // Play Games Services v2 exposes consent-backed friend loading but no
+        // stable native friends dashboard intent. Returning false lets Dart show
+        // the in-app fallback instead of surfacing MissingPluginException.
+        result.success(false)
+    }
+
+    private fun playerBufferMap(data: AnnotatedData<PlayerBuffer>?): List<Map<String, String?>> {
+        val buffer = data?.get() ?: return emptyList()
+        return try {
+            val players = mutableListOf<Map<String, String?>>()
+            for (index in 0 until buffer.count) {
+                val player = buffer[index]
+                players.add(
+                    mapOf(
+                        "platform" to "google_play_games",
+                        "playerId" to player.playerId,
+                        "displayName" to player.displayName,
+                        "avatarUrl" to player.iconImageUri?.toString(),
+                    ),
+                )
+            }
+            players
+        } finally {
+            buffer.release()
+        }
     }
 
     private fun showPlayerProfile(playerId: String, result: MethodChannel.Result) {

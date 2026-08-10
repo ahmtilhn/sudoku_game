@@ -4,14 +4,7 @@ import 'online_duel_models.dart';
 import 'platform_game_services.dart';
 import 'social_api_client.dart';
 
-enum PlatformLeaderboardScope {
-  global,
-  beginner,
-  easy,
-  medium,
-  hard,
-  expert,
-}
+enum PlatformLeaderboardScope { global, beginner, easy, medium, hard, expert }
 
 enum PlatformLeaderboardMirrorStatus {
   submitted,
@@ -80,13 +73,10 @@ class PlatformLeaderboardIds {
 typedef PlatformConfiguredCheck = Future<bool> Function();
 typedef PlatformAuthenticationRefresh = Future<bool> Function();
 typedef PlatformAuthenticationRequest = Future<bool> Function();
-typedef PlatformScoreSubmitter = Future<bool> Function({
-  required int score,
-  String? leaderboardId,
-});
-typedef PlatformLeaderboardPresenter = Future<bool> Function({
-  String? leaderboardId,
-});
+typedef PlatformScoreSubmitter =
+    Future<bool> Function({required int score, String? leaderboardId});
+typedef PlatformLeaderboardPresenter =
+    Future<bool> Function({String? leaderboardId});
 typedef PlatformRatingsLoader = Future<Map<String, dynamic>> Function();
 typedef PlatformLeaderboardIdsLoader = Future<Map<String, String>> Function();
 
@@ -302,7 +292,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     final platform = _resolvedPlatform;
     if (platform == null) return false;
     final leaderboardId = await _idFor(platform, scope);
-    if (leaderboardId == null) return false;
+    if (leaderboardId == null && platform != TargetPlatform.iOS) return false;
     if (!await _isConfigured()) return false;
     var authenticated = await _refreshAuthentication();
     if (!authenticated) {
@@ -334,8 +324,12 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       TargetPlatform.iOS => _ids.ios,
       _ => const <PlatformLeaderboardScope, String>{},
     };
-    if (configuredIds.containsKey(scope)) return null;
-    if (platform != TargetPlatform.android) return null;
+    if (configuredIds.containsKey(scope) && platform != TargetPlatform.iOS) {
+      return null;
+    }
+    if (platform != TargetPlatform.android && platform != TargetPlatform.iOS) {
+      return null;
+    }
 
     try {
       final ids = await _loadLeaderboardIds();
