@@ -102,11 +102,8 @@ void main() {
       expect(source, contains('SudokuVariant.classic16'));
       expect(source, contains("_LeaderboardAudience.friends => 'friends'"));
       expect(source, contains("_LeaderboardAudience.aroundMe => 'around_me'"));
-      expect(
-        source,
-        contains('PlatformLeaderboardIds().idFor(platform, _selectedScope)'),
-      );
-      expect(source, contains('showLeaderboard(leaderboardId: leaderboardId)'));
+      expect(source, contains('PlatformLeaderboardService.instance'));
+      expect(source, contains('_platformLeaderboards.show(_selectedScope)'));
     },
   );
 }

@@ -88,6 +88,7 @@ class MainActivity : FlutterActivity() {
                     showPlayerProfile(playerId, result)
                 }
                 "showAchievements" -> showAchievements(result)
+                "leaderboardIds" -> result.success(leaderboardIds())
                 "showLeaderboard" -> {
                     val requestedId = call.argument<String>("leaderboardId")
                     showLeaderboard(requestedId, result)
@@ -425,6 +426,15 @@ class MainActivity : FlutterActivity() {
                 result.error("achievements_unavailable", exception.localizedMessage, null)
             }
     }
+
+    private fun leaderboardIds(): Map<String, String> = mapOf(
+        "global" to getString(R.string.leaderboard_global_rating),
+        "beginner" to getString(R.string.leaderboard_beginner_rating),
+        "easy" to getString(R.string.leaderboard_easy_rating),
+        "medium" to getString(R.string.leaderboard_medium_rating),
+        "hard" to getString(R.string.leaderboard_hard_rating),
+        "expert" to getString(R.string.leaderboard_expert_rating),
+    )
 
     private fun showLeaderboard(requestedId: String?, result: MethodChannel.Result) {
         if (!ensureConfigured(result)) return

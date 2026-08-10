@@ -292,6 +292,11 @@ class PlatformGameServices {
 
   Future<bool> showAchievements() => _invokeBool('showAchievements');
 
+  Future<Map<String, String>> leaderboardIds() async {
+    final map = await _invokeMap('leaderboardIds');
+    return _stringMap(map);
+  }
+
   Future<bool> showLeaderboard({String? leaderboardId}) => _invokeBool(
     'showLeaderboard',
     <String, Object?>{'leaderboardId': leaderboardId},

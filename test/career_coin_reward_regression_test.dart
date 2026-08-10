@@ -64,17 +64,18 @@ void main() {
     expect(classic9.bestSeconds, 150);
   });
 
-  test('career practice cards use stable summary ids and show all bests', () {
+  test('career practice cards use stable summary ids with simple subtitles', () {
     final source = File(
       'lib/features/career/career_hub_screen.dart',
     ).readAsStringSync();
 
     expect(source, contains("progressId: 'practice-\${difficulty.name}'"));
     expect(source, contains('progressId: puzzle.id'));
-    expect(source, contains('progress.bestSeconds'));
-    expect(source, contains('progress.bestHints'));
-    expect(source, contains('progress.bestMistakes'));
-    expect(source, contains('formatDuration(progress.bestSeconds)'));
+    expect(source, contains("context.tr('daily_subtitle')"));
+    expect(source, contains("context.tr('random_clue_count'"));
+    expect(source, isNot(contains('_practiceSubtitle')));
+    expect(source, isNot(contains('progress.bestHints')));
+    expect(source, isNot(contains('progress.bestMistakes')));
     expect(source, contains('DuelAsset.coin'));
     expect(source, isNot(contains('Icons.monetization_on_rounded')));
   });

@@ -29,6 +29,8 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   final CompetitiveLeaderboardApi _leaderboards =
       CompetitiveLeaderboardApi.instance;
   final PlatformGameServices _games = PlatformGameServices.instance;
+  final PlatformLeaderboardService _platformLeaderboards =
+      PlatformLeaderboardService.instance;
   final SocialApiClient _social = SocialApiClient.instance;
 
   SudokuVariant _variant = SudokuVariant.classic9;
@@ -179,20 +181,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     if (_openingNative || _variant != SudokuVariant.classic9) return;
     setState(() => _openingNative = true);
     try {
-      final platform = kIsWeb ? null : defaultTargetPlatform;
-      final leaderboardId = platform == null
-          ? null
-          : PlatformLeaderboardIds().idFor(platform, _selectedScope);
-      var opened = false;
-      if (leaderboardId != null && await _games.isConfigured()) {
-        var authenticated = await _games.refreshAuthentication();
-        if (!authenticated) {
-          authenticated = await _games.authenticate(notifyAccountBridge: false);
-        }
-        if (authenticated) {
-          opened = await _games.showLeaderboard(leaderboardId: leaderboardId);
-        }
-      }
+      var opened = await _platformLeaderboards.show(_selectedScope);
       if (!opened && !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
         opened = await _games.showLeaderboard();
       }

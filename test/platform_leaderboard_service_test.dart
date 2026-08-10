@@ -100,6 +100,31 @@ void main() {
     ]);
   });
 
+  test('loads Android leaderboard IDs from the platform resources', () async {
+    final submissions = <({String id, int score})>[];
+    final service = PlatformLeaderboardService(
+      platform: TargetPlatform.android,
+      isConfigured: () async => true,
+      refreshAuthentication: () async => true,
+      loadLeaderboardIds: () async => <String, String>{
+        'global': 'resource-global',
+        'easy': 'resource-easy',
+      },
+      submitScore: ({required score, leaderboardId}) async {
+        submissions.add((id: leaderboardId!, score: score));
+        return true;
+      },
+    );
+
+    final result = await service.mirrorFinalRatings(_snapshot());
+
+    expect(result.status, PlatformLeaderboardMirrorStatus.submitted);
+    expect(submissions, <({String id, int score})>[
+      (id: 'resource-global', score: 1210),
+      (id: 'resource-easy', score: 1175),
+    ]);
+  });
+
   test('uses the local player seat rating', () async {
     final submissions = <int>[];
     final service = PlatformLeaderboardService(

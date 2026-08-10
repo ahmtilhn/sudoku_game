@@ -44,14 +44,7 @@ abstract interface class PlatformLeaderboardMirror {
 
 class PlatformLeaderboardIds {
   const PlatformLeaderboardIds({
-    this.android = const <PlatformLeaderboardScope, String>{
-      PlatformLeaderboardScope.global: 'CgkIzMyzm9saEAIQZQ',
-      PlatformLeaderboardScope.beginner: 'CgkIzMyzm9saEAIQZg',
-      PlatformLeaderboardScope.easy: 'CgkIzMyzm9saEAIQZw',
-      PlatformLeaderboardScope.medium: 'CgkIzMyzm9saEAIQaA',
-      PlatformLeaderboardScope.hard: 'CgkIzMyzm9saEAIQaQ',
-      PlatformLeaderboardScope.expert: 'CgkIzMyzm9saEAIQag',
-    },
+    this.android = const <PlatformLeaderboardScope, String>{},
     this.ios = const <PlatformLeaderboardScope, String>{
       PlatformLeaderboardScope.global:
           'REPLACE_WITH_GAME_CENTER_GLOBAL_PEAK_ELO_ID',
@@ -95,6 +88,7 @@ typedef PlatformLeaderboardPresenter = Future<bool> Function({
   String? leaderboardId,
 });
 typedef PlatformRatingsLoader = Future<Map<String, dynamic>> Function();
+typedef PlatformLeaderboardIdsLoader = Future<Map<String, String>> Function();
 
 class PlatformLeaderboardService implements PlatformLeaderboardMirror {
   factory PlatformLeaderboardService({
@@ -106,6 +100,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     PlatformScoreSubmitter? submitScore,
     PlatformLeaderboardPresenter? showLeaderboard,
     PlatformRatingsLoader? loadRatings,
+    PlatformLeaderboardIdsLoader? loadLeaderboardIds,
   }) {
     return PlatformLeaderboardService._(
       ids,
@@ -117,6 +112,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       submitScore ?? PlatformGameServices.instance.submitScore,
       showLeaderboard ?? PlatformGameServices.instance.showLeaderboard,
       loadRatings ?? SocialApiClient.instance.loadRatings,
+      loadLeaderboardIds ?? PlatformGameServices.instance.leaderboardIds,
     );
   }
 
@@ -129,6 +125,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     this._submitScore,
     this._showLeaderboard,
     this._loadRatings,
+    this._loadLeaderboardIds,
   );
 
   static final PlatformLeaderboardService instance =
@@ -142,6 +139,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
   final PlatformScoreSubmitter _submitScore;
   final PlatformLeaderboardPresenter _showLeaderboard;
   final PlatformRatingsLoader _loadRatings;
+  final PlatformLeaderboardIdsLoader _loadLeaderboardIds;
   final Set<String> _processedMatchIds = <String>{};
 
   TargetPlatform? get _resolvedPlatform {
@@ -181,11 +179,8 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       );
     }
 
-    final globalId = _ids.idFor(
-      platform,
-      PlatformLeaderboardScope.global,
-    );
-    final difficultyId = _ids.idFor(platform, difficultyScope);
+    final globalId = await _idFor(platform, PlatformLeaderboardScope.global);
+    final difficultyId = await _idFor(platform, difficultyScope);
     if (globalId == null || difficultyId == null) {
       return const PlatformLeaderboardMirrorResult(
         status: PlatformLeaderboardMirrorStatus.notConfigured,
@@ -283,7 +278,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
             ? null
             : scopeForDifficulty(scopeName);
         if (scope == null || score == null) continue;
-        final leaderboardId = _ids.idFor(platform, scope);
+        final leaderboardId = await _idFor(platform, scope);
         if (leaderboardId == null) continue;
         if (await _submitScore(score: score, leaderboardId: leaderboardId)) {
           submitted.add(scope);
@@ -306,7 +301,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
   Future<bool> show(PlatformLeaderboardScope scope) async {
     final platform = _resolvedPlatform;
     if (platform == null) return false;
-    final leaderboardId = _ids.idFor(platform, scope);
+    final leaderboardId = await _idFor(platform, scope);
     if (leaderboardId == null) return false;
     if (!await _isConfigured()) return false;
     var authenticated = await _refreshAuthentication();
@@ -326,5 +321,32 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       'expert' => PlatformLeaderboardScope.expert,
       _ => null,
     };
+  }
+
+  Future<String?> _idFor(
+    TargetPlatform platform,
+    PlatformLeaderboardScope scope,
+  ) async {
+    final configured = _ids.idFor(platform, scope);
+    if (configured != null) return configured;
+    final configuredIds = switch (platform) {
+      TargetPlatform.android => _ids.android,
+      TargetPlatform.iOS => _ids.ios,
+      _ => const <PlatformLeaderboardScope, String>{},
+    };
+    if (configuredIds.containsKey(scope)) return null;
+    if (platform != TargetPlatform.android) return null;
+
+    try {
+      final ids = await _loadLeaderboardIds();
+      final value = ids[scope.name]?.trim();
+      if (value == null || value.isEmpty || value.startsWith('REPLACE_')) {
+        return null;
+      }
+      return value;
+    } catch (error) {
+      debugPrint('Platform leaderboard IDs unavailable: $error');
+      return null;
+    }
   }
 }
