@@ -193,7 +193,10 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
-                                icon: const Icon(Icons.sports_esports_rounded, size: 20),
+                                icon: const Icon(
+                                  Icons.sports_esports_rounded,
+                                  size: 20,
+                                ),
                                 label: Text(
                                   context.tr('local_practice'),
                                   maxLines: 1,
@@ -232,7 +235,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                       : context.tr('open_coin_store'),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w900),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
                             ),
@@ -265,7 +270,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       rankLabel: profile.rankName,
       gamesPlayed: profile.wins + profile.losses + profile.draws,
       winRate: profile.winRate,
-      rating: profile.currentElo,
+      rating: _queueRating ?? profile.currentElo,
     );
   }
 
@@ -311,7 +316,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                     height: compact ? 30 : 34,
                     child: ChoiceChip(
                       selected: _difficulty == difficulty,
-                      onSelected: (_) => setState(() => _difficulty = difficulty),
+                      onSelected: (_) {
+                        setState(() => _difficulty = difficulty);
+                      },
                       label: SizedBox(
                         width: double.infinity,
                         child: Text(
@@ -441,7 +448,10 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         return;
       }
       if (result.status != 'queued') {
-        throw const SocialApiException(0, 'Unexpected matchmaking response.');
+        throw const SocialApiException(
+          0,
+          'Unexpected matchmaking response.',
+        );
       }
       if (mounted) setState(() {});
       _startPolling();
@@ -464,18 +474,21 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   Future<VariantMatchmakingResult> _joinSelectedQueue() async {
     late final Future<VariantMatchmakingResult> request;
     request = _matchmaking
-        .joinRankedQueue(difficulty: _difficulty.name, variant: _variant)
+        .joinRankedQueue(
+          difficulty: _difficulty.name,
+          variant: _variant,
+        )
         .then((result) {
-      if (result.variant.id != _variant.id ||
-          result.boardSize != _variant.boardSize ||
-          result.cellCount != _variant.cellCount) {
-        throw const SocialApiException(
-          409,
-          'The matchmaking room does not match the selected Sudoku size.',
-        );
-      }
-      return result;
-    });
+          if (result.variant.id != _variant.id ||
+              result.boardSize != _variant.boardSize ||
+              result.cellCount != _variant.cellCount) {
+            throw const SocialApiException(
+              409,
+              'The matchmaking room does not match the selected Sudoku size.',
+            );
+          }
+          return result;
+        });
     _activeQueueRequest = request;
     try {
       return await request;
@@ -673,28 +686,31 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           PageRouteBuilder<String>(
             transitionDuration: const Duration(milliseconds: 180),
             reverseTransitionDuration: const Duration(milliseconds: 160),
-            pageBuilder: (_, animation, __) => PreMatchReadyScreen(
+            pageBuilder: (_, _, _) => PreMatchReadyScreen(
               roomId: roomId,
               initialCurrentPlayer: initialPlayer,
             ),
-            transitionsBuilder: (_, animation, __, child) => FadeTransition(
-              opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+            transitionsBuilder: (_, animation, _, child) => FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOut,
+              ),
               child: child,
             ),
           ),
         )
         .then((action) {
-      unawaited(_economy.refresh(showLoading: false));
-      if (!mounted) return;
-      _openingRoom = false;
-      if (action == 'new_match') {
-        unawaited(_findOpponent());
-      } else if (action == 'menu') {
-        Navigator.of(context).pop();
-      } else {
-        setState(() {});
-      }
-    });
+          unawaited(_economy.refresh(showLoading: false));
+          if (!mounted) return;
+          _openingRoom = false;
+          if (action == 'new_match') {
+            unawaited(_findOpponent());
+          } else if (action == 'menu') {
+            Navigator.of(context).pop();
+          } else {
+            setState(() {});
+          }
+        });
   }
 }
 
@@ -825,7 +841,9 @@ class _VariantCard extends StatelessWidget {
                   : const Color(0xFF07111E),
               borderRadius: BorderRadius.circular(13),
               border: Border.all(
-                color: selected ? accent : Colors.white.withValues(alpha: .09),
+                color: selected
+                    ? accent
+                    : Colors.white.withValues(alpha: .09),
                 width: selected ? 1.7 : 1,
               ),
             ),
