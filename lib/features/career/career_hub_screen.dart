@@ -66,9 +66,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       _generatingSamurai;
 
   int _chapterForVariant(SudokuVariant variant) =>
-      (widget.store.nextCareerLevelNumberFor(variant) - 1) ~/
-          _chapterSize +
-      1;
+      (widget.store.nextCareerLevelNumberFor(variant) - 1) ~/ _chapterSize + 1;
 
   void _selectCareerVariant(SudokuVariant variant) {
     if (_careerVariant == variant || _busy) return;
@@ -171,16 +169,19 @@ class _CareerHubScreenState extends State<CareerHubScreen>
             final starsThrough = nextNumber > CareerCatalog.designedLevelCount
                 ? nextNumber - 1
                 : CareerCatalog.designedLevelCount;
-            final totalStars = CareerCatalog.levelsThrough(starsThrough).fold<int>(
-              0,
-              (total, level) =>
-                  total +
-                  (widget.store.progressForCareerLevel(
-                        level.number,
-                        variant: variant,
-                      )?.stars ??
-                      0),
-            );
+            final totalStars = CareerCatalog.levelsThrough(starsThrough)
+                .fold<int>(
+                  0,
+                  (total, level) =>
+                      total +
+                      (widget.store
+                              .progressForCareerLevel(
+                                level.number,
+                                variant: variant,
+                              )
+                              ?.stars ??
+                          0),
+                );
             return Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxWidth),
@@ -460,7 +461,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
         difficulty: level.difficulty,
         seed: level.seed,
         id: level.id,
-        title: '16x16 ${level.title}',
+        title: '16x16 Level ${level.number}',
       );
     }
     return CareerCatalog.puzzleFor(level);

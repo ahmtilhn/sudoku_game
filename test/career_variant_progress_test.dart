@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/data/local_progress_store.dart';
@@ -24,17 +25,11 @@ void main() {
     );
 
     expect(
-      store.progressForCareerLevel(
-        1,
-        variant: SudokuVariant.classic9,
-      )?.stars,
+      store.progressForCareerLevel(1, variant: SudokuVariant.classic9)?.stars,
       3,
     );
     expect(
-      store.progressForCareerLevel(
-        1,
-        variant: SudokuVariant.classic16,
-      )?.stars,
+      store.progressForCareerLevel(1, variant: SudokuVariant.classic16)?.stars,
       2,
     );
     expect(store.completedCareerLevelCountFor(SudokuVariant.classic9), 1);
@@ -104,17 +99,13 @@ void main() {
     expect(store.completedCareerLevelCountFor(SudokuVariant.classic9), 1);
     expect(store.completedCareerLevelCountFor(SudokuVariant.classic16), 0);
     expect(
-      store.progressForCareerLevel(
-        1,
-        variant: SudokuVariant.classic9,
-      )?.bestSeconds,
+      store
+          .progressForCareerLevel(1, variant: SudokuVariant.classic9)
+          ?.bestSeconds,
       80,
     );
     expect(
-      store.progressForCareerLevel(
-        1,
-        variant: SudokuVariant.classic16,
-      ),
+      store.progressForCareerLevel(1, variant: SudokuVariant.classic16),
       isNull,
     );
   });
@@ -136,22 +127,34 @@ void main() {
       variant: SudokuVariant.classic16,
     );
     expect(
-      store.progressForCareerLevel(
-        1,
-        variant: SudokuVariant.classic16,
-      )?.rewardClaimed,
+      store
+          .progressForCareerLevel(1, variant: SudokuVariant.classic16)
+          ?.rewardClaimed,
       isTrue,
     );
     expect(
-      store.progressForCareerLevel(
-        1,
-        variant: SudokuVariant.classic9,
-      )?.rewardClaimed,
+      store
+          .progressForCareerLevel(1, variant: SudokuVariant.classic9)
+          ?.rewardClaimed,
       isFalse,
     );
 
     await store.clearProgressForVariant(SudokuVariant.classic16);
     expect(store.completedCareerLevelCountFor(SudokuVariant.classic16), 0);
     expect(store.completedCareerLevelCountFor(SudokuVariant.classic9), 1);
+  });
+
+  test('career hub exposes 16x16 career and records variant progress', () {
+    final source = File(
+      'lib/features/career/career_hub_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_CareerVariantSelector'));
+    expect(source, contains('SudokuVariantId.classic16'));
+    expect(source, contains('Classic16PuzzleFactory.generate'));
+    expect(source, contains('nextCareerLevelNumberFor(variant)'));
+    expect(source, contains('recordResult('));
+    expect(source, contains('variant: variant'));
+    expect(source, isNot(contains('maxStars')));
   });
 }

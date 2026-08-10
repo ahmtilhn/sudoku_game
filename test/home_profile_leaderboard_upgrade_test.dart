@@ -40,6 +40,9 @@ void main() {
     expect(source, contains('DuelAsset.leaderboardCrownPro'));
     expect(source, contains('LeaderboardsScreen'));
     expect(source, contains('CompetitiveProfileCard'));
+    expect(source, contains('_selectedTab = _ProfileTab.leaderboards'));
+    expect(source, isNot(contains('WalletHistoryScreen')));
+    expect(source, isNot(contains('SocialHubScreen')));
   });
 
   test('daily reminders follow system permission without settings toggle', () {

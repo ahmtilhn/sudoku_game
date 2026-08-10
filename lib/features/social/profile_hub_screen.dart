@@ -321,8 +321,6 @@ class _ProfileTabPanel extends StatelessWidget {
 
   String _body(BuildContext context) {
     return switch (tab.tab) {
-      _ProfileTab.friends => context.tr('friends_challenges'),
-      _ProfileTab.wallet => context.tr('server_wallet_history'),
       _ProfileTab.leaderboards => context.tr('home_rating_label'),
       _ProfileTab.platform => tab.title,
     };

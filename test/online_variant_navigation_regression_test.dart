@@ -3,27 +3,42 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('online matchmaking keeps expert visible, variant-safe, and cancel-race safe', () {
+  test(
+    'online matchmaking keeps expert visible, variant-safe, and cancel-race safe',
+    () {
+      final source = File(
+        'lib/features/duel/matchmaking_screen.dart',
+      ).readAsStringSync();
+
+      expect(
+        source,
+        contains('final buttonWidth = (constraints.maxWidth - 12) / 3;'),
+      );
+      expect(
+        source,
+        contains('for (final difficulty in SudokuDifficulty.values)'),
+      );
+      expect(
+        source,
+        contains('Future<VariantMatchmakingResult> _joinSelectedQueue()'),
+      );
+      expect(source, contains("roomId.startsWith('classic16:')"));
+      expect(source, contains('final pending = _activeQueueRequest;'));
+      expect(source, contains('await _matchmaking.cancelRankedQueue();'));
+      expect(source, contains('SocialApiClient.instance.activeMatch()'));
+    },
+  );
+
+  test('online duel builds the board from snapshot variant metadata', () {
     final source = File(
-      'lib/features/duel/matchmaking_screen.dart',
+      'lib/features/duel/online_duel_screen.dart',
     ).readAsStringSync();
 
     expect(
       source,
-      contains('final buttonWidth = (constraints.maxWidth - 12) / 3;'),
+      contains('solution: List<int>.filled(snapshot.cellCount, 1)'),
     );
-    expect(
-      source,
-      contains('for (final difficulty in SudokuDifficulty.values)'),
-    );
-    expect(
-      source,
-      contains('Future<VariantMatchmakingResult> _joinSelectedQueue()'),
-    );
-    expect(source, contains("roomId.startsWith('classic16:')"));
-    expect(source, contains('final pending = _activeQueueRequest;'));
-    expect(source, contains('await _matchmaking.cancelRankedQueue();'));
-    expect(source, contains('SocialApiClient.instance.activeMatch()'));
+    expect(source, contains('size: snapshot.boardSize'));
   });
 
   test('challenge notification navigation is owned by the root gate', () {
@@ -70,6 +85,8 @@ void main() {
     expect(facade, contains("from './online_duel_factory'"));
     expect(factory, contains("roomId.startsWith('classic16:')"));
     expect(matchmaking, contains('roomIdForVariant(input.variant)'));
+    expect(matchmaking, contains('easierDifficulty(input.difficulty'));
+    expect(matchmaking, isNot(contains('AND q.difficulty = ?')));
   });
 
   test('backend settlement updates variant-scoped ELO rows', () {
@@ -102,7 +119,10 @@ void main() {
     expect(mainRouter, contains('WHERE pr.variant = ? AND pr.scope = ?'));
     expect(competitive, contains('variant?: \'classic9\' | \'classic16\''));
     expect(competitive, contains('FROM player_variant_ratings pr'));
-    expect(competitive, contains("SELECT player_id, 'classic9', scope, rating"));
+    expect(
+      competitive,
+      contains("SELECT player_id, 'classic9', scope, rating"),
+    );
     expect(
       competitive,
       contains('ON other.variant = mine.variant AND other.scope = mine.scope'),

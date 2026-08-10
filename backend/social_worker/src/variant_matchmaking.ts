@@ -34,6 +34,7 @@ const DIFFICULTIES = new Set([
 const ACTIVE_MATCH_STATUSES =
   "'waiting', 'ready_window', 'countdown', 'active', 'paused'";
 const QUEUE_STALE_AFTER_MS = 2 * 60 * 1000;
+const DIFFICULTY_ORDER = ['beginner', 'easy', 'medium', 'hard', 'expert'];
 
 export type VariantMatchmakingEnv = EconomyEnv & {
   FIREBASE_PROJECT_ID: string;
@@ -256,13 +257,13 @@ async function coordinateRankedMatch(
     .bind(staleBefore)
     .run();
 
-  let opponent: { player_id: string; rating: number } | null = null;
+  let opponent: { player_id: string; rating: number; difficulty: string } | null = null;
+  let matchDifficulty = input.difficulty;
   for (let attempt = 0; attempt < 5; attempt++) {
     opponent = await env.DB.prepare(
-      `SELECT q.player_id, q.rating
+      `SELECT q.player_id, q.rating, q.difficulty
        FROM ranked_queue q
        WHERE q.variant = ?
-         AND q.difficulty = ?
          AND q.player_id != ?
          AND q.room_id IS NULL
          AND q.updated_at >= ?
@@ -277,25 +278,32 @@ async function coordinateRankedMatch(
              AND b.player_high_id = CASE WHEN q.player_id < ? THEN ? ELSE q.player_id END
              AND b.status = 'blocked'
          )
-       ORDER BY ABS(q.rating - ?), q.joined_at
+       ORDER BY
+         CASE WHEN q.difficulty = ? THEN 0 ELSE 1 END,
+         ABS(q.rating - ?),
+         q.joined_at
        LIMIT 1`,
     )
       .bind(
         input.variant,
-        input.difficulty,
         input.playerId,
         staleBefore,
         input.playerId,
         input.playerId,
         input.playerId,
         input.playerId,
+        input.difficulty,
         input.rating,
       )
-      .first<{ player_id: string; rating: number }>();
+      .first<{ player_id: string; rating: number; difficulty: string }>();
 
     if (!opponent) break;
+    matchDifficulty = easierDifficulty(input.difficulty, opponent.difficulty);
+    const matchedEntryFee = entryFeeForDifficulty(matchDifficulty);
     const opponentBalance = await ensureStarterGrant(env, opponent.player_id);
-    if (opponentBalance >= entryFee) break;
+    if (ownBalance >= matchedEntryFee && opponentBalance >= matchedEntryFee) {
+      break;
+    }
     await env.DB.prepare('DELETE FROM ranked_queue WHERE player_id = ?')
       .bind(opponent.player_id)
       .run();
@@ -351,7 +359,7 @@ async function coordinateRankedMatch(
       roomId,
       challengeId: null,
       mode: 'ranked',
-      difficulty: input.difficulty,
+      difficulty: matchDifficulty,
       playerAId: opponent.player_id,
       playerBId: input.playerId,
       now,
@@ -361,7 +369,7 @@ async function coordinateRankedMatch(
 
   return {
     status: 'matched',
-    difficulty: input.difficulty,
+    difficulty: matchDifficulty,
     variant: input.variant,
     boardSize: config.boardSize,
     cellCount: config.cellCount,
@@ -369,6 +377,15 @@ async function coordinateRankedMatch(
     roomId,
     onlineCoins: await coinBalance(env, input.playerId),
   };
+}
+
+function easierDifficulty(left: string, right: string): string {
+  return difficultyRank(left) <= difficultyRank(right) ? left : right;
+}
+
+function difficultyRank(value: string): number {
+  const index = DIFFICULTY_ORDER.indexOf(value);
+  return index < 0 ? DIFFICULTY_ORDER.length : index;
 }
 
 async function createVariantFundedMatch(
