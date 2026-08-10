@@ -34,6 +34,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   OnlineDuelConnectionState _connectionState =
       OnlineDuelConnectionState.connecting;
   MatchmakingVisualPlayer? _profilePlayer;
+  SocialPlayer? _opponentPublicProfile;
+  String? _opponentProfileRequestedFor;
   Object? _error;
   bool _readyPressed = false;
   bool _screenLoadedSent = false;
@@ -81,6 +83,32 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     }
   }
 
+  Future<void> _loadOpponentPublicProfile(String publicId) async {
+    final normalized = publicId.trim();
+    if (normalized.length < 3 ||
+        normalized == _opponentProfileRequestedFor ||
+        _handedOff) {
+      return;
+    }
+    _opponentProfileRequestedFor = normalized;
+    try {
+      final players = await SocialApiClient.instance.searchPlayers(normalized);
+      SocialPlayer? exact;
+      for (final player in players) {
+        if (player.publicId == normalized) {
+          exact = player;
+          break;
+        }
+      }
+      if (!mounted || _handedOff) return;
+      if (exact != null) {
+        setState(() => _opponentPublicProfile = exact);
+      }
+    } catch (_) {
+      // Private/non-discoverable profiles intentionally keep stats hidden.
+    }
+  }
+
   Future<void> _connect() async {
     if (_connecting || _handedOff || !mounted) return;
     _retryTimer?.cancel();
@@ -98,7 +126,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     _screenLoadedSent = false;
 
     try {
-      final transport = await WebSocketOnlineDuelTransport.connect(widget.roomId);
+      final transport = await WebSocketOnlineDuelTransport.connect(
+        widget.roomId,
+      );
       final controller = OnlineDuelController(transport)..start();
       final snapshotSubscription = controller.snapshots.listen((snapshot) {
         if (!mounted) return;
@@ -106,7 +136,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         final opponentSeat = snapshot.youSeat == OnlineDuelSeat.a
             ? OnlineDuelSeat.b
             : OnlineDuelSeat.a;
-        final hasOpponent = snapshot.players[opponentSeat] != null;
+        final opponent = snapshot.players[opponentSeat];
+        final hasOpponent = opponent != null;
         setState(() {
           _snapshot = snapshot;
           _error = null;
@@ -114,6 +145,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
             _readyPressed = true;
           }
         });
+        if (hasOpponent) {
+          unawaited(_loadOpponentPublicProfile(opponent.publicId));
+        }
         if (!hadOpponent && hasOpponent && !_matchHapticSent) {
           _matchHapticSent = true;
           unawaited(HapticFeedback.mediumImpact());
@@ -123,7 +157,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           unawaited(_openMatch(controller));
         }
       });
-      final connectionSubscription = controller.connectionStates.listen((state) {
+      final connectionSubscription = controller.connectionStates.listen((
+        state,
+      ) {
         if (!mounted) return;
         setState(() => _connectionState = state);
         if (state == OnlineDuelConnectionState.failed ||
@@ -275,11 +311,20 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   MatchmakingVisualPlayer? _opponentVisualPlayer() {
     final player = _opponent;
     if (player == null) return null;
+    final publicProfile = _opponentPublicProfile;
+    final profileMatches = publicProfile?.publicId == player.publicId;
+    final rating = profileMatches ? publicProfile?.rating : null;
     return MatchmakingVisualPlayer(
-      displayName: player.displayName.isEmpty ? player.username : player.displayName,
+      displayName: player.displayName.isEmpty
+          ? player.username
+          : player.displayName,
       avatarKey: player.avatarKey.isEmpty
           ? 'prematch-${player.publicId}'
           : player.avatarKey,
+      rankLabel: rating == null ? null : matchmakingRankLabel(rating),
+      gamesPlayed: profileMatches ? publicProfile?.gamesPlayed : null,
+      winRate: profileMatches ? publicProfile?.winRate : null,
+      rating: rating,
     );
   }
 
@@ -364,6 +409,15 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
       OnlineDuelConnectionState.connecting => context.tr('connecting_players'),
     };
   }
+}
+
+@visibleForTesting
+String matchmakingRankLabel(int rating) {
+  if (rating >= 1800) return 'Master';
+  if (rating >= 1500) return 'Platinum';
+  if (rating >= 1300) return 'Gold';
+  if (rating >= 1100) return 'Silver';
+  return 'Bronze';
 }
 
 class _StageAction {
