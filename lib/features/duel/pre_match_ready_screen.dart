@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
@@ -36,18 +37,15 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   SocialPlayer? _opponentPublicProfile;
   String? _opponentProfileRequestedFor;
   Object? _error;
-  Timer? _retryTimer;
   bool _readyPressed = false;
   bool _screenLoadedSent = false;
   bool _handedOff = false;
+  bool _allowPop = false;
   bool _connecting = false;
-<<<<<<< HEAD
-=======
   bool _leaving = false;
   bool _matchHapticSent = false;
   Timer? _retryTimer;
   int _connectAttempt = 0;
->>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
 
   @override
   void initState() {
@@ -59,9 +57,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     unawaited(_snapshotSubscription?.cancel());
     unawaited(_connectionSubscription?.cancel());
-    _retryTimer?.cancel();
     if (!_handedOff) unawaited(_controller?.dispose());
     super.dispose();
   }
@@ -112,7 +110,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   }
 
   Future<void> _connect() async {
-    if (_connecting) return;
+    if (_connecting || _handedOff || !mounted) return;
+    _retryTimer?.cancel();
+    _retryTimer = null;
     setState(() {
       _connecting = true;
       _error = null;
@@ -174,6 +174,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         await controller.dispose();
         return;
       }
+      _connectAttempt = 0;
       setState(() {
         _controller = controller;
         _snapshotSubscription = snapshotSubscription;
@@ -184,7 +185,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = error;
+        _error = UserSafeError.message(context, error);
         _connectionState = OnlineDuelConnectionState.failed;
       });
       _scheduleReconnect();
@@ -194,12 +195,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   }
 
   void _scheduleReconnect() {
-<<<<<<< HEAD
-    _retryTimer?.cancel();
-    _retryTimer = Timer(const Duration(seconds: 2), () {
-      if (!mounted || _handedOff) return;
-      unawaited(_connect());
-=======
     if (!mounted || _handedOff || _retryTimer != null || _leaving) return;
     _connectAttempt++;
     final seconds = switch (_connectAttempt) {
@@ -211,7 +206,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     _retryTimer = Timer(Duration(seconds: seconds), () {
       _retryTimer = null;
       if (mounted && !_handedOff && !_leaving) unawaited(_connect());
->>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
     });
   }
 
@@ -224,8 +218,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     });
   }
 
-<<<<<<< HEAD
-=======
   Future<void> _cancelAndLeave() async {
     if (_leaving || _handedOff || !mounted) return;
     _retryTimer?.cancel();
@@ -248,7 +240,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     Navigator.of(context).pop();
   }
 
->>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
   void _ready() {
     if (_readyPressed || _controller == null || !_readyStage) return;
     setState(() => _readyPressed = true);
@@ -339,126 +330,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
-    return Scaffold(
-      backgroundColor: const Color(0xFF0B1215),
-      body: AppBackdrop(
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 680),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        IconButton.filledTonal(
-                          tooltip: context.tr('cancel_search'),
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.arrow_back_rounded),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _readyStage
-                                ? context.tr('ready_question')
-                                : context.tr('finding_opponent_title'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _ConnectionBanner(
-                      state: _connectionState,
-                      error: _error,
-                      onRetry: _connecting ? null : _connect,
-                    ),
-                    const SizedBox(height: 18),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final vertical = constraints.maxWidth < 520;
-                          final cards = <Widget>[
-                            Expanded(
-                              child: _PlayerCard(
-                                player: _you,
-                                fallbackName: context.tr('you'),
-                                ready: _youReady,
-                                accent: const Color(0xFF29D398),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: vertical ? 0 : 12,
-                                vertical: vertical ? 10 : 0,
-                              ),
-                              child: const Icon(
-                                Icons.flash_on_rounded,
-                                color: Color(0xFFFFC94D),
-                                size: 34,
-                              ),
-                            ),
-                            Expanded(
-                              child: _PlayerCard(
-                                player: _opponent,
-                                fallbackName: context.tr('opponent'),
-                                ready: _opponentReady,
-                                accent: const Color(0xFF7A5CFF),
-                              ),
-                            ),
-                          ];
-                          return vertical
-                              ? Column(children: cards)
-                              : Row(children: cards);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _statusText(context),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .74),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed:
-                            !_readyStage ||
-                                _youReady ||
-                                _controller == null ||
-                                _connectionState ==
-                                    OnlineDuelConnectionState.failed
-                            ? null
-                            : _ready,
-                        icon: Icon(
-                          _youReady
-                              ? Icons.check_circle_rounded
-                              : Icons.shield_outlined,
-                        ),
-                        label: Text(
-                          _youReady
-                              ? context.tr('ready')
-                              : context.tr('i_am_ready'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-=======
     final failed = _connectionState == OnlineDuelConnectionState.failed ||
         _connectionState == OnlineDuelConnectionState.closed ||
         _error != null;
@@ -486,7 +357,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         actionBusy: _leaving || _connecting || action.busy,
         onAction: _leaving ? null : action.onPressed,
         onClose: _leaving ? null : _cancelAndLeave,
->>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
       ),
     );
   }
@@ -499,59 +369,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         onPressed: _connecting ? null : () => unawaited(_connect()),
       );
     }
-<<<<<<< HEAD
-    if (_youReady) return context.tr('you_ready_waiting_opponent');
-    if (_opponentReady) return context.tr('opponent_ready_waiting_you');
-    return context.tr('match_ready_prompt');
-  }
-}
-
-class _ConnectionBanner extends StatelessWidget {
-  const _ConnectionBanner({
-    required this.state,
-    required this.error,
-    required this.onRetry,
-  });
-
-  final OnlineDuelConnectionState state;
-  final Object? error;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final failed = state == OnlineDuelConnectionState.failed || error != null;
-    final color = failed
-        ? Theme.of(context).colorScheme.error
-        : state == OnlineDuelConnectionState.connected
-        ? const Color(0xFF29D398)
-        : const Color(0xFFFFC94D);
-    return Container(
-      constraints: const BoxConstraints(minHeight: 52),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: .34)),
-      ),
-      child: Row(
-        children: [
-          Icon(_icon, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              _label(context),
-              style: TextStyle(color: color, fontWeight: FontWeight.w900),
-            ),
-          ),
-          if (failed)
-            IconButton(
-              tooltip: context.tr('retry'),
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-            ),
-        ],
-      ),
-=======
     if (!_readyStage || _controller == null) {
       return _StageAction(
         label: context.tr('connecting_players'),
@@ -577,7 +394,6 @@ class _ConnectionBanner extends StatelessWidget {
       label: context.tr('i_am_ready'),
       icon: Icons.play_arrow_rounded,
       onPressed: _ready,
->>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
     );
   }
 
@@ -595,79 +411,6 @@ class _ConnectionBanner extends StatelessWidget {
   }
 }
 
-<<<<<<< HEAD
-class _PlayerCard extends StatelessWidget {
-  const _PlayerCard({
-    required this.player,
-    required this.fallbackName,
-    required this.ready,
-    required this.accent,
-  });
-
-  final OnlineDuelPlayer? player;
-  final String fallbackName;
-  final bool ready;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = player?.displayName ?? fallbackName;
-    return Card(
-      color: const Color(0xFF142126).withValues(alpha: .96),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: accent.withValues(alpha: .48)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            PlayerAvatar(
-              displayName: name,
-              avatarKey: player?.avatarKey ?? 'prematch-$name',
-              radius: 40,
-              semanticLabel: context.tr('player_avatar_semantics', <Object>[
-                name,
-              ]),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              player == null ? '—' : context.tr('elo_unknown'),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .58),
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Chip(
-              avatar: Icon(
-                ready ? Icons.check_circle_rounded : Icons.schedule_rounded,
-                color: ready ? const Color(0xFF29D398) : accent,
-              ),
-              label: Text(
-                ready
-                    ? context.tr('ready')
-                    : context.tr('waiting_opponent_ready'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-=======
 @visibleForTesting
 String matchmakingRankLabel(int rating) {
   if (rating >= 1800) return 'Master';
@@ -689,5 +432,4 @@ class _StageAction {
   final IconData icon;
   final VoidCallback? onPressed;
   final bool busy;
->>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
 }
