@@ -143,8 +143,18 @@ class _CareerHubScreenState extends State<CareerHubScreen>
           builder: (context, constraints) {
             final maxWidth = constraints.maxWidth >= 840 ? 760.0 : 680.0;
             final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.3;
-            final cardExtent = largeText ? 190.0 : 142.0;
+            final cardExtent = largeText ? 210.0 : 164.0;
             final cardMaxExtent = largeText ? 320.0 : 230.0;
+            final designedCompleted = widget.store.completedCareerLevelCount
+                .clamp(0, CareerCatalog.designedLevelCount)
+                .toInt();
+            final totalStars = CareerCatalog.levels.fold<int>(
+              0,
+              (total, level) =>
+                  total +
+                  (widget.store.progressForCareerLevel(level.number)?.stars ??
+                      0),
+            );
             return Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: maxWidth),
@@ -159,9 +169,20 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                         widget.store.completedCareerLevelCount,
                       ]),
                     ),
+                    const SizedBox(height: 12),
+                    _CareerProgressPanel(
+                      completed: designedCompleted,
+                      total: CareerCatalog.designedLevelCount,
+                      stars: totalStars,
+                      maxStars: CareerCatalog.designedLevelCount * 3,
+                      nextLevel: nextLevel,
+                    ),
                     const SizedBox(height: 14),
                     _NextLevelCard(
                       level: nextLevel,
+                      progress: widget.store.progressForCareerLevel(
+                        nextLevel.number,
+                      ),
                       loading: _generatingLevel == nextLevel.number,
                       onTap: _busy ? null : () => _openCareer(nextLevel),
                     ),
@@ -627,20 +648,205 @@ class _HeroPanel extends StatelessWidget {
   }
 }
 
+class _CareerProgressPanel extends StatelessWidget {
+  const _CareerProgressPanel({
+    required this.completed,
+    required this.total,
+    required this.stars,
+    required this.maxStars,
+    required this.nextLevel,
+  });
+
+  final int completed;
+  final int total;
+  final int stars;
+  final int maxStars;
+  final CareerLevel nextLevel;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = total == 0 ? 0.0 : (completed / total).clamp(0.0, 1.0);
+    final percent = (progress * 100).round();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF101B20).withValues(alpha: .92),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .07)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const DuelAssetIcon(
+                  DuelAsset.homeCareerRelic,
+                  size: 22,
+                  color: Color(0xFF3AA9FF),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Career Progress',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$percent%',
+                  style: const TextStyle(
+                    color: Color(0xFFFFC94D),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: Colors.white.withValues(alpha: .08),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  Color(0xFF3AA9FF),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth < 420 ? 2 : 4;
+                final width =
+                    (constraints.maxWidth - ((columns - 1) * 8)) / columns;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    SizedBox(
+                      width: width,
+                      child: _CareerMetric(
+                        value: '$completed/$total',
+                        label: 'Levels',
+                        asset: DuelAsset.grid,
+                        color: const Color(0xFF3AA9FF),
+                      ),
+                    ),
+                    SizedBox(
+                      width: width,
+                      child: _CareerMetric(
+                        value: '$stars/$maxStars',
+                        label: 'Stars',
+                        asset: DuelAsset.trophy,
+                        color: const Color(0xFFFFC94D),
+                      ),
+                    ),
+                    SizedBox(
+                      width: width,
+                      child: _CareerMetric(
+                        value: '${nextLevel.chapter}',
+                        label: 'Chapter',
+                        asset: DuelAsset.careerBook,
+                        color: const Color(0xFF29D398),
+                      ),
+                    ),
+                    SizedBox(
+                      width: width,
+                      child: _CareerMetric(
+                        value: '${nextLevel.number}',
+                        label: 'Next',
+                        asset: DuelAsset.leaderboardCrownPro,
+                        color: _difficultyAccent(nextLevel.difficulty),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CareerMetric extends StatelessWidget {
+  const _CareerMetric({
+    required this.value,
+    required this.label,
+    required this.asset,
+    required this.color,
+  });
+
+  final String value;
+  final String label;
+  final String asset;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: .06)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DuelAssetIcon(asset, size: 18, color: color),
+            const SizedBox(height: 7),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .58),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _NextLevelCard extends StatelessWidget {
   const _NextLevelCard({
     required this.level,
+    required this.progress,
     required this.loading,
     required this.onTap,
   });
 
   final CareerLevel level;
+  final LevelProgress? progress;
   final bool loading;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final accent = _difficultyAccent(level.difficulty);
+    final compact = MediaQuery.sizeOf(context).width < 390;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -649,61 +855,257 @@ class _NextLevelCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: accent.withValues(alpha: .14),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accent.withValues(alpha: .18),
+                const Color(0xFF101B20).withValues(alpha: .94),
+              ],
+            ),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: accent.withValues(alpha: .36)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: .16),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: loading
-                    ? Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: CircularProgressIndicator(
+              Row(
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: .16),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: loading
+                        ? Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: CircularProgressIndicator(
+                              color: accent,
+                              strokeWidth: 2.4,
+                            ),
+                          )
+                        : Icon(
+                            Icons.play_arrow_rounded,
+                            color: accent,
+                            size: 42,
+                          ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _DifficultyChip(
+                          label: context.strings.difficultyLabel(
+                            level.difficulty,
+                          ),
                           color: accent,
-                          strokeWidth: 2.4,
                         ),
-                      )
-                    : Icon(Icons.play_arrow_rounded, color: accent, size: 42),
+                        const SizedBox(height: 6),
+                        Text(
+                          context.tr('level_title', <Object>[
+                            context.strings.difficultyLabel(level.difficulty),
+                            level.number,
+                          ]),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: compact ? 19 : 21,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: onTap,
+                    icon: const Icon(Icons.play_arrow_rounded, size: 19),
+                    label: Text(context.tr('continue_action')),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: Colors.black.withValues(alpha: .84),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      context.tr('continue_action'),
-                      style: TextStyle(
-                        color: accent,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      context.tr('level_title', <Object>[
-                        context.strings.difficultyLabel(level.difficulty),
-                        level.number,
-                      ]),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 21,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _InfoPill(
+                    icon: Icons.timer_outlined,
+                    label: progress == null
+                        ? context.tr('new_level')
+                        : context.tr('best_time', <Object>[
+                            formatDuration(progress!.bestSeconds),
+                          ]),
+                    color: Colors.white.withValues(alpha: .70),
+                  ),
+                  _RewardPill(level: level),
+                  if (progress != null)
+                    _StarRow(stars: progress!.stars, color: accent),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DifficultyChip extends StatelessWidget {
+  const _DifficultyChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .28)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: .07)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 5),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width - 96,
+              ),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              Icon(Icons.arrow_forward_rounded, color: accent, size: 30),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RewardPill extends StatelessWidget {
+  const _RewardPill({required this.level});
+
+  final CareerLevel level;
+
+  @override
+  Widget build(BuildContext context) {
+    final hintText = level.hintReward > 0 ? ' · +${level.hintReward}' : '';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFC94D).withValues(alpha: .11),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFFFFC94D).withValues(alpha: .22),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const DuelAssetIcon(
+              DuelAsset.coin,
+              size: 14,
+              color: Color(0xFFFFC94D),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '+${level.coinReward}$hintText',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StarRow extends StatelessWidget {
+  const _StarRow({required this.stars, required this.color});
+
+  final int stars;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .22)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List<Widget>.generate(
+            3,
+            (index) => Icon(
+              index < stars ? Icons.star_rounded : Icons.star_border_rounded,
+              size: 15,
+              color: const Color(0xFFFFC94D),
+            ),
           ),
         ),
       ),
@@ -732,6 +1134,7 @@ class _LevelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = _difficultyAccent(level.difficulty);
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final completed = progress != null;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -747,7 +1150,9 @@ class _LevelCard extends StatelessWidget {
             border: Border.all(
               color: current
                   ? accent
-                  : accent.withValues(alpha: unlocked ? .28 : .10),
+                  : completed
+                  ? const Color(0xFF29D398).withValues(alpha: .24)
+                  : accent.withValues(alpha: unlocked ? .24 : .10),
               width: current ? 2 : 1,
             ),
           ),
@@ -767,15 +1172,22 @@ class _LevelCard extends StatelessWidget {
                             ),
                           )
                         : Icon(
-                            unlocked
-                                ? Icons.grid_4x4_rounded
-                                : Icons.lock_outline_rounded,
+                            !unlocked
+                                ? Icons.lock_outline_rounded
+                                : completed
+                                ? Icons.check_rounded
+                                : Icons.grid_4x4_rounded,
                             color: unlocked
                                 ? accent
                                 : Colors.white.withValues(alpha: .36),
                           ),
                   ),
                   const Spacer(),
+                  _DifficultyChip(
+                    label: context.strings.difficultyLabel(level.difficulty),
+                    color: accent,
+                  ),
+                  const SizedBox(width: 6),
                   if (current)
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -818,10 +1230,7 @@ class _LevelCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                context.tr('level_title', <Object>[
-                  context.strings.difficultyLabel(level.difficulty),
-                  level.number,
-                ]),
+                'Level ${level.number}',
                 maxLines: largeText ? 2 : 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -850,6 +1259,29 @@ class _LevelCard extends StatelessWidget {
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                 ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _RewardPill(level: level),
+                  if (progress == null)
+                    _InfoPill(
+                      icon: unlocked
+                          ? Icons.radio_button_checked_rounded
+                          : Icons.lock_outline_rounded,
+                      label: current
+                          ? context.tr('continue_action')
+                          : unlocked
+                          ? context.tr('new_level')
+                          : 'Locked',
+                      color: unlocked
+                          ? accent
+                          : Colors.white.withValues(alpha: .46),
+                    ),
+                ],
               ),
               if (progress != null) ...[
                 const SizedBox(height: 8),
