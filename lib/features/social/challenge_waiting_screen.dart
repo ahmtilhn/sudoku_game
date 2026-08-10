@@ -285,11 +285,44 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                           SizedBox(height: compact ? 10 : 15),
                           Row(
                             children: [
-                              Expanded(
-                                child: _InfoPill(
-                                  icon: Icons.grid_4x4_rounded,
-                                  label: _challenge.variant.label,
-                                  accent: accent,
+                              _InfoChip(
+                                asset: DuelAsset.grid,
+                                label: context.strings.difficultyLabel(difficulty),
+                                accent: accent,
+                              ),
+                              _InfoChip(
+                                asset: DuelAsset.trophy,
+                                label: context.tr('rating_value', <Object>[
+                                  recipient.rating,
+                                ]),
+                                accent: const Color(0xFFFFC94D),
+                              ),
+                              if (!_ended)
+                                _InfoChip(
+                                  asset: DuelAsset.timer,
+                                  label: '${_secondsLeft}s',
+                                  accent: const Color(0xFF3AA9FF),
+                                ),
+                            ],
+                          ),
+                          if (_error != null) ...[
+                            const SizedBox(height: 16),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .errorContainer,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
                                 ),
                               ),
                               const SizedBox(width: 7),
