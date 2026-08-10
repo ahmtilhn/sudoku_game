@@ -4,7 +4,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 
 ## Audit scope
 
-- Screen files: **30**
+- Screen files: **29**
 - Forwarding/compatibility wrappers: **1**
 - Feature groups: **9** (career, daily, duel, economy, game, home, settings, social, tutorial)
 - Required device behavior: compact phone, large phone/tablet, text scaling, safe insets, keyboard insets and scroll recovery
@@ -40,6 +40,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | economy | `WalletHistoryScreen`<br>`lib/features/economy/wallet_history_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | game | `EnhancedGameScreen`<br>`lib/features/game/enhanced_game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | game | `GameScreen`<br>`lib/features/game/game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
+| game | `SamuraiGameScreen`<br>`lib/features/game/samurai_game_screen.dart` | Production screen | Yes | — | — | — | Yes | — | Yes | Yes | No explicit responsive primitive detected |
 | home | `HomeScreen`<br>`lib/features/home/home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | home | `ProfessionalHomeScreen`<br>`lib/features/home/professional_home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | home | `UxRootScreen`<br>`lib/features/home/ux_root_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
@@ -64,7 +65,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 - `lib/features/daily/daily_screen.dart`: No explicit responsive primitive detected
 - `lib/features/duel/matchmaking_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/game/game_screen.dart`: Outcome content does not use shared outcome component
-- `lib/features/social/ux_challenge_invitation_screen.dart`: Dense column without explicit scroll marker
+- `lib/features/game/samurai_game_screen.dart`: No explicit responsive primitive detected
 
 Static warnings are not automatically defects. Confirmation dialogs, short setup screens and game canvases may intentionally omit a list or common state panel. They remain listed so visual/device tests do not silently skip them.
 

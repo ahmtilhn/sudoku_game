@@ -16,6 +16,7 @@ import {
   type ClientEnvelope,
   type DuelDifficulty,
   type DuelMode,
+  type DuelVariant,
   type DuelState,
   type PlayerPublic,
   type PublicEvent,
@@ -75,6 +76,7 @@ type ChallengeRow = {
   challenger_id: string;
   recipient_id: string;
   difficulty: string;
+  variant: string;
   status: string;
   room_id: string | null;
   created_at: string;
@@ -95,6 +97,8 @@ const DIFFICULTIES = new Set([
   'hard',
   'expert',
 ]);
+
+const DUEL_VARIANTS = new Set(['classic', 'samurai']);
 
 let cachedFcmAccessToken: { token: string; expiresAt: number } | null = null;
 
@@ -546,6 +550,7 @@ async function createChallenge(
   if (recipient.id === current.id) throw new HttpError(400, 'You cannot challenge yourself.');
   const difficulty = requiredString(body.difficulty, 'difficulty', 4, 16);
   if (!DIFFICULTIES.has(difficulty)) throw new HttpError(400, 'Invalid difficulty.');
+  const variant = duelVariant(body.variant);
 
   const [low, high] = orderedPair(current.id, recipient.id);
   const blocked = await env.DB.prepare(
@@ -603,15 +608,16 @@ async function createChallenge(
   const expires = new Date(now.getTime() + 15 * 60 * 1000);
   const inserted = await env.DB.prepare(
     `INSERT OR IGNORE INTO challenges (
-      id, challenger_id, recipient_id, difficulty, status,
+      id, challenger_id, recipient_id, difficulty, variant, status,
       created_at, updated_at, expires_at
-    ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
   )
     .bind(
       id,
       current.id,
       recipient.id,
       difficulty,
+      variant,
       nowIso,
       nowIso,
       expires.toISOString(),
@@ -638,6 +644,7 @@ async function createChallenge(
         type: 'challenge',
         challengeId: id,
         difficulty,
+        variant,
         challengerPublicId: current.public_id,
       },
     }),
@@ -887,13 +894,15 @@ async function joinRankedQueue(
   const body = await readJson(request);
   const difficulty = requiredString(body.difficulty, 'difficulty', 4, 16);
   if (!DIFFICULTIES.has(difficulty)) throw new HttpError(400, 'Invalid difficulty.');
+  const variant = duelVariant(body.variant);
   const now = new Date().toISOString();
   const rating = await ratingFor(env, current.id, difficulty);
   const opponent = await env.DB.prepare(
     `SELECT q.player_id, q.rating, p.*
      FROM ranked_queue q
      JOIN players p ON p.id = q.player_id
-     WHERE q.difficulty = ?
+     WHERE q.variant = ?
+       AND q.difficulty = ?
        AND q.player_id != ?
        AND NOT EXISTS (
          SELECT 1 FROM friendships b
@@ -904,23 +913,24 @@ async function joinRankedQueue(
      ORDER BY ABS(q.rating - ?), q.joined_at
      LIMIT 1`,
   )
-    .bind(difficulty, current.id, current.id, current.id, current.id, current.id, rating)
+    .bind(variant, difficulty, current.id, current.id, current.id, current.id, current.id, rating)
     .first<PlayerRow & { player_id: string; rating: number }>();
 
   if (!opponent) {
     await env.DB.prepare(
-      `INSERT INTO ranked_queue (player_id, difficulty, rating, joined_at, updated_at)
-       VALUES (?, ?, ?, ?, ?)
+      `INSERT INTO ranked_queue (player_id, variant, difficulty, rating, joined_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(player_id) DO UPDATE SET
+         variant = excluded.variant,
          difficulty = excluded.difficulty,
          rating = excluded.rating,
          updated_at = excluded.updated_at,
          room_id = NULL,
          matched_player_id = NULL`,
     )
-      .bind(current.id, difficulty, rating, now, now)
+      .bind(current.id, variant, difficulty, rating, now, now)
       .run();
-    return reply(env, { status: 'queued', difficulty, rating });
+    return reply(env, { status: 'queued', variant, difficulty, rating });
   }
 
   const roomId = crypto.randomUUID();
@@ -928,6 +938,7 @@ async function joinRankedQueue(
     roomId,
     challengeId: null,
     mode: 'ranked',
+    variant,
     difficulty,
     playerAId: opponent.player_id,
     playerBId: current.id,
@@ -941,17 +952,18 @@ async function joinRankedQueue(
     ).bind(roomId, current.id, now, opponent.player_id),
     env.DB.prepare(
       `INSERT INTO ranked_queue (
-         player_id, difficulty, rating, joined_at, updated_at, room_id, matched_player_id
-       ) VALUES (?, ?, ?, ?, ?, ?, ?)
+         player_id, variant, difficulty, rating, joined_at, updated_at, room_id, matched_player_id
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(player_id) DO UPDATE SET
+         variant = excluded.variant,
          difficulty = excluded.difficulty,
          rating = excluded.rating,
          updated_at = excluded.updated_at,
          room_id = excluded.room_id,
          matched_player_id = excluded.matched_player_id`,
-    ).bind(current.id, difficulty, rating, now, now, roomId, opponent.player_id),
+    ).bind(current.id, variant, difficulty, rating, now, now, roomId, opponent.player_id),
   ]);
-  return reply(env, { status: 'matched', difficulty, roomId }, 201);
+  return reply(env, { status: 'matched', variant, difficulty, roomId }, 201);
 }
 
 async function cancelRankedQueue(env: Env, current: PlayerRow): Promise<Response> {
@@ -1167,6 +1179,7 @@ async function ensureAcceptedChallengeMatch(
     roomId,
     challengeId: challenge.id,
     mode: 'friendly',
+    variant: duelVariant(challenge.variant),
     difficulty: challenge.difficulty,
     playerAId: challenge.challenger_id,
     playerBId: challenge.recipient_id,
@@ -1212,6 +1225,7 @@ async function createMatchRow(
     roomId: string;
     challengeId: string | null;
     mode: DuelMode;
+    variant: DuelVariant;
     difficulty: string;
     playerAId: string;
     playerBId: string;
@@ -1220,9 +1234,9 @@ async function createMatchRow(
 ): Promise<void> {
   await env.DB.prepare(
     `INSERT INTO matches (
-      id, room_id, challenge_id, mode, difficulty, status,
+      id, room_id, challenge_id, mode, variant, difficulty, status,
       player_a_id, player_b_id, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, 'waiting', ?, ?, ?, ?)
     ON CONFLICT(room_id) DO NOTHING`,
   )
     .bind(
@@ -1230,6 +1244,7 @@ async function createMatchRow(
       input.roomId,
       input.challengeId,
       input.mode,
+      input.variant,
       input.difficulty,
       input.playerAId,
       input.playerBId,
@@ -1319,6 +1334,7 @@ function publicMatch(row: Record<string, unknown>, currentPlayerId: string): Rec
     id: row.id,
     roomId: row.room_id,
     mode: row.mode,
+    variant: row.variant ?? 'classic',
     difficulty: row.difficulty,
     challengeId: row.challenge_id ?? null,
     status: row.status,
@@ -1393,6 +1409,7 @@ async function challengeJson(env: Env, challenge: ChallengeRow): Promise<Record<
   if (!challenger || !recipient) throw new HttpError(500, 'Challenge players are missing.');
   return {
     id: challenge.id,
+    variant: challenge.variant || 'classic',
     difficulty: challenge.difficulty,
     status: challenge.status,
     roomId: challenge.room_id,
@@ -1617,6 +1634,14 @@ function requiredString(
     throw new HttpError(400, `${field} has an invalid length.`);
   }
   return clean;
+}
+
+function duelVariant(value: unknown): DuelVariant {
+  const variant = stringOrNull(value) ?? 'classic';
+  if (!DUEL_VARIANTS.has(variant)) {
+    throw new HttpError(400, 'Invalid duel variant.');
+  }
+  return variant as DuelVariant;
 }
 
 function stringOrNull(value: unknown): string | null {
@@ -1864,6 +1889,7 @@ export class GameRoom {
       matchId: match.id,
       challengeId: match.challenge_id ?? null,
       mode: match.mode as DuelMode,
+      variant: duelVariant(match.variant),
       difficulty: match.difficulty as DuelDifficulty,
       variant: match.variant === 'classic16' ? 'classic16' : 'classic9',
       playerA: publicPlayer(match.player_a_id, match.a_public_id, match.a_username, match.a_display_name, match.a_avatar_key),

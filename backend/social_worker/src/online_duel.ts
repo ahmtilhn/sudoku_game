@@ -2,6 +2,7 @@ import { selectRankedPuzzle } from './ranked_puzzle_bank';
 
 export type DuelDifficulty = 'beginner' | 'easy' | 'medium' | 'hard' | 'expert';
 export type DuelMode = 'friendly' | 'ranked';
+export type DuelVariant = 'classic' | 'samurai';
 export type Seat = 'A' | 'B';
 export type MatchStatus =
   | 'waiting'
@@ -65,6 +66,7 @@ export type DuelState = {
   matchId: string;
   challengeId: string | null;
   mode: DuelMode;
+  variant?: DuelVariant;
   difficulty: DuelDifficulty;
   status: MatchStatus;
   createdAt: number;
@@ -120,13 +122,15 @@ export function createInitialDuelState(input: {
   matchId: string;
   challengeId: string | null;
   mode: DuelMode;
+  variant?: DuelVariant;
   difficulty: DuelDifficulty;
   playerA: PlayerPublic;
   playerB: PlayerPublic;
   now: number;
   randomBytes: Uint8Array;
 }): DuelState {
-  const generated = rankedPuzzle(input.difficulty, input.randomBytes);
+  const variant = input.variant ?? 'classic';
+  const generated = rankedPuzzle(input.difficulty, input.randomBytes, variant);
   const currentTurnSeat = input.randomBytes[15] % 2 === 0 ? 'A' : 'B';
   return {
     schemaVersion: 1,
@@ -134,6 +138,7 @@ export function createInitialDuelState(input: {
     matchId: input.matchId,
     challengeId: input.challengeId,
     mode: input.mode,
+    variant,
     difficulty: input.difficulty,
     status: 'waiting',
     createdAt: input.now,
@@ -220,7 +225,11 @@ export function applyMove(
   if (state.currentTurnSeat !== seat) {
     return rejectMove(state, seat, requestId, now, 'not_your_turn', timeoutEvents);
   }
-  if (!Number.isInteger(cellIndex) || cellIndex < 0 || cellIndex >= 81) {
+  if (
+    !Number.isInteger(cellIndex) ||
+    cellIndex < 0 ||
+    cellIndex >= state.puzzle.length
+  ) {
     return rejectMove(state, seat, requestId, now, 'invalid_cell', timeoutEvents);
   }
   if (!Number.isInteger(value) || value < 1 || value > 9) {
@@ -322,7 +331,7 @@ export function applyDueDeadlines(state: DuelState, now: number): PublicEvent[] 
   if (
     (state.status === 'active' || state.status === 'paused') &&
     state.startedAt !== null &&
-    now >= state.startedAt + MAX_MATCH_DURATION_MS
+    now >= state.startedAt + matchDurationMs(state)
   ) {
     finishByScore(state, now, 'max_match_duration');
     events.push(event(state, 'match_completed', now, publicResult(state)));
@@ -407,6 +416,7 @@ export function snapshot(state: DuelState, youSeat: Seat, now: number): Record<s
     roomId: state.roomId,
     matchId: state.matchId,
     mode: state.mode,
+    variant: state.variant ?? 'classic',
     difficulty: state.difficulty,
     status: state.status,
     youSeat,
@@ -429,7 +439,7 @@ export function snapshot(state: DuelState, youSeat: Seat, now: number): Record<s
     lobbyDeadline: state.lobbyDeadline ?? null,
     readyDeadline: state.readyDeadline,
     matchDeadline:
-      state.startedAt === null ? null : state.startedAt + MAX_MATCH_DURATION_MS,
+      state.startedAt === null ? null : state.startedAt + matchDurationMs(state),
     serverTime: now,
     ready: { A: state.playerA.ready, B: state.playerB.ready },
     presence: {
@@ -643,13 +653,23 @@ export function seatFor(state: DuelState, seat: Seat): SeatState {
   return seat === 'A' ? state.playerA : state.playerB;
 }
 
-function rankedPuzzle(difficulty: DuelDifficulty, randomBytes: Uint8Array): {
+function matchDurationMs(state: DuelState): number {
+  return (state.variant ?? 'classic') === 'samurai'
+    ? 60 * 60 * 1_000
+    : MAX_MATCH_DURATION_MS;
+}
+
+function rankedPuzzle(
+  difficulty: DuelDifficulty,
+  randomBytes: Uint8Array,
+  variant: DuelVariant,
+): {
   id: string;
   fingerprint: string;
   puzzle: number[];
   solution: number[];
 } {
-  const selected = selectRankedPuzzle(difficulty, randomBytes);
+  const selected = selectRankedPuzzle(difficulty, randomBytes, variant);
   return {
     id: selected.id,
     fingerprint: selected.fingerprint,

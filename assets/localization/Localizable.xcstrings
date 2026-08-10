@@ -6352,1226 +6352,162 @@
         }
       }
     },
-    "profile_edit_preview_body": {
+    "samurai_sudoku": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose how other players see you in matches and search."
+            "value": "Samurai Sudoku"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diğer oyuncuların seni maçlarda ve aramada nasıl göreceğini seç."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lege fest, wie andere Spieler dich in Spielen und der Suche sehen."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choisissez comment les autres joueurs vous voient en match et en recherche."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Elige cómo te ven otros jugadores en partidas y búsquedas."
-          }
-        },
-        "pt": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Escolha como outros jogadores veem você em partidas e buscas."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scegli come gli altri giocatori ti vedono nelle partite e nella ricerca."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kies hoe andere spelers je zien in wedstrijden en zoekopdrachten."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wybierz, jak inni gracze widzą Cię w meczach i wyszukiwaniu."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выберите, как другие игроки видят вас в матчах и поиске."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Виберіть, як інші гравці бачать вас у матчах і пошуку."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "اختر كيف يراك اللاعبون الآخرون في المباريات والبحث."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "चुनें कि दूसरे खिलाड़ी आपको मैचों और खोज में कैसे देखें."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pilih bagaimana pemain lain melihatmu di pertandingan dan pencarian."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "試合と検索で他のプレイヤーに表示される内容を選びます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "경기와 검색에서 다른 플레이어에게 보일 방식을 선택하세요."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择其他玩家在对局和搜索中看到你的方式。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選擇其他玩家在對局和搜尋中看到你的方式。"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "เลือกวิธีที่ผู้เล่นคนอื่นเห็นคุณในแมตช์และการค้นหา"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chọn cách người chơi khác thấy bạn trong trận đấu và tìm kiếm."
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ম্যাচ ও অনুসন্ধানে অন্য খেলোয়াড়রা আপনাকে কীভাবে দেখবে তা বেছে নিন।"
-          }
-        },
-        "ur": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "منتخب کریں کہ دوسرے کھلاڑی میچز اور تلاش میں آپ کو کیسے دیکھیں۔"
+            "value": "Samuray Sudoku"
           }
         }
       }
     },
-    "profile_display_helper": {
+    "samurai_subtitle": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use the name you want shown on leaderboards."
+            "value": "Five overlapping 9×9 boards in one challenge"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Liderlik tablolarında görünmesini istediğin adı kullan."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nutze den Namen, der in Bestenlisten angezeigt werden soll."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Utilisez le nom à afficher dans les classements."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa el nombre que quieres mostrar en las clasificaciones."
-          }
-        },
-        "pt": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use o nome que você quer mostrar nos placares."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa il nome che vuoi mostrare nelle classifiche."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gebruik de naam die je op klassementen wilt tonen."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Użyj nazwy, która ma być widoczna w rankingach."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Используйте имя, которое будет видно в таблицах лидеров."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Використовуйте ім’я, яке буде видно в таблицях лідерів."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "استخدم الاسم الذي تريد عرضه في لوحات الصدارة."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "वह नाम उपयोग करें जिसे आप लीडरबोर्ड पर दिखाना चाहते हैं."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gunakan nama yang ingin ditampilkan di papan peringkat."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ランキングに表示したい名前を使います。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "리더보드에 표시할 이름을 사용하세요."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用你想显示在排行榜上的名称。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用你想顯示在排行榜上的名稱。"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ใช้ชื่อที่คุณต้องการให้แสดงบนกระดานผู้นำ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dùng tên bạn muốn hiển thị trên bảng xếp hạng."
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লিডারবোর্ডে দেখাতে চান এমন নাম ব্যবহার করুন।"
-          }
-        },
-        "ur": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "وہ نام استعمال کریں جو آپ لیڈر بورڈز پر دکھانا چاہتے ہیں۔"
+            "value": "Tek mücadelede birbiriyle kesişen beş 9×9 tahta"
           }
         }
       }
     },
-    "profile_display_error": {
+    "samurai_choose_difficulty": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enter at least 2 characters."
+            "value": "Choose Samurai difficulty"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "En az 2 karakter gir."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gib mindestens 2 Zeichen ein."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saisissez au moins 2 caractères."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Introduce al menos 2 caracteres."
-          }
-        },
-        "pt": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Digite pelo menos 2 caracteres."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inserisci almeno 2 caratteri."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voer minimaal 2 tekens in."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wpisz co najmniej 2 znaki."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Введите минимум 2 символа."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Введіть щонайменше 2 символи."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "أدخل حرفين على الأقل."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "कम से कम 2 अक्षर दर्ज करें."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Masukkan minimal 2 karakter."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "2文字以上入力してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "2자 이상 입력하세요."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请输入至少 2 个字符。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請輸入至少 2 個字元。"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ป้อนอย่างน้อย 2 ตัวอักษร"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nhập ít nhất 2 ký tự."
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "কমপক্ষে ২টি অক্ষর লিখুন।"
-          }
-        },
-        "ur": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "کم از کم 2 حروف درج کریں۔"
+            "value": "Samuray zorluğunu seç"
           }
         }
       }
     },
-    "profile_search_name": {
+    "samurai_zoom_hint": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search name"
+            "value": "Pinch to zoom and drag to move across the five linked boards."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Arama adı"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suchname"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nom de recherche"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nombre de búsqueda"
-          }
-        },
-        "pt": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nome de busca"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nome di ricerca"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zoeknaam"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nazwa do wyszukiwania"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Имя для поиска"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ім’я для пошуку"
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "اسم البحث"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खोज नाम"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nama pencarian"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "検索名"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "검색 이름"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索名称"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜尋名稱"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ชื่อค้นหา"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tên tìm kiếm"
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "অনুসন্ধান নাম"
-          }
-        },
-        "ur": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "تلاش کا نام"
+            "value": "Beş bağlantılı tahtada gezinmek için yakınlaştırın ve sürükleyin."
           }
         }
       }
     },
-    "profile_search_helper": {
+    "samurai_pause_body": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lowercase letters, numbers and underscore are allowed."
+            "value": "Your five linked boards are paused. Continue when ready."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Küçük harf, rakam ve alt çizgi kullanabilirsin."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kleinbuchstaben, Zahlen und Unterstrich sind erlaubt."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lettres minuscules, chiffres et trait de soulignement autorisés."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Se permiten minúsculas, números y guion bajo."
-          }
-        },
-        "pt": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Letras minúsculas, números e sublinhado são permitidos."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sono consentiti lettere minuscole, numeri e trattino basso."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kleine letters, cijfers en underscore zijn toegestaan."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dozwolone są małe litery, cyfry i podkreślenie."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разрешены строчные буквы, цифры и подчёркивание."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Дозволені малі літери, цифри та підкреслення."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "يُسمح بالأحرف الصغيرة والأرقام والشرطة السفلية."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "छोटे अक्षर, अंक और अंडरस्कोर मान्य हैं."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Huruf kecil, angka, dan garis bawah diperbolehkan."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "小文字、数字、アンダースコアを使用できます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "소문자, 숫자, 밑줄을 사용할 수 있습니다."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可使用小写字母、数字和下划线。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可使用小寫字母、數字和底線。"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ใช้ตัวพิมพ์เล็ก ตัวเลข และขีดล่างได้"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cho phép chữ thường, số và dấu gạch dưới."
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ছোট হাতের অক্ষর, সংখ্যা ও আন্ডারস্কোর ব্যবহার করা যাবে।"
-          }
-        },
-        "ur": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "چھوٹے حروف، نمبر اور انڈر اسکور استعمال ہو سکتے ہیں۔"
+            "value": "Beş bağlantılı tahta duraklatıldı. Hazır olduğunuzda devam edin."
           }
         }
       }
     },
-    "profile_search_error": {
+    "samurai_completed_title": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use 3-20 letters, numbers or underscore."
+            "value": "Samurai completed!"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "3-20 harf, rakam veya alt çizgi kullan."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nutze 3–20 Buchstaben, Zahlen oder Unterstriche."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Utilisez 3 à 20 lettres, chiffres ou traits de soulignement."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa de 3 a 20 letras, números o guion bajo."
-          }
-        },
-        "pt": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use 3 a 20 letras, números ou sublinhado."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa 3-20 lettere, numeri o trattini bassi."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gebruik 3-20 letters, cijfers of underscores."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Użyj 3-20 liter, cyfr lub podkreśleń."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Используйте 3–20 букв, цифр или подчёркиваний."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Використовуйте 3–20 літер, цифр або підкреслень."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "استخدم 3 إلى 20 حرفًا أو رقمًا أو شرطة سفلية."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "3-20 अक्षर, अंक या अंडरस्कोर उपयोग करें."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gunakan 3-20 huruf, angka, atau garis bawah."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "3〜20文字の英小文字、数字、アンダースコアを使ってください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "3-20자의 문자, 숫자 또는 밑줄을 사용하세요."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请使用 3-20 个字母、数字或下划线。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請使用 3-20 個字母、數字或底線。"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ใช้ตัวอักษร ตัวเลข หรือขีดล่าง 3-20 ตัว"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dùng 3-20 chữ cái, số hoặc dấu gạch dưới."
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "৩-২০টি অক্ষর, সংখ্যা বা আন্ডারস্কোর ব্যবহার করুন।"
-          }
-        },
-        "ur": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "3-20 حروف، نمبر یا انڈر اسکور استعمال کریں۔"
+            "value": "Samuray tamamlandı!"
           }
         }
       }
     },
-    "profile_discovery_title": {
+    "samurai_completed_body": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Let players find me"
+            "value": "You solved all five linked Sudoku boards."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Oyuncular beni bulabilsin"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spieler dürfen mich finden"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Autoriser les joueurs à me trouver"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Permitir que me encuentren"
-          }
-        },
-        "pt": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Permitir que me encontrem"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Consenti ai giocatori di trovarmi"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Laat spelers mij vinden"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pozwól graczom mnie znaleźć"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Разрешить игрокам находить меня"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Дозволити гравцям знаходити мене"
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "السماح للاعبين بالعثور عليّ"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खिलाड़ियों को मुझे खोजने दें"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Izinkan pemain menemukanku"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プレイヤーが自分を見つけられるようにする"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "플레이어가 나를 찾도록 허용"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "允许玩家找到我"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "允許玩家找到我"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ให้ผู้เล่นค้นหาฉันได้"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cho phép người chơi tìm thấy tôi"
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "খেলোয়াড়দের আমাকে খুঁজতে দিন"
-          }
-        },
-        "ur": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "کھلاڑیوں کو مجھے تلاش کرنے دیں"
+            "value": "Birbirine bağlı beş Sudoku tahtasının tamamını çözdünüz."
           }
         }
       }
     },
-    "profile_discovery_on": {
+    "duel_variant_classic": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Other players can find you by name or Friend ID."
+            "value": "Classic Sudoku"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diğer oyuncular seni adınla veya Arkadaş Kimliğiyle bulabilir."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Andere Spieler können dich per Name oder Freund-ID finden."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Les autres joueurs peuvent vous trouver par nom ou ID ami."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Otros jugadores pueden encontrarte por nombre o ID de amigo."
-          }
-        },
-        "pt": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Outros jogadores podem encontrar você por nome ou ID de amigo."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gli altri giocatori possono trovarti per nome o ID amico."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Andere spelers kunnen je vinden op naam of vriend-ID."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inni gracze mogą znaleźć Cię po nazwie lub ID znajomego."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Другие игроки могут найти вас по имени или ID друга."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Інші гравці можуть знайти вас за ім’ям або ID друга."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "يمكن للاعبين الآخرين العثور عليك بالاسم أو معرّف الصديق."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दूसरे खिलाड़ी आपको नाम या Friend ID से खोज सकते हैं."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pemain lain dapat menemukanmu lewat nama atau ID Teman."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "他のプレイヤーは名前またはフレンドIDであなたを見つけられます。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "다른 플레이어가 이름 또는 친구 ID로 나를 찾을 수 있습니다."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "其他玩家可以通过名称或好友 ID 找到你。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "其他玩家可以透過名稱或好友 ID 找到你。"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ผู้เล่นคนอื่นค้นหาคุณด้วยชื่อหรือ Friend ID ได้"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Người chơi khác có thể tìm bạn bằng tên hoặc ID bạn bè."
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "অন্য খেলোয়াড়রা নাম বা Friend ID দিয়ে আপনাকে খুঁজতে পারবে।"
-          }
-        },
-        "ur": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "دوسرے کھلاڑی آپ کو نام یا Friend ID سے تلاش کر سکتے ہیں۔"
+            "value": "Klasik Sudoku"
           }
         }
       }
     },
-    "profile_discovery_off": {
+    "choose_duel_variant": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "New players cannot find you in search. Friends stay connected."
+            "value": "Choose game type"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Yeni oyuncular seni aramada bulamaz. Arkadaşların bağlı kalır."
+            "value": "Oyun türünü seç"
           }
-        },
-        "de": {
+        }
+      }
+    },
+    "same_variant_match": {
+      "localizations": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neue Spieler finden dich nicht in der Suche. Freunde bleiben verbunden."
+            "value": "You will only be matched with the same game type."
           }
         },
-        "fr": {
+        "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les nouveaux joueurs ne vous trouvent pas en recherche. Les amis restent connectés."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Los nuevos jugadores no te encuentran en la búsqueda. Tus amigos siguen conectados."
-          }
-        },
-        "pt": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Novos jogadores não encontram você na busca. Amigos continuam conectados."
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "I nuovi giocatori non ti trovano nella ricerca. Gli amici restano collegati."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nieuwe spelers vinden je niet via zoeken. Vrienden blijven verbonden."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nowi gracze nie znajdą Cię w wyszukiwarce. Znajomi pozostają połączeni."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Новые игроки не найдут вас в поиске. Друзья останутся подключены."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Нові гравці не знайдуть вас у пошуку. Друзі залишаться підключеними."
-          }
-        },
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لن يجدك اللاعبون الجدد في البحث. يبقى الأصدقاء متصلين."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "नए खिलाड़ी आपको खोज में नहीं पाएंगे. दोस्त जुड़े रहेंगे."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pemain baru tidak dapat menemukanmu di pencarian. Teman tetap terhubung."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新しいプレイヤーは検索であなたを見つけられません。フレンドは接続されたままです。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "새 플레이어는 검색에서 나를 찾을 수 없습니다. 친구는 계속 연결됩니다."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新玩家无法在搜索中找到你。好友仍会保持连接。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新玩家無法在搜尋中找到你。好友仍會保持連線。"
-          }
-        },
-        "th": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ผู้เล่นใหม่จะค้นหาคุณไม่พบ เพื่อนยังเชื่อมต่ออยู่"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Người chơi mới không thể tìm bạn. Bạn bè vẫn được kết nối."
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নতুন খেলোয়াড়রা অনুসন্ধানে আপনাকে পাবে না। বন্ধুরা সংযুক্ত থাকবে।"
-          }
-        },
-        "ur": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "نئے کھلاڑی آپ کو تلاش میں نہیں پائیں گے۔ دوست جڑے رہیں گے۔"
+            "value": "Yalnızca aynı oyun türünü seçen oyuncularla eşleşirsiniz."
           }
         }
       }

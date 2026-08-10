@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/user_safe_error.dart';
 import '../../core/app_theme.dart';
+import '../../domain/samurai_sudoku.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
@@ -18,6 +19,7 @@ import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/player_avatar.dart';
+import '../../widgets/samurai_board.dart';
 import '../../widgets/sudoku_board.dart';
 import '../../widgets/ux_feedback.dart';
 import '../economy/coin_store_screen.dart';
@@ -361,7 +363,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         );
       } else if (action == 'new_match') {
         await Navigator.of(context).pushReplacement<void, void>(
-          MaterialPageRoute(builder: (_) => const MatchmakingScreen()),
+          MaterialPageRoute(
+            builder: (_) => MatchmakingScreen(
+              initialDifficulty: _difficulty(snapshot.difficulty),
+              initialVariant: snapshot.variant,
+            ),
+          ),
         );
       } else if (action == 'menu') {
         Navigator.of(context).pop(action);
@@ -413,10 +420,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                   child: NumberPadDock(
                     child: NumberPad(
                       maxValue: 9,
-                      completedValues: completedSudokuNumbers(
-                        board: snapshot.board,
-                        maxValue: 9,
-                      ),
+                      completedValues: snapshot.variant == 'samurai'
+                          ? const <int>{}
+                          : completedSudokuNumbers(
+                              board: snapshot.board,
+                              maxValue: 9,
+                            ),
                       enabled: !inputLocked,
                       onNumber: _enterNumber,
                       onErase: () => setState(() => _selectedIndex = null),
@@ -505,42 +514,52 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       id: 'online-${snapshot.matchId}',
       title: context.tr('online_duel'),
       difficulty: _difficulty(snapshot.difficulty),
-      puzzle: snapshot.puzzle,
+      puzzle: snapshot.variant == 'samurai'
+          ? const <int>[]
+          : snapshot.puzzle,
       solution: List<int>.filled(81, 1),
+    );
+    final samuraiPuzzle = SamuraiPuzzle(
+      id: 'online-${snapshot.matchId}',
+      title: 'Online Samurai Duel',
+      difficulty: _difficulty(snapshot.difficulty),
+      puzzle: snapshot.puzzle,
+      solution: snapshot.board,
     );
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact =
             constraints.maxHeight < 720 || constraints.maxWidth <= 520;
-        final board = RepaintBoundary(
-          child: IgnorePointer(
-            ignoring:
-                snapshot.isFinished ||
-                snapshot.status == OnlineDuelStatus.paused ||
-                _localConnectionInterrupted ||
-                _forfeiting ||
-                _exitingToMenu ||
-                !snapshot.isLocalTurn,
-            child: SudokuBoard(
-              puzzle: puzzle,
-              board: snapshot.board,
-              selectedIndex: _selectedIndex,
-              errorIndex: _feedbackCell,
-              localMoveIndexes: _localMoveIndexes,
-              opponentMoveIndexes: _opponentMoveIndexes,
-              enabled:
-                  !snapshot.isFinished &&
-                  snapshot.status != OnlineDuelStatus.paused &&
-                  !_localConnectionInterrupted &&
-                  !_forfeiting &&
-                  !_exitingToMenu &&
-                  snapshot.isLocalTurn,
-              onCellTap: _selectCell,
-            ),
-          ),
-        );
-        if (snapshot.status == OnlineDuelStatus.active ||
-            snapshot.status == OnlineDuelStatus.paused) {
+        final board = snapshot.variant == 'samurai'
+            ? RepaintBoundary(
+                child: IgnorePointer(
+                  ignoring: snapshot.isFinished || !snapshot.isLocalTurn,
+                  child: SamuraiBoard(
+                    puzzle: samuraiPuzzle,
+                    board: snapshot.board,
+                    selectedIndex: _selectedIndex,
+                    errorIndex: _feedbackCell,
+                    enabled: !snapshot.isFinished && snapshot.isLocalTurn,
+                    onCellTap: _selectCell,
+                  ),
+                ),
+              )
+            : RepaintBoundary(
+                child: IgnorePointer(
+                  ignoring: snapshot.isFinished || !snapshot.isLocalTurn,
+                  child: SudokuBoard(
+                    puzzle: puzzle,
+                    board: snapshot.board,
+                    selectedIndex: _selectedIndex,
+                    errorIndex: _feedbackCell,
+                    localMoveIndexes: _localMoveIndexes,
+                    opponentMoveIndexes: _opponentMoveIndexes,
+                    enabled: !snapshot.isFinished && snapshot.isLocalTurn,
+                    onCellTap: _selectCell,
+                  ),
+                ),
+              );
+        if (snapshot.status == OnlineDuelStatus.active) {
           return _ArenaMatchLayout(
             snapshot: snapshot,
             compact: compact,

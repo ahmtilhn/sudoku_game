@@ -8,6 +8,7 @@ import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
 import '../../data/game_session_store.dart';
 import '../../data/local_progress_store.dart';
+import '../../data/samurai_game_session_store.dart';
 import '../../data/ux_game_session_store.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
@@ -26,8 +27,7 @@ import '../duel/matchmaking_screen.dart';
 import '../duel/online_duel_screen.dart';
 import '../economy/coin_store_screen.dart';
 import '../game/enhanced_game_screen.dart';
-import '../game/game_screen.dart';
-import '../game/hint_economy.dart';
+import '../game/samurai_game_screen.dart';
 import '../settings/ux_settings_screen.dart';
 import '../social/profile_hub_screen.dart';
 import '../social/social_hub_screen.dart';
@@ -47,10 +47,13 @@ class _UxRootScreenState extends State<UxRootScreen> {
   final PushNotificationService _push = PushNotificationService.instance;
   final UxGameSessionStore _sessions = UxGameSessionStore.instance;
   final GameSessionStore _legacySessions = GameSessionStore.instance;
+  final SamuraiGameSessionStore _samuraiSessions =
+      SamuraiGameSessionStore.instance;
 
   PlayerProfilePreferences? _profile;
   UxGameSession? _activeSession;
   ActiveGameSessionMetadata? _legacySession;
+  SamuraiGameSession? _samuraiSession;
   int _socialBadge = 0;
   bool _routingPush = false;
   bool _openingSession = false;
@@ -62,11 +65,13 @@ class _UxRootScreenState extends State<UxRootScreen> {
     _economy.addListener(_refresh);
     _sessions.activeSession.addListener(_sessionChanged);
     _legacySessions.activeSession.addListener(_legacySessionChanged);
+    _samuraiSessions.activeSession.addListener(_samuraiSessionChanged);
     _push.openedChallengeId.addListener(_schedulePushRouting);
     _push.openedRematchId.addListener(_schedulePushRouting);
     unawaited(_economy.initialize());
     unawaited(_sessions.initialize());
     unawaited(_legacySessions.latest());
+    unawaited(_samuraiSessions.initialize());
     unawaited(_loadProfile());
     unawaited(_loadBadge());
     WidgetsBinding.instance.addPostFrameCallback((_) => _schedulePushRouting());
@@ -77,6 +82,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
     _economy.removeListener(_refresh);
     _sessions.activeSession.removeListener(_sessionChanged);
     _legacySessions.activeSession.removeListener(_legacySessionChanged);
+    _samuraiSessions.activeSession.removeListener(_samuraiSessionChanged);
     _push.openedChallengeId.removeListener(_schedulePushRouting);
     _push.openedRematchId.removeListener(_schedulePushRouting);
     super.dispose();
@@ -93,6 +99,12 @@ class _UxRootScreenState extends State<UxRootScreen> {
   void _legacySessionChanged() {
     if (mounted) {
       setState(() => _legacySession = _legacySessions.activeSession.value);
+    }
+  }
+
+  void _samuraiSessionChanged() {
+    if (mounted) {
+      setState(() => _samuraiSession = _samuraiSessions.activeSession.value);
     }
   }
 
@@ -388,6 +400,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
       _economy.refresh(showLoading: false),
       _sessions.latest().then((_) {}),
       _legacySessions.latest().then((_) {}),
+      _samuraiSessions.initialize(),
       _loadProfile(),
       _loadBadge(),
     ]);
@@ -400,6 +413,8 @@ class _UxRootScreenState extends State<UxRootScreen> {
       final session = _activeSession;
       if (session != null) {
         await _resumeUxSession(session);
+      } else if (_samuraiSession != null) {
+        await _resumeSamurai(_samuraiSession!);
       } else if (_legacySession != null) {
         await _resumeLegacy(_legacySession!);
       }
@@ -453,6 +468,33 @@ class _UxRootScreenState extends State<UxRootScreen> {
     if (result == EnhancedGameExit.next && level != null) {
       await _open(CareerHubScreen(store: widget.store));
     }
+  }
+
+  Future<void> _resumeSamurai(SamuraiGameSession session) async {
+    await Navigator.of(context).push<SamuraiGameExit>(
+      MaterialPageRoute(
+        builder: (_) => SamuraiGameScreen(
+          puzzle: session.puzzle,
+          initialSession: session,
+          store: widget.store,
+          onCompleted:
+              ({
+                required seconds,
+                required mistakes,
+                required hints,
+              }) async {
+                await widget.store.recordResult(
+                  puzzleId:
+                      'practice-samurai-${session.puzzle.difficulty.name}',
+                  seconds: seconds,
+                  mistakes: mistakes,
+                  hints: hints,
+                );
+                await _claimEligibleAchievements();
+              },
+        ),
+      ),
+    );
   }
 
   Future<void> _resumeLegacy(ActiveGameSessionMetadata metadata) async {
@@ -545,6 +587,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
   @override
   Widget build(BuildContext context) {
     final resume = _activeSession;
+    final samurai = _samuraiSession;
     final legacyLevel = _legacySession == null
         ? null
         : CareerCatalog.byId(_legacySession!.puzzleId);
@@ -596,17 +639,22 @@ class _UxRootScreenState extends State<UxRootScreen> {
                           ),
                         ),
                         const SizedBox(height: 26),
-                        if (resume != null || legacyLevel != null) ...[
+                        if (resume != null ||
+                            samurai != null ||
+                            legacyLevel != null) ...[
                           _ResumeCard(
-                            title: resume == null
-                                ? context.tr('level_title', <Object>[
-                                    context.strings.difficultyLabel(
-                                      legacyLevel!.difficulty,
-                                    ),
-                                    legacyLevel.number,
-                                  ])
-                                : _sessionTitle(context, resume),
+                            title: resume != null
+                                ? _sessionTitle(context, resume)
+                                : samurai != null
+                                    ? '${context.tr('samurai_sudoku')} · ${context.strings.difficultyLabel(samurai.puzzle.difficulty)}'
+                                    : context.tr('level_title', <Object>[
+                                        context.strings.difficultyLabel(
+                                          legacyLevel!.difficulty,
+                                        ),
+                                        legacyLevel.number,
+                                      ]),
                             elapsed: resume?.elapsedSeconds ??
+                                samurai?.elapsedSeconds ??
                                 _legacySession!.elapsedSeconds,
                             loading: _openingSession,
                             onTap: _resume,
