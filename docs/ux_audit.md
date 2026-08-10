@@ -4,7 +4,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 
 ## Audit scope
 
-- Screen files: **29**
+- Screen files: **31**
 - Forwarding/compatibility wrappers: **1**
 - Feature groups: **9** (career, daily, duel, economy, game, home, settings, social, tutorial)
 - Required device behavior: compact phone, large phone/tablet, text scaling, safe insets, keyboard insets and scroll recovery
@@ -33,40 +33,48 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | daily | `DailyScreen`<br>`lib/features/daily/daily_screen.dart` | Production screen | — | — | — | — | Yes | — | Yes | Yes | No explicit responsive primitive detected |
 | duel | `DuelScreen`<br>`lib/features/duel/duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | duel | `LeaderboardsScreen`<br>`lib/features/duel/leaderboards_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| duel | `MatchmakingScreen`<br>`lib/features/duel/matchmaking_screen.dart` | Production screen | Yes | Yes | — | — | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
-| duel | `OnlineDuelScreen`<br>`lib/features/duel/online_duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| duel | `PreMatchReadyScreen`<br>`lib/features/duel/pre_match_ready_screen.dart` | Production screen | — | — | — | — | Yes | — | Yes | Yes | No explicit responsive primitive detected |
+| duel | `MatchmakingScreen`<br>`lib/features/duel/matchmaking_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
+| duel | `OnlineDuelScreen`<br>`lib/features/duel/online_duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | — | Yes | Remote failure path needs user-safe mapping review; Outcome content does not use shared outcome component |
+| duel | `PreMatchReadyScreen`<br>`lib/features/duel/pre_match_ready_screen.dart` | Production screen | Yes | Yes | — | — | — | — | Yes | Yes | Remote failure path needs user-safe mapping review; Dense column without explicit scroll marker |
 | economy | `CoinStoreScreen`<br>`lib/features/economy/coin_store_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | economy | `WalletHistoryScreen`<br>`lib/features/economy/wallet_history_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
-| game | `EnhancedGameScreen`<br>`lib/features/game/enhanced_game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
+| game | `EnhancedGameScreen`<br>`lib/features/game/enhanced_game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
 | game | `GameScreen`<br>`lib/features/game/game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
 | game | `SamuraiGameScreen`<br>`lib/features/game/samurai_game_screen.dart` | Production screen | Yes | — | — | — | Yes | — | Yes | Yes | No explicit responsive primitive detected |
 | home | `HomeScreen`<br>`lib/features/home/home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | home | `ProfessionalHomeScreen`<br>`lib/features/home/professional_home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| home | `UxRootScreen`<br>`lib/features/home/ux_root_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| home | `UxRootScreen`<br>`lib/features/home/ux_root_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
 | settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | settings | `ServiceDiagnosticsScreen`<br>`lib/features/settings/service_diagnostics_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | settings | `SettingsScreen`<br>`lib/features/settings/settings_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
-| social | `ChallengeInvitationScreen`<br>`lib/features/social/challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| social | `ChallengeWaitingScreen`<br>`lib/features/social/challenge_waiting_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | No static warning |
+| social | `ChallengeInvitationScreen`<br>`lib/features/social/challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
+| social | `ChallengeWaitingScreen`<br>`lib/features/social/challenge_waiting_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
 | social | `FriendRequestsScreen`<br>`lib/features/social/friend_requests_screen.dart` | Production screen | — | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | social | `GooglePlayGamesScreen`<br>`lib/features/social/google_play_games_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| social | `PlatformServicesScreen`<br>`lib/features/social/platform_services_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
+| social | `PlatformServicesScreen`<br>`lib/features/social/platform_services_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
 | social | `PlatformSocialScreen`<br>`lib/features/social/platform_social_screen.dart` | Production screen | — | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `PlayerProfileScreen`<br>`lib/features/social/player_profile_screen.dart` | Forwarding wrapper | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
-| social | `ProfileHubScreen`<br>`lib/features/social/profile_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
-| social | `SocialHubScreen`<br>`lib/features/social/social_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| social | `UxChallengeInvitationScreen`<br>`lib/features/social/ux_challenge_invitation_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
+| social | `ProfileHubScreen`<br>`lib/features/social/profile_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
+| social | `SocialHubScreen`<br>`lib/features/social/social_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
+| social | `UxChallengeInvitationScreen`<br>`lib/features/social/ux_challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
 | tutorial | `TutorialScreen`<br>`lib/features/tutorial/tutorial_screen.dart` | Production screen | — | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
 
 ## Static warnings requiring visual regression attention
 
 - `lib/features/daily/daily_screen.dart`: No explicit responsive primitive detected
-- `lib/features/duel/matchmaking_screen.dart`: Dense column without explicit scroll marker
-- `lib/features/duel/pre_match_ready_screen.dart`: No explicit responsive primitive detected
+- `lib/features/duel/online_duel_screen.dart`: Remote failure path needs user-safe mapping review; Outcome content does not use shared outcome component
+- `lib/features/duel/pre_match_ready_screen.dart`: Remote failure path needs user-safe mapping review; Dense column without explicit scroll marker
+- `lib/features/game/enhanced_game_screen.dart`: Outcome content does not use shared outcome component
 - `lib/features/game/game_screen.dart`: Outcome content does not use shared outcome component
 - `lib/features/game/samurai_game_screen.dart`: No explicit responsive primitive detected
+- `lib/features/home/ux_root_screen.dart`: Remote failure path needs user-safe mapping review
+- `lib/features/social/challenge_invitation_screen.dart`: Remote failure path needs user-safe mapping review
+- `lib/features/social/challenge_waiting_screen.dart`: Remote failure path needs user-safe mapping review
+- `lib/features/social/platform_services_screen.dart`: Remote failure path needs user-safe mapping review
+- `lib/features/social/profile_hub_screen.dart`: Remote failure path needs user-safe mapping review
+- `lib/features/social/social_hub_screen.dart`: Remote failure path needs user-safe mapping review
+- `lib/features/social/ux_challenge_invitation_screen.dart`: Remote failure path needs user-safe mapping review
 
 Static warnings are not automatically defects. Confirmation dialogs, short setup screens and game canvases may intentionally omit a list or common state panel. They remain listed so visual/device tests do not silently skip them.
 
