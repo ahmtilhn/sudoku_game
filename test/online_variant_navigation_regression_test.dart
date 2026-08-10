@@ -39,17 +39,19 @@ void main() {
 
   test('profile identity card uses one aligned avatar axis', () {
     final source = File(
-      'lib/features/social/profile_hub_screen.dart',
+      'lib/features/social/competitive_profile_card.dart',
     ).readAsStringSync();
-    final start = source.indexOf('Widget _identityCard({');
-    final end = source.indexOf('Widget _tabContent(', start);
+    final start = source.indexOf('class CompetitiveProfileCard');
+    final end = source.indexOf('class _RankBadge', start);
 
     expect(start, greaterThanOrEqualTo(0));
     expect(end, greaterThan(start));
     final identityCard = source.substring(start, end);
-    expect(identityCard, contains("'profile-identity-card'"));
     expect(identityCard, contains('PlayerAvatar('));
-    expect(identityCard, contains('localAvatarBytes: avatarBytes'));
+    expect(
+      identityCard,
+      contains('remoteApprovedImageUrl: platformPlayer?.avatarUrl'),
+    );
     expect(identityCard, contains('Expanded('));
     expect(identityCard, isNot(contains('DuelAsset.profilePro')));
   });
@@ -75,7 +77,7 @@ void main() {
       'backend/social_worker/src/index.ts',
     ).readAsStringSync();
 
-    expect(source, contains("variant: match.variant === 'classic16'"));
+    expect(source, contains('variant: duelVariant(match.variant)'));
     expect(source, contains('stateVariant(duel)'));
     expect(source, contains('FROM player_variant_ratings'));
     expect(source, contains('UPDATE player_variant_ratings'));
