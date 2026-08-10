@@ -34,7 +34,9 @@ void main() {
       'lib/features/social/profile_hub_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('minTileHeight: 68'));
+    expect(source, contains('_ActionSection'));
+    expect(source, contains('SliverGridDelegateWithFixedCrossAxisCount'));
+    expect(source, contains('DuelAsset.leaderboardCrownPro'));
     expect(source, contains('LeaderboardsScreen'));
     expect(source, contains('CompetitiveProfileCard'));
   });

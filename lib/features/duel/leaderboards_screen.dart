@@ -315,7 +315,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                       onRefresh: () => _load(),
                       onNative: _openNative,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     _Hero(
                       displayName: displayName,
                       player: platformPlayer,
@@ -324,7 +324,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                       variantLabel: _variant.label,
                       scopeLabel: _scopeLabel(context, _selectedScope),
                     ),
-                    const SizedBox(height: 9),
+                    const SizedBox(height: 10),
                     _Filters(
                       variant: _variant,
                       scope: _selectedScope,
@@ -333,7 +333,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                       onScope: _selectScope,
                       onAudience: _selectAudience,
                     ),
-                    const SizedBox(height: 9),
+                    const SizedBox(height: 10),
                     Expanded(child: _buildLeaderboardBody()),
                     if (!_loading && current != null) ...[
                       const SizedBox(height: 8),
@@ -445,8 +445,14 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46,
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A1728).withValues(alpha: .72),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      ),
       child: Row(
         children: [
           IconButton.filledTonal(
@@ -459,6 +465,8 @@ class _Header extends StatelessWidget {
           Expanded(
             child: Text(
               context.tr('leaderboards'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 22,
@@ -515,7 +523,7 @@ class _Hero extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -530,56 +538,85 @@ class _Hero extends StatelessWidget {
         border: Border.all(
           color: const Color(0xFFFFC73D).withValues(alpha: .4),
         ),
-      ),
-      child: Row(
-        children: [
-          PlayerAvatar(
-            displayName: displayName,
-            avatarKey: 'home-profile-leaderboard',
-            localAvatarBytes: player?.avatarBytes,
-            remoteApprovedImageUrl: player?.avatarUrl,
-            radius: 29,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '$variantLabel · $scopeLabel',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .56),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          _HeroValue(
-            label: context.tr('current_elo'),
-            value: rating == null ? '—' : '$rating',
-          ),
-          const SizedBox(width: 12),
-          _HeroValue(
-            label: context.tr('rank'),
-            value: rank == null ? '—' : '#$rank',
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .18),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 430;
+          final values = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _HeroValue(
+                label: context.tr('current_elo'),
+                value: rating == null ? '—' : '$rating',
+              ),
+              const SizedBox(width: 14),
+              _HeroValue(
+                label: context.tr('rank'),
+                value: rank == null ? '—' : '#$rank',
+              ),
+            ],
+          );
+          final identity = Row(
+            children: [
+              PlayerAvatar(
+                displayName: displayName,
+                avatarKey: 'home-profile-leaderboard',
+                localAvatarBytes: player?.avatarBytes,
+                remoteApprovedImageUrl: player?.avatarUrl,
+                radius: 29,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '$variantLabel · $scopeLabel',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .64),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [identity, const SizedBox(height: 12), values],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: identity),
+              values,
+            ],
+          );
+        },
       ),
     );
   }
@@ -606,6 +643,8 @@ class _HeroValue extends StatelessWidget {
         ),
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: Colors.white.withValues(alpha: .46),
             fontSize: 9,
@@ -637,10 +676,10 @@ class _Filters extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF0A1728).withValues(alpha: .86),
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(19),
         border: Border.all(color: Colors.white.withValues(alpha: .08)),
       ),
       child: Column(
@@ -667,7 +706,7 @@ class _Filters extends StatelessWidget {
           ),
           const SizedBox(height: 9),
           SizedBox(
-            height: 36,
+            height: 38,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _LeaderboardScreenData.scopes.length,
@@ -679,6 +718,7 @@ class _Filters extends StatelessWidget {
                   label: Text(_scopeLabel(context, value)),
                   onSelected: (_) => onScope(value),
                   visualDensity: VisualDensity.compact,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.w800),
                 );
               },
             ),
@@ -732,10 +772,7 @@ class _Podium extends StatelessWidget {
       children: [
         for (var index = 0; index < ordered.length; index++) ...[
           Expanded(
-            child: _PodiumCard(
-              entry: ordered[index],
-              elevated: index == 1,
-            ),
+            child: _PodiumCard(entry: ordered[index], elevated: index == 1),
           ),
           if (index != ordered.length - 1) const SizedBox(width: 7),
         ],
@@ -752,12 +789,16 @@ class _PodiumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final medal = switch (entry.rank) { 1 => '🥇', 2 => '🥈', _ => '🥉' };
+    final medal = switch (entry.rank) {
+      1 => '🥇',
+      2 => '🥈',
+      _ => '🥉',
+    };
     return Container(
-      padding: EdgeInsets.fromLTRB(8, elevated ? 14 : 10, 8, 10),
+      padding: EdgeInsets.fromLTRB(9, elevated ? 15 : 11, 9, 11),
       decoration: BoxDecoration(
         color: const Color(0xFF0A1728).withValues(alpha: .9),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(17),
         border: Border.all(
           color: entry.rank == 1
               ? const Color(0xFFFFC73D).withValues(alpha: .5)
@@ -809,22 +850,31 @@ class _LeaderboardEntryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = entry.rank <= 3 && !entry.isProvisional
+        ? const Color(0xFFFFC73D)
+        : const Color(0xFF3AA9FF);
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: const Color(0xFF0A1728).withValues(alpha: .82),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.white.withValues(alpha: .08)),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: accent.withValues(alpha: .18)),
           ),
           child: Row(
             children: [
-              SizedBox(
-                width: 42,
+              Container(
+                width: 44,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: .11),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: entry.isProvisional
                     ? const Icon(
                         Icons.hourglass_top_rounded,
@@ -1064,10 +1114,7 @@ class _InlineState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            FilledButton.tonal(
-              onPressed: onAction,
-              child: Text(actionLabel),
-            ),
+            FilledButton.tonal(onPressed: onAction, child: Text(actionLabel)),
           ],
         ),
       ),

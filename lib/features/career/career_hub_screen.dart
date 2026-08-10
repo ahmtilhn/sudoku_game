@@ -175,7 +175,8 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                                     ? null
                                     : () => setState(() {
                                         _chapter =
-                                            (nextNumber - 1) ~/ _chapterSize + 1;
+                                            (nextNumber - 1) ~/ _chapterSize +
+                                            1;
                                       }),
                                 child: Text(
                                   context.tr('level_title', <Object>[
@@ -225,7 +226,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                           current: level.number == nextNumber,
                           loading: _generatingLevel == level.number,
                           onTap:
-                              widget.store.isCareerLevelUnlocked(level.number) &&
+                              widget.store.isCareerLevelUnlocked(
+                                    level.number,
+                                  ) &&
                                   !_busy
                               ? () => _openCareer(level)
                               : null,
@@ -343,11 +346,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
               level.number,
             ]),
             onCompleted:
-                ({
-                  required seconds,
-                  required mistakes,
-                  required hints,
-                }) async {
+                ({required seconds, required mistakes, required hints}) async {
                   await widget.store.recordResult(
                     puzzleId: level.id,
                     seconds: seconds,
@@ -364,8 +363,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       );
       if (!mounted) return;
       setState(() {
-        _chapter =
-            (widget.store.nextCareerLevelNumber - 1) ~/ _chapterSize + 1;
+        _chapter = (widget.store.nextCareerLevelNumber - 1) ~/ _chapterSize + 1;
       });
       if (result != EnhancedGameExit.next) return;
       level = CareerCatalog.levelAt(level.number + 1);
@@ -399,9 +397,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
             Text(
               sheetContext.tr('samurai_choose_difficulty'),
               textAlign: TextAlign.center,
-              style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                sheetContext,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
             for (final value in SudokuDifficulty.values)
@@ -436,11 +434,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
           puzzle: puzzle,
           store: widget.store,
           onCompleted:
-              ({
-                required seconds,
-                required mistakes,
-                required hints,
-              }) async {
+              ({required seconds, required mistakes, required hints}) async {
                 await widget.store.recordResult(
                   puzzleId: 'practice-samurai-${difficulty.name}',
                   seconds: seconds,
@@ -476,11 +470,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
           store: widget.store,
           showNextAction: false,
           onCompleted:
-              ({
-                required seconds,
-                required mistakes,
-                required hints,
-              }) async {
+              ({required seconds, required mistakes, required hints}) async {
                 await widget.store.recordResult(
                   puzzleId: progressId,
                   seconds: seconds,
@@ -526,13 +516,32 @@ class _HeroPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFF101B20).withValues(alpha: .94),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF172B37).withValues(alpha: .96),
+            const Color(0xFF101B20).withValues(alpha: .96),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Row(
           children: [
-            DuelAssetIcon(icon, size: 58),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .07),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: DuelAssetIcon(icon, size: 52),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -556,11 +565,22 @@ class _HeroPanel extends StatelessWidget {
                   ),
                   if (trailing != null) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      trailing!,
-                      style: const TextStyle(
-                        color: Color(0xFFFFC94D),
-                        fontWeight: FontWeight.w900,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFC94D).withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        trailing!,
+                        style: const TextStyle(
+                          color: Color(0xFFFFC94D),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -588,21 +608,34 @@ class _NextLevelCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _difficultyAccent(level.difficulty);
-    return Card(
-      color: accent.withValues(alpha: .16),
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
           padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: .14),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: accent.withValues(alpha: .36)),
+          ),
           child: Row(
             children: [
-              SizedBox.square(
-                dimension: 48,
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: loading
                     ? Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: CircularProgressIndicator(color: accent),
+                        padding: const EdgeInsets.all(14),
+                        child: CircularProgressIndicator(
+                          color: accent,
+                          strokeWidth: 2.4,
+                        ),
                       )
                     : Icon(Icons.play_arrow_rounded, color: accent, size: 42),
               ),
@@ -616,8 +649,10 @@ class _NextLevelCard extends StatelessWidget {
                       style: TextStyle(
                         color: accent,
                         fontWeight: FontWeight.w900,
+                        letterSpacing: 0,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       context.tr('level_title', <Object>[
                         context.strings.difficultyLabel(level.difficulty),
@@ -632,7 +667,7 @@ class _NextLevelCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_rounded, color: accent),
+              Icon(Icons.arrow_forward_rounded, color: accent, size: 30),
             ],
           ),
         ),
@@ -661,22 +696,25 @@ class _LevelCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _difficultyAccent(level.difficulty);
-    return Card(
-      color: const Color(0xFF101B20).withValues(alpha: .95),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(
-          color: current
-              ? accent
-              : accent.withValues(alpha: unlocked ? .28 : .10),
-          width: current ? 2 : 1,
-        ),
-      ),
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
-        child: Padding(
+        child: Ink(
           padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: unlocked
+                ? const Color(0xFF101B20).withValues(alpha: .95)
+                : const Color(0xFF0B1215).withValues(alpha: .78),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: current
+                  ? accent
+                  : accent.withValues(alpha: unlocked ? .28 : .10),
+              width: current ? 2 : 1,
+            ),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -702,6 +740,26 @@ class _LevelCard extends StatelessWidget {
                           ),
                   ),
                   const Spacer(),
+                  if (current)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: .14),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        context.tr('continue_action'),
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  if (current) const SizedBox(width: 6),
                   if (progress != null)
                     Row(
                       children: List<Widget>.generate(
@@ -752,6 +810,18 @@ class _LevelCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              if (progress != null) ...[
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: progress!.stars / 3,
+                    minHeight: 4,
+                    backgroundColor: Colors.white.withValues(alpha: .08),
+                    valueColor: AlwaysStoppedAnimation<Color>(accent),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -779,32 +849,70 @@ class _PracticeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFF101B20).withValues(alpha: .95),
-      child: ListTile(
-        minTileHeight: 76,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         onTap: onTap,
-        leading: SizedBox.square(
-          dimension: 48,
-          child: loading
-              ? Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: CircularProgressIndicator(color: accent),
-                )
-              : Icon(icon, color: accent, size: 32),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
+        borderRadius: BorderRadius.circular(17),
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF101B20).withValues(alpha: .95),
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: accent.withValues(alpha: .22)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: .13),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: loading
+                    ? Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: CircularProgressIndicator(
+                          color: accent,
+                          strokeWidth: 2.4,
+                        ),
+                      )
+                    : Icon(icon, color: accent, size: 31),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .64),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, color: accent),
+            ],
           ),
         ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(color: Colors.white.withValues(alpha: .66)),
-        ),
-        trailing: Icon(Icons.arrow_forward_rounded, color: accent),
       ),
     );
   }
