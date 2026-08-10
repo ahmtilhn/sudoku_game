@@ -91,20 +91,23 @@ void main() {
   });
 
   test(
-    'leaderboards open native ELO boards without Firebase ranking dependency',
+    'leaderboards use the competitive backend and retain optional native ELO entry',
     () {
       final source = File(
         'lib/features/duel/leaderboards_screen.dart',
       ).readAsStringSync();
 
+      expect(source, contains('CompetitiveLeaderboardApi.instance'));
+      expect(source, contains('_leaderboards.load('));
+      expect(source, contains('SudokuVariant.classic9'));
+      expect(source, contains('SudokuVariant.classic16'));
+      expect(source, contains("_LeaderboardAudience.friends => 'friends'"));
+      expect(source, contains("_LeaderboardAudience.aroundMe => 'around_me'"));
       expect(
         source,
-        contains('PlatformLeaderboardIds().idFor(platform, scope)'),
+        contains('PlatformLeaderboardIds().idFor(platform, _selectedScope)'),
       );
       expect(source, contains('showLeaderboard(leaderboardId: leaderboardId)'));
-      expect(source, contains("'ELO'"));
-      expect(source, isNot(contains('SocialApiClient')));
-      expect(source, isNot(contains('FirebaseSessionService')));
     },
   );
 }
