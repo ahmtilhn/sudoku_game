@@ -12,6 +12,8 @@ import 'competitive_profile_card.dart';
 import 'platform_services_screen.dart';
 import 'social_hub_screen.dart';
 
+enum _ProfileTab { friends, wallet, leaderboards, platform }
+
 class ProfileHubScreen extends StatefulWidget {
   const ProfileHubScreen({super.key});
 
@@ -23,6 +25,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   CompetitiveProfile? _profile;
   bool _loading = true;
   String? _error;
+  _ProfileTab _selectedTab = _ProfileTab.friends;
 
   @override
   void initState() {
@@ -51,19 +54,14 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tabs = _tabs(context);
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
-        title: Text(context.tr('profile')),
-        actions: [
-          IconButton(
-            tooltip: context.tr('refresh'),
-            onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
+        automaticallyImplyLeading: true,
+        title: const SizedBox.shrink(),
       ),
       body: AppBackdrop(
         child: SafeArea(
@@ -75,54 +73,25 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                       children: [
-                        _ProfileHeader(
-                          hasProfile: _profile != null,
-                          error: _error,
-                          onRetry: _load,
-                        ),
-                        const SizedBox(height: 14),
                         if (_profile != null)
                           CompetitiveProfileCard(profile: _profile!),
                         if (_error != null)
                           _ProfileNotice(message: _error!, onRetry: _load),
                         const SizedBox(height: 14),
-                        _ActionSection(
-                          actions: [
-                            _ProfileActionData(
-                              asset: DuelAsset.people,
-                              title: context.tr('friends_challenges'),
-                              subtitle: context.tr('friend_requests'),
-                              accent: const Color(0xFF3AA9FF),
-                              onTap: () => _open(const SocialHubScreen()),
-                            ),
-                            _ProfileActionData(
-                              asset: DuelAsset.coin,
-                              title: context.tr('coin_history'),
-                              subtitle: context.tr('server_wallet_history'),
-                              accent: const Color(0xFFFFC94D),
-                              onTap: () => _open(const WalletHistoryScreen()),
-                            ),
-                            _ProfileActionData(
-                              asset: DuelAsset.leaderboardCrownPro,
-                              title: context.tr('leaderboards'),
-                              subtitle: context.tr('home_rating_label'),
-                              accent: const Color(0xFFB7A9FF),
-                              onTap: () => _open(const LeaderboardsScreen()),
-                            ),
-                            if (Platform.isAndroid || Platform.isIOS)
-                              _ProfileActionData(
-                                asset: DuelAsset.profilePro,
-                                title: Platform.isIOS
-                                    ? 'Game Center'
-                                    : 'Google Play Games',
-                                subtitle: context.tr('leaderboards'),
-                                accent: const Color(0xFF29D398),
-                                onTap: () =>
-                                    _open(const PlatformServicesScreen()),
-                              ),
-                          ],
+                        _ProfileTabs(
+                          tabs: tabs,
+                          selected: _selectedTab,
+                          onSelected: (value) =>
+                              setState(() => _selectedTab = value),
+                        ),
+                        const SizedBox(height: 12),
+                        _ProfileTabPanel(
+                          tab: tabs.firstWhere(
+                            (tab) => tab.tab == _selectedTab,
+                            orElse: () => tabs.first,
+                          ),
                         ),
                       ],
                     ),
@@ -132,81 +101,43 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
       ),
     );
   }
-}
 
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({
-    required this.hasProfile,
-    required this.error,
-    required this.onRetry,
-  });
-
-  final bool hasProfile;
-  final String? error;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = error == null
-        ? const Color(0xFF3AA9FF)
-        : const Color(0xFFFF8A3D);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF071014).withValues(alpha: .82),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent.withValues(alpha: .28)),
+  List<_ProfileTabData> _tabs(BuildContext context) {
+    return [
+      _ProfileTabData(
+        tab: _ProfileTab.friends,
+        asset: DuelAsset.people,
+        title: context.tr('friends_challenges'),
+        subtitle: context.tr('friend_requests'),
+        accent: const Color(0xFF3AA9FF),
+        onOpen: () => _open(const SocialHubScreen()),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 58,
-            height: 58,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: .12),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: DuelAssetIcon(
-              hasProfile ? DuelAsset.profilePro : DuelAsset.wifi,
-              size: 40,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr('profile'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  hasProfile
-                      ? context.tr('home_rating_label')
-                      : context.tr('online_account_unavailable'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .66),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton.filledTonal(
-            tooltip: context.tr('refresh'),
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
+      _ProfileTabData(
+        tab: _ProfileTab.wallet,
+        asset: DuelAsset.coin,
+        title: context.tr('coin_history'),
+        subtitle: context.tr('server_wallet_history'),
+        accent: const Color(0xFFFFC94D),
+        onOpen: () => _open(const WalletHistoryScreen()),
       ),
-    );
+      _ProfileTabData(
+        tab: _ProfileTab.leaderboards,
+        asset: DuelAsset.leaderboardCrownPro,
+        title: context.tr('leaderboards'),
+        subtitle: context.tr('home_rating_label'),
+        accent: const Color(0xFFB7A9FF),
+        onOpen: () => _open(const LeaderboardsScreen()),
+      ),
+      if (Platform.isAndroid || Platform.isIOS)
+        _ProfileTabData(
+          tab: _ProfileTab.platform,
+          asset: DuelAsset.profilePro,
+          title: Platform.isIOS ? 'Game Center' : 'Google Play Games',
+          subtitle: context.tr('leaderboards'),
+          accent: const Color(0xFF29D398),
+          onOpen: () => _open(const PlatformServicesScreen()),
+        ),
+    ];
   }
 }
 
@@ -254,113 +185,164 @@ class _ProfileNotice extends StatelessWidget {
   }
 }
 
-class _ActionSection extends StatelessWidget {
-  const _ActionSection({required this.actions});
+class _ProfileTabs extends StatelessWidget {
+  const _ProfileTabs({
+    required this.tabs,
+    required this.selected,
+    required this.onSelected,
+  });
 
-  final List<_ProfileActionData> actions;
+  final List<_ProfileTabData> tabs;
+  final _ProfileTab selected;
+  final ValueChanged<_ProfileTab> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 560 ? 2 : 1;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: actions.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            mainAxisExtent: 96,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          itemBuilder: (context, index) => _ProfileAction(actions[index]),
-        );
-      },
+    return SizedBox(
+      height: 48,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: tabs.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final tab = tabs[index];
+          final active = selected == tab.tab;
+          return ChoiceChip(
+            selected: active,
+            onSelected: (_) => onSelected(tab.tab),
+            avatar: DuelAssetIcon(tab.asset, size: 18),
+            label: Text(tab.title),
+            labelStyle: TextStyle(
+              color: active
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: .72),
+              fontWeight: FontWeight.w900,
+            ),
+            selectedColor: tab.accent.withValues(alpha: .24),
+            backgroundColor: const Color(0xFF101B20).withValues(alpha: .9),
+            side: BorderSide(color: tab.accent.withValues(alpha: .28)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(999),
+            ),
+          );
+        },
+      ),
     );
   }
 }
 
-class _ProfileActionData {
-  const _ProfileActionData({
+class _ProfileTabData {
+  const _ProfileTabData({
+    required this.tab,
     required this.asset,
     required this.title,
     required this.subtitle,
     required this.accent,
-    required this.onTap,
+    required this.onOpen,
   });
 
+  final _ProfileTab tab;
   final String asset;
   final String title;
   final String subtitle;
   final Color accent;
-  final VoidCallback onTap;
+  final VoidCallback onOpen;
 }
 
-class _ProfileAction extends StatelessWidget {
-  const _ProfileAction(this.action);
+class _ProfileTabPanel extends StatelessWidget {
+  const _ProfileTabPanel({required this.tab});
 
-  final _ProfileActionData action;
+  final _ProfileTabData tab;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: action.onTap,
-        borderRadius: BorderRadius.circular(16),
+        onTap: tab.onOpen,
+        borderRadius: BorderRadius.circular(18),
         child: Ink(
-          padding: const EdgeInsets.all(13),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: const Color(0xFF101B20).withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: action.accent.withValues(alpha: .24)),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: tab.accent.withValues(alpha: .28)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: tab.accent.withValues(alpha: .14),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: DuelAssetIcon(tab.asset, size: 36),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tab.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tab.subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .62),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: tab.accent),
+                ],
+              ),
+              const SizedBox(height: 14),
               Container(
-                width: 48,
-                height: 48,
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: action.accent.withValues(alpha: .13),
+                  color: Colors.black.withValues(alpha: .16),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: DuelAssetIcon(action.asset, size: 32),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      action.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      action.subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .58),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  _body(context),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .72),
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: action.accent),
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _body(BuildContext context) {
+    return switch (tab.tab) {
+      _ProfileTab.friends => context.tr('friends_challenges'),
+      _ProfileTab.wallet => context.tr('server_wallet_history'),
+      _ProfileTab.leaderboards => context.tr('home_rating_label'),
+      _ProfileTab.platform => tab.title,
+    };
   }
 }

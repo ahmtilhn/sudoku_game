@@ -34,8 +34,9 @@ void main() {
       'lib/features/social/profile_hub_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('_ActionSection'));
-    expect(source, contains('SliverGridDelegateWithFixedCrossAxisCount'));
+    expect(source, contains('_ProfileTabs'));
+    expect(source, contains('_ProfileTabPanel'));
+    expect(source, contains('_selectedTab'));
     expect(source, contains('DuelAsset.leaderboardCrownPro'));
     expect(source, contains('LeaderboardsScreen'));
     expect(source, contains('CompetitiveProfileCard'));
