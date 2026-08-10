@@ -26,16 +26,6 @@ class LeaderboardsScreen extends StatefulWidget {
 }
 
 class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
-  static const List<PlatformLeaderboardScope> _scopes =
-      <PlatformLeaderboardScope>[
-        PlatformLeaderboardScope.global,
-        PlatformLeaderboardScope.beginner,
-        PlatformLeaderboardScope.easy,
-        PlatformLeaderboardScope.medium,
-        PlatformLeaderboardScope.hard,
-        PlatformLeaderboardScope.expert,
-      ];
-
   final CompetitiveLeaderboardApi _leaderboards =
       CompetitiveLeaderboardApi.instance;
   final PlatformGameServices _games = PlatformGameServices.instance;
@@ -137,9 +127,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
       });
     } catch (error) {
       if (!mounted || requestId != _requestSerial) return;
-      setState(() {
-        _error = UserSafeError.message(context, error);
-      });
+      setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted && requestId == _requestSerial) {
         setState(() {
@@ -174,6 +162,19 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     unawaited(_load());
   }
 
+  int? _effectiveCurrentRank() {
+    final current = _currentPlayer;
+    if (current == null) return null;
+    if (_audience != _LeaderboardAudience.friends) return current.rank;
+
+    final publicId = _profile?.publicId;
+    if (publicId == null || publicId.isEmpty) return null;
+    for (final entry in _entries) {
+      if (entry.publicId == publicId) return entry.rank;
+    }
+    return null;
+  }
+
   Future<void> _openNative() async {
     if (_openingNative || _variant != SudokuVariant.classic9) return;
     setState(() => _openingNative = true);
@@ -181,7 +182,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
       final platform = kIsWeb ? null : defaultTargetPlatform;
       final leaderboardId = platform == null
           ? null
-          : const PlatformLeaderboardIds().idFor(platform, _selectedScope);
+          : PlatformLeaderboardIds().idFor(platform, _selectedScope);
       var opened = false;
       if (leaderboardId != null && await _games.isConfigured()) {
         var authenticated = await _games.refreshAuthentication();
@@ -303,6 +304,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
         ? _profile!.displayName
         : platformPlayer?.displayName ?? context.tr('you');
     final current = _currentPlayer;
+    final currentRank = _effectiveCurrentRank();
 
     return Scaffold(
       backgroundColor: const Color(0xFF07111E),
@@ -329,7 +331,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                       displayName: displayName,
                       player: platformPlayer,
                       rating: current?.rating,
-                      rank: current?.rank,
+                      rank: currentRank,
                       variantLabel: _variant.label,
                       scopeLabel: _scopeLabel(context, _selectedScope),
                     ),
@@ -349,7 +351,8 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                       _CurrentPlayerBar(
                         displayName: displayName,
                         player: platformPlayer,
-                        current: current,
+                        rating: current.rating,
+                        rank: currentRank,
                       ),
                     ],
                   ],
@@ -653,22 +656,25 @@ class _Filters extends StatelessWidget {
       ),
       child: Column(
         children: [
-          SegmentedButton<SudokuVariant>(
-            segments: const [
-              ButtonSegment(
-                value: SudokuVariant.classic9,
-                label: Text('9×9'),
-                icon: Icon(Icons.grid_3x3_rounded),
-              ),
-              ButtonSegment(
-                value: SudokuVariant.classic16,
-                label: Text('16×16'),
-                icon: Icon(Icons.grid_4x4_rounded),
-              ),
-            ],
-            selected: <SudokuVariant>{variant},
-            showSelectedIcon: false,
-            onSelectionChanged: (values) => onVariant(values.first),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SegmentedButton<SudokuVariant>(
+              segments: const [
+                ButtonSegment(
+                  value: SudokuVariant.classic9,
+                  label: Text('9×9'),
+                  icon: Icon(Icons.grid_3x3_rounded),
+                ),
+                ButtonSegment(
+                  value: SudokuVariant.classic16,
+                  label: Text('16×16'),
+                  icon: Icon(Icons.grid_4x4_rounded),
+                ),
+              ],
+              selected: <SudokuVariant>{variant},
+              showSelectedIcon: false,
+              onSelectionChanged: (values) => onVariant(values.first),
+            ),
           ),
           const SizedBox(height: 9),
           SizedBox(
@@ -689,27 +695,30 @@ class _Filters extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 9),
-          SegmentedButton<_LeaderboardAudience>(
-            segments: [
-              ButtonSegment(
-                value: _LeaderboardAudience.world,
-                label: Text(context.tr('world')),
-                icon: const Icon(Icons.public_rounded),
-              ),
-              ButtonSegment(
-                value: _LeaderboardAudience.friends,
-                label: Text(context.tr('friends')),
-                icon: const Icon(Icons.group_rounded),
-              ),
-              ButtonSegment(
-                value: _LeaderboardAudience.aroundMe,
-                label: Text(context.tr('you')),
-                icon: const Icon(Icons.my_location_rounded),
-              ),
-            ],
-            selected: <_LeaderboardAudience>{audience},
-            showSelectedIcon: false,
-            onSelectionChanged: (values) => onAudience(values.first),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SegmentedButton<_LeaderboardAudience>(
+              segments: [
+                ButtonSegment(
+                  value: _LeaderboardAudience.world,
+                  label: Text(context.tr('world')),
+                  icon: const Icon(Icons.public_rounded),
+                ),
+                ButtonSegment(
+                  value: _LeaderboardAudience.friends,
+                  label: Text(context.tr('friends')),
+                  icon: const Icon(Icons.group_rounded),
+                ),
+                ButtonSegment(
+                  value: _LeaderboardAudience.aroundMe,
+                  label: Text(context.tr('you')),
+                  icon: const Icon(Icons.my_location_rounded),
+                ),
+              ],
+              selected: <_LeaderboardAudience>{audience},
+              showSelectedIcon: false,
+              onSelectionChanged: (values) => onAudience(values.first),
+            ),
           ),
         ],
       ),
@@ -929,12 +938,14 @@ class _CurrentPlayerBar extends StatelessWidget {
   const _CurrentPlayerBar({
     required this.displayName,
     required this.player,
-    required this.current,
+    required this.rating,
+    required this.rank,
   });
 
   final String displayName;
   final PlatformPlayer? player;
-  final CompetitiveLeaderboardCurrentPlayer current;
+  final int rating;
+  final int? rank;
 
   @override
   Widget build(BuildContext context) {
@@ -974,7 +985,7 @@ class _CurrentPlayerBar extends StatelessWidget {
             ),
           ),
           Text(
-            current.rank == null ? '—' : '#${current.rank}',
+            rank == null ? '—' : '#$rank',
             style: TextStyle(
               color: Colors.white.withValues(alpha: .7),
               fontWeight: FontWeight.w900,
@@ -982,7 +993,7 @@ class _CurrentPlayerBar extends StatelessWidget {
           ),
           const SizedBox(width: 14),
           Text(
-            '${current.rating} ELO',
+            '$rating ELO',
             style: const TextStyle(
               color: Color(0xFFFFC73D),
               fontWeight: FontWeight.w900,
