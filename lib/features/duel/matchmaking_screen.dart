@@ -18,6 +18,7 @@ import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/game_modal.dart';
 import '../economy/coin_store_screen.dart';
 import '../game/enhanced_game_screen.dart';
+import 'matchmaking_stage.dart';
 import 'pre_match_ready_screen.dart';
 
 class MatchmakingScreen extends StatefulWidget {
@@ -36,16 +37,20 @@ class MatchmakingScreen extends StatefulWidget {
 
 class _MatchmakingScreenState extends State<MatchmakingScreen> {
   final EconomyService _economy = EconomyService.instance;
-  final VariantMatchmakingClient _matchmaking =
-      VariantMatchmakingClient.instance;
+  final VariantMatchmakingClient _matchmaking = VariantMatchmakingClient.instance;
 
   late SudokuDifficulty _difficulty;
   late SudokuVariant _variant;
+  CompetitiveProfile? _profile;
   bool _searching = false;
   bool _polling = false;
+  bool _cancelling = false;
+  bool _openingRoom = false;
   Timer? _pollTimer;
   int _pollAttempt = 0;
+  int? _queueRating;
   String? _searchStatus;
+  Future<VariantMatchmakingResult>? _activeQueueRequest;
 
   int get _entryFee => _economy.entryFeeForDifficulty(_difficulty.name);
   bool get _canEnter => _economy.balance >= _entryFee;
@@ -62,6 +67,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+    if (_searching && !_openingRoom) {
+      unawaited(_matchmaking.cancelRankedQueue());
+    }
     _economy.removeListener(_refresh);
     super.dispose();
   }
@@ -73,11 +81,22 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   @override
   Widget build(BuildContext context) {
     if (_searching) {
-      return _SearchingStage(
-        variant: _variant,
-        difficulty: _difficulty,
-        status: _searchStatus,
-        onCancel: _cancelSearch,
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) unawaited(_cancelSearch());
+        },
+        child: MatchmakingStage(
+          currentPlayer: _currentVisualPlayer(context),
+          actionLabel: context.tr('cancel_search'),
+          actionIcon: Icons.close_rounded,
+          actionBusy: _cancelling,
+          onAction: _cancelling ? null : _cancelSearch,
+          onClose: _cancelling ? null : _cancelSearch,
+          searchStatus: _cancelling
+              ? context.tr('cancel_search')
+              : _searchStatus,
+        ),
       );
     }
 
@@ -155,9 +174,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         const Spacer(),
                         _EntryBar(
                           fee: _entryFee,
-                          pot: _economy.winnerPotForDifficulty(
-                            _difficulty.name,
-                          ),
+                          pot: _economy.winnerPotForDifficulty(_difficulty.name),
                           variant: _variant,
                         ),
                         SizedBox(height: compact ? 8 : 10),
@@ -176,10 +193,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                 ),
-                                icon: const Icon(
-                                  Icons.sports_esports_rounded,
-                                  size: 20,
-                                ),
+                                icon: const Icon(Icons.sports_esports_rounded, size: 20),
                                 label: Text(
                                   context.tr('local_practice'),
                                   maxLines: 1,
@@ -194,8 +208,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                 onPressed: _economy.loading
                                     ? null
                                     : _canEnter
-                                    ? _findOpponent
-                                    : _showInsufficientCoins,
+                                        ? _findOpponent
+                                        : _showInsufficientCoins,
                                 style: FilledButton.styleFrom(
                                   minimumSize: Size(0, compact ? 46 : 50),
                                   backgroundColor: _canEnter
@@ -218,9 +232,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                       : context.tr('open_coin_store'),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                                  style: const TextStyle(fontWeight: FontWeight.w900),
                                 ),
                               ),
                             ),
@@ -235,6 +247,25 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  MatchmakingVisualPlayer _currentVisualPlayer(BuildContext context) {
+    final profile = _profile;
+    if (profile == null) {
+      return MatchmakingVisualPlayer(
+        displayName: context.tr('you'),
+        avatarKey: 'matchmaking-you',
+        rating: _queueRating,
+      );
+    }
+    return MatchmakingVisualPlayer(
+      displayName: profile.displayName,
+      avatarKey: profile.avatarKey,
+      rankLabel: profile.rankName,
+      gamesPlayed: profile.wins + profile.losses + profile.draws,
+      winRate: profile.winRate,
+      rating: profile.currentElo,
     );
   }
 
@@ -253,8 +284,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                 onTap: () => setState(() => _variant = variant),
               ),
             ),
-            if (variant != SudokuVariant.values.last)
-              const SizedBox(width: 7),
+            if (variant != SudokuVariant.values.last) const SizedBox(width: 7),
           ],
         ],
       ),
@@ -281,8 +311,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                     height: compact ? 30 : 34,
                     child: ChoiceChip(
                       selected: _difficulty == difficulty,
-                      onSelected: (_) =>
-                          setState(() => _difficulty = difficulty),
+                      onSelected: (_) => setState(() => _difficulty = difficulty),
                       label: SizedBox(
                         width: double.infinity,
                         child: Text(
@@ -335,15 +364,14 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           store: store,
           allowNotes: true,
           showNextAction: false,
-          onCompleted:
-              ({required seconds, required mistakes, required hints}) =>
-                  store.recordResult(
-                    puzzleId: puzzle.id,
-                    seconds: seconds,
-                    mistakes: mistakes,
-                    hints: hints,
-                    variant: _variant,
-                  ),
+          onCompleted: ({required seconds, required mistakes, required hints}) =>
+              store.recordResult(
+                puzzleId: puzzle.id,
+                seconds: seconds,
+                mistakes: mistakes,
+                hints: hints,
+                variant: _variant,
+              ),
         ),
       ),
     );
@@ -376,8 +404,17 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     if (openStore && mounted) await _openStore();
   }
 
+  Future<void> _loadCurrentProfile() async {
+    try {
+      final profile = await SocialApiClient.instance.loadCompetitiveProfile();
+      if (mounted) setState(() => _profile = profile);
+    } catch (_) {
+      // Matchmaking can continue with the authenticated room identity fallback.
+    }
+  }
+
   Future<void> _findOpponent() async {
-    if (_searching) return;
+    if (_searching || _openingRoom) return;
     await _economy.refresh();
     if (!mounted) return;
     if (!_canEnter) {
@@ -387,23 +424,26 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
     setState(() {
       _searching = true;
+      _cancelling = false;
       _searchStatus = null;
+      _queueRating = null;
+      _pollAttempt = 0;
     });
 
     try {
       await FirebaseSessionService.ensureAnonymousSession();
+      unawaited(_loadCurrentProfile());
       final result = await _joinSelectedQueue();
-      if (!mounted) return;
+      if (!mounted || !_searching) return;
+      _queueRating = result.rating;
       if (result.matched) {
         _openMatchedResult(result);
         return;
       }
       if (result.status != 'queued') {
-        throw const SocialApiException(
-          0,
-          'Unexpected matchmaking response.',
-        );
+        throw const SocialApiException(0, 'Unexpected matchmaking response.');
       }
+      if (mounted) setState(() {});
       _startPolling();
     } on FirebaseSessionException catch (error) {
       await _stopWithError(UserSafeError.message(context, error));
@@ -422,22 +462,32 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   }
 
   Future<VariantMatchmakingResult> _joinSelectedQueue() async {
-    final result = await _matchmaking.joinRankedQueue(
-      difficulty: _difficulty.name,
-      variant: _variant,
-    );
-    if (result.variant.id != _variant.id ||
-        result.boardSize != _variant.boardSize ||
-        result.cellCount != _variant.cellCount) {
-      throw const SocialApiException(
-        409,
-        'The matchmaking room does not match the selected Sudoku size.',
-      );
+    late final Future<VariantMatchmakingResult> request;
+    request = _matchmaking
+        .joinRankedQueue(difficulty: _difficulty.name, variant: _variant)
+        .then((result) {
+      if (result.variant.id != _variant.id ||
+          result.boardSize != _variant.boardSize ||
+          result.cellCount != _variant.cellCount) {
+        throw const SocialApiException(
+          409,
+          'The matchmaking room does not match the selected Sudoku size.',
+        );
+      }
+      return result;
+    });
+    _activeQueueRequest = request;
+    try {
+      return await request;
+    } finally {
+      if (identical(_activeQueueRequest, request)) {
+        _activeQueueRequest = null;
+      }
     }
-    return result;
   }
 
   void _openMatchedResult(VariantMatchmakingResult result) {
+    if (_openingRoom) return;
     final roomId = result.roomId?.trim() ?? '';
     if (roomId.isEmpty) {
       unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
@@ -464,7 +514,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   void _scheduleNextPoll({bool immediate = false}) {
     _pollTimer?.cancel();
-    if (!_searching || !mounted) return;
+    if (!_searching || _cancelling || !mounted) return;
     final delay = immediate
         ? Duration.zero
         : matchmakingFallbackDelay(_pollAttempt++);
@@ -472,17 +522,20 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   }
 
   Future<void> _pollForMatch() async {
-    if (!_searching || _polling) return;
+    if (!_searching || _polling || _cancelling) return;
     _polling = true;
     try {
       final result = await _joinSelectedQueue();
       if (!mounted || !_searching) return;
+      _queueRating = result.rating ?? _queueRating;
       if (result.matched) {
         _openMatchedResult(result);
         return;
       }
       if (_searchStatus != null) {
         setState(() => _searchStatus = null);
+      } else {
+        setState(() {});
       }
     } on SocialApiException catch (error) {
       if (!mounted) return;
@@ -501,7 +554,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       }
     } finally {
       _polling = false;
-      if (_searching) _scheduleNextPoll();
+      if (_searching && !_cancelling) _scheduleNextPoll();
     }
   }
 
@@ -512,6 +565,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     setState(() {
       _searching = false;
       _polling = false;
+      _cancelling = false;
       _pollAttempt = 0;
     });
     final retry = await GameModal.error(
@@ -525,48 +579,122 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   }
 
   Future<void> _cancelSearch() async {
+    if (_cancelling || !_searching || _openingRoom) return;
     _pollTimer?.cancel();
     _pollTimer = null;
-    if (mounted) {
-      setState(() {
-        _searching = false;
-        _polling = false;
-        _searchStatus = null;
-        _pollAttempt = 0;
-      });
-    }
+    final pending = _activeQueueRequest;
+    setState(() {
+      _cancelling = true;
+      _searchStatus = null;
+    });
+
+    VariantMatchmakingResult? lateResult;
     try {
       await _matchmaking.cancelRankedQueue();
     } catch (_) {
-      // Returning to the menu must remain possible while offline.
+      // A second cleanup attempt follows after any in-flight join completes.
     }
+
+    if (pending != null) {
+      try {
+        lateResult = await pending;
+      } catch (_) {
+        lateResult = null;
+      }
+    }
+    if (!mounted || _openingRoom) return;
+    if (lateResult?.matched == true) {
+      _cancelling = false;
+      _openMatchedResult(lateResult!);
+      return;
+    }
+
+    try {
+      // If the first DELETE raced a POST that re-created our queue row,
+      // clean it again after that POST has completed.
+      await _matchmaking.cancelRankedQueue();
+    } catch (_) {
+      // Returning to the selection screen must remain possible while offline.
+    }
+
+    try {
+      // Another player's coordinator may have claimed our queue entry just
+      // before DELETE. Recover that funded room instead of abandoning it.
+      final active = await SocialApiClient.instance.activeMatch();
+      final roomId = active?['roomId']?.toString().trim() ?? '';
+      if (roomId.isNotEmpty && mounted) {
+        _cancelling = false;
+        _openRecoveredRoom(roomId);
+        return;
+      }
+    } catch (_) {
+      // Offline cancellation still returns to the selection screen.
+    }
+
+    if (!mounted || _openingRoom) return;
+    setState(() {
+      _searching = false;
+      _polling = false;
+      _cancelling = false;
+      _searchStatus = null;
+      _pollAttempt = 0;
+      _activeQueueRequest = null;
+    });
+  }
+
+  void _openRecoveredRoom(String roomId) {
+    if (_variant.id == SudokuVariantId.classic16 &&
+        !roomId.startsWith('classic16:')) {
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
+      return;
+    }
+    if (_variant.id == SudokuVariantId.classic9 &&
+        roomId.startsWith('classic16:')) {
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
+      return;
+    }
+    _openOnlineRoom(roomId);
   }
 
   void _openOnlineRoom(String roomId) {
+    if (_openingRoom || !mounted) return;
+    _openingRoom = true;
     _pollTimer?.cancel();
     _pollTimer = null;
-    if (mounted) {
-      setState(() {
-        _searching = false;
-        _polling = false;
-        _searchStatus = null;
-      });
-    }
+    setState(() {
+      _searching = false;
+      _polling = false;
+      _cancelling = false;
+      _searchStatus = null;
+    });
+    final initialPlayer = _currentVisualPlayer(context);
     Navigator.of(context)
         .push<String>(
-          MaterialPageRoute(
-            builder: (_) => PreMatchReadyScreen(roomId: roomId),
+          PageRouteBuilder<String>(
+            transitionDuration: const Duration(milliseconds: 180),
+            reverseTransitionDuration: const Duration(milliseconds: 160),
+            pageBuilder: (_, animation, __) => PreMatchReadyScreen(
+              roomId: roomId,
+              initialCurrentPlayer: initialPlayer,
+            ),
+            transitionsBuilder: (_, animation, __, child) => FadeTransition(
+              opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              child: child,
+            ),
           ),
         )
         .then((action) {
-          unawaited(_economy.refresh(showLoading: false));
-          if (!mounted) return;
-          if (action == 'new_match') {
-            unawaited(_findOpponent());
-          } else if (action == 'menu') {
-            Navigator.of(context).pop();
-          }
-        });
+      unawaited(_economy.refresh(showLoading: false));
+      if (!mounted) return;
+      _openingRoom = false;
+      if (action == 'new_match') {
+        unawaited(_findOpponent());
+      } else if (action == 'menu') {
+        Navigator.of(context).pop();
+      } else {
+        setState(() {});
+      }
+    });
   }
 }
 
@@ -676,9 +804,7 @@ class _VariantCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final is16 = variant.id == SudokuVariantId.classic16;
-    final accent = is16
-        ? const Color(0xFF35D2FF)
-        : const Color(0xFFFFC73D);
+    final accent = is16 ? const Color(0xFF35D2FF) : const Color(0xFFFFC73D);
     return Semantics(
       selected: selected,
       button: true,
@@ -699,9 +825,7 @@ class _VariantCard extends StatelessWidget {
                   : const Color(0xFF07111E),
               borderRadius: BorderRadius.circular(13),
               border: Border.all(
-                color: selected
-                    ? accent
-                    : Colors.white.withValues(alpha: .09),
+                color: selected ? accent : Colors.white.withValues(alpha: .09),
                 width: selected ? 1.7 : 1,
               ),
             ),
@@ -891,105 +1015,6 @@ class _EntryValue extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _SearchingStage extends StatelessWidget {
-  const _SearchingStage({
-    required this.variant,
-    required this.difficulty,
-    required this.status,
-    required this.onCancel,
-  });
-
-  final SudokuVariant variant;
-  final SudokuDifficulty difficulty;
-  final String? status;
-  final VoidCallback onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    final is16 = variant.id == SudokuVariantId.classic16;
-    return Scaffold(
-      backgroundColor: const Color(0xFF07111E),
-      body: AppBackdrop(
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton.filledTonal(
-                    onPressed: onCancel,
-                    tooltip: context.tr('cancel_search'),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ),
-                const Spacer(),
-                TweenAnimationBuilder<double>(
-                  tween: Tween(begin: .94, end: 1.03),
-                  duration: const Duration(milliseconds: 900),
-                  curve: Curves.easeInOut,
-                  builder: (context, value, child) => Transform.scale(
-                    scale: value,
-                    child: child,
-                  ),
-                  child: DuelAssetIcon(
-                    is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                    size: 126,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  context.tr('finding_opponent_title'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${variant.label} · ${context.strings.difficultyLabel(difficulty)}',
-                  style: const TextStyle(
-                    color: Color(0xFF29D398),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  status ?? context.tr('searching_similar_opponents'),
-                  textAlign: TextAlign.center,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .63),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: CircularProgressIndicator(strokeWidth: 3),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: onCancel,
-                    child: Text(context.tr('cancel_search')),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
