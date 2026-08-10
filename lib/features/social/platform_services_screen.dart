@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,8 +13,7 @@ class PlatformServicesScreen extends StatefulWidget {
   const PlatformServicesScreen({super.key});
 
   @override
-  State<PlatformServicesScreen> createState() =>
-      _PlatformServicesScreenState();
+  State<PlatformServicesScreen> createState() => _PlatformServicesScreenState();
 }
 
 class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
@@ -21,13 +21,42 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
   bool _busy = false;
   String? _error;
 
-  String get _platformTitle => Platform.isIOS ? 'Game Center' : 'Google Play Games';
+  String get _platformTitle =>
+      Platform.isIOS ? 'Game Center' : 'Google Play Games';
+
+  @override
+  void initState() {
+    super.initState();
+    _games.authenticated.addListener(_onPlatformStateChanged);
+    _games.localPlayer.addListener(_onPlatformStateChanged);
+    unawaited(_refreshPlatformConnection());
+  }
+
+  @override
+  void dispose() {
+    _games.authenticated.removeListener(_onPlatformStateChanged);
+    _games.localPlayer.removeListener(_onPlatformStateChanged);
+    super.dispose();
+  }
+
+  void _onPlatformStateChanged() {
+    if (mounted) setState(() {});
+  }
 
   Future<bool> _authenticate() async {
     if (!await _games.isConfigured()) return false;
     var authenticated = await _games.refreshAuthentication();
     if (!authenticated) authenticated = await _games.authenticate();
     return authenticated;
+  }
+
+  Future<void> _refreshPlatformConnection() async {
+    try {
+      if (!await _games.isConfigured()) return;
+      await _games.refreshAuthentication();
+    } catch (_) {
+      // User actions surface platform errors through _run.
+    }
   }
 
   Future<void> _run(Future<bool> Function() action) async {
@@ -135,10 +164,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   ])
                     _tile(
                       item.$1,
-                      const DuelAssetIcon(
-                        DuelAsset.trophy,
-                        size: 28,
-                      ),
+                      const DuelAssetIcon(DuelAsset.trophy, size: 28),
                       () => _run(
                         () => PlatformLeaderboardService.instance.show(item.$2),
                       ),
