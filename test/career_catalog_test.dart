@@ -18,9 +18,7 @@ void main() {
 
   test('designed career has ten levels per difficulty chapter', () {
     for (var chapter = 1; chapter <= 5; chapter++) {
-      final chapterLevels = CareerCatalog.levels
-          .where((level) => level.chapter == chapter)
-          .toList();
+      final chapterLevels = CareerCatalog.chapterLevels(chapter);
       expect(chapterLevels, hasLength(10));
       expect(
         chapterLevels.every(
@@ -56,42 +54,41 @@ void main() {
     expect(first.solution, hasLength(first.cellCount));
   });
 
-  test('career continues with numbered procedural levels after fifty', () {
-    final fifty = CareerCatalog.levelAt(50);
-    final fiftyOne = CareerCatalog.levelAt(51);
-    final fiftyTwo = CareerCatalog.levelAt(52);
+  test('previous and next level helpers preserve career order', () {
+    final first = CareerCatalog.levels.first;
+    final second = CareerCatalog.levels[1];
+    final last = CareerCatalog.levels.last;
 
-    expect(fifty.id, 'career-050');
-    expect(fifty.isEndless, isFalse);
-    expect(fiftyOne.id, 'career-051');
-    expect(fiftyOne.number, 51);
-    expect(fiftyOne.isEndless, isTrue);
-    expect(fiftyTwo.id, 'career-052');
-    expect(fiftyTwo.number, 52);
-    expect(fiftyTwo.isEndless, isTrue);
-    expect(fiftyTwo.seed, isNot(fiftyOne.seed));
+    expect(CareerCatalog.previousOf(first), isNull);
+    expect(CareerCatalog.nextOf(first)?.id, second.id);
+    expect(CareerCatalog.previousOf(second)?.id, first.id);
+    expect(CareerCatalog.nextOf(last), isNull);
   });
 
-  test('procedural level descriptors are deterministic and addressable', () {
-    final firstRead = CareerCatalog.levelAt(51);
-    final repeatedRead = CareerCatalog.levelAt(51);
-    final parsed = CareerCatalog.byId('career-051');
+  test('only the first incomplete level after completed progress is playable', () {
+    final completed = <String>{
+      CareerCatalog.levels[0].id,
+      CareerCatalog.levels[1].id,
+      CareerCatalog.levels[2].id,
+    };
+    bool isCompleted(String id) => completed.contains(id);
 
-    expect(repeatedRead.id, firstRead.id);
-    expect(repeatedRead.seed, firstRead.seed);
-    expect(repeatedRead.difficulty, SudokuDifficulty.expert);
-    expect(repeatedRead.size, 9);
-    expect(parsed?.number, 51);
-    expect(parsed?.seed, firstRead.seed);
+    expect(
+      CareerCatalog.isUnlocked(CareerCatalog.levels[0], isCompleted),
+      isTrue,
+    );
+    expect(
+      CareerCatalog.isUnlocked(CareerCatalog.levels[3], isCompleted),
+      isTrue,
+    );
+    expect(
+      CareerCatalog.isUnlocked(CareerCatalog.levels[4], isCompleted),
+      isFalse,
+    );
+    expect(CareerCatalog.firstPlayable(isCompleted)?.number, 4);
   });
 
-  test('career numbering has no maximum or three-digit wraparound', () {
-    final level1000 = CareerCatalog.levelAt(1000);
-    final level1001 = CareerCatalog.levelAt(1001);
-
-    expect(level1000.id, 'career-1000');
-    expect(level1001.id, 'career-1001');
-    expect(CareerCatalog.byId(level1001.id)?.number, 1001);
-    expect(CareerCatalog.previousOf(level1001)?.number, 1000);
+  test('first playable is null when every career level is complete', () {
+    expect(CareerCatalog.firstPlayable((_) => true), isNull);
   });
 }

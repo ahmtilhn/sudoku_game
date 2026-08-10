@@ -92,8 +92,40 @@ class CareerCatalog {
     return number == null || number < 1 ? null : levelAt(number);
   }
 
+  static List<CareerLevel> chapterLevels(int chapter) {
+    return List<CareerLevel>.unmodifiable(
+      levels.where((level) => level.chapter == chapter),
+    );
+  }
+
   static CareerLevel? previousOf(CareerLevel level) {
     return level.number <= 1 ? null : levelAt(level.number - 1);
+  }
+
+  static CareerLevel? nextOf(CareerLevel level) {
+    final index = levels.indexWhere((item) => item.id == level.id);
+    if (index < 0 || index >= levels.length - 1) return null;
+    return levels[index + 1];
+  }
+
+  static bool isUnlocked(
+    CareerLevel level,
+    bool Function(String levelId) isCompleted,
+  ) {
+    if (level.number == 1) return true;
+    final previous = previousOf(level);
+    return previous != null && isCompleted(previous.id);
+  }
+
+  static CareerLevel? firstPlayable(
+    bool Function(String levelId) isCompleted,
+  ) {
+    for (final level in levels) {
+      if (!isCompleted(level.id) && isUnlocked(level, isCompleted)) {
+        return level;
+      }
+    }
+    return null;
   }
 
   static SudokuPuzzle puzzleFor(CareerLevel level) {
@@ -133,7 +165,7 @@ class CareerCatalog {
     CareerLevel level,
   ) {
     return SudokuPuzzle(
-      id: level.id,
+      id: id,
       title: source.title,
       difficulty: source.difficulty,
       puzzle: List<int>.unmodifiable(source.puzzle),

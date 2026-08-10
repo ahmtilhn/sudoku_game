@@ -167,8 +167,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
       final event = OnlineDuelEvent.fromJson(
         decoded.cast<String, dynamic>(),
       );
-      if (
-          event.type == 'connected' ||
+      if (event.type == 'connected' ||
           event.type == 'snapshot' ||
           event.type == 'match_started' ||
           event.type == 'game_started') {
