@@ -14,7 +14,7 @@ import '../../services/player_profile_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../duel/online_duel_screen.dart';
-import '../home/home_screen.dart';
+import '../home/main_experience_shell.dart';
 
 class PlayerIdentityGate extends StatefulWidget {
   const PlayerIdentityGate({super.key, required this.store});
@@ -51,7 +51,7 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
 
   @override
   Widget build(BuildContext context) {
-    return HomeScreen(store: widget.store);
+    return MainExperienceShell(store: widget.store);
   }
 
   void _onOpenedRematch() {

@@ -165,7 +165,7 @@ class CareerCatalog {
     CareerLevel level,
   ) {
     return SudokuPuzzle(
-      id: id,
+      id: level.id,
       title: source.title,
       difficulty: source.difficulty,
       puzzle: List<int>.unmodifiable(source.puzzle),

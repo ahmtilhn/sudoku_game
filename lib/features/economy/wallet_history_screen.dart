@@ -117,8 +117,9 @@ class _LedgerTile extends StatelessWidget {
         backgroundColor: positive
             ? scheme.primaryContainer
             : scheme.surfaceContainerHighest,
-        child: Icon(
-          positive ? Icons.add_rounded : Icons.remove_rounded,
+        child: DuelAssetIcon(
+          DuelAsset.coin,
+          size: 22,
           color: positive ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
         ),
       ),

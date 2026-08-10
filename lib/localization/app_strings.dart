@@ -59,8 +59,7 @@ class AppStrings {
     'samurai_sudoku': 'Samurai Sudoku',
     'duel_variant_classic': 'Classic Sudoku',
     'choose_duel_variant': 'Choose game type',
-    'same_variant_match':
-        'You will only be matched with the same game type.',
+    'same_variant_match': 'You will only be matched with the same game type.',
     'samurai_subtitle': 'Five overlapping 9×9 boards in one challenge',
     'samurai_choose_difficulty': 'Choose Samurai difficulty',
     'samurai_zoom_hint':
@@ -68,8 +67,7 @@ class AppStrings {
     'samurai_pause_body':
         'Your five linked boards are paused. Continue when ready.',
     'samurai_completed_title': 'Samurai completed!',
-    'samurai_completed_body':
-        'You solved all five linked Sudoku boards.',
+    'samurai_completed_body': 'You solved all five linked Sudoku boards.',
     'three_mistake_rule': 'Career rule: the round ends after 3 wrong moves.',
     'coins_count': '%1d coins',
     'random_clue_count': 'About %1d starting clues',
@@ -270,6 +268,8 @@ class AppStrings {
     'mistakes': 'Mistakes',
     'hints': 'Hints',
     'continue_action': 'Continue',
+    'pause': 'Pause',
+    'game_paused': 'Game paused',
     'mistakes_count': 'Mistakes: %1d',
     'mistakes_limit_count': 'Mistakes: %1d/%2d',
     'hints_count': 'Hints: %1d',

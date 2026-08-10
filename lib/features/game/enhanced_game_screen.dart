@@ -11,15 +11,18 @@ import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
+import '../../services/game_interstitial_service.dart';
+import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 import 'hint_economy.dart';
 
-typedef EnhancedGameCompleted = Future<void> Function({
-  required int seconds,
-  required int mistakes,
-  required int hints,
-});
+typedef EnhancedGameCompleted =
+    Future<void> Function({
+      required int seconds,
+      required int mistakes,
+      required int hints,
+    });
 
 enum EnhancedGameExit { next, menu }
 
@@ -72,12 +75,13 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   bool _notesMode = false;
   bool _ready = false;
   bool _completed = false;
+  bool _paused = false;
   bool _roundLost = false;
   bool _lossVisible = false;
   bool _hintBusy = false;
 
   bool get _canUndo =>
-      _ready && !_completed && !_roundLost && _history.isNotEmpty;
+      _ready && !_completed && !_paused && !_roundLost && _history.isNotEmpty;
 
   @override
   void initState() {
@@ -145,7 +149,13 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   }
 
   void _startClock() {
-    if (!_ready || _completed || _roundLost || _stopwatch.isRunning) return;
+    if (!_ready ||
+        _completed ||
+        _paused ||
+        _roundLost ||
+        _stopwatch.isRunning) {
+      return;
+    }
     _stopwatch.start();
     _clockTimer ??= Timer.periodic(const Duration(milliseconds: 250), (_) {
       if (!mounted || !_stopwatch.isRunning) return;
@@ -168,8 +178,66 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     _clockTimer = null;
   }
 
+  Future<void> _showPauseSheet() async {
+    if (!_ready || _completed || _roundLost || _paused) return;
+    _pauseClock();
+    setState(() => _paused = true);
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      useSafeArea: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              context.tr('game_paused'),
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                sheetContext,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(sheetContext).pop('continue'),
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: Text(context.tr('continue_action')),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(sheetContext).pop('restart'),
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: Text(context.tr('restart_puzzle')),
+            ),
+            const SizedBox(height: 4),
+            TextButton.icon(
+              onPressed: () => Navigator.of(sheetContext).pop('menu'),
+              icon: const Icon(Icons.home_outlined),
+              label: Text(context.tr('main_menu')),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _paused = false);
+    switch (action) {
+      case 'restart':
+        _restartPuzzle();
+      case 'menu':
+        await _saveNow();
+        if (mounted) Navigator.of(context).pop(EnhancedGameExit.menu);
+      case 'continue':
+      case null:
+        if (!_completed && !_roundLost) _startClock();
+    }
+  }
+
   void _selectCell(int index) {
-    if (!_ready || _completed || _roundLost) return;
+    if (!_ready || _completed || _paused || _roundLost) return;
     setState(() {
       _selectedIndex = index;
       _errorIndex = null;
@@ -182,6 +250,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     if (index == null ||
         !_ready ||
         _completed ||
+        _paused ||
         _roundLost ||
         widget.puzzle.isFixed(index) ||
         _hintedIndexes.contains(index)) {
@@ -332,24 +401,26 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
     final action = await showModalBottomSheet<_LossAction>(
       context: context,
+      isScrollControlled: true,
       isDismissible: false,
       enableDrag: false,
       useSafeArea: true,
       showDragHandle: false,
       builder: (sheetContext) => Padding(
+        key: const ValueKey<String>('fixed-round-lost-outcome'),
         padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.flag_outlined, size: 48),
+            const DuelAssetIcon(DuelAsset.resultDefeatTrophyPro, size: 48),
             const SizedBox(height: 10),
             Text(
               context.tr('round_lost'),
               textAlign: TextAlign.center,
-              style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                sheetContext,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -365,7 +436,9 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
                   : null,
               icon: const Icon(Icons.monetization_on_outlined),
               label: Text(
-                context.tr('continue_with_coins', const <Object>[_continueCost]),
+                context.tr('continue_with_coins', const <Object>[
+                  _continueCost,
+                ]),
               ),
             ),
             if (!AdsService.instance.noAds) ...[
@@ -487,18 +560,28 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     setState(() => _completed = true);
     _saveDebounce?.cancel();
     await _sessions.clear();
+    final balanceBeforeCompletion = EconomyService.instance.balance;
     await widget.onCompleted?.call(
       seconds: _elapsedSeconds,
       mistakes: _totalMistakes,
       hints: _hintsUsed,
     );
     if (!mounted) return;
+    await GameInterstitialService.instance.recordAndMaybeShow(
+      GameInterstitialContext.careerWin,
+    );
+    if (!mounted) return;
+    final completionCoinReward = positiveCoinDelta(
+      balanceBeforeCompletion,
+      EconomyService.instance.balance,
+    );
+    final initialEarnedCoins = completionCoinReward;
 
     final stars = _totalMistakes == 0 && _hintsUsed == 0
         ? 3
         : _totalMistakes <= 2 && _hintsUsed <= 1
-            ? 2
-            : 1;
+        ? 2
+        : 1;
     final action = await showModalBottomSheet<_ResultAction>(
       context: context,
       isDismissible: false,
@@ -511,6 +594,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
         seconds: _elapsedSeconds,
         mistakes: _totalMistakes,
         hints: _hintsUsed,
+        earnedCoins: initialEarnedCoins,
         showNextAction: widget.showNextAction,
       ),
     );
@@ -565,7 +649,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
   @override
   Widget build(BuildContext context) {
-    final enabled = _ready && !_completed && !_roundLost;
+    final enabled = _ready && !_completed && !_paused && !_roundLost;
     final mistakeLabel = widget.mistakeLimit == null
         ? context.tr('mistakes_count', <Object>[_mistakes])
         : context.tr('mistakes_limit_count', <Object>[
@@ -577,6 +661,12 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       appBar: AppBar(
         title: Text(context.strings.puzzleTitle(widget.puzzle)),
         actions: [
+          IconButton(
+            key: const ValueKey<String>('action-pause'),
+            tooltip: context.tr('pause'),
+            onPressed: enabled ? _showPauseSheet : null,
+            icon: const Icon(Icons.pause_rounded),
+          ),
           Semantics(
             label: context.tr('time'),
             child: Padding(
@@ -679,6 +769,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 }
 
 enum _LossAction { coin, rewarded, restart, exit }
+
 enum _ResultAction { next, restart, menu }
 
 class _GameResultSheet extends StatefulWidget {
@@ -688,6 +779,7 @@ class _GameResultSheet extends StatefulWidget {
     required this.seconds,
     required this.mistakes,
     required this.hints,
+    required this.earnedCoins,
     required this.showNextAction,
   });
 
@@ -696,6 +788,7 @@ class _GameResultSheet extends StatefulWidget {
   final int seconds;
   final int mistakes;
   final int hints;
+  final int earnedCoins;
   final bool showNextAction;
 
   @override
@@ -703,28 +796,6 @@ class _GameResultSheet extends StatefulWidget {
 }
 
 class _GameResultSheetState extends State<_GameResultSheet> {
-  bool _rewardBusy = false;
-  bool _rewardClaimed = false;
-  String? _message;
-
-  Future<void> _claimReward() async {
-    if (_rewardBusy || _rewardClaimed) return;
-    setState(() {
-      _rewardBusy = true;
-      _message = null;
-    });
-    final claimed = await EconomyService.instance
-        .claimCareerRewardedInterstitial();
-    if (!mounted) return;
-    setState(() {
-      _rewardBusy = false;
-      _rewardClaimed = claimed;
-      _message = claimed
-          ? context.tr('coin_added_wallet', const <Object>[25])
-          : context.tr('rewarded_ad_unavailable');
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -736,9 +807,9 @@ class _GameResultSheetState extends State<_GameResultSheet> {
           Text(
             widget.title,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),
           Row(
@@ -772,29 +843,19 @@ class _GameResultSheetState extends State<_GameResultSheet> {
                     label: context.tr('hints'),
                     value: '${widget.hints}',
                   ),
+                  _ResultRow(
+                    label: 'Coin',
+                    value: '+${widget.earnedCoins}',
+                    icon: const DuelAssetIcon(
+                      DuelAsset.coin,
+                      size: 18,
+                      color: Color(0xFFFFC94D),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
-          if (!AdsService.instance.noAds && !_rewardClaimed) ...[
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _rewardBusy ? null : _claimReward,
-              icon: _rewardBusy
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.ondemand_video_outlined),
-              label: Text(
-                context.tr('watch_and_earn_coin', const <Object>[25]),
-              ),
-            ),
-          ],
-          if (_message != null) ...[
-            const SizedBox(height: 8),
-            Text(_message!, textAlign: TextAlign.center),
-          ],
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: () => Navigator.of(context).pop(
@@ -825,10 +886,11 @@ class _GameResultSheetState extends State<_GameResultSheet> {
 }
 
 class _ResultRow extends StatelessWidget {
-  const _ResultRow({required this.label, required this.value});
+  const _ResultRow({required this.label, required this.value, this.icon});
 
   final String label;
   final String value;
+  final Widget? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -836,7 +898,15 @@ class _ResultRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Expanded(child: Text(label)),
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[icon!, const SizedBox(width: 6)],
+                Flexible(child: Text(label)),
+              ],
+            ),
+          ),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
         ],
       ),

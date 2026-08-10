@@ -17,10 +17,10 @@ class DuelAsset {
   static const gift = 'assets/images/ui/gift.png';
   static const grid = 'assets/images/ui/grid.png';
   static const home = 'assets/images/ui/home.png';
-  static const homeCareerRelic = 'assets/images/ui/home_career_relic.png';
-  static const homeDuelEmblem = 'assets/images/ui/home_duel_emblem.png';
-  static const homeProfileCrest = 'assets/images/ui/home_profile_crest.png';
-  static const homeStoreChest = 'assets/images/ui/home_store_chest.png';
+  static const homeCareerRelic = 'assets/images/ui/home_career.png';
+  static const homeDuelEmblem = 'assets/images/ui/home_online_duel.png';
+  static const homeProfileCrest = 'assets/images/ui/home_profile.png';
+  static const homeStoreChest = 'assets/images/ui/home_coin_store.png';
   static const lightbulb = 'assets/images/ui/lightbulb.png';
   static const lock = 'assets/images/ui/lock.png';
   static const mail = 'assets/images/ui/mail.png';
@@ -33,7 +33,7 @@ class DuelAsset {
   static const settings = 'assets/images/ui/settings.png';
   static const shield = 'assets/images/ui/shield.png';
   static const store = 'assets/images/ui/store.png';
-  static const swords = 'assets/images/ui/swords.png';
+  static const swords = 'assets/images/ui/target.png';
   static const target = 'assets/images/ui/target.png';
   static const timer = 'assets/images/ui/timer.png';
   static const trophy = 'assets/images/ui/trophy.png';

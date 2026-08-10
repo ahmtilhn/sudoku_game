@@ -123,7 +123,16 @@ void main() {
       find.byKey(const ValueKey<String>('fixed-round-lost-outcome')),
       findsOneWidget,
     );
-    expect(find.byType(SingleChildScrollView), findsNothing);
+    final outcome = find.byKey(
+      const ValueKey<String>('fixed-round-lost-outcome'),
+    );
+    expect(
+      find.descendant(
+        of: outcome,
+        matching: find.byType(SingleChildScrollView),
+      ),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
   });
 

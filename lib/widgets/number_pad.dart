@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../domain/sudoku_symbols.dart';
 import '../localization/app_strings.dart';
 
 Set<int> completedSudokuNumbers({
@@ -9,7 +8,9 @@ Set<int> completedSudokuNumbers({
 }) {
   final counts = List<int>.filled(maxValue + 1, 0);
   for (final value in board) {
-    if (value >= 1 && value <= maxValue) counts[value]++;
+    if (value >= 1 && value <= maxValue) {
+      counts[value]++;
+    }
   }
   return <int>{
     for (var value = 1; value <= maxValue; value++)
@@ -29,12 +30,12 @@ class NumberPadDock extends StatelessWidget {
       color: Theme.of(context).colorScheme.surface,
       child: SafeArea(
         top: false,
-        minimum: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+        minimum: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         child: Align(
           alignment: Alignment.center,
           heightFactor: 1,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 640),
+            constraints: const BoxConstraints(maxWidth: 560),
             child: child,
           ),
         ),
@@ -55,7 +56,6 @@ class NumberPad extends StatelessWidget {
     this.onUndo,
     this.onHint,
     this.hintCount,
-    this.unlimitedHints = false,
     this.enabled = true,
   });
 
@@ -68,36 +68,29 @@ class NumberPad extends StatelessWidget {
   final VoidCallback? onUndo;
   final VoidCallback? onHint;
   final int? hintCount;
-  final bool unlimitedHints;
   final bool enabled;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return LayoutBuilder(
       builder: (context, constraints) {
+        final compact = maxValue == 9 && constraints.maxWidth <= 520;
+        final spacing = compact ? 4.0 : 8.0;
+        final oneRowWidth = constraints.maxWidth - (spacing * (maxValue - 1));
+        final oneRowButtonWidth = oneRowWidth / maxValue;
+        final buttonWidth = oneRowButtonWidth >= 48
+            ? oneRowButtonWidth.clamp(48.0, maxValue == 9 ? 58.0 : 72.0)
+            : 56.0;
+        final buttonHeight = compact ? 48.0 : 54.0;
+
         return AnimatedOpacity(
           duration: const Duration(milliseconds: 180),
-          opacity: enabled ? 1 : .52,
+          opacity: enabled ? 1 : 0.58,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (maxValue > 9)
-                _LargeNumberGrid(
-                  maxValue: maxValue,
-                  width: constraints.maxWidth,
-                  enabled: enabled,
-                  completedValues: completedValues,
-                  onNumber: onNumber,
-                )
-              else
-                _ClassicNumberRow(
-                  maxValue: maxValue,
-                  width: constraints.maxWidth,
-                  enabled: enabled,
-                  completedValues: completedValues,
-                  onNumber: onNumber,
-                ),
-              SizedBox(height: maxValue > 9 ? 6 : 10),
               Wrap(
                 alignment: WrapAlignment.center,
                 spacing: spacing,
@@ -146,7 +139,7 @@ class NumberPad extends StatelessWidget {
                 children: [
                   _ActionButton(
                     buttonKey: const ValueKey<String>('action-erase'),
-                    icon: Icons.backspace_rounded,
+                    icon: Icons.backspace_outlined,
                     label: context.tr('erase'),
                     onPressed: enabled ? onErase : null,
                   ),
@@ -154,7 +147,7 @@ class NumberPad extends StatelessWidget {
                     _ActionButton(
                       buttonKey: const ValueKey<String>('action-notes'),
                       icon: notesEnabled
-                          ? Icons.edit_note_rounded
+                          ? Icons.edit_note
                           : Icons.edit_note_outlined,
                       label: notesEnabled
                           ? context.tr('notes_on')
@@ -165,19 +158,17 @@ class NumberPad extends StatelessWidget {
                   if (onUndo != null)
                     _ActionButton(
                       buttonKey: const ValueKey<String>('action-undo'),
-                      icon: Icons.undo_rounded,
+                      icon: Icons.undo,
                       label: context.tr('undo'),
                       onPressed: enabled ? onUndo : null,
                     ),
                   if (onHint != null)
                     _ActionButton(
                       buttonKey: const ValueKey<String>('action-hint'),
-                      icon: Icons.lightbulb_outline_rounded,
-                      label: unlimitedHints
-                          ? '${context.tr('hint')} (∞)'
-                          : hintCount == null
-                              ? context.tr('hint')
-                              : '${context.tr('hint')} ($hintCount)',
+                      icon: Icons.lightbulb_outline,
+                      label: hintCount == null
+                          ? context.tr('hint')
+                          : '${context.tr('hint')} ($hintCount)',
                       onPressed: enabled ? onHint : null,
                     ),
                 ],
@@ -186,132 +177,6 @@ class NumberPad extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _ClassicNumberRow extends StatelessWidget {
-  const _ClassicNumberRow({
-    required this.maxValue,
-    required this.width,
-    required this.enabled,
-    required this.completedValues,
-    required this.onNumber,
-  });
-
-  final int maxValue;
-  final double width;
-  final bool enabled;
-  final Set<int> completedValues;
-  final ValueChanged<int> onNumber;
-
-  @override
-  Widget build(BuildContext context) {
-    final compact = maxValue == 9 && width <= 520;
-    final spacing = compact ? 4.0 : 8.0;
-    final oneRowWidth = width - spacing * (maxValue - 1);
-    final oneRowButtonWidth = oneRowWidth / maxValue;
-    final buttonWidth = oneRowButtonWidth >= 48
-        ? oneRowButtonWidth.clamp(48.0, maxValue == 9 ? 58.0 : 72.0)
-        : 56.0;
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: spacing,
-      runSpacing: compact ? 4 : 8,
-      children: [
-        for (var value = 1; value <= maxValue; value++)
-          SizedBox(
-            width: buttonWidth,
-            height: compact ? 48 : 54,
-            child: _NumberButton(
-              value: value,
-              enabled: enabled,
-              completed: completedValues.contains(value),
-              onNumber: onNumber,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _LargeNumberGrid extends StatelessWidget {
-  const _LargeNumberGrid({
-    required this.maxValue,
-    required this.width,
-    required this.enabled,
-    required this.completedValues,
-    required this.onNumber,
-  });
-
-  final int maxValue;
-  final double width;
-  final bool enabled;
-  final Set<int> completedValues;
-  final ValueChanged<int> onNumber;
-
-  @override
-  Widget build(BuildContext context) {
-    final columns = width >= 540 ? 8 : 4;
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        crossAxisSpacing: 5,
-        mainAxisSpacing: 5,
-        childAspectRatio: width >= 540 ? 1.45 : 1.75,
-      ),
-      itemCount: maxValue,
-      itemBuilder: (context, index) {
-        final value = index + 1;
-        return _NumberButton(
-          value: value,
-          enabled: enabled,
-          completed: completedValues.contains(value),
-          onNumber: onNumber,
-        );
-      },
-    );
-  }
-}
-
-class _NumberButton extends StatelessWidget {
-  const _NumberButton({
-    required this.value,
-    required this.enabled,
-    required this.completed,
-    required this.onNumber,
-  });
-
-  final int value;
-  final bool enabled;
-  final bool completed;
-  final ValueChanged<int> onNumber;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return FilledButton.tonal(
-      key: ValueKey<String>('number-$value'),
-      onPressed: enabled && !completed ? () => onNumber(value) : null,
-      style: FilledButton.styleFrom(
-        padding: EdgeInsets.zero,
-        minimumSize: const Size(44, 44),
-        tapTargetSize: MaterialTapTargetSize.padded,
-        backgroundColor: scheme.secondaryContainer,
-        foregroundColor: scheme.onSecondaryContainer,
-      ),
-      child: Text(
-        sudokuSymbol(value),
-        style: TextStyle(
-          fontSize: 20,
-          height: 1,
-          fontWeight: FontWeight.w900,
-          decoration: completed ? TextDecoration.lineThrough : null,
-        ),
-      ),
     );
   }
 }

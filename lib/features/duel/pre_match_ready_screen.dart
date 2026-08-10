@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
@@ -28,6 +27,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   OnlineDuelConnectionState _connectionState =
       OnlineDuelConnectionState.connecting;
   Object? _error;
+  Timer? _retryTimer;
   bool _readyPressed = false;
   bool _screenLoadedSent = false;
   bool _handedOff = false;
@@ -43,6 +43,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   void dispose() {
     unawaited(_snapshotSubscription?.cancel());
     unawaited(_connectionSubscription?.cancel());
+    _retryTimer?.cancel();
     if (!_handedOff) unawaited(_controller?.dispose());
     super.dispose();
   }
@@ -61,7 +62,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     _controller = null;
 
     try {
-      final transport = await WebSocketOnlineDuelTransport.connect(widget.roomId);
+      final transport = await WebSocketOnlineDuelTransport.connect(
+        widget.roomId,
+      );
       final controller = OnlineDuelController(transport)..start();
       final snapshotSubscription = controller.snapshots.listen((snapshot) {
         if (!mounted) return;
@@ -77,7 +80,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           unawaited(_openMatch(controller));
         }
       });
-      final connectionSubscription = controller.connectionStates.listen((state) {
+      final connectionSubscription = controller.connectionStates.listen((
+        state,
+      ) {
         if (!mounted) return;
         setState(() => _connectionState = state);
       });
@@ -101,23 +106,17 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         _error = error;
         _connectionState = OnlineDuelConnectionState.failed;
       });
+      _scheduleReconnect();
     } finally {
       if (mounted) setState(() => _connecting = false);
     }
   }
 
   void _scheduleReconnect() {
-    if (!mounted || _handedOff || _retryTimer != null) return;
-    _connectAttempt++;
-    final seconds = switch (_connectAttempt) {
-      <= 1 => 1,
-      2 => 2,
-      3 => 4,
-      _ => 6,
-    };
-    _retryTimer = Timer(Duration(seconds: seconds), () {
-      _retryTimer = null;
-      if (mounted && !_handedOff) unawaited(_connect());
+    _retryTimer?.cancel();
+    _retryTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted || _handedOff) return;
+      unawaited(_connect());
     });
   }
 
@@ -144,10 +143,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     if (!mounted) return;
     await Navigator.of(context).pushReplacement<String?, void>(
       MaterialPageRoute(
-        builder: (_) => OnlineDuelScreen(
-          roomId: widget.roomId,
-          controller: controller,
-        ),
+        builder: (_) =>
+            OnlineDuelScreen(roomId: widget.roomId, controller: controller),
       ),
     );
   }
@@ -249,88 +246,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
                                 ready: _opponentReady,
                                 accent: const Color(0xFF7A5CFF),
                               ),
-                            ],
-                          ),
-                          SizedBox(height: compact ? 10 : 16),
-                          _ConnectionBanner(
-                            state: _connectionState,
-                            error: _error,
-                            onRetry: _connecting ? null : _connect,
-                          ),
-                          SizedBox(height: compact ? 10 : 18),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              keyboardDismissBehavior:
-                                  ScrollViewKeyboardDismissBehavior.onDrag,
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final vertical =
-                                      constraints.maxWidth < 520 ||
-                                      textScale > 1.3;
-                                  final youCard = _PlayerCard(
-                                    player: _you,
-                                    fallbackName: context.tr('you'),
-                                    ready: _youReady,
-                                    accent: const Color(0xFF29D398),
-                                    compact: compact,
-                                  );
-                                  final opponentCard = _PlayerCard(
-                                    player: _opponent,
-                                    fallbackName: context.tr('opponent'),
-                                    ready: _opponentReady,
-                                    accent: const Color(0xFF7A5CFF),
-                                    compact: compact,
-                                  );
-                                  return Column(
-                                    children: [
-                                      if (vertical) ...[
-                                        youCard,
-                                        Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: compact ? 6 : 10,
-                                          ),
-                                          child: const Icon(
-                                            Icons.flash_on_rounded,
-                                            color: Color(0xFFFFC94D),
-                                            size: 34,
-                                          ),
-                                        ),
-                                        opponentCard,
-                                      ] else
-                                        Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            Expanded(child: youCard),
-                                            const Padding(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 12,
-                                              ),
-                                              child: Icon(
-                                                Icons.flash_on_rounded,
-                                                color: Color(0xFFFFC94D),
-                                                size: 34,
-                                              ),
-                                            ),
-                                            Expanded(child: opponentCard),
-                                          ],
-                                        ),
-                                      SizedBox(height: compact ? 10 : 16),
-                                      Text(
-                                        _statusText(context),
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: Colors.white.withValues(
-                                            alpha: .74,
-                                          ),
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                    ],
-                                  );
-                                },
-                              ),
                             ),
                           ];
                           return vertical
@@ -352,10 +267,12 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: !_readyStage ||
+                        onPressed:
+                            !_readyStage ||
                                 _youReady ||
                                 _controller == null ||
-                                _connectionState == OnlineDuelConnectionState.failed
+                                _connectionState ==
+                                    OnlineDuelConnectionState.failed
                             ? null
                             : _ready,
                         icon: Icon(
@@ -408,8 +325,8 @@ class _ConnectionBanner extends StatelessWidget {
     final color = failed
         ? Theme.of(context).colorScheme.error
         : state == OnlineDuelConnectionState.connected
-            ? const Color(0xFF29D398)
-            : const Color(0xFFFFC94D);
+        ? const Color(0xFF29D398)
+        : const Color(0xFFFFC94D);
     return Container(
       constraints: const BoxConstraints(minHeight: 52),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -454,12 +371,12 @@ class _ConnectionBanner extends StatelessWidget {
     return switch (state) {
       OnlineDuelConnectionState.connected => context.tr('connected'),
       OnlineDuelConnectionState.reconnecting => context.tr('reconnecting'),
-      OnlineDuelConnectionState.resyncing =>
-        context.tr('connection_interrupted_retrying'),
-      OnlineDuelConnectionState.failed ||
-      OnlineDuelConnectionState.closed => context.tr('online_account_unavailable'),
-      OnlineDuelConnectionState.connecting =>
-        context.tr('connecting_players'),
+      OnlineDuelConnectionState.resyncing => context.tr(
+        'connection_interrupted_retrying',
+      ),
+      OnlineDuelConnectionState.failed || OnlineDuelConnectionState.closed =>
+        context.tr('online_account_unavailable'),
+      OnlineDuelConnectionState.connecting => context.tr('connecting_players'),
     };
   }
 }
@@ -495,10 +412,9 @@ class _PlayerCard extends StatelessWidget {
               displayName: name,
               avatarKey: player?.avatarKey ?? 'prematch-$name',
               radius: 40,
-              semanticLabel: context.tr(
-                'player_avatar_semantics',
-                <Object>[name],
-              ),
+              semanticLabel: context.tr('player_avatar_semantics', <Object>[
+                name,
+              ]),
             ),
             const SizedBox(height: 12),
             Text(
@@ -526,7 +442,9 @@ class _PlayerCard extends StatelessWidget {
                 color: ready ? const Color(0xFF29D398) : accent,
               ),
               label: Text(
-                ready ? context.tr('ready') : context.tr('waiting_opponent_ready'),
+                ready
+                    ? context.tr('ready')
+                    : context.tr('waiting_opponent_ready'),
               ),
             ),
           ],

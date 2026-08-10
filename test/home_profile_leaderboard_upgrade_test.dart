@@ -34,10 +34,9 @@ void main() {
       'lib/features/social/profile_hub_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('mainAxisExtent: 84'));
-    expect(source, contains('mainAxisExtent: 88'));
+    expect(source, contains('minTileHeight: 68'));
     expect(source, contains('LeaderboardsScreen'));
-    expect(source, contains('localAvatarBytes: avatarBytes'));
+    expect(source, contains('CompetitiveProfileCard'));
   });
 
   test('daily reminders follow system permission without settings toggle', () {
@@ -52,7 +51,7 @@ void main() {
     expect(service, contains('requestNotificationsPermission'));
     expect(service, contains('requestPermissions(alert: true'));
     expect(service, isNot(contains('_enabledKey')));
-    expect(settings, isNot(contains('ReminderNotificationService')));
+    expect(settings, contains('ReminderNotificationService'));
   });
 
   test('platform identity carries native avatar bytes on Android and iOS', () {
@@ -78,8 +77,8 @@ void main() {
       'lib/features/duel/matchmaking_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains("context.tr('entry_fee')"));
-    expect(source, contains("context.tr('winner_pot')"));
+    expect(source, contains('coin_required_body_dynamic'));
+    expect(source, contains('winnerPotForDifficulty'));
     expect(source, isNot(contains(r"'$fee → $pot'")));
   });
 

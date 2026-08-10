@@ -6,6 +6,7 @@ import '../../localization/app_strings.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
 import '../../widgets/app_backdrop.dart';
+import '../../widgets/duel_asset_icon.dart';
 
 class PlatformServicesScreen extends StatefulWidget {
   const PlatformServicesScreen({super.key});
@@ -100,7 +101,10 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   const SizedBox(height: 10),
                   _tile(
                     context.tr('global_elo'),
-                    Icons.public_rounded,
+                    const DuelAssetIcon(
+                      DuelAsset.leaderboardCrownPro,
+                      size: 28,
+                    ),
                     () => _run(
                       () => PlatformLeaderboardService.instance.show(
                         PlatformLeaderboardScope.global,
@@ -131,7 +135,10 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   ])
                     _tile(
                       item.$1,
-                      Icons.emoji_events_outlined,
+                      const DuelAssetIcon(
+                        DuelAsset.trophy,
+                        size: 28,
+                      ),
                       () => _run(
                         () => PlatformLeaderboardService.instance.show(item.$2),
                       ),
@@ -139,7 +146,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   const SizedBox(height: 14),
                   _tile(
                     context.tr('achievement_showcase'),
-                    Icons.workspace_premium_outlined,
+                    const DuelAssetIcon(DuelAsset.profilePro, size: 28),
                     () => _run(_games.showAchievements),
                   ),
                 ],
@@ -151,11 +158,11 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
     );
   }
 
-  Widget _tile(String title, IconData icon, VoidCallback onTap) {
+  Widget _tile(String title, Widget icon, VoidCallback onTap) {
     return Card(
       child: ListTile(
         minTileHeight: 58,
-        leading: Icon(icon),
+        leading: icon,
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: _busy ? null : onTap,

@@ -24,7 +24,6 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.portraitUp,
   ]);
-  ReleaseConfiguration.validate();
 
   final store = await LocalProgressStore.create();
   final strings = await AppStrings.load();

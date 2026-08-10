@@ -4,7 +4,14 @@ import 'online_duel_models.dart';
 import 'platform_game_services.dart';
 import 'social_api_client.dart';
 
-enum PlatformLeaderboardScope { global, beginner, easy, medium, hard, expert }
+enum PlatformLeaderboardScope {
+  global,
+  beginner,
+  easy,
+  medium,
+  hard,
+  expert,
+}
 
 enum PlatformLeaderboardMirrorStatus {
   submitted,
@@ -47,17 +54,17 @@ class PlatformLeaderboardIds {
     },
     this.ios = const <PlatformLeaderboardScope, String>{
       PlatformLeaderboardScope.global:
-          'com.devovia.sudokuduel.leaderboard.global_peak_elo',
+          'REPLACE_WITH_GAME_CENTER_GLOBAL_PEAK_ELO_ID',
       PlatformLeaderboardScope.beginner:
-          'com.devovia.sudokuduel.leaderboard.beginner_peak_elo',
+          'REPLACE_WITH_GAME_CENTER_BEGINNER_PEAK_ELO_ID',
       PlatformLeaderboardScope.easy:
-          'com.devovia.sudokuduel.leaderboard.easy_peak_elo',
+          'REPLACE_WITH_GAME_CENTER_EASY_PEAK_ELO_ID',
       PlatformLeaderboardScope.medium:
-          'com.devovia.sudokuduel.leaderboard.medium_peak_elo',
+          'REPLACE_WITH_GAME_CENTER_MEDIUM_PEAK_ELO_ID',
       PlatformLeaderboardScope.hard:
-          'com.devovia.sudokuduel.leaderboard.hard_peak_elo',
+          'REPLACE_WITH_GAME_CENTER_HARD_PEAK_ELO_ID',
       PlatformLeaderboardScope.expert:
-          'com.devovia.sudokuduel.leaderboard.expert_peak_elo',
+          'REPLACE_WITH_GAME_CENTER_EXPERT_PEAK_ELO_ID',
     },
   });
 
@@ -106,10 +113,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       isConfigured ?? PlatformGameServices.instance.isConfigured,
       refreshAuthentication ??
           PlatformGameServices.instance.refreshAuthentication,
-      authenticate ??
-          () => PlatformGameServices.instance.authenticate(
-            notifyAccountBridge: false,
-          ),
+      authenticate ?? PlatformGameServices.instance.authenticate,
       submitScore ?? PlatformGameServices.instance.submitScore,
       showLeaderboard ?? PlatformGameServices.instance.showLeaderboard,
       loadRatings ?? SocialApiClient.instance.loadRatings,
@@ -161,11 +165,6 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
         status: PlatformLeaderboardMirrorStatus.skipped,
       );
     }
-    if (snapshot.variant.key != 'classic9') {
-      return const PlatformLeaderboardMirrorResult(
-        status: PlatformLeaderboardMirrorStatus.skipped,
-      );
-    }
     if (snapshot.mode != 'ranked' ||
         (snapshot.status != OnlineDuelStatus.completed &&
             snapshot.status != OnlineDuelStatus.forfeited)) {
@@ -182,7 +181,10 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       );
     }
 
-    final globalId = _ids.idFor(platform, PlatformLeaderboardScope.global);
+    final globalId = _ids.idFor(
+      platform,
+      PlatformLeaderboardScope.global,
+    );
     final difficultyId = _ids.idFor(platform, difficultyScope);
     if (globalId == null || difficultyId == null) {
       return const PlatformLeaderboardMirrorResult(
@@ -207,18 +209,6 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
         _processedMatchIds.remove(snapshot.matchId);
         return const PlatformLeaderboardMirrorResult(
           status: PlatformLeaderboardMirrorStatus.notAuthenticated,
-        );
-      }
-      if (!_isValidElo(localRating.afterGlobal) ||
-          !_isValidElo(localRating.afterDifficulty)) {
-        _processedMatchIds.remove(snapshot.matchId);
-        return PlatformLeaderboardMirrorResult(
-          status: PlatformLeaderboardMirrorStatus.failed,
-          error: ArgumentError.value(
-            '${localRating.afterGlobal}/${localRating.afterDifficulty}',
-            'rating',
-            'Platform leaderboard ELO must be between 100 and 3000.',
-          ),
         );
       }
 
@@ -338,5 +328,3 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     };
   }
 }
-
-bool _isValidElo(int value) => value >= 100 && value <= 3000;

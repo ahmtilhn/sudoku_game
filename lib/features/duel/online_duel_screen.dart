@@ -3,14 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/user_safe_error.dart';
 import '../../core/app_theme.dart';
-import '../../domain/samurai_sudoku.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
-import '../../services/economy_v3_service.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
@@ -19,9 +16,7 @@ import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/player_avatar.dart';
-import '../../widgets/samurai_board.dart';
 import '../../widgets/sudoku_board.dart';
-import '../../widgets/ux_feedback.dart';
 import '../economy/coin_store_screen.dart';
 import 'matchmaking_screen.dart';
 import 'pre_match_ready_screen.dart';
@@ -40,7 +35,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   OnlineDuelController? _controller;
   StreamSubscription<OnlineDuelSnapshot>? _subscription;
   StreamSubscription<OnlineDuelFeedback>? _feedbackSubscription;
-  StreamSubscription<OnlineDuelConnectionState>? _connectionSubscription;
   OnlineDuelSnapshot? _snapshot;
   Object? _error;
   int? _selectedIndex;
@@ -52,9 +46,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   Timer? _feedbackTimer;
   Timer? _progressTimer;
   Timer? _resultSettlementTimer;
+  Timer? _disconnectEscapeTimer;
   String? _shownResultFor;
   int _resultSettlementAttempts = 0;
   bool _forfeiting = false;
+  bool _localConnectionInterrupted = false;
 
   @override
   void initState() {
@@ -66,11 +62,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   void dispose() {
     unawaited(_subscription?.cancel());
     unawaited(_feedbackSubscription?.cancel());
-    unawaited(_connectionSubscription?.cancel());
     unawaited(_controller?.dispose());
     _feedbackTimer?.cancel();
     _progressTimer?.cancel();
     _resultSettlementTimer?.cancel();
+    _disconnectEscapeTimer?.cancel();
     super.dispose();
   }
 
@@ -82,9 +78,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             await WebSocketOnlineDuelTransport.connect(widget.roomId),
           );
       controller.start();
-      final connectionSubscription = controller.connectionStates.listen(
-        _handleConnectionState,
-      );
       final subscription = controller.snapshots.listen((snapshot) {
         if (!mounted) return;
         final previous = _snapshot;
@@ -97,6 +90,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
           if (!snapshot.isLocalTurn) _selectedIndex = null;
           if (snapshot.isFinished) _forfeiting = false;
         });
+        _syncDisconnectEscape(snapshot);
         if (!previousLocalTurn && snapshot.isLocalTurn) {
           unawaited(HapticFeedback.mediumImpact());
         }
@@ -144,15 +138,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         _controller = controller;
         _subscription = subscription;
         _feedbackSubscription = feedbackSubscription;
-        _connectionSubscription = connectionSubscription;
-        _connectionState = controller.connectionState;
       });
-      _handleConnectionState(controller.connectionState);
       controller.requestSnapshot();
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = UserSafeError.message(context, error);
+        _error = error;
         _loading = false;
       });
     }
@@ -181,25 +172,57 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       ),
     );
     if (forfeit != true || !mounted) return;
-    setState(() => _forfeiting = true);
-    _controller?.forfeit();
-    _controller?.requestSnapshot();
-    Timer(const Duration(seconds: 8), () {
-      if (!mounted || _snapshot?.isFinished == true) return;
-      setState(() => _forfeiting = false);
+    await _returnToMainMenu(sendForfeit: true);
+  }
+
+  Future<void> _returnToMainMenu({required bool sendForfeit}) async {
+    if (sendForfeit) {
+      setState(() => _forfeiting = true);
+      _controller?.forfeit();
       _controller?.requestSnapshot();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('connection_interrupted_retrying'))),
-      );
-    });
+      final settled = await waitForAuthoritativeResult();
+      if (!mounted) return;
+      if (!settled) {
+        setState(() => _forfeiting = false);
+        _controller?.requestSnapshot();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.tr('connection_interrupted_retrying')),
+          ),
+        );
+        return;
+      }
+    }
+    if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<bool> waitForAuthoritativeResult() async {
+    for (var attempt = 0; attempt < 20; attempt++) {
+      if (_snapshot?.isFinished == true) return true;
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      _controller?.requestSnapshot();
+    }
+    return _snapshot?.isFinished == true;
+  }
+
+  void _syncDisconnectEscape(OnlineDuelSnapshot snapshot) {
+    if (snapshot.status == OnlineDuelStatus.paused && !snapshot.isFinished) {
+      _localConnectionInterrupted = true;
+      _disconnectEscapeTimer ??= Timer(const Duration(seconds: 30), () {
+        if (!mounted || _snapshot?.isFinished == true) return;
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      });
+      return;
+    }
+
+    _localConnectionInterrupted = false;
+    _disconnectEscapeTimer?.cancel();
+    _disconnectEscapeTimer = null;
   }
 
   void _selectCell(int index) {
     final snapshot = _snapshot;
-    if (snapshot == null ||
-        snapshot.isFinished ||
-        _forfeiting ||
-        _exitingToMenu) {
+    if (snapshot == null || snapshot.isFinished) {
       return;
     }
     if (snapshot.puzzle[index] != 0 ||
@@ -213,13 +236,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   void _enterNumber(int value) {
     final snapshot = _snapshot;
     final index = _selectedIndex;
-    if (snapshot == null ||
-        index == null ||
-        snapshot.isFinished ||
-        _forfeiting ||
-        _exitingToMenu) {
-      return;
-    }
+    if (snapshot == null || index == null) return;
     _controller?.move(index, value);
   }
 
@@ -273,52 +290,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     });
   }
 
-  Future<void> _maybeOfferRecovery(OnlineDuelSnapshot snapshot) async {
-    if (snapshot.mode == 'friendly' ||
-        snapshot.winnerSeat == null ||
-        snapshot.winnerSeat == snapshot.youSeat ||
-        !mounted) {
-      return;
-    }
-    final offer = await EconomyV3Service.instance.prepareRecovery(snapshot.matchId);
-    if (!mounted || offer == null || !offer.eligible || offer.amount <= 0) {
-      return;
-    }
-    final watch = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(dialogContext.tr('you_lost')),
-        content: Text(
-          "${dialogContext.tr('watch_rewarded_ad')} · ${dialogContext.tr('coin_amount', <Object>[offer.amount])}",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(dialogContext.tr('cancel')),
-          ),
-          FilledButton.icon(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            icon: const Icon(Icons.ondemand_video_rounded),
-            label: Text(dialogContext.tr('watch_rewarded_ad')),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    if (watch != true) {
-      await EconomyV3Service.instance.dismissRecovery(snapshot.matchId);
-      return;
-    }
-    final result = await EconomyV3Service.instance.claimRecovery(offer);
-    if (!mounted || result == null || !result.granted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(context.tr('coin_added_wallet', <Object>[result.amount])),
-      ),
-    );
-  }
-
   void _showResultOnce(OnlineDuelSnapshot snapshot) {
     if (!snapshot.isFinished || _shownResultFor == snapshot.matchId) return;
     final needsSettlement =
@@ -342,8 +313,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       if (!mounted) return;
       await EconomyService.instance.refresh(showLoading: false);
       if (!mounted) return;
-      await _maybeOfferRecovery(snapshot);
-      if (!mounted) return;
       final action = await showModalBottomSheet<String>(
         context: context,
         isDismissible: false,
@@ -359,16 +328,13 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       if (action.startsWith('rematch:')) {
         final roomId = action.substring('rematch:'.length);
         await Navigator.of(context).pushReplacement<void, void>(
-          MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
+          MaterialPageRoute(
+            builder: (_) => PreMatchReadyScreen(roomId: roomId),
+          ),
         );
       } else if (action == 'new_match') {
         await Navigator.of(context).pushReplacement<void, void>(
-          MaterialPageRoute(
-            builder: (_) => MatchmakingScreen(
-              initialDifficulty: _difficulty(snapshot.difficulty),
-              initialVariant: snapshot.variant,
-            ),
-          ),
+          MaterialPageRoute(builder: (_) => const MatchmakingScreen()),
         );
       } else if (action == 'menu') {
         Navigator.of(context).pop(action);
@@ -379,16 +345,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
-    final activeArena =
-        snapshot?.status == OnlineDuelStatus.active ||
-        snapshot?.status == OnlineDuelStatus.paused;
+    final activeArena = snapshot?.status == OnlineDuelStatus.active;
     final inputLocked =
         snapshot != null &&
         (snapshot.isFinished ||
-            snapshot.status == OnlineDuelStatus.paused ||
-            _localConnectionInterrupted ||
-            _forfeiting ||
-            _exitingToMenu ||
             !snapshot.isLocalTurn ||
             _controller?.pendingMove == true);
     return PopScope(
@@ -420,12 +380,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                   child: NumberPadDock(
                     child: NumberPad(
                       maxValue: 9,
-                      completedValues: snapshot.variant == 'samurai'
-                          ? const <int>{}
-                          : completedSudokuNumbers(
-                              board: snapshot.board,
-                              maxValue: 9,
-                            ),
+                      completedValues: completedSudokuNumbers(
+                        board: snapshot.board,
+                        maxValue: 9,
+                      ),
                       enabled: !inputLocked,
                       onNumber: _enterNumber,
                       onErase: () => setState(() => _selectedIndex = null),
@@ -486,7 +444,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
               const DuelAssetIcon(DuelAsset.cloud, size: 44),
               const SizedBox(height: 12),
               Text(
-                UserSafeError.message(context, _error),
+                context.tr('online_connection_failed', <Object>[_error!]),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 14),
@@ -512,53 +470,30 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     }
     final puzzle = SudokuPuzzle(
       id: 'online-${snapshot.matchId}',
-      title: context.tr('online_duel'),
-      difficulty: _difficulty(snapshot.difficulty),
-      puzzle: snapshot.variant == 'samurai'
-          ? const <int>[]
-          : snapshot.puzzle,
-      solution: List<int>.filled(81, 1),
-    );
-    final samuraiPuzzle = SamuraiPuzzle(
-      id: 'online-${snapshot.matchId}',
-      title: 'Online Samurai Duel',
+      title: 'Online Duel',
       difficulty: _difficulty(snapshot.difficulty),
       puzzle: snapshot.puzzle,
-      solution: snapshot.board,
+      solution: List<int>.filled(81, 1),
     );
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact =
             constraints.maxHeight < 720 || constraints.maxWidth <= 520;
-        final board = snapshot.variant == 'samurai'
-            ? RepaintBoundary(
-                child: IgnorePointer(
-                  ignoring: snapshot.isFinished || !snapshot.isLocalTurn,
-                  child: SamuraiBoard(
-                    puzzle: samuraiPuzzle,
-                    board: snapshot.board,
-                    selectedIndex: _selectedIndex,
-                    errorIndex: _feedbackCell,
-                    enabled: !snapshot.isFinished && snapshot.isLocalTurn,
-                    onCellTap: _selectCell,
-                  ),
-                ),
-              )
-            : RepaintBoundary(
-                child: IgnorePointer(
-                  ignoring: snapshot.isFinished || !snapshot.isLocalTurn,
-                  child: SudokuBoard(
-                    puzzle: puzzle,
-                    board: snapshot.board,
-                    selectedIndex: _selectedIndex,
-                    errorIndex: _feedbackCell,
-                    localMoveIndexes: _localMoveIndexes,
-                    opponentMoveIndexes: _opponentMoveIndexes,
-                    enabled: !snapshot.isFinished && snapshot.isLocalTurn,
-                    onCellTap: _selectCell,
-                  ),
-                ),
-              );
+        final board = RepaintBoundary(
+          child: IgnorePointer(
+            ignoring: snapshot.isFinished || !snapshot.isLocalTurn,
+            child: SudokuBoard(
+              puzzle: puzzle,
+              board: snapshot.board,
+              selectedIndex: _selectedIndex,
+              errorIndex: _feedbackCell,
+              localMoveIndexes: _localMoveIndexes,
+              opponentMoveIndexes: _opponentMoveIndexes,
+              enabled: !snapshot.isFinished && snapshot.isLocalTurn,
+              onCellTap: _selectCell,
+            ),
+          ),
+        );
         if (snapshot.status == OnlineDuelStatus.active) {
           return _ArenaMatchLayout(
             snapshot: snapshot,
@@ -592,6 +527,20 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                     snapshot: snapshot,
                     onReady: _controller?.ready,
                     compact: compact,
+                  ),
+                ),
+              if (snapshot.status == OnlineDuelStatus.paused)
+                Padding(
+                  padding: EdgeInsets.only(bottom: compact ? 4 : 8),
+                  child: Text(
+                    context.tr('opponent_connecting'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: _localConnectionInterrupted
+                          ? Theme.of(context).colorScheme.tertiary
+                          : null,
+                    ),
                   ),
                 ),
               Expanded(
@@ -696,7 +645,11 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
         ? 0
         : invite.expiresAt.difference(DateTime.now()).inSeconds.clamp(0, 10);
     final draw = snapshot.winnerSeat == null;
-    final localNetCoin = draw ? 0 : won ? entryFee : -entryFee;
+    final localNetCoin = draw
+        ? 0
+        : won
+        ? entryFee
+        : -entryFee;
     final opponentNetCoin = -localNetCoin;
     String coinLabel(int value) =>
         '${value > 0 ? '+' : ''}${context.tr('coin_amount', <Object>[value])}';
@@ -843,7 +796,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       });
     } on EconomyApiException catch (error) {
       if (!mounted) return;
-      setState(() => _statusMessage = UserSafeError.message(context, error));
+      setState(() => _statusMessage = error.message);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -868,7 +821,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       }
     } on EconomyApiException catch (error) {
       if (!mounted) return;
-      setState(() => _statusMessage = UserSafeError.message(context, error));
+      setState(() => _statusMessage = error.message);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -920,7 +873,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       setState(() => _statusMessage = context.tr('friend_request_sent'));
     } on SocialApiException catch (error) {
       if (!mounted) return;
-      setState(() => _statusMessage = UserSafeError.message(context, error));
+      setState(() => _statusMessage = error.message);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -977,65 +930,173 @@ class _ResultShowcaseCard extends StatelessWidget {
     final accent = draw
         ? const Color(0xFF8DA2BE)
         : won
-        ? const Color(0xFF29D398)
-        : Theme.of(context).colorScheme.error;
-    final icon = draw
-        ? Icons.handshake_outlined
+        ? const Color(0xFF1E9B63)
+        : const Color(0xFFC15B55);
+    final banner = draw
+        ? const Color(0xFF4D627E)
         : won
-        ? Icons.emoji_events_rounded
-        : Icons.flag_rounded;
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        ? const Color(0xFF128151)
+        : const Color(0xFF9E403B);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF172235),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: .42)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .24),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Stack(
           children: [
-            UxOutcomeHeader(
-              icon: icon,
-              title: title,
-              subtitle: subtitle,
-              accent: accent,
+            Positioned.fill(
+              child: CustomPaint(painter: _ResultSurfacePainter(accent)),
             ),
-            const SizedBox(height: 18),
-            _ResultPlayersRow(
-              localPlayer: localPlayer,
-              opponent: opponent,
-              localScore: localScore,
-              opponentScore: opponentScore,
-              localRating: localRating,
-              opponentRating: opponentRating,
-              accent: accent,
-            ),
-            const SizedBox(height: 12),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                child: Column(
-                  children: [
-                    for (final row in rows) _ResultCompareRow(row: row),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ResultCrown(accent: accent),
+                  const SizedBox(height: 4),
+                  _ResultBanner(title: title, color: banner),
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .86),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _ResultPlayersRow(
+                    localPlayer: localPlayer,
+                    opponent: opponent,
+                    localScore: localScore,
+                    opponentScore: opponentScore,
+                    localRating: localRating,
+                    opponentRating: opponentRating,
+                    accent: accent,
+                  ),
+                  const SizedBox(height: 12),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .08),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        children: [
+                          for (final row in rows) _ResultCompareRow(row: row),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (rating != null) ...[
+                    const SizedBox(height: 12),
+                    _ResultEloBar(rating: rating!, color: accent),
                   ],
-                ),
+                  footer,
+                ],
               ),
             ),
-            if (rating != null) ...[
-              const SizedBox(height: 12),
-              _ResultEloBar(rating: rating!, color: accent),
-            ],
-            const SizedBox(height: 4),
-            footer,
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultSurfacePainter extends CustomPainter {
+  const _ResultSurfacePainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0, -1),
+        radius: .9,
+        colors: [color.withValues(alpha: .08), Colors.transparent],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, paint);
+
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: .05)
+      ..strokeWidth = 1;
+    for (var i = 0; i < 4; i++) {
+      final y = size.height * (.18 + i * .16);
+      canvas.drawLine(Offset(12, y), Offset(size.width - 12, y), line);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ResultSurfacePainter oldDelegate) {
+    return oldDelegate.color != color;
+  }
+}
+
+class _ResultCrown extends StatelessWidget {
+  const _ResultCrown({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return DuelAssetIcon(
+      DuelAsset.shield,
+      color: const Color(0xFFFFC94D),
+      size: 52,
+    );
+  }
+}
+
+class _ResultBanner extends StatelessWidget {
+  const _ResultBanner({required this.title, required this.color});
+
+  final String title;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .22),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 7),
+        child: Text(
+          title.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFFFFEAA6),
+            fontSize: 25,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
     );
@@ -1581,54 +1642,22 @@ class _ArenaMatchLayout extends StatelessWidget {
                   final boardSize = wide
                       ? (boardMax - 10).clamp(280.0, 520.0)
                       : boardMax.clamp(260.0, 520.0);
-                  OnlineDuelSeat? disconnectedSeat;
-                  OnlineDuelPlayer? disconnectedPlayer;
-                  for (final entry in snapshot.players.entries) {
-                    if (!entry.value.connected) {
-                      disconnectedSeat = entry.key;
-                      disconnectedPlayer = entry.value;
-                      break;
-                    }
-                  }
-                  final connectionInterrupted =
-                      snapshot.status == OnlineDuelStatus.paused ||
-                      localConnectionInterrupted;
-                  final pauseLabel = localConnectionInterrupted
-                      ? context.tr('reconnecting')
-                      : disconnectedSeat != null &&
-                            disconnectedSeat != snapshot.youSeat
-                      ? context.tr('opponent_connecting')
-                      : context.tr('reconnecting');
-                  final reconnectDeadline = localConnectionInterrupted
-                      ? localDisconnectDeadline
-                      : disconnectedPlayer?.disconnectDeadline;
                   final boardWidget = Center(
                     child: SizedBox.square(
                       dimension: boardSize,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF3D74B6,
-                                  ).withValues(alpha: .14),
-                                  blurRadius: 18,
-                                ),
-                              ],
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF3D74B6,
+                              ).withValues(alpha: .14),
+                              blurRadius: 18,
                             ),
-                            child: board,
-                          ),
-                          if (connectionInterrupted)
-                            _ReconnectPauseOverlay(
-                              label: pauseLabel,
-                              deadline: reconnectDeadline,
-                              onLeave: onForfeit,
-                            ),
-                        ],
+                          ],
+                        ),
+                        child: board,
                       ),
                     ),
                   );
@@ -1657,103 +1686,6 @@ class _ArenaMatchLayout extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ReconnectPauseOverlay extends StatefulWidget {
-  const _ReconnectPauseOverlay({
-    required this.label,
-    required this.onLeave,
-    this.deadline,
-  });
-
-  final String label;
-  final DateTime? deadline;
-  final VoidCallback onLeave;
-
-  @override
-  State<_ReconnectPauseOverlay> createState() => _ReconnectPauseOverlayState();
-}
-
-class _ReconnectPauseOverlayState extends State<_ReconnectPauseOverlay> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final remaining = widget.deadline
-        ?.difference(DateTime.now())
-        .inSeconds
-        .clamp(0, 30);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFF07111E).withValues(alpha: .78),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 260),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xFF18273A).withValues(alpha: .96),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFFFFC94D).withValues(alpha: .45),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const DuelAssetIcon(DuelAsset.wifi, size: 34),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                    ),
-                  ),
-                  if (remaining != null) ...[
-                    const SizedBox(height: 5),
-                    Text(
-                      context.tr('turn_timer_seconds', <Object>[remaining]),
-                      style: const TextStyle(
-                        color: Color(0xFFFFC94D),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: widget.onLeave,
-                    icon: const Icon(Icons.flag_rounded, size: 17),
-                    label: Text(context.tr('forfeit_and_leave')),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -1916,7 +1848,7 @@ class _MatchHeader extends StatelessWidget {
     final total = (scoreA + scoreB).clamp(1, 999999);
     final aShare = scoreA / total;
     final scheme = Theme.of(context).colorScheme;
-    final height = compact ? 106.0 : 122.0;
+    final height = compact ? 76.0 : 88.0;
     final timerSize = compact ? 58.0 : 70.0;
 
     return Semantics(
@@ -1968,7 +1900,7 @@ class _MatchHeader extends StatelessWidget {
               ),
             ),
             Positioned.fill(
-              top: compact ? 15 : 14,
+              top: compact ? 12 : 14,
               bottom: compact ? 11 : 13,
               child: Row(
                 children: [
@@ -1992,12 +1924,9 @@ class _MatchHeader extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: 9.5,
+              top: 0,
               child: _TimerPill(
                 deadline: snapshot.turnDeadline,
-                pausedRemainingMs: snapshot.status == OnlineDuelStatus.paused
-                    ? snapshot.pausedTurnRemainingMs
-                    : null,
                 compact: compact,
                 size: timerSize,
               ),
@@ -2096,17 +2025,11 @@ class _HeaderCircuitPainter extends CustomPainter {
 }
 
 class _TimerPill extends StatefulWidget {
-  const _TimerPill({
-    required this.deadline,
-    required this.compact,
-    this.size,
-    this.pausedRemainingMs,
-  });
+  const _TimerPill({required this.deadline, required this.compact, this.size});
 
   final DateTime? deadline;
   final bool compact;
   final double? size;
-  final int? pausedRemainingMs;
 
   @override
   State<_TimerPill> createState() => _TimerPillState();
@@ -2133,9 +2056,7 @@ class _TimerPillState extends State<_TimerPill> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final gameColors = Theme.of(context).extension<GameColors>()!;
-    final seconds = widget.pausedRemainingMs == null
-        ? _secondsUntil(widget.deadline)
-        : (widget.pausedRemainingMs! / 1000).ceil();
+    final seconds = _secondsUntil(widget.deadline);
     final color = seconds != null && seconds <= 5
         ? gameColors.timerCritical
         : seconds != null && seconds <= 10
@@ -2237,9 +2158,8 @@ class _DuelPlayerPlate extends StatelessWidget {
     final accent = seat == OnlineDuelSeat.a ? scheme.primary : scheme.tertiary;
     final displayName = isLocalPlayer ? context.tr('you') : player.displayName;
     final score = snapshot.scores[seat] ?? 0;
-    final avatarRadius = compact ? 18.0 : 24.0;
+    final avatarRadius = compact ? 17.0 : 23.0;
     final seatKey = seat == OnlineDuelSeat.a ? 'A' : 'B';
-
     final avatar = KeyedSubtree(
       key: ValueKey<String>('duel-avatar-$seatKey'),
       child: _AvatarRing(
@@ -2255,46 +2175,101 @@ class _DuelPlayerPlate extends StatelessWidget {
         ),
       ),
     );
-
-    final nameAndPresence = Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-          child: Text(
-            displayName,
-            key: ValueKey<String>('duel-name-$seatKey'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: compact ? 13.5 : 16.5,
-              fontWeight: FontWeight.w900,
-              letterSpacing: .1,
-            ),
-          ),
+    final children = <Widget>[
+      avatar,
+      SizedBox(width: compact ? 6 : 9),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: alignEnd
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (compact)
+              Align(
+                alignment: alignEnd
+                    ? AlignmentDirectional.centerEnd
+                    : AlignmentDirectional.centerStart,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: alignEnd
+                      ? AlignmentDirectional.centerEnd
+                      : AlignmentDirectional.centerStart,
+                  child: Column(
+                    crossAxisAlignment: alignEnd
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        key: ValueKey<String>('duel-name-$seatKey'),
+                        displayName,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      _ScoreLine(
+                        key: ValueKey<String>('duel-score-$seatKey'),
+                        score: score,
+                        connected: player.connected,
+                        color: accent,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Row(
+                mainAxisAlignment: alignEnd
+                    ? MainAxisAlignment.end
+                    : MainAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: Text(
+                      key: ValueKey<String>('duel-name-$seatKey'),
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            if (!compact) ...[
+              const SizedBox(height: 3),
+              Align(
+                alignment: alignEnd
+                    ? AlignmentDirectional.centerEnd
+                    : AlignmentDirectional.centerStart,
+                child: _ScoreLine(
+                  key: ValueKey<String>('duel-score-$seatKey'),
+                  score: score,
+                  connected: player.connected,
+                  color: accent,
+                ),
+              ),
+            ],
+          ],
         ),
-        SizedBox(width: compact ? 4 : 6),
-        DuelAssetIcon(
-          player.connected ? DuelAsset.wifi : DuelAsset.cloud,
-          size: compact ? 12 : 14,
-          color: player.connected ? accent : scheme.error,
-        ),
-      ],
-    );
-
-    final scoreValue = _ScoreValue(
-      key: ValueKey<String>('duel-score-$seatKey'),
-      score: score,
-      compact: compact,
-      color: accent,
-    );
+      ),
+    ];
+    final compactChildren = <Widget>[
+      children[0],
+      children[1],
+      if (children[2] case final Expanded info) info.child else children[2],
+    ];
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 5 : 11,
-        vertical: compact ? 3 : 5,
+        horizontal: compact ? 4 : 10,
+        vertical: compact ? 4 : 6,
       ),
       decoration: BoxDecoration(
         color: Colors.transparent,
@@ -2302,26 +2277,26 @@ class _DuelPlayerPlate extends StatelessWidget {
             ? [BoxShadow(color: accent.withValues(alpha: .18), blurRadius: 14)]
             : null,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.max,
-        children: [
-          avatar,
-          SizedBox(height: compact ? 3 : 5),
-          Row(
-            children: alignEnd
-                ? [
-                    scoreValue,
-                    SizedBox(width: compact ? 7 : 11),
-                    Expanded(child: nameAndPresence),
-                  ]
-                : [
-                    Expanded(child: nameAndPresence),
-                    SizedBox(width: compact ? 7 : 11),
-                    scoreValue,
-                  ],
-          ),
-        ],
-      ),
+      child: compact
+          ? Align(
+              alignment: alignEnd
+                  ? AlignmentDirectional.centerEnd
+                  : AlignmentDirectional.centerStart,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  textDirection: alignEnd
+                      ? TextDirection.rtl
+                      : TextDirection.ltr,
+                  children: compactChildren,
+                ),
+              ),
+            )
+          : Row(
+              textDirection: alignEnd ? TextDirection.rtl : TextDirection.ltr,
+              children: children,
+            ),
     );
   }
 }
@@ -2358,42 +2333,41 @@ class _AvatarRing extends StatelessWidget {
   }
 }
 
-class _ScoreValue extends StatelessWidget {
-  const _ScoreValue({
+class _ScoreLine extends StatelessWidget {
+  const _ScoreLine({
     super.key,
     required this.score,
-    required this.compact,
+    required this.connected,
     required this.color,
   });
 
   final int score;
-  final bool compact;
+  final bool connected;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: compact ? 1 : 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DuelAssetIcon(
-            DuelAsset.trophy,
-            size: compact ? 17 : 21,
-            color: const Color(0xFFFFC94D),
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DuelAssetIcon(DuelAsset.trophy, size: 13, color: scheme.tertiary),
+        const SizedBox(width: 3),
+        Text(
+          '$score',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .92),
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
           ),
-          SizedBox(width: compact ? 4 : 5),
-          Text(
-            '$score',
-            style: TextStyle(
-              color: color,
-              fontSize: compact ? 20 : 25,
-              height: 1,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 8),
+        DuelAssetIcon(
+          connected ? DuelAsset.wifi : DuelAsset.cloud,
+          size: 12,
+          color: connected ? color : scheme.error,
+        ),
+      ],
     );
   }
 }

@@ -39,11 +39,11 @@ void main() {
     final source = File(
       'lib/features/duel/online_duel_screen.dart',
     ).readAsStringSync();
-    expect(source, contains('fontSize: compact ? 20 : 25'));
+    expect(source, contains('fontSize: widget.compact ? 22 : 28'));
     expect(source, contains("key: ValueKey<String>('duel-name-\$seatKey')"));
-    expect(source, contains('children: alignEnd'));
-    expect(source, contains('scoreValue'));
-    expect(source, contains('nameAndPresence'));
+    expect(source, contains('final children = <Widget>'));
+    expect(source, contains('score: score'));
+    expect(source, contains('_ScoreLine'));
   });
 
   test('all challenge acceptance paths converge on pre-match ready', () {
@@ -58,7 +58,7 @@ void main() {
     ).readAsStringSync();
     expect(legacy, contains('PreMatchReadyScreen(roomId: roomId)'));
     expect(legacy, isNot(contains('OnlineDuelScreen(roomId: roomId)')));
-    expect(modern, contains('bool _openingRoom = false'));
+    expect(modern, contains('Future<void> _openRoom(String roomId)'));
     expect(waiting, contains('unawaited(_openRoom(roomId))'));
   });
 }

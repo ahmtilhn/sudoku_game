@@ -253,8 +253,9 @@ class _CareerScreenState extends State<CareerScreen> {
     var didComplete = false;
     await Navigator.of(context).push<EnhancedGameExit>(
       MaterialPageRoute(
-        builder: (_) => EnhancedGameScreen(
+        builder: (gameContext) => EnhancedGameScreen(
           puzzle: puzzle,
+          store: widget.store,
           completionTitle: _levelTitle(gameContext, level),
           mistakeLimit: 3,
           onCompleted:
@@ -274,7 +275,7 @@ class _CareerScreenState extends State<CareerScreen> {
 
     if (!mounted) return;
     await _loadActiveSession();
-    if (!mounted || completed != true) return;
+    if (!mounted || !didComplete) return;
 
     final firstCompletion = !wasCompleted;
     if (firstCompletion && level.hintReward > 0) {

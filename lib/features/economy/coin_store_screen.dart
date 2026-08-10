@@ -43,10 +43,7 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
   }
 
   Future<void> _reload() async {
-    await Future.wait<void>([
-      _store.refreshProducts(),
-      _economy.refresh(),
-    ]);
+    await Future.wait<void>([_store.refreshProducts(), _economy.refresh()]);
   }
 
   Future<void> _claimDaily() async {
@@ -168,7 +165,6 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                               onRestore: _store.restorePurchases,
                             ),
                           ),
-                          onRestore: _store.restorePurchases,
                         ),
                       ),
                     ),
@@ -180,12 +176,12 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                               child: Card(
-                                color: Theme.of(context).colorScheme.errorContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.errorContainer,
                                 child: ListTile(
                                   leading: const Icon(Icons.cloud_off_outlined),
-                                  title: Text(
-                                    _store.error ?? _economy.error!,
-                                  ),
+                                  title: Text(_store.error ?? _economy.error!),
                                   trailing: IconButton(
                                     tooltip: context.tr('retry'),
                                     onPressed: _reload,
@@ -215,22 +211,29 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                     else
                       SliverPadding(
                         padding: EdgeInsets.fromLTRB(
-                          (constraints.maxWidth - maxWidth).clamp(0, double.infinity) /
+                          (constraints.maxWidth - maxWidth).clamp(
+                                    0,
+                                    double.infinity,
+                                  ) /
                                   2 +
                               16,
                           0,
-                          (constraints.maxWidth - maxWidth).clamp(0, double.infinity) /
+                          (constraints.maxWidth - maxWidth).clamp(
+                                    0,
+                                    double.infinity,
+                                  ) /
                                   2 +
                               16,
                           32,
                         ),
                         sliver: SliverGrid.builder(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: columns,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: columns == 1 ? 2.2 : 1.12,
-                          ),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: columns == 1 ? 2.2 : 1.12,
+                              ),
                           itemCount: _store.coinProducts.length,
                           itemBuilder: (context, index) {
                             final product = _store.coinProducts[index];
@@ -271,12 +274,11 @@ class _BalanceCard extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         child: Row(
           children: [
-            const DuelAssetIcon(DuelAsset.homeStoreChest, size: 58),
+            const DuelAssetIcon(DuelAsset.coinStoreBalancePro, size: 58),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     context.tr('your_balance'),
@@ -339,7 +341,7 @@ class _DailyRewardsCard extends StatelessWidget {
             Row(
               children: [
                 const DuelAssetIcon(
-                  DuelAsset.gift,
+                  DuelAsset.dailyRewardPro,
                   size: 34,
                   color: Color(0xFF29D398),
                 ),
@@ -434,8 +436,8 @@ class _NoAdsCard extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           runSpacing: 10,
           children: [
-            SizedBox(
-              width: 360,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
               child: Row(
                 children: [
                   const DuelAssetIcon(
@@ -484,8 +486,7 @@ class _NoAdsCard extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
-                            product?.price ??
-                                context.tr('not_available_short'),
+                            product?.price ?? context.tr('not_available_short'),
                           ),
                   ),
                   TextButton(
@@ -493,18 +494,8 @@ class _NoAdsCard extends StatelessWidget {
                     child: Text(context.tr('restore_purchases')),
                   ),
                 ],
-              );
-            }
-
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(child: info),
-                const SizedBox(width: 12),
-                Flexible(child: actions),
-              ],
-            );
-          },
+              ),
+          ],
         ),
       ),
     );
@@ -534,9 +525,7 @@ class _CoinPackageCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
         side: BorderSide(
-          color: (popular
-                  ? const Color(0xFFFFC94D)
-                  : const Color(0xFF29D398))
+          color: (popular ? const Color(0xFFFFC94D) : const Color(0xFF29D398))
               .withValues(alpha: .32),
         ),
       ),
@@ -561,6 +550,7 @@ class _CoinPackageCard extends StatelessWidget {
                 ),
                 if (popular)
                   Chip(
+                    avatar: const DuelAssetIcon(DuelAsset.diamond, size: 18),
                     label: Text(context.tr('popular')),
                     visualDensity: VisualDensity.compact,
                   ),

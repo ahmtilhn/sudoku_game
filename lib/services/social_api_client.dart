@@ -7,16 +7,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-import '../domain/sudoku_variant.dart';
-
-SudokuVariant _challengeVariant(Object? value) {
-  try {
-    return SudokuVariant.fromKey(value?.toString() ?? 'classic9');
-  } catch (_) {
-    return SudokuVariant.classic9;
-  }
-}
-
 class SocialPlayer {
   const SocialPlayer({
     required this.publicId,
@@ -174,9 +164,6 @@ class SocialChallenge {
     required this.recipient,
     required this.expiresAt,
     this.roomId,
-    this.variant = SudokuVariant.classic9,
-    this.boardSize = 9,
-    this.cellCount = 81,
   });
 
   final String id;
@@ -187,12 +174,8 @@ class SocialChallenge {
   final SocialPlayer recipient;
   final DateTime expiresAt;
   final String? roomId;
-  final SudokuVariant variant;
-  final int boardSize;
-  final int cellCount;
 
   factory SocialChallenge.fromJson(Map<String, dynamic> json) {
-    final variant = _challengeVariant(json['variant']);
     return SocialChallenge(
       id: json['id']?.toString() ?? '',
       variant: json['variant']?.toString() ?? 'classic',
@@ -210,9 +193,6 @@ class SocialChallenge {
           DateTime.tryParse(json['expiresAt']?.toString() ?? '') ??
           DateTime.now(),
       roomId: json['roomId']?.toString(),
-      variant: variant,
-      boardSize: (json['boardSize'] as num?)?.toInt() ?? variant.boardSize,
-      cellCount: (json['cellCount'] as num?)?.toInt() ?? variant.cellCount,
     );
   }
 }
@@ -397,7 +377,6 @@ class SocialApiClient {
         'recipientPublicId': recipientPublicId,
         'variant': variant,
         'difficulty': difficulty,
-        'variant': variant.key,
       },
     );
     return SocialChallenge.fromJson(response);

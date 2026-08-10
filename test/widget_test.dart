@@ -7,6 +7,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:sudoku_game/app.dart';
 import 'package:sudoku_game/data/local_progress_store.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
+import 'package:sudoku_game/widgets/duel_asset_icon.dart';
 import 'package:sudoku_game/widgets/player_avatar.dart';
 
 void main() {
@@ -56,8 +57,13 @@ void main() {
     );
     expect(find.byType(SingleChildScrollView), findsNothing);
     expect(find.byType(PlayerAvatar), findsWidgets);
-    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
-    expect(find.byIcon(Icons.people_outline_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is DuelAssetIcon && widget.asset == DuelAsset.people,
+      ),
+      findsWidgets,
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -103,10 +109,7 @@ void main() {
     expect(expert, findsOneWidget);
 
     final firstRowY = tester.getCenter(beginner).dy;
-    expect(
-      tester.getCenter(easy).dy,
-      moreOrLessEquals(firstRowY, epsilon: 1),
-    );
+    expect(tester.getCenter(easy).dy, moreOrLessEquals(firstRowY, epsilon: 1));
     expect(
       tester.getCenter(medium).dy,
       moreOrLessEquals(firstRowY, epsilon: 1),

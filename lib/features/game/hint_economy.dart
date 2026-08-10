@@ -6,6 +6,7 @@ import '../../services/ads_service.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
+import '../../widgets/duel_asset_icon.dart';
 
 class HintEconomy {
   const HintEconomy._();
@@ -53,7 +54,11 @@ class HintEconomy {
               onPressed: economy.balance >= coinCost
                   ? () => Navigator.of(sheetContext).pop(_HintAction.coin)
                   : null,
-              icon: const Icon(Icons.monetization_on_outlined),
+              icon: const DuelAssetIcon(
+                DuelAsset.coin,
+                size: 18,
+                color: Color(0xFFFFC94D),
+              ),
               label: Text(
                 '${context.tr('continue_with_coins', const <Object>[coinCost])} · ${context.tr('balance_coin', <Object>[economy.balance])}',
               ),
@@ -115,32 +120,9 @@ class HintEconomy {
       }
     }
 
-    if (action == _HintAction.coin) {
-      final purchased = await v3.purchaseHint(
-        requestId: 'hint:${DateTime.now().microsecondsSinceEpoch}',
-      );
-      if (!context.mounted) return false;
-      if (!purchased) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.tr('try_again_when_connected'))),
-        );
-        return false;
-      }
-      await store.addHints(1);
-      final consumed = await store.consumeHint();
-      if (context.mounted && consumed) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('coin_amount', <Object>[-coinCost])),
-          ),
-        );
-      }
-      return consumed;
-    }
-
-    final granted = await v3.earnHintWithAd();
+    final watched = await AdsService.instance.showRewarded();
     if (!context.mounted) return false;
-    if (!granted) {
+    if (!watched) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
       );
@@ -152,4 +134,4 @@ class HintEconomy {
   }
 }
 
-enum _HintAction { coin, rewardedAd, refill }
+enum _HintAction { coin, rewardedAd }

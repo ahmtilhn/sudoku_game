@@ -261,7 +261,13 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                 _PracticeCard(
                   icon: Icons.today_rounded,
                   title: context.tr('daily_sudoku'),
-                  subtitle: context.tr('daily_subtitle'),
+                  subtitle: _practiceSubtitle(
+                    context,
+                    progress: widget.store.progressFor(
+                      PuzzleCatalog.dailyPuzzle(DateTime.now()).id,
+                    ),
+                    fallback: context.tr('daily_subtitle'),
+                  ),
                   accent: const Color(0xFF29D398),
                   loading: _generatingDaily,
                   onTap: _busy ? null : _openDaily,
@@ -280,9 +286,15 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   _PracticeCard(
                     icon: Icons.grid_4x4_rounded,
                     title: context.strings.difficultyLabel(difficulty),
-                    subtitle: context.tr('random_clue_count', <Object>[
-                      PuzzleCatalog.targetClueCount(difficulty),
-                    ]),
+                    subtitle: _practiceSubtitle(
+                      context,
+                      progress: widget.store.progressFor(
+                        'practice-${difficulty.name}',
+                      ),
+                      fallback: context.tr('random_clue_count', <Object>[
+                        PuzzleCatalog.targetClueCount(difficulty),
+                      ]),
+                    ),
                     accent: _difficultyAccent(difficulty),
                     loading: _generatingPractice == difficulty,
                     onTap: _busy ? null : () => _openPractice(difficulty),
@@ -295,6 +307,19 @@ class _CareerHubScreenState extends State<CareerHubScreen>
         );
       },
     );
+  }
+
+  String _practiceSubtitle(
+    BuildContext context, {
+    required LevelProgress? progress,
+    required String fallback,
+  }) {
+    if (progress == null) return fallback;
+    return [
+      context.tr('best_time', <Object>[formatDuration(progress.bestSeconds)]),
+      context.tr('mistakes_count', <Object>[progress.bestMistakes]),
+      context.tr('hints_count', <Object>[progress.bestHints]),
+    ].join(' - ');
   }
 
   Future<void> _openCareer(CareerLevel initialLevel) async {

@@ -1891,7 +1891,6 @@ export class GameRoom {
       mode: match.mode as DuelMode,
       variant: duelVariant(match.variant),
       difficulty: match.difficulty as DuelDifficulty,
-      variant: match.variant === 'classic16' ? 'classic16' : 'classic9',
       playerA: publicPlayer(match.player_a_id, match.a_public_id, match.a_username, match.a_display_name, match.a_avatar_key),
       playerB: publicPlayer(match.player_b_id, match.b_public_id, match.b_username, match.b_display_name, match.b_avatar_key),
       now,

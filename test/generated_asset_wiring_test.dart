@@ -29,7 +29,11 @@ void main() {
     final source = File('lib/widgets/duel_asset_icon.dart').readAsStringSync();
 
     for (final asset in generatedAssets) {
-      expect(source, contains("'$asset'"), reason: 'Catalog does not use $asset');
+      expect(
+        source,
+        contains("'$asset'"),
+        reason: 'Catalog does not use $asset',
+      );
     }
     expect(source, contains('static const dailyRewardPro = gift;'));
     expect(source, contains('static const walletCoinStackPro = coin;'));
@@ -61,10 +65,10 @@ void main() {
     ).readAsStringSync();
 
     expect(store, contains('DuelAsset.coinStoreBalancePro'));
-    expect(store, contains('DuelAsset.gift'));
-    expect(store, contains('DuelAsset.removeAdsPro'));
+    expect(store, contains('DuelAsset.dailyRewardPro'));
+    expect(store, contains('DuelAsset.shield'));
     expect(store, contains('DuelAsset.diamond'));
-    expect(store, contains('_StoreArtwork'));
+    expect(store, contains('_CoinPackageCard'));
     expect(store, isNot(contains('width: 360')));
   });
 
@@ -80,6 +84,6 @@ void main() {
     expect(leaderboards, contains('DuelAsset.leaderboardCrownPro'));
     expect(outcomes, contains('DuelAsset.resultVictoryTrophyPro'));
     expect(outcomes, contains('DuelAsset.resultDefeatTrophyPro'));
-    expect(soloGame, contains('DuelAsset.resultVictoryTrophyPro'));
+    expect(soloGame, contains('DuelAsset.resultDefeatTrophyPro'));
   });
 }

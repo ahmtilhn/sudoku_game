@@ -69,7 +69,8 @@ void main() {
       'lib/features/career/career_hub_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains("daily ? 'practice-daily' : 'practice-\${difficulty.name}'"));
+    expect(source, contains("progressId: 'practice-\${difficulty.name}'"));
+    expect(source, contains('progressId: puzzle.id'));
     expect(source, contains('progress.bestSeconds'));
     expect(source, contains('progress.bestHints'));
     expect(source, contains('progress.bestMistakes'));

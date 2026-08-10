@@ -9,7 +9,7 @@ import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
-import '../duel/online_duel_screen.dart';
+import '../duel/pre_match_ready_screen.dart';
 
 class ChallengeInvitationScreen extends StatefulWidget {
   const ChallengeInvitationScreen({super.key, required this.challengeId});
@@ -21,8 +21,7 @@ class ChallengeInvitationScreen extends StatefulWidget {
       _ChallengeInvitationScreenState();
 }
 
-class _ChallengeInvitationScreenState
-    extends State<ChallengeInvitationScreen> {
+class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
   final SocialApiClient _social = SocialApiClient.instance;
   final EconomyService _economy = EconomyService.instance;
 
@@ -139,7 +138,7 @@ class _ChallengeInvitationScreenState
       await _economy.refresh(showLoading: false);
       if (!mounted) return;
       await Navigator.of(context).pushReplacement<void, void>(
-        MaterialPageRoute(builder: (_) => OnlineDuelScreen(roomId: roomId)),
+        MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
       );
     } on SocialApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -548,16 +547,10 @@ class _EconomyBar extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: _CoinStat(
-              label: context.tr('entry_fee'),
-              value: entryFee,
-            ),
+            child: _CoinStat(label: context.tr('entry_fee'), value: entryFee),
           ),
           Expanded(
-            child: _CoinStat(
-              label: context.tr('winner_pot'),
-              value: winnerPot,
-            ),
+            child: _CoinStat(label: context.tr('winner_pot'), value: winnerPot),
           ),
         ],
       ),

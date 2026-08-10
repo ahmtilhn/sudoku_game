@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/domain/samurai_sudoku.dart';
 import 'package:sudoku_game/domain/sudoku.dart';
+import 'package:sudoku_game/domain/sudoku_variant.dart';
 import 'package:sudoku_game/services/online_duel_models.dart';
 
 void main() {
@@ -57,7 +58,7 @@ void main() {
 
     final snapshot = OnlineDuelSnapshot.fromJson(json);
 
-    expect(snapshot.variant, 'classic');
+    expect(snapshot.variant, same(SudokuVariant.classic9));
     expect(snapshot.board, hasLength(81));
   });
 }

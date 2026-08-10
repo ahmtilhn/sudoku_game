@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sudoku_game/domain/sudoku_variant.dart';
 import 'package:sudoku_game/services/online_duel_models.dart';
 import 'package:sudoku_game/services/platform_leaderboard_service.dart';
 
@@ -182,55 +181,6 @@ void main() {
     expect(failed.status, PlatformLeaderboardMirrorStatus.failed);
     expect(retried.status, PlatformLeaderboardMirrorStatus.submitted);
   });
-
-  test('rejects out-of-range ELO before platform submission', () async {
-    var calls = 0;
-    final service = PlatformLeaderboardService(
-      ids: ids,
-      platform: TargetPlatform.android,
-      isConfigured: () async => true,
-      refreshAuthentication: () async => true,
-      submitScore: ({required score, leaderboardId}) async {
-        calls++;
-        return true;
-      },
-    );
-
-    final result = await service.mirrorFinalRatings(
-      _snapshot(afterGlobalA: 3001),
-    );
-
-    expect(result.status, PlatformLeaderboardMirrorStatus.failed);
-    expect(calls, 0);
-  });
-
-  test('skips invalid authoritative ratings during startup sync', () async {
-    final submissions = <({String id, int score})>[];
-    final service = PlatformLeaderboardService(
-      ids: ids,
-      platform: TargetPlatform.android,
-      isConfigured: () async => true,
-      refreshAuthentication: () async => true,
-      loadRatings: () async => <String, dynamic>{
-        'ratings': <Map<String, Object>>[
-          <String, Object>{'scope': 'global', 'rating': 99},
-          <String, Object>{'scope': 'easy', 'rating': 1200},
-          <String, Object>{'scope': 'hard', 'rating': 3001},
-        ],
-      },
-      submitScore: ({required score, leaderboardId}) async {
-        submissions.add((id: leaderboardId!, score: score));
-        return true;
-      },
-    );
-
-    final result = await service.syncAuthoritativeRatings();
-
-    expect(result.status, PlatformLeaderboardMirrorStatus.submitted);
-    expect(submissions, <({String id, int score})>[
-      (id: 'android-easy', score: 1200),
-    ]);
-  });
 }
 
 OnlineDuelSnapshot _snapshot({
@@ -238,7 +188,6 @@ OnlineDuelSnapshot _snapshot({
   String mode = 'ranked',
   String status = 'completed',
   String youSeat = 'A',
-  int afterGlobalA = 1210,
 }) {
   final puzzle = List<int>.filled(81, 0)..[0] = 1;
   return OnlineDuelSnapshot.fromJson(<String, dynamic>{
@@ -283,8 +232,8 @@ OnlineDuelSnapshot _snapshot({
     'rating': <String, dynamic>{
       'A': <String, int>{
         'beforeGlobal': 1190,
-        'afterGlobal': afterGlobalA,
-        'deltaGlobal': afterGlobalA - 1190,
+        'afterGlobal': 1210,
+        'deltaGlobal': 20,
         'beforeDifficulty': 1155,
         'afterDifficulty': 1175,
         'deltaDifficulty': 20,

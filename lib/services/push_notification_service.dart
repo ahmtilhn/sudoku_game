@@ -110,7 +110,13 @@ class PushNotificationService {
 
   final ValueNotifier<bool> initialized = ValueNotifier<bool>(false);
   final ValueNotifier<bool> enabled = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> userDisabled = ValueNotifier<bool>(false);
   final ValueNotifier<bool> permissionGranted = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> lastRegistrationError = ValueNotifier<String?>(
+    null,
+  );
+  final ValueNotifier<String?> openedRoomId =
+      _ConsumableValueNotifier<String>();
   final ValueNotifier<String?> openedChallengeId =
       _ConsumableValueNotifier<String>();
   final ValueNotifier<String?> openedRematchId =
@@ -474,18 +480,4 @@ class _ConsumableValueNotifier<T> extends ValueNotifier<T?> {
     _clearScheduled = false;
     super.value = next;
   }
-}
-
-class _PushTarget {
-  const _PushTarget({
-    required this.type,
-    required this.id,
-    this.defaultTitle = 'Online invitation',
-    this.defaultBody = 'Open Sudoku Duel to respond.',
-  });
-
-  final String type;
-  final String id;
-  final String defaultTitle;
-  final String defaultBody;
 }

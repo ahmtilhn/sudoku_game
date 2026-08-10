@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../localization/app_strings.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
+import '../duel/leaderboards_screen.dart';
 import '../economy/wallet_history_screen.dart';
 import 'competitive_profile_card.dart';
 import 'platform_services_screen.dart';
@@ -106,6 +107,12 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                           subtitle: context.tr('server_wallet_history'),
                           onTap: () => _open(const WalletHistoryScreen()),
                         ),
+                        _ProfileAction(
+                          icon: Icons.emoji_events_outlined,
+                          title: context.tr('leaderboards'),
+                          subtitle: context.tr('home_rating_label'),
+                          onTap: () => _open(const LeaderboardsScreen()),
+                        ),
                         if (Platform.isAndroid || Platform.isIOS)
                           _ProfileAction(
                             icon: Icons.sports_esports_outlined,
@@ -113,8 +120,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                                 ? 'Game Center'
                                 : 'Google Play Games',
                             subtitle: context.tr('leaderboards'),
-                            onTap: () =>
-                                _open(const PlatformServicesScreen()),
+                            onTap: () => _open(const PlatformServicesScreen()),
                           ),
                       ],
                     ),

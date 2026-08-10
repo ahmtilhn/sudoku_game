@@ -12,7 +12,6 @@ import '../../data/samurai_game_session_store.dart';
 import '../../data/ux_game_session_store.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
-import '../../services/ads_service.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
@@ -510,19 +509,14 @@ class _UxRootScreenState extends State<UxRootScreen> {
     final wasCompleted = widget.store.isCompleted(level.id);
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (gameContext) => GameScreen(
+        builder: (gameContext) => EnhancedGameScreen(
           puzzle: puzzle,
+          store: widget.store,
           completionTitle: gameContext.tr('level_title', <Object>[
             gameContext.strings.difficultyLabel(level.difficulty),
             level.number,
           ]),
           mistakeLimit: 3,
-          coinContinueCost: 25,
-          onCoinContinue: (_) => _economy.spendCareerContinue(),
-          onRewardedContinue: AdsService.instance.showRewarded,
-          onConsumeHint: () =>
-              HintEconomy.consumeOrAcquire(gameContext, widget.store),
-          hintBalanceProvider: () => widget.store.hints,
           onCompleted:
               ({
                 required seconds,
