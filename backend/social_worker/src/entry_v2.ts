@@ -18,6 +18,16 @@ import type { EconomyV3Env } from './economy_v3_common';
 
 export { GameRoom, MatchmakingQueue };
 
+const SUPPORTED_LEADERBOARD_SCOPES = new Set([
+  'global',
+  'friends',
+  'beginner',
+  'easy',
+  'medium',
+  'hard',
+  'expert',
+]);
+
 export default {
   async fetch(
     request: Request,
@@ -25,6 +35,44 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
+
+    if (
+      request.method === 'GET' &&
+      url.pathname === '/v1/competitive/leaderboards/hub'
+    ) {
+      const authorized = await legacyWorker.fetch(request, env as never, ctx);
+      if (!authorized.ok) return authorized;
+      return new Response(
+        JSON.stringify({
+          scopes: ['global', 'beginner', 'easy', 'medium', 'hard', 'expert'],
+          modes: ['top', 'around_me', 'friends'],
+          variants: ['classic9', 'classic16'],
+          futureScopes: [
+            'country',
+            'current_season',
+            'daily_tournament',
+            'weekend_tournament',
+            'countries',
+            'clan',
+          ],
+        }),
+        {
+          status: 200,
+          headers: authorized.headers,
+        },
+      );
+    }
+
+    if (
+      request.method === 'GET' &&
+      /^\/v1\/competitive\/leaderboards\/[^/]+$/.test(url.pathname)
+    ) {
+      const scope = decodeURIComponent(url.pathname.split('/')[4] ?? '');
+      if (!SUPPORTED_LEADERBOARD_SCOPES.has(scope)) {
+        return leaderboardError(env, 400, 'Invalid leaderboard scope.', 'invalid_scope');
+      }
+    }
+
     if (request.method !== 'OPTIONS' && isLegacyEconomyRewardRoute(url.pathname)) {
       return legacyEconomyRewardResponse(env as unknown as EconomyV3Env);
     }
@@ -68,3 +116,22 @@ export default {
     await legacyWorker.scheduled(event, env as never, ctx);
   },
 };
+
+function leaderboardError(
+  env: VariantMatchmakingEnv,
+  status: number,
+  error: string,
+  code: string,
+): Response {
+  const runtimeEnv = env as VariantMatchmakingEnv & { ALLOWED_ORIGIN?: string };
+  return new Response(JSON.stringify({ error, code }), {
+    status,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'access-control-allow-origin': runtimeEnv.ALLOWED_ORIGIN || '*',
+      'access-control-allow-headers':
+        'authorization, content-type, x-firebase-appcheck',
+      'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    },
+  });
+}
