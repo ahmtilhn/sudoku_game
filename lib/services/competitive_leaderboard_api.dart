@@ -68,7 +68,7 @@ class CompetitiveLeaderboardEntry {
     final gamesPlayed = _int(json['gamesPlayed']);
     final provisionalGames = json.containsKey('provisionalGames')
         ? _int(json['provisionalGames'])
-        : (20 - gamesPlayed).clamp(0, 20);
+        : (20 - gamesPlayed).clamp(0, 20).toInt();
     return CompetitiveLeaderboardEntry(
       rank: _int(json['rank'], fallback: 1),
       publicId: json['publicId']?.toString() ?? '',
@@ -83,7 +83,10 @@ class CompetitiveLeaderboardEntry {
       draws: _int(json['draws']),
       winRate: _double(json['winRate']),
       winStreak: _int(json['winStreak']),
-      bestRating: _int(json['bestRating'], fallback: _int(json['rating'], fallback: 1000)),
+      bestRating: _int(
+        json['bestRating'],
+        fallback: _int(json['rating'], fallback: 1000),
+      ),
       provisionalGames: provisionalGames,
     );
   }
@@ -122,7 +125,7 @@ class CompetitiveLeaderboardCurrentPlayer {
     final gamesPlayed = _int(json['gamesPlayed']);
     final provisionalGames = json.containsKey('provisionalGames')
         ? _int(json['provisionalGames'])
-        : (20 - gamesPlayed).clamp(0, 20);
+        : 0;
     return CompetitiveLeaderboardCurrentPlayer(
       rank: json['rank'] == null ? null : _int(json['rank']),
       rating: _int(json['rating'], fallback: 1000),
@@ -132,7 +135,10 @@ class CompetitiveLeaderboardCurrentPlayer {
       draws: _int(json['draws']),
       winRate: _double(json['winRate']),
       winStreak: _int(json['winStreak']),
-      bestRating: _int(json['bestRating'], fallback: _int(json['rating'], fallback: 1000)),
+      bestRating: _int(
+        json['bestRating'],
+        fallback: _int(json['rating'], fallback: 1000),
+      ),
       provisionalGames: provisionalGames,
     );
   }
@@ -201,7 +207,10 @@ class CompetitiveLeaderboardApi {
   }) async {
     final social = SocialApiClient.instance;
     if (!social.configured) {
-      throw const SocialApiException(0, 'The social backend URL is not configured.');
+      throw const SocialApiException(
+        0,
+        'The social backend URL is not configured.',
+      );
     }
     if (!_validScope(scope)) {
       throw ArgumentError.value(scope, 'scope', 'Unsupported leaderboard scope.');
@@ -230,7 +239,10 @@ class CompetitiveLeaderboardApi {
       );
     }
     if (idToken == null || idToken.isEmpty) {
-      throw const SocialApiException(401, 'Unable to obtain a Firebase ID token.');
+      throw const SocialApiException(
+        401,
+        'Unable to obtain a Firebase ID token.',
+      );
     }
 
     final query = <String, String>{
@@ -254,17 +266,22 @@ class CompetitiveLeaderboardApi {
 
     final http.Response response;
     try {
-      response = await http.get(
-        uri,
-        headers: <String, String>{
-          'authorization': 'Bearer $idToken',
-          'accept': 'application/json',
-          if (appCheckToken != null && appCheckToken.isNotEmpty)
-            'x-firebase-appcheck': appCheckToken,
-        },
-      ).timeout(_timeout);
+      response = await http
+          .get(
+            uri,
+            headers: <String, String>{
+              'authorization': 'Bearer $idToken',
+              'accept': 'application/json',
+              if (appCheckToken != null && appCheckToken.isNotEmpty)
+                'x-firebase-appcheck': appCheckToken,
+            },
+          )
+          .timeout(_timeout);
     } on TimeoutException {
-      throw const SocialApiException(0, 'The social server did not respond in time.');
+      throw const SocialApiException(
+        0,
+        'The social server did not respond in time.',
+      );
     } on http.ClientException catch (error) {
       throw SocialApiException(0, error.message);
     }
@@ -302,10 +319,14 @@ class CompetitiveLeaderboardApi {
 }
 
 int _int(Object? value, {int fallback = 0}) =>
-    value is num ? value.toInt() : int.tryParse(value?.toString() ?? '') ?? fallback;
+    value is num
+        ? value.toInt()
+        : int.tryParse(value?.toString() ?? '') ?? fallback;
 
 double _double(Object? value) =>
-    value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
+    value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '') ?? 0;
 
 String? _country(Object? value) {
   final text = value?.toString().trim().toUpperCase();
