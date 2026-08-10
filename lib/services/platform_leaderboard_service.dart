@@ -158,6 +158,11 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
         status: PlatformLeaderboardMirrorStatus.skipped,
       );
     }
+    if (snapshot.variant.key != 'classic9') {
+      return const PlatformLeaderboardMirrorResult(
+        status: PlatformLeaderboardMirrorStatus.skipped,
+      );
+    }
     if (snapshot.mode != 'ranked' ||
         (snapshot.status != OnlineDuelStatus.completed &&
             snapshot.status != OnlineDuelStatus.forfeited)) {
