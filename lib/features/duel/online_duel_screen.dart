@@ -23,7 +23,6 @@ import '../../widgets/ux_feedback.dart';
 import '../economy/coin_store_screen.dart';
 import 'matchmaking_screen.dart';
 import 'pre_match_ready_screen.dart';
-import 'duel_payout_display.dart';
 
 class OnlineDuelScreen extends StatefulWidget {
   const OnlineDuelScreen({super.key, required this.roomId, this.controller});
@@ -51,16 +50,9 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   Timer? _feedbackTimer;
   Timer? _progressTimer;
   Timer? _resultSettlementTimer;
-  Timer? _disconnectEscapeTimer;
-  DateTime? _localDisconnectDeadline;
-  OnlineDuelConnectionState _connectionState =
-      OnlineDuelConnectionState.connecting;
   String? _shownResultFor;
   int _resultSettlementAttempts = 0;
   bool _forfeiting = false;
-  bool _exitingToMenu = false;
-
-  static const Duration _disconnectFailSafe = Duration(seconds: 30);
 
   @override
   void initState() {
@@ -77,7 +69,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     _feedbackTimer?.cancel();
     _progressTimer?.cancel();
     _resultSettlementTimer?.cancel();
-    _disconnectEscapeTimer?.cancel();
     super.dispose();
   }
 
@@ -165,87 +156,9 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     }
   }
 
-  bool get _localConnectionInterrupted =>
-      _snapshot != null &&
-      (_connectionState == OnlineDuelConnectionState.reconnecting ||
-          _connectionState == OnlineDuelConnectionState.resyncing ||
-          _connectionState == OnlineDuelConnectionState.failed);
-
-  void _handleConnectionState(OnlineDuelConnectionState state) {
-    if (!mounted) return;
-    final shouldStartFailSafe =
-        _snapshot != null &&
-        (state == OnlineDuelConnectionState.reconnecting ||
-            state == OnlineDuelConnectionState.failed);
-
-    if (state == OnlineDuelConnectionState.connected) {
-      _disconnectEscapeTimer?.cancel();
-      _disconnectEscapeTimer = null;
-      if (_connectionState != state || _localDisconnectDeadline != null) {
-        setState(() {
-          _connectionState = state;
-          _localDisconnectDeadline = null;
-        });
-      }
-      return;
-    }
-
-    if (shouldStartFailSafe && _localDisconnectDeadline == null) {
-      final deadline = DateTime.now().add(_disconnectFailSafe);
-      _disconnectEscapeTimer?.cancel();
-      _disconnectEscapeTimer = Timer(_disconnectFailSafe, () {
-        if (!mounted ||
-            _connectionState == OnlineDuelConnectionState.connected) {
-          return;
-        }
-        unawaited(_returnToMainMenu());
-      });
-      setState(() {
-        _connectionState = state;
-        _localDisconnectDeadline = deadline;
-      });
-      return;
-    }
-
-    if (_connectionState != state) {
-      setState(() => _connectionState = state);
-    }
-  }
-
-  Future<void> _returnToMainMenu({bool sendForfeit = false}) async {
-    if (_exitingToMenu || !mounted) return;
-    if (sendForfeit && _forfeiting) return;
-    _disconnectEscapeTimer?.cancel();
-    _disconnectEscapeTimer = null;
-
-    final waitForAuthoritativeResult =
-        sendForfeit &&
-        (_connectionState == OnlineDuelConnectionState.connected ||
-            _connectionState == OnlineDuelConnectionState.resyncing);
-
-    if (sendForfeit) {
-      if (waitForAuthoritativeResult) {
-        setState(() => _forfeiting = true);
-      }
-      _controller?.forfeit();
-      if (waitForAuthoritativeResult) return;
-    }
-
-    setState(() {
-      _forfeiting = false;
-      _exitingToMenu = true;
-    });
-    if (!mounted) return;
-    Navigator.of(context).popUntil((route) => route.isFirst);
-  }
-
   Future<void> _requestForfeit() async {
     final snapshot = _snapshot;
-    if (snapshot == null ||
-        snapshot.isFinished ||
-        _forfeiting ||
-        _exitingToMenu ||
-        !mounted) {
+    if (snapshot == null || snapshot.isFinished || _forfeiting || !mounted) {
       return;
     }
     final forfeit = await showDialog<bool>(
@@ -266,7 +179,17 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       ),
     );
     if (forfeit != true || !mounted) return;
-    await _returnToMainMenu(sendForfeit: true);
+    setState(() => _forfeiting = true);
+    _controller?.forfeit();
+    _controller?.requestSnapshot();
+    Timer(const Duration(seconds: 8), () {
+      if (!mounted || _snapshot?.isFinished == true) return;
+      setState(() => _forfeiting = false);
+      _controller?.requestSnapshot();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('connection_interrupted_retrying'))),
+      );
+    });
   }
 
   void _selectCell(int index) {
@@ -434,9 +357,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       if (action.startsWith('rematch:')) {
         final roomId = action.substring('rematch:'.length);
         await Navigator.of(context).pushReplacement<void, void>(
-          MaterialPageRoute(
-            builder: (_) => PreMatchReadyScreen(roomId: roomId),
-          ),
+          MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
         );
       } else if (action == 'new_match') {
         await Navigator.of(context).pushReplacement<void, void>(
@@ -464,7 +385,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             !snapshot.isLocalTurn ||
             _controller?.pendingMove == true);
     return PopScope(
-      canPop: _exitingToMenu || (snapshot?.isFinished ?? true),
+      canPop: snapshot?.isFinished ?? true,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_requestForfeit());
       },
@@ -624,14 +545,8 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             snapshot: snapshot,
             compact: compact,
             board: board,
-            localConnectionInterrupted: _localConnectionInterrupted,
-            localDisconnectDeadline: _localDisconnectDeadline,
-            statusText:
-                snapshot.status == OnlineDuelStatus.paused ||
-                    _localConnectionInterrupted
+            statusText: _forfeiting
                 ? context.tr('connection_interrupted_retrying')
-                : _forfeiting
-                ? context.tr('online_waiting_snapshot')
                 : _controller?.pendingMove == true
                 ? context.tr('sending_move')
                 : snapshot.isLocalTurn
@@ -761,8 +676,11 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     final seconds = invite == null
         ? 0
         : invite.expiresAt.difference(DateTime.now()).inSeconds.clamp(0, 10);
-    final payout = DuelPayoutDisplay.fromSnapshot(snapshot, entryFee: entryFee);
-    String coinAmount(int value) => context.tr('coin_amount', <Object>[value]);
+    final draw = snapshot.winnerSeat == null;
+    final localNetCoin = draw ? 0 : won ? entryFee : -entryFee;
+    final opponentNetCoin = -localNetCoin;
+    String coinLabel(int value) =>
+        '${value > 0 ? '+' : ''}${context.tr('coin_amount', <Object>[value])}';
     final footer = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -880,15 +798,9 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                 asset: DuelAsset.lightbulb,
               ),
               _ResultMetric(
-                label: context.tr('entry_fee'),
-                localValue: coinAmount(payout.entryFee),
-                opponentValue: coinAmount(payout.entryFee),
-                asset: DuelAsset.coin,
-              ),
-              _ResultMetric(
-                label: context.tr(payout.refunded ? 'refund' : 'winner_pot'),
-                localValue: coinAmount(payout.localPayout),
-                opponentValue: coinAmount(payout.opponentPayout),
+                label: context.tr('coin_result'),
+                localValue: coinLabel(localNetCoin),
+                opponentValue: coinLabel(opponentNetCoin),
                 asset: DuelAsset.coin,
               ),
             ],
@@ -1592,8 +1504,6 @@ class _ArenaMatchLayout extends StatelessWidget {
     required this.statusText,
     required this.onForfeit,
     required this.forfeiting,
-    required this.localConnectionInterrupted,
-    required this.localDisconnectDeadline,
   });
 
   final OnlineDuelSnapshot snapshot;
@@ -1602,8 +1512,6 @@ class _ArenaMatchLayout extends StatelessWidget {
   final String statusText;
   final VoidCallback onForfeit;
   final bool forfeiting;
-  final bool localConnectionInterrupted;
-  final DateTime? localDisconnectDeadline;
 
   @override
   Widget build(BuildContext context) {

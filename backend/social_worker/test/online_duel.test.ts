@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  DISCONNECT_GRACE_MS,
   LOBBY_DEADLINE_MS,
   MAX_CONSECUTIVE_TIMEOUTS,
   MAX_MATCH_DURATION_MS,

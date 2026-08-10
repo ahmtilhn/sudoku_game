@@ -80,10 +80,13 @@ class PlatformLeaderboardIds {
 typedef PlatformConfiguredCheck = Future<bool> Function();
 typedef PlatformAuthenticationRefresh = Future<bool> Function();
 typedef PlatformAuthenticationRequest = Future<bool> Function();
-typedef PlatformScoreSubmitter =
-    Future<bool> Function({required int score, String? leaderboardId});
-typedef PlatformLeaderboardPresenter =
-    Future<bool> Function({String? leaderboardId});
+typedef PlatformScoreSubmitter = Future<bool> Function({
+  required int score,
+  String? leaderboardId,
+});
+typedef PlatformLeaderboardPresenter = Future<bool> Function({
+  String? leaderboardId,
+});
 typedef PlatformRatingsLoader = Future<Map<String, dynamic>> Function();
 
 class PlatformLeaderboardService implements PlatformLeaderboardMirror {
@@ -289,7 +292,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
             : scopeName == null
             ? null
             : scopeForDifficulty(scopeName);
-        if (scope == null || score == null || !_isValidElo(score)) continue;
+        if (scope == null || score == null) continue;
         final leaderboardId = _ids.idFor(platform, scope);
         if (leaderboardId == null) continue;
         if (await _submitScore(score: score, leaderboardId: leaderboardId)) {

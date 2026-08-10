@@ -147,15 +147,25 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     if (_leaving || _handedOff || !mounted) return;
     setState(() => _leaving = true);
     final controller = _controller;
-    controller?.forfeit();
-    if (controller != null &&
-        (_connectionState == OnlineDuelConnectionState.connected ||
-            _connectionState == OnlineDuelConnectionState.resyncing)) {
-      await Future<void>.delayed(const Duration(milliseconds: 180));
+    if (controller == null) {
+      setState(() => _allowPop = true);
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+    controller.forfeit();
+    for (var attempt = 0; attempt < 24; attempt++) {
+      controller.requestSnapshot();
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      final snapshot = _snapshot;
+      if (snapshot != null &&
+          snapshot.isFinished &&
+          (snapshot.coinSettlement != null || attempt >= 10)) {
+        break;
+      }
     }
     await _snapshotSubscription?.cancel();
     await _connectionSubscription?.cancel();
-    await controller?.dispose();
+    await controller.dispose();
     _controller = null;
     _snapshotSubscription = null;
     _connectionSubscription = null;
@@ -216,43 +226,39 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         if (!didPop) unawaited(_cancelAndLeave());
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF0B1215),
-        body: AppBackdrop(
-          child: SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 680),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                  child: LayoutBuilder(
-                    builder: (context, viewport) {
-                      final textScale = MediaQuery.textScalerOf(
-                        context,
-                      ).scale(1);
-                      final compact =
-                          viewport.maxHeight < 680 || textScale > 1.3;
-                      return Column(
-                        children: [
-                          Row(
-                            children: [
-                              IconButton.filledTonal(
-                                tooltip: context.tr('cancel_search'),
-                                onPressed: _leaving ? null : _cancelAndLeave,
-                                icon: const Icon(Icons.arrow_back_rounded),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _readyStage
-                                      ? context.tr('ready_question')
-                                      : context.tr('finding_opponent_title'),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: compact ? 19 : 22,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+      backgroundColor: const Color(0xFF0B1215),
+      body: AppBackdrop(
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                child: LayoutBuilder(
+                  builder: (context, viewport) {
+                    final textScale = MediaQuery.textScalerOf(context).scale(1);
+                    final compact = viewport.maxHeight < 680 || textScale > 1.3;
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            IconButton.filledTonal(
+                              tooltip: context.tr('cancel_search'),
+                              onPressed: _leaving ? null : _cancelAndLeave,
+                              icon: const Icon(Icons.arrow_back_rounded),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _readyStage
+                                    ? context.tr('ready_question')
+                                    : context.tr('finding_opponent_title'),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: compact ? 19 : 22,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               ),
                             ],
@@ -339,31 +345,31 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed:
-                                  _leaving ||
-                                      !_readyStage ||
-                                      _youReady ||
-                                      _controller == null ||
-                                      _connectionState ==
-                                          OnlineDuelConnectionState.failed
-                                  ? null
-                                  : _ready,
-                              icon: Icon(
-                                _youReady
-                                    ? Icons.check_circle_rounded
-                                    : Icons.shield_outlined,
-                              ),
-                              label: Text(
-                                _youReady
-                                    ? context.tr('ready')
-                                    : context.tr('i_am_ready'),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed:
+                                _leaving ||
+                                    !_readyStage ||
+                                    _youReady ||
+                                    _controller == null ||
+                                    _connectionState ==
+                                        OnlineDuelConnectionState.failed
+                                ? null
+                                : _ready,
+                            icon: Icon(
+                              _youReady
+                                  ? Icons.check_circle_rounded
+                                  : Icons.shield_outlined,
+                            ),
+                            label: Text(
+                              _youReady
+                                  ? context.tr('ready')
+                                  : context.tr('i_am_ready'),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
                             ),
                           ),
                         ],
@@ -376,7 +382,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   String _statusText(BuildContext context) {

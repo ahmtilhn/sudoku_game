@@ -73,57 +73,33 @@ void main() {
     expect(submissions, hasLength(2));
   });
 
-  test('keeps 16x16 results out of the configured 9x9 native boards', () async {
-    var calls = 0;
+  test('resubmits authoritative backend ratings after a missed match mirror', () async {
+    final submissions = <({String id, int score})>[];
     final service = PlatformLeaderboardService(
       ids: ids,
       platform: TargetPlatform.android,
       isConfigured: () async => true,
       refreshAuthentication: () async => true,
+      loadRatings: () async => <String, dynamic>{
+        'ratings': <Map<String, Object>>[
+          <String, Object>{'scope': 'global', 'rating': 1310},
+          <String, Object>{'scope': 'easy', 'rating': 1275},
+        ],
+      },
       submitScore: ({required score, leaderboardId}) async {
-        calls++;
+        submissions.add((id: leaderboardId!, score: score));
         return true;
       },
     );
 
-    final result = await service.mirrorFinalRatings(
-      _snapshot().copyWith(variant: SudokuVariant.classic16),
-    );
+    final result = await service.syncAuthoritativeRatings();
 
-    expect(result.status, PlatformLeaderboardMirrorStatus.skipped);
-    expect(calls, 0);
+    expect(result.status, PlatformLeaderboardMirrorStatus.submitted);
+    expect(submissions, <({String id, int score})>[
+      (id: 'android-global', score: 1310),
+      (id: 'android-easy', score: 1275),
+    ]);
   });
-
-  test(
-    'resubmits authoritative backend ratings after a missed match mirror',
-    () async {
-      final submissions = <({String id, int score})>[];
-      final service = PlatformLeaderboardService(
-        ids: ids,
-        platform: TargetPlatform.android,
-        isConfigured: () async => true,
-        refreshAuthentication: () async => true,
-        loadRatings: () async => <String, dynamic>{
-          'ratings': <Map<String, Object>>[
-            <String, Object>{'scope': 'global', 'rating': 1310},
-            <String, Object>{'scope': 'easy', 'rating': 1275},
-          ],
-        },
-        submitScore: ({required score, leaderboardId}) async {
-          submissions.add((id: leaderboardId!, score: score));
-          return true;
-        },
-      );
-
-      final result = await service.syncAuthoritativeRatings();
-
-      expect(result.status, PlatformLeaderboardMirrorStatus.submitted);
-      expect(submissions, <({String id, int score})>[
-        (id: 'android-global', score: 1310),
-        (id: 'android-easy', score: 1275),
-      ]);
-    },
-  );
 
   test('uses the local player seat rating', () async {
     final submissions = <int>[];

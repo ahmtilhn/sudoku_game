@@ -99,7 +99,7 @@ class _UxChallengeInvitationScreenState
           });
         }
       } else if (challenge.status != 'pending') {
-        setState(() => _statusMessage = _messageForStatus(challenge.status));
+        setState(() => _error = _statusMessage(challenge.status));
       }
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted) return;
@@ -108,7 +108,9 @@ class _UxChallengeInvitationScreenState
         setState(() {});
         if (_statusTicks.isEven) unawaited(_refreshStatus());
       });
-    } catch (error) {
+    } on SocialApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (_) {
       if (mounted) {
         await _presentError(
           error,
@@ -121,14 +123,14 @@ class _UxChallengeInvitationScreenState
   }
 
   Future<void> _refreshStatus() async {
-    if (_busy || _openingRoom || !mounted) return;
+    if (_busy || !mounted) return;
     try {
       final challenge = await _social.loadChallenge(widget.challengeId);
       if (!mounted) return;
       setState(() {
         _challenge = challenge;
         if (challenge.status != 'pending' && challenge.status != 'accepted') {
-          _statusMessage = _messageForStatus(challenge.status);
+          _error = _statusMessage(challenge.status);
         }
       });
       if (challenge.status == 'accepted') {
@@ -136,16 +138,18 @@ class _UxChallengeInvitationScreenState
         if (roomId != null && roomId.isNotEmpty) await _openRoom(roomId);
       }
     } catch (_) {
-      // Explicit actions surface failures; polling remains quiet.
+      // The explicit accept/decline actions still surface request failures.
     }
   }
 
-  String _messageForStatus(String status) => switch (status) {
-    'declined' => context.tr('challenge_declined'),
-    'expired' => context.tr('challenge_timed_out'),
-    'cancelled' => context.tr('cancel_search'),
-    _ => context.tr('challenge_timed_out'),
-  };
+  String _statusMessage(String status) {
+    return switch (status) {
+      'declined' => context.tr('challenge_declined'),
+      'expired' => context.tr('challenge_timed_out'),
+      'cancelled' => context.tr('cancel_search'),
+      _ => context.tr('challenge_timed_out'),
+    };
+  }
 
   Future<void> _respond(bool accept) async {
     final challenge = _challenge;
@@ -257,19 +261,14 @@ class _UxChallengeInvitationScreenState
   }
 
   Future<void> _openRoom(String roomId) async {
-    if (_openingRoom || !mounted) return;
-    _openingRoom = true;
     _timer?.cancel();
-    try {
-      await _economy.refresh(showLoading: false);
-      if (!mounted) return;
-      await Navigator.of(context).pushReplacement<void, void>(
-        MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
-      );
-    } catch (_) {
-      if (mounted) setState(() => _openingRoom = false);
-      rethrow;
-    }
+    await _economy.refresh(showLoading: false);
+    if (!mounted) return;
+    await Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute(
+        builder: (_) => PreMatchReadyScreen(roomId: roomId),
+      ),
+    );
   }
 
   Future<void> _openStore() async {

@@ -24,8 +24,122 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
   final PlatformLeaderboardService _leaderboards =
       PlatformLeaderboardService.instance;
 
-  bool _busy = false;
-  PlatformLeaderboardMirrorResult? _lastSync;
+  bool _busy = true;
+  bool _configured = false;
+  bool _authenticated = false;
+  PlatformPlayer? _player;
+  String? _error;
+
+  String get _platformTitle =>
+      Platform.isIOS ? 'Game Center' : 'Google Play Games';
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshStatus();
+  }
+
+  Future<void> _refreshStatus() async {
+    if (mounted) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+    }
+    try {
+      final configured = await _games.isConfigured();
+      var authenticated = false;
+      PlatformPlayer? player;
+      if (configured) {
+        authenticated = await _games.refreshAuthentication();
+        player = authenticated ? _games.localPlayer.value : null;
+        if (authenticated) {
+          await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _configured = configured;
+        _authenticated = authenticated;
+        _player = player;
+      });
+    } on PlatformGameServicesException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<bool> _authenticate() async {
+    if (!await _games.isConfigured()) {
+      if (mounted) setState(() => _configured = false);
+      return false;
+    }
+    var authenticated = await _games.refreshAuthentication();
+    if (!authenticated) authenticated = await _games.authenticate();
+    if (mounted) {
+      setState(() {
+        _configured = true;
+        _authenticated = authenticated;
+        _player = authenticated ? _games.localPlayer.value : null;
+      });
+    }
+    return authenticated;
+  }
+
+  Future<void> _connect() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      if (!await _authenticate()) {
+        throw const PlatformGameServicesException(
+          'authentication_failed',
+          'Platform authentication could not be completed.',
+        );
+      }
+      await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
+    } on PlatformGameServicesException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _run(Future<bool> Function() action) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      if (!await _authenticate()) {
+        throw const PlatformGameServicesException(
+          'authentication_failed',
+          'Platform authentication could not be completed.',
+        );
+      }
+      final opened = await action();
+      if (!opened) {
+        throw const PlatformGameServicesException(
+          'unavailable',
+          'The requested platform screen is not available.',
+        );
+      }
+    } on PlatformGameServicesException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
