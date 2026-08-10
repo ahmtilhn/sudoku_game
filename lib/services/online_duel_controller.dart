@@ -117,30 +117,6 @@ class OnlineDuelController with WidgetsBindingObserver {
   }
 
   void _handleConnectionState(OnlineDuelConnectionState state) {
-    final current = _snapshot;
-    if (
-      current != null &&
-      current.status == OnlineDuelStatus.active &&
-      (state == OnlineDuelConnectionState.reconnecting ||
-          state == OnlineDuelConnectionState.failed)
-    ) {
-      final now = DateTime.now();
-      final remainingMs = current.turnDeadline == null
-          ? 0
-          : current.turnDeadline!
-                .difference(now)
-                .inMilliseconds
-                .clamp(0, 30000)
-                .toInt();
-      _snapshot = current.copyWith(
-        status: OnlineDuelStatus.paused,
-        turnDeadline: null,
-        pausedTurnRemainingMs: remainingMs,
-        serverTime: now,
-      );
-      _snapshots.add(_snapshot!);
-    }
-
     AppMessenger.showOnlineConnectionState(state);
     if (state == OnlineDuelConnectionState.resyncing) {
       final pendingMove = _pendingMoveEnvelope;

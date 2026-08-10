@@ -111,12 +111,10 @@ class PushNotificationService {
   final ValueNotifier<bool> initialized = ValueNotifier<bool>(false);
   final ValueNotifier<bool> enabled = ValueNotifier<bool>(false);
   final ValueNotifier<bool> permissionGranted = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> userDisabled = ValueNotifier<bool>(false);
-  final ValueNotifier<String?> lastRegistrationError =
-      ValueNotifier<String?>(null);
-  final ValueNotifier<String?> openedChallengeId = ValueNotifier<String?>(null);
-  final ValueNotifier<String?> openedRematchId = ValueNotifier<String?>(null);
-  final ValueNotifier<String?> openedRoomId = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> openedChallengeId =
+      _ConsumableValueNotifier<String>();
+  final ValueNotifier<String?> openedRematchId =
+      _ConsumableValueNotifier<String>();
 
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _messageSubscription;
@@ -451,4 +449,43 @@ class PushNotificationService {
     await _messageSubscription?.cancel();
     await _openedSubscription?.cancel();
   }
+}
+
+class _ConsumableValueNotifier<T> extends ValueNotifier<T?> {
+  _ConsumableValueNotifier() : super(null);
+
+  bool _clearScheduled = false;
+
+  @override
+  T? get value {
+    final current = super.value;
+    if (current != null && !_clearScheduled) {
+      _clearScheduled = true;
+      scheduleMicrotask(() {
+        _clearScheduled = false;
+        if (identical(super.value, current)) super.value = null;
+      });
+    }
+    return current;
+  }
+
+  @override
+  set value(T? next) {
+    _clearScheduled = false;
+    super.value = next;
+  }
+}
+
+class _PushTarget {
+  const _PushTarget({
+    required this.type,
+    required this.id,
+    this.defaultTitle = 'Online invitation',
+    this.defaultBody = 'Open Sudoku Duel to respond.',
+  });
+
+  final String type;
+  final String id;
+  final String defaultTitle;
+  final String defaultBody;
 }

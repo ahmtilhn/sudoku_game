@@ -7,7 +7,6 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:sudoku_game/app.dart';
 import 'package:sudoku_game/data/local_progress_store.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
-import 'package:sudoku_game/widgets/duel_asset_icon.dart';
 import 'package:sudoku_game/widgets/player_avatar.dart';
 
 void main() {
@@ -31,7 +30,7 @@ void main() {
         .setMockMethodCallHandler(localizationChannel, null);
   });
 
-  testWidgets('home exposes a compact asset hierarchy without a tab shell', (
+  testWidgets('home exposes the unified primary UX without a tab shell', (
     tester,
   ) async {
     final store = await LocalProgressStore.createInMemory();
@@ -45,7 +44,6 @@ void main() {
     expect(find.text('Online Duel'), findsOneWidget);
     expect(find.text('Friends & challenges'), findsWidgets);
     expect(find.text('Coin Store'), findsOneWidget);
-    expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Daily Sudoku'), findsNothing);
     expect(find.text('Ranked'), findsNothing);
     expect(find.text('Practice'), findsNothing);
@@ -58,22 +56,8 @@ void main() {
     );
     expect(find.byType(SingleChildScrollView), findsNothing);
     expect(find.byType(PlayerAvatar), findsWidgets);
-    expect(find.byType(DuelAssetIcon), findsAtLeastNWidgets(8));
-    expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.people_alt_rounded), findsNothing);
-
-    final logo = find.byKey(const ValueKey<String>('home-logo-text'));
-    expect(logo, findsOneWidget);
-    expect(tester.getSize(logo).height, greaterThanOrEqualTo(120));
-    expect(
-      tester.getCenter(logo).dx,
-      moreOrLessEquals(
-        tester.view.physicalSize.width /
-            tester.view.devicePixelRatio /
-            2,
-        epsilon: 2,
-      ),
-    );
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.people_outline_rounded), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

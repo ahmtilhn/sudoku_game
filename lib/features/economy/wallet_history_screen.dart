@@ -111,62 +111,34 @@ class _LedgerTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final amount = NumberFormat.decimalPattern().format(entry.amount.abs());
     final balance = NumberFormat.decimalPattern().format(entry.balanceAfter);
-    final amountLabel = '${positive ? '+' : '-'}$amount';
-    final amountStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-      fontWeight: FontWeight.w900,
-      color: positive ? scheme.primary : scheme.onSurface,
-    );
-    final amountWidget = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const DuelAssetIcon(DuelAsset.coin, size: 19),
-        const SizedBox(width: 4),
-        Text(amountLabel, style: amountStyle),
-      ],
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < 420 ||
-            MediaQuery.textScalerOf(context).scale(1) > 1.3;
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          leading: CircleAvatar(
-            backgroundColor: positive
-                ? scheme.primaryContainer
-                : scheme.surfaceContainerHighest,
-            child: Icon(
-              positive ? Icons.add_rounded : Icons.remove_rounded,
-              color: positive
-                  ? scheme.onPrimaryContainer
-                  : scheme.onSurfaceVariant,
-            ),
-          ),
-          title: Text(
-            _reasonLabel(context, entry),
-            maxLines: compact ? 2 : 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                context.tr('coin_history_balance_after', <Object>[
-                  DateFormat.yMMMd().add_Hm().format(entry.createdAt.toLocal()),
-                  balance,
-                ]),
-              ),
-              if (compact) ...[
-                const SizedBox(height: 4),
-                amountWidget,
-              ],
-            ],
-          ),
-          trailing: compact ? null : amountWidget,
-        );
-      },
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      leading: CircleAvatar(
+        backgroundColor: positive
+            ? scheme.primaryContainer
+            : scheme.surfaceContainerHighest,
+        child: Icon(
+          positive ? Icons.add_rounded : Icons.remove_rounded,
+          color: positive ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+        ),
+      ),
+      title: Text(
+        _reasonLabel(context, entry),
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+      subtitle: Text(
+        context.tr('coin_history_balance_after', <Object>[
+          DateFormat.yMMMd().add_Hm().format(entry.createdAt.toLocal()),
+          balance,
+        ]),
+      ),
+      trailing: Text(
+        '${positive ? '+' : '-'}$amount',
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w900,
+          color: positive ? scheme.primary : scheme.onSurface,
+        ),
+      ),
     );
   }
 

@@ -2,21 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
-import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
 import '../../services/player_profile_service.dart';
-import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
-import '../../widgets/duel_asset_icon.dart';
-import '../../widgets/game_modal.dart';
 import '../../widgets/player_avatar.dart';
-import 'challenge_waiting_screen.dart';
 import 'ux_challenge_invitation_screen.dart';
-
-enum _SocialTab { requests, friends, challenges, recent }
 
 class SocialHubScreen extends StatefulWidget {
   const SocialHubScreen({super.key});
@@ -25,33 +17,33 @@ class SocialHubScreen extends StatefulWidget {
   State<SocialHubScreen> createState() => _SocialHubScreenState();
 }
 
-class _SocialHubScreenState extends State<SocialHubScreen> {
+class _SocialHubScreenState extends State<SocialHubScreen>
+    with SingleTickerProviderStateMixin {
   final SocialApiClient _social = SocialApiClient.instance;
-  final PushNotificationService _push = PushNotificationService.instance;
   final TextEditingController _search = TextEditingController();
+  late final TabController _tabs;
 
   PlayerProfilePreferences? _me;
-  List<SocialPlayer> _friends = const <SocialPlayer>[];
-  List<SocialPlayer> _requests = const <SocialPlayer>[];
-  List<SocialPlayer> _opponents = const <SocialPlayer>[];
-  List<SocialChallenge> _challenges = const <SocialChallenge>[];
-  List<SocialPlayer> _results = const <SocialPlayer>[];
-  _SocialTab _tab = _SocialTab.friends;
+  List<SocialPlayer> _friends = const [];
+  List<SocialPlayer> _requests = const [];
+  List<SocialPlayer> _opponents = const [];
+  List<SocialChallenge> _challenges = const [];
+  List<SocialPlayer> _results = const [];
   bool _loading = true;
   bool _searching = false;
-  bool _pushBusy = false;
-  bool _showingError = false;
+  String? _error;
   String? _busyId;
 
   @override
   void initState() {
     super.initState();
+    _tabs = TabController(length: 4, vsync: this);
     unawaited(_load());
-    unawaited(_prepareNotifications());
   }
 
   @override
   void dispose() {
+    _tabs.dispose();
     _search.dispose();
     super.dispose();
   }
@@ -67,45 +59,13 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
         .toList(growable: false);
   }
 
-  Future<void> _prepareNotifications() async {
-    await _push.initialize();
-    if (!_push.userDisabled.value) {
-      await _push.refreshRegistration();
-    }
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _enableNotifications() async {
-    if (_pushBusy) return;
-    setState(() => _pushBusy = true);
-    try {
-      final enabled = await _push.requestPermissionAndRegister();
-      if (!mounted) return;
-      if (enabled) {
-        await GameModal.success(
-          context,
-          title: context.tr('challenge_notifications'),
-          message: context.tr('challenge_notification_enabled'),
-          actionLabel: context.tr('continue_action'),
-        );
-      } else {
-        await GameModal.show(
-          context,
-          title: context.tr('challenge_notifications'),
-          message:
-              _push.lastRegistrationError.value ??
-              context.tr('challenge_notification_permission_denied'),
-          tone: GameModalTone.warning,
-          primaryLabel: context.tr('try_again'),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _pushBusy = false);
-    }
-  }
-
   Future<void> _load() async {
-    if (mounted) setState(() => _loading = true);
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final values = await Future.wait<Object>([
         PlayerProfileService.instance.load(),
@@ -123,41 +83,23 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
         _opponents = values[4] as List<SocialPlayer>;
       });
     } catch (error) {
-      if (mounted) await _presentError(error, retry: _load);
+      if (mounted) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _presentError(
-    Object error, {
-    Future<void> Function()? retry,
-  }) async {
-    if (_showingError || !mounted) return;
-    _showingError = true;
-    final shouldRetry = await GameModal.error(
-      context,
-      title: context.tr('friends_challenges'),
-      message: UserSafeError.message(context, error),
-      retryLabel: retry == null ? context.tr('continue_action') : context.tr('retry'),
-      cancelLabel: context.tr('cancel'),
-    );
-    _showingError = false;
-    if (shouldRetry == true && retry != null && mounted) {
-      unawaited(retry());
-    }
-  }
-
-  Future<bool> _perform(String id, Future<void> Function() action) async {
-    if (_busyId != null) return false;
-    setState(() => _busyId = id);
+  Future<void> _perform(String id, Future<void> Function() action) async {
+    if (_busyId != null) return;
+    setState(() {
+      _busyId = id;
+      _error = null;
+    });
     try {
       await action();
       await _load();
-      return true;
     } catch (error) {
-      if (mounted) await _presentError(error);
-      return false;
+      if (mounted) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _busyId = null);
     }
@@ -166,348 +108,211 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
   Future<void> _findPlayers() async {
     final query = _search.text.trim();
     if (query.length < 3 || _searching) return;
-    FocusScope.of(context).unfocus();
-    setState(() => _searching = true);
+    setState(() {
+      _searching = true;
+      _error = null;
+    });
     try {
-      final values = await _social.searchPlayers(query);
-      if (mounted) setState(() => _results = values);
+      final results = await _social.searchPlayers(query);
+      if (mounted) setState(() => _results = results);
     } catch (error) {
-      if (mounted) await _presentError(error, retry: _findPlayers);
+      if (mounted) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _searching = false);
     }
   }
 
   Future<void> _sendFriendRequest(SocialPlayer player) async {
-    final success = await _perform('friend-${player.publicId}', () async {
+    await _perform('friend-${player.publicId}', () async {
       await _social.sendFriendRequest(player.publicId);
     });
-    if (!success || !mounted) return;
-    await GameModal.success(
-      context,
-      title: context.tr('add_friend'),
-      message: context.tr('friend_request_sent'),
-      actionLabel: context.tr('continue_action'),
-    );
+    if (!mounted || _error != null) return;
+    _showSnack(context.tr('friend_request_sent'));
   }
 
   Future<void> _respondRequest(SocialPlayer player, bool accept) async {
-    final success = await _perform('request-${player.publicId}', () async {
+    await _perform('request-${player.publicId}', () async {
       await _social.respondToFriendRequest(
         requesterPublicId: player.publicId,
         accept: accept,
       );
     });
-    if (!success || !accept || !mounted) return;
-    await GameModal.success(
-      context,
-      title: context.tr('friends'),
-      message: context.tr(
-        'friend_request_accepted',
-        <Object>[player.displayName],
-      ),
-      actionLabel: context.tr('continue_action'),
+    if (!mounted || _error != null || !accept) return;
+    _showSnack(
+      context.tr('friend_request_accepted', <Object>[player.displayName]),
     );
   }
 
   Future<void> _challenge(SocialPlayer player) async {
-    final selection = await showDialog<
-        ({SudokuVariant variant, SudokuDifficulty difficulty})>(
+    final difficulty = await showModalBottomSheet<SudokuDifficulty>(
       context: context,
-      builder: (_) => const _ChallengeSetupDialog(),
-    );
-    if (selection == null || _busyId != null || !mounted) return;
-
-    if (!_push.enabled.value && !_push.userDisabled.value) {
-      await _enableNotifications();
-      if (!mounted) return;
-    }
-
-    setState(() => _busyId = 'challenge-${player.publicId}');
-    try {
-      final challenge = await _social.createChallenge(
-        recipientPublicId: player.publicId,
-        difficulty: selection.difficulty.name,
-        variant: selection.variant,
-      );
-      if (!mounted) return;
-      await Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (_) => ChallengeWaitingScreen(challenge: challenge),
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              context.tr('choose_duel_difficulty'),
+              textAlign: TextAlign.center,
+              style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: 10),
+            for (final item in SudokuDifficulty.values)
+              ListTile(
+                minTileHeight: 52,
+                leading: const Icon(Icons.grid_4x4_rounded),
+                title: Text(context.strings.difficultyLabel(item)),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(sheetContext).pop(item),
+              ),
+          ],
         ),
+      ),
+    );
+    if (difficulty == null) return;
+    await _perform('challenge-${player.publicId}', () async {
+      await _social.createChallenge(
+        recipientPublicId: player.publicId,
+        difficulty: difficulty.name,
       );
-      if (mounted) await _load();
-    } catch (error) {
-      if (mounted) await _presentError(error);
-    } finally {
-      if (mounted) setState(() => _busyId = null);
-    }
+    });
+    if (!mounted || _error != null) return;
+    _showSnack(context.tr('rematch_invitation_sent'));
   }
 
   Future<void> _openChallenge(SocialChallenge challenge) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => UxChallengeInvitationScreen(challengeId: challenge.id),
+        builder: (_) => UxChallengeInvitationScreen(
+          challengeId: challenge.id,
+        ),
       ),
     );
-    if (mounted) await _load();
+    await _load();
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final searchingResults = _results.isNotEmpty;
     return Scaffold(
-      backgroundColor: const Color(0xFF07111E),
-      body: AppBackdrop(
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxHeight < 700;
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 820),
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      14,
-                      compact ? 6 : 10,
-                      14,
-                      compact ? 8 : 14,
-                    ),
-                    child: Column(
-                      children: [
-                        _header(),
-                        SizedBox(height: compact ? 7 : 10),
-                        _searchBar(),
-                        SizedBox(height: compact ? 7 : 10),
-                        if (searchingResults)
-                          _searchModeHeader()
-                        else
-                          _tabBar(compact),
-                        SizedBox(height: compact ? 7 : 10),
-                        Expanded(
-                          child: _loading
-                              ? const Center(child: CircularProgressIndicator())
-                              : searchingResults
-                              ? _playersList(
-                                  _results,
-                                  mode: _PlayerMode.search,
-                                )
-                              : _selectedView(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _header() {
-    final notificationsNeedAction =
-        _push.configured && !_push.enabled.value && !_push.userDisabled.value;
-    return SizedBox(
-      height: 48,
-      child: Row(
-        children: [
-          IconButton.filledTonal(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              context.tr('friends_challenges'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          IconButton.filledTonal(
-            tooltip: context.tr('challenge_notifications'),
-            onPressed: _pushBusy ? null : _enableNotifications,
-            icon: _pushBusy
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Badge(
-                    isLabelVisible: notificationsNeedAction,
-                    child: Icon(
-                      _push.enabled.value
-                          ? Icons.notifications_active_rounded
-                          : Icons.notifications_off_rounded,
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 6),
-          IconButton.filledTonal(
+      backgroundColor: const Color(0xFF0B1215),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        title: Text(context.tr('friends_challenges')),
+        actions: [
+          IconButton(
             tooltip: context.tr('refresh'),
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _searchBar() {
-    return SizedBox(
-      height: 54,
-      child: TextField(
-        controller: _search,
-        enabled: !_searching,
-        textInputAction: TextInputAction.search,
-        autocorrect: false,
-        decoration: InputDecoration(
-          labelText:
-              '${context.tr('unique_username')} / ${context.tr('friend_id')}',
-          prefixIcon: const Icon(Icons.search_rounded),
-          suffixIcon: IconButton(
-            tooltip: context.tr('try_again'),
-            onPressed: _searching ? null : _findPlayers,
-            icon: _searching
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.arrow_forward_rounded),
-          ),
-          filled: true,
-          fillColor: const Color(0xFF0A1728).withValues(alpha: .94),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-        ),
-        onSubmitted: (_) => _findPlayers(),
-      ),
-    );
-  }
-
-  Widget _searchModeHeader() {
-    return SizedBox(
-      height: 46,
-      child: Row(
-        children: [
-          const Icon(Icons.manage_search_rounded, color: Color(0xFF35D2FF)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '${context.tr('search')} · ${_results.length}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          TextButton.icon(
-            onPressed: () {
-              _search.clear();
-              setState(() => _results = const <SocialPlayer>[]);
-            },
-            icon: const Icon(Icons.close_rounded),
-            label: Text(context.tr('dismiss')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _tabBar(bool compact) {
-    final tabs = <({
-      _SocialTab tab,
-      IconData icon,
-      String label,
-      int count,
-    })>[
-      (
-        tab: _SocialTab.requests,
-        icon: Icons.person_add_alt_1_rounded,
-        label: context.tr('friend_requests'),
-        count: _requests.length,
-      ),
-      (
-        tab: _SocialTab.friends,
-        icon: Icons.people_alt_rounded,
-        label: context.tr('friends'),
-        count: _friends.length,
-      ),
-      (
-        tab: _SocialTab.challenges,
-        icon: Icons.sports_kabaddi_rounded,
-        label: context.tr('challenge'),
-        count: _incoming.length,
-      ),
-      (
-        tab: _SocialTab.recent,
-        icon: Icons.history_rounded,
-        label: context.tr('opponent'),
-        count: _opponents.length,
-      ),
-    ];
-    return SizedBox(
-      height: compact ? 58 : 66,
-      child: Row(
-        children: [
-          for (var index = 0; index < tabs.length; index++) ...[
-            Expanded(child: _tabButton(tabs[index], compact)),
-            if (index != tabs.length - 1) const SizedBox(width: 6),
+        bottom: TabBar(
+          controller: _tabs,
+          isScrollable: true,
+          tabs: [
+            Tab(text: '${context.tr('friend_requests')} (${_requests.length})'),
+            Tab(text: '${context.tr('friends')} (${_friends.length})'),
+            Tab(text: '${context.tr('challenge')} (${_incoming.length})'),
+            Tab(text: context.tr('opponent')),
           ],
-        ],
+        ),
       ),
-    );
-  }
-
-  Widget _tabButton(
-    ({_SocialTab tab, IconData icon, String label, int count}) value,
-    bool compact,
-  ) {
-    final selected = _tab == value.tab;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => setState(() => _tab = value.tab),
-        borderRadius: BorderRadius.circular(15),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: selected
-                ? const Color(0xFF29D398).withValues(alpha: .18)
-                : const Color(0xFF0A1728).withValues(alpha: .9),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(
-              color: selected
-                  ? const Color(0xFF29D398)
-                  : Colors.white.withValues(alpha: .1),
-            ),
-          ),
+      body: AppBackdrop(
+        child: SafeArea(
+          top: false,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Badge(
-                isLabelVisible: value.count > 0,
-                label: Text('${value.count}'),
-                child: Icon(
-                  value.icon,
-                  color: selected ? const Color(0xFF29D398) : Colors.white70,
-                  size: compact ? 20 : 23,
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 680),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _search,
+                          enabled: !_searching,
+                          textInputAction: TextInputAction.search,
+                          autocorrect: false,
+                          decoration: InputDecoration(
+                            labelText:
+                                '${context.tr('unique_username')} / ${context.tr('friend_id')}',
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            suffixIcon: IconButton(
+                              tooltip: context.tr('try_again'),
+                              onPressed: _searching ? null : _findPlayers,
+                              icon: _searching
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.arrow_forward_rounded),
+                            ),
+                          ),
+                          onSubmitted: (_) => _findPlayers(),
+                        ),
+                        if (_results.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Card(
+                            child: Column(
+                              children: [
+                                for (final player in _results.take(5))
+                                  _PlayerRow(
+                                    player: player,
+                                    busy:
+                                        _busyId == 'friend-${player.publicId}',
+                                    primaryLabel: context.tr('add_friend'),
+                                    onPrimary: () => _sendFriendRequest(player),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (_error != null) ...[
+                          const SizedBox(height: 8),
+                          Card(
+                            color: Theme.of(context).colorScheme.errorContainer,
+                            child: ListTile(
+                              leading: const Icon(Icons.error_outline),
+                              title: Text(_error!),
+                              trailing: IconButton(
+                                tooltip: context.tr('dismiss'),
+                                onPressed: () => setState(() => _error = null),
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 3),
-              Text(
-                value.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? Colors.white : Colors.white60,
-                  fontSize: compact ? 9 : 10,
-                  fontWeight: FontWeight.w800,
-                ),
+              Expanded(
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : TabBarView(
+                        controller: _tabs,
+                        children: [
+                          _requestsView(),
+                          _playersView(_friends),
+                          _challengesView(),
+                          _playersView(_opponents),
+                        ],
+                      ),
               ),
             ],
           ),
@@ -516,113 +321,81 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
     );
   }
 
-  Widget _selectedView() {
-    return switch (_tab) {
-      _SocialTab.requests => _requestsList(),
-      _SocialTab.friends => _playersList(_friends, mode: _PlayerMode.friend),
-      _SocialTab.challenges => _challengeList(),
-      _SocialTab.recent => _playersList(_opponents, mode: _PlayerMode.recent),
-    };
-  }
-
-  Widget _requestsList() {
-    if (_requests.isEmpty) return _empty(context.tr('friend_requests_empty'));
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: _requests.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final player = _requests[index];
-        return _PlayerTile(
+  Widget _requestsView() {
+    if (_requests.isEmpty) {
+      return _Empty(message: context.tr('friend_requests_empty'));
+    }
+    return _scroll([
+      for (final player in _requests)
+        _PlayerRow(
           player: player,
           busy: _busyId == 'request-${player.publicId}',
           primaryLabel: context.tr('accept'),
           secondaryLabel: context.tr('decline'),
           onPrimary: () => _respondRequest(player, true),
           onSecondary: () => _respondRequest(player, false),
-        );
-      },
-    );
+        ),
+    ]);
   }
 
-  Widget _playersList(
-    List<SocialPlayer> players, {
-    required _PlayerMode mode,
-  }) {
+  Widget _playersView(List<SocialPlayer> players) {
     if (players.isEmpty) {
-      return _empty(
-        mode == _PlayerMode.search
-            ? context.tr('no_results')
-            : context.tr('friends_empty'),
-      );
+      return _Empty(message: context.tr('try_again_when_connected'));
     }
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: players.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final player = players[index];
-        final search = mode == _PlayerMode.search;
-        return _PlayerTile(
+    return _scroll([
+      for (final player in players)
+        _PlayerRow(
           player: player,
-          busy:
-              _busyId ==
-              (search
-                  ? 'friend-${player.publicId}'
-                  : 'challenge-${player.publicId}'),
-          primaryLabel: search
-              ? context.tr('add_friend')
-              : context.tr('challenge'),
-          onPrimary: search
-              ? () => _sendFriendRequest(player)
-              : () => _challenge(player),
-        );
-      },
-    );
+          busy: _busyId == 'challenge-${player.publicId}',
+          primaryLabel: context.tr('challenge'),
+          onPrimary: () => _challenge(player),
+        ),
+    ]);
   }
 
-  Widget _challengeList() {
-    final incoming = _incoming;
-    if (incoming.isEmpty) return _empty(context.tr('challenges_empty'));
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: incoming.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final challenge = incoming[index];
-        return _ChallengeTile(
-          challenge: challenge,
-          onTap: () => _openChallenge(challenge),
-        );
-      },
-    );
-  }
-
-  Widget _empty(String message) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const DuelAssetIcon(DuelAsset.friendsPro, size: 132),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w700,
+  Widget _challengesView() {
+    if (_incoming.isEmpty) {
+      return _Empty(message: context.tr('challenge_timed_out'));
+    }
+    return _scroll([
+      for (final challenge in _incoming)
+        Card(
+          child: ListTile(
+            minTileHeight: 76,
+            leading: PlayerAvatar(
+              displayName: challenge.challenger.displayName,
+              avatarKey: 'social-${challenge.challenger.publicId}',
+              radius: 24,
             ),
+            title: Text(
+              challenge.challenger.displayName,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            subtitle: Text(
+              '${context.strings.difficultyLabel(_difficulty(challenge.difficulty))} · ${context.tr('rating_value', <Object>[challenge.challenger.rating])}',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => _openChallenge(challenge),
           ),
-        ],
+        ),
+    ]);
+  }
+
+  Widget _scroll(List<Widget> children) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          children: children,
+        ),
       ),
     );
   }
 }
 
-enum _PlayerMode { search, friend, recent }
-
-class _PlayerTile extends StatelessWidget {
-  const _PlayerTile({
+class _PlayerRow extends StatelessWidget {
+  const _PlayerRow({
     required this.player,
     required this.busy,
     required this.primaryLabel,
@@ -640,286 +413,89 @@ class _PlayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 86),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A1728).withValues(alpha: .94),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: .12)),
-      ),
-      child: Row(
-        children: [
-          PlayerAvatar(
-            displayName: player.displayName,
-            avatarKey: 'social-${player.publicId}',
-            radius: 27,
-            semanticLabel: context.tr(
-              'player_avatar_semantics',
-              <Object>[player.displayName],
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+        child: Row(
+          children: [
+            PlayerAvatar(
+              displayName: player.displayName,
+              avatarKey: 'player-${player.publicId}',
+              radius: 24,
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  player.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    player.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
-                ),
-                Text(
-                  '@${player.username} · ELO ${player.rating}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .58),
-                    fontSize: 12,
+                  Text(
+                    context.tr('player_rating_summary', <Object>[
+                      player.username,
+                      player.rating,
+                    ]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ),
-          ),
-          if (busy)
-            const SizedBox.square(
-              dimension: 28,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          else ...[
-            if (secondaryLabel != null && onSecondary != null)
-              IconButton.filledTonal(
-                tooltip: secondaryLabel,
-                onPressed: onSecondary,
-                icon: const Icon(Icons.close_rounded),
+                ],
               ),
-            if (secondaryLabel != null) const SizedBox(width: 6),
-            FilledButton(
-              onPressed: onPrimary,
-              child: Text(primaryLabel),
+            ),
+            if (secondaryLabel != null)
+              TextButton(
+                onPressed: busy ? null : onSecondary,
+                child: Text(secondaryLabel!),
+              ),
+            FilledButton.tonal(
+              onPressed: busy ? null : onPrimary,
+              child: busy
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(primaryLabel),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
-class _ChallengeTile extends StatelessWidget {
-  const _ChallengeTile({required this.challenge, required this.onTap});
+class _Empty extends StatelessWidget {
+  const _Empty({required this.message});
 
-  final SocialChallenge challenge;
-  final VoidCallback onTap;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
-    final is16 = challenge.variant.id == SudokuVariantId.classic16;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Ink(
-          height: 94,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0A1728).withValues(alpha: .94),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: (is16
-                      ? const Color(0xFF35D2FF)
-                      : const Color(0xFFFFC73D))
-                  .withValues(alpha: .5),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.people_outline_rounded,
+              size: 54,
+              color: Theme.of(context).colorScheme.primary,
             ),
-          ),
-          child: Row(
-            children: [
-              DuelAssetIcon(
-                is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                size: 70,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      challenge.challenger.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      '${challenge.variant.label} · ${challenge.difficulty}',
-                      style: const TextStyle(
-                        color: Color(0xFF29D398),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded),
-            ],
-          ),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+          ],
         ),
       ),
     );
   }
 }
 
-class _ChallengeSetupDialog extends StatefulWidget {
-  const _ChallengeSetupDialog();
-
-  @override
-  State<_ChallengeSetupDialog> createState() => _ChallengeSetupDialogState();
-}
-
-class _ChallengeSetupDialogState extends State<_ChallengeSetupDialog> {
-  SudokuVariant _variant = SudokuVariant.classic9;
-  SudokuDifficulty _difficulty = SudokuDifficulty.easy;
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 540),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0xFF081522),
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(
-              color: const Color(0xFF35D2FF).withValues(alpha: .45),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        context.tr('challenge'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 23,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    for (final variant in SudokuVariant.values) ...[
-                      Expanded(child: _variantChoice(variant)),
-                      if (variant != SudokuVariant.values.last)
-                        const SizedBox(width: 9),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    for (final difficulty in SudokuDifficulty.values)
-                      ChoiceChip(
-                        selected: _difficulty == difficulty,
-                        onSelected: (_) =>
-                            setState(() => _difficulty = difficulty),
-                        label: Text(context.strings.difficultyLabel(difficulty)),
-                        showCheckmark: false,
-                        selectedColor: const Color(0xFF29D398),
-                        backgroundColor: const Color(0xFF132438),
-                        labelStyle: TextStyle(
-                          color: _difficulty == difficulty
-                              ? const Color(0xFF07111E)
-                              : Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop((
-                      variant: _variant,
-                      difficulty: _difficulty,
-                    )),
-                    icon: const Icon(Icons.send_rounded),
-                    label: Text(
-                      '${_variant.label} · ${context.strings.difficultyLabel(_difficulty)}',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _variantChoice(SudokuVariant variant) {
-    final selected = _variant.id == variant.id;
-    final is16 = variant.id == SudokuVariantId.classic16;
-    final accent = is16 ? const Color(0xFF35D2FF) : const Color(0xFFFFC73D);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => setState(() => _variant = variant),
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          height: 126,
-          decoration: BoxDecoration(
-            color: selected
-                ? accent.withValues(alpha: .14)
-                : const Color(0xFF0A1728),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? accent : Colors.white.withValues(alpha: .12),
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              DuelAssetIcon(
-                is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                size: 82,
-              ),
-              Text(
-                variant.label,
-                style: TextStyle(
-                  color: selected ? accent : Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+SudokuDifficulty _difficulty(String value) {
+  return SudokuDifficulty.values.firstWhere(
+    (difficulty) => difficulty.name == value,
+    orElse: () => SudokuDifficulty.easy,
+  );
 }

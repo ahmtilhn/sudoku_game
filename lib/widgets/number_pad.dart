@@ -100,8 +100,49 @@ class NumberPad extends StatelessWidget {
               SizedBox(height: maxValue > 9 ? 6 : 10),
               Wrap(
                 alignment: WrapAlignment.center,
-                spacing: 6,
-                runSpacing: 6,
+                spacing: spacing,
+                runSpacing: compact ? 4 : 8,
+                children: [
+                  for (var value = 1; value <= maxValue; value++)
+                    Builder(
+                      builder: (context) {
+                        final isCompleted = completedValues.contains(value);
+                        return SizedBox(
+                          width: buttonWidth,
+                          height: buttonHeight,
+                          child: FilledButton.tonal(
+                            key: ValueKey<String>('number-$value'),
+                            onPressed: enabled && !isCompleted
+                                ? () => onNumber(value)
+                                : null,
+                            style: FilledButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(48, 48),
+                              tapTargetSize: MaterialTapTargetSize.padded,
+                              backgroundColor: scheme.secondaryContainer,
+                              foregroundColor: scheme.onSecondaryContainer,
+                            ),
+                            child: Text(
+                              '$value',
+                              style: TextStyle(
+                                fontSize: compact ? 17 : 21,
+                                fontWeight: FontWeight.w800,
+                                decoration: isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
+              SizedBox(height: compact ? 6 : 12),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 4,
+                runSpacing: 4,
                 children: [
                   _ActionButton(
                     buttonKey: const ValueKey<String>('action-erase'),
@@ -293,64 +334,30 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final activeColor = selected ? scheme.primary : scheme.outlineVariant;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        key: buttonKey,
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(14),
-        child: Ink(
-          width: 92,
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: selected
-                ? scheme.primaryContainer.withValues(alpha: .72)
-                : scheme.surfaceContainerHighest.withValues(alpha: .58),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: onPressed == null
-                  ? scheme.outlineVariant.withValues(alpha: .45)
-                  : activeColor,
-              width: selected ? 1.5 : 1,
+    return TextButton(
+      key: buttonKey,
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        backgroundColor: selected
+            ? scheme.primaryContainer
+            : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        minimumSize: const Size(48, 44),
+        tapTargetSize: MaterialTapTargetSize.padded,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 19,
-                color: onPressed == null
-                    ? scheme.onSurface.withValues(alpha: .38)
-                    : selected
-                        ? scheme.onPrimaryContainer
-                        : scheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: onPressed == null
-                        ? scheme.onSurface.withValues(alpha: .38)
-                        : selected
-                            ? scheme.onPrimaryContainer
-                            : scheme.onSurface,
-                    fontSize: 11,
-                    height: 1.05,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }

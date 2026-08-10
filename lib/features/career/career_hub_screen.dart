@@ -6,18 +6,12 @@ import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
 import '../../data/local_progress_store.dart';
 import '../../data/puzzle_catalog.dart';
-import '../../domain/classic16_puzzle_factory.dart';
 import '../../domain/sudoku.dart';
-import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
-import '../../services/game_interstitial_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
-import '../../widgets/game_modal.dart';
 import '../game/enhanced_game_screen.dart';
-
-enum _CareerMode { journey, practice }
 
 class CareerHubScreen extends StatefulWidget {
   const CareerHubScreen({super.key, required this.store});
@@ -28,30 +22,29 @@ class CareerHubScreen extends StatefulWidget {
   State<CareerHubScreen> createState() => _CareerHubScreenState();
 }
 
-class _CareerHubScreenState extends State<CareerHubScreen> {
-  static const int _pageSize = 8;
+class _CareerHubScreenState extends State<CareerHubScreen>
+    with SingleTickerProviderStateMixin {
+  static const int _chapterSize = 10;
 
   final EconomyService _economy = EconomyService.instance;
-  SudokuVariant _variant = SudokuVariant.classic9;
-  _CareerMode _mode = _CareerMode.journey;
-  int _page = 0;
-  int? _busyLevel;
-  SudokuDifficulty? _busyPractice;
-  bool _busyDaily = false;
-
-  bool get _busy =>
-      _busyLevel != null || _busyPractice != null || _busyDaily;
+  late final TabController _tabs;
+  late int _chapter;
+  int? _generatingLevel;
+  SudokuDifficulty? _generatingPractice;
+  bool _generatingDaily = false;
 
   @override
   void initState() {
     super.initState();
-    _syncPageToProgress();
+    _tabs = TabController(length: 2, vsync: this);
+    _chapter = (widget.store.nextCareerLevelNumber - 1) ~/ _chapterSize + 1;
     _economy.addListener(_refresh);
     unawaited(_economy.initialize());
   }
 
   @override
   void dispose() {
+    _tabs.dispose();
     _economy.removeListener(_refresh);
     super.dispose();
   }
@@ -60,520 +53,184 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
     if (mounted) setState(() {});
   }
 
-  void _syncPageToProgress() {
-    final next = widget.store.nextCareerLevelNumberFor(_variant);
-    _page = (next - 1) ~/ _pageSize;
-  }
+  bool get _busy =>
+      _generatingLevel != null ||
+      _generatingPractice != null ||
+      _generatingDaily;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07111E),
+      backgroundColor: const Color(0xFF0B1215),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        title: Text(context.tr('career')),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Wrap(
+              spacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Chip(
+                  avatar: const DuelAssetIcon(DuelAsset.lightbulb, size: 18),
+                  label: Text('${widget.store.hints}'),
+                ),
+                Chip(
+                  avatar: const DuelAssetIcon(
+                    DuelAsset.coin,
+                    size: 18,
+                    color: Color(0xFFFFC94D),
+                  ),
+                  label: Text('${_economy.balance}'),
+                ),
+              ],
+            ),
+          ),
+        ],
+        bottom: TabBar(
+          controller: _tabs,
+          tabs: [
+            Tab(text: context.tr('career')),
+            Tab(text: context.tr('practice')),
+          ],
+        ),
+      ),
       body: AppBackdrop(
         child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxHeight < 700;
-              final wide = constraints.maxWidth >= 780;
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      14,
-                      compact ? 6 : 10,
-                      14,
-                      compact ? 8 : 14,
-                    ),
-                    child: Column(
-                      children: [
-                        _header(compact),
-                        SizedBox(height: compact ? 6 : 8),
-                        _variantSelector(compact),
-                        SizedBox(height: compact ? 6 : 8),
-                        SegmentedButton<_CareerMode>(
-                          segments: [
-                            ButtonSegment<_CareerMode>(
-                              value: _CareerMode.journey,
-                              icon: const Icon(Icons.route_rounded, size: 18),
-                              label: Text(context.tr('career')),
-                            ),
-                            ButtonSegment<_CareerMode>(
-                              value: _CareerMode.practice,
-                              icon: const Icon(
-                                Icons.sports_esports_rounded,
-                                size: 18,
-                              ),
-                              label: Text(context.tr('practice')),
-                            ),
-                          ],
-                          selected: <_CareerMode>{_mode},
-                          onSelectionChanged: _busy
-                              ? null
-                              : (value) => setState(() => _mode = value.first),
-                          showSelectedIcon: false,
-                          style: ButtonStyle(
-                            minimumSize: WidgetStatePropertyAll<Size>(
-                              Size(0, compact ? 38 : 42),
-                            ),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                        SizedBox(height: compact ? 6 : 8),
-                        Expanded(
-                          child: _mode == _CareerMode.journey
-                              ? _journey(compact: compact, wide: wide)
-                              : _practice(compact: compact, wide: wide),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
+          top: false,
+          child: TabBarView(
+            controller: _tabs,
+            children: [_careerTab(), _practiceTab()],
           ),
         ),
       ),
     );
   }
 
-  Widget _header(bool compact) {
-    return SizedBox(
-      height: compact ? 42 : 46,
-      child: Row(
-        children: [
-          IconButton.filledTonal(
-            onPressed: () => Navigator.of(context).pop(),
-            style: IconButton.styleFrom(
-              fixedSize: const Size(40, 40),
-              padding: EdgeInsets.zero,
-            ),
-            icon: const Icon(Icons.arrow_back_rounded, size: 20),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              context.tr('career'),
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: compact ? 20 : 22,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          _resource(
-            const Icon(
-              Icons.lightbulb_rounded,
-              color: Color(0xFF35D2FF),
-              size: 16,
-            ),
-            '${widget.store.hints}',
-          ),
-          const SizedBox(width: 5),
-          _resource(
-            const DuelAssetIcon(DuelAsset.coin, size: 25),
-            '${_economy.balance}',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _resource(Widget icon, String value) {
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A1728).withValues(alpha: .92),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: .13)),
-      ),
-      child: Row(
-        children: [
-          icon,
-          const SizedBox(width: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _variantSelector(bool compact) {
-    return SizedBox(
-      height: compact ? 58 : 64,
-      child: Row(
-        children: [
-          for (final variant in SudokuVariant.values) ...[
-            Expanded(child: _variantButton(variant, compact)),
-            if (variant != SudokuVariant.values.last)
-              const SizedBox(width: 8),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _variantButton(SudokuVariant variant, bool compact) {
-    final selected = _variant.id == variant.id;
-    final is16 = variant.id == SudokuVariantId.classic16;
-    final accent = is16 ? const Color(0xFF35D2FF) : const Color(0xFFFFC73D);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _busy
-            ? null
-            : () {
-                setState(() {
-                  _variant = variant;
-                  _syncPageToProgress();
-                });
-              },
-        borderRadius: BorderRadius.circular(15),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 9),
-          decoration: BoxDecoration(
-            color: selected
-                ? accent.withValues(alpha: .15)
-                : const Color(0xFF0A1728).withValues(alpha: .9),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(
-              color: selected ? accent : Colors.white.withValues(alpha: .11),
-              width: selected ? 1.7 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              DuelAssetIcon(
-                is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                size: compact ? 38 : 44,
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _careerTab() {
+    return AnimatedBuilder(
+      animation: widget.store,
+      builder: (context, _) {
+        final nextNumber = widget.store.nextCareerLevelNumber;
+        final nextLevel = CareerCatalog.levelAt(nextNumber);
+        final chapterStart = (_chapter - 1) * _chapterSize + 1;
+        final levels = List<CareerLevel>.generate(
+          _chapterSize,
+          (index) => CareerCatalog.levelAt(chapterStart + index),
+        );
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final maxWidth = constraints.maxWidth >= 840 ? 760.0 : 680.0;
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                   children: [
-                    Text(
-                      variant.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: selected ? accent : Colors.white,
-                        fontSize: compact ? 13 : 15,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    _HeroPanel(
+                      title: context.tr('career'),
+                      subtitle: context.tr('career_intro'),
+                      icon: DuelAsset.homeCareerRelic,
+                      trailing: context.tr('completed_levels', <Object>[
+                        widget.store.completedCareerLevelCount,
+                      ]),
                     ),
-                    Text(
-                      is16 ? '1–16' : '1–9',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .55),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    const SizedBox(height: 14),
+                    _NextLevelCard(
+                      level: nextLevel,
+                      loading: _generatingLevel == nextLevel.number,
+                      onTap: _busy ? null : () => _openCareer(nextLevel),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        IconButton.filledTonal(
+                          tooltip: MaterialLocalizations.of(
+                            context,
+                          ).previousPageTooltip,
+                          onPressed: _chapter <= 1 || _busy
+                              ? null
+                              : () => setState(() => _chapter--),
+                          icon: const Icon(Icons.chevron_left_rounded),
+                        ),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                '${context.tr('career')} · $_chapter',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _busy
+                                    ? null
+                                    : () => setState(() {
+                                        _chapter =
+                                            (nextNumber - 1) ~/ _chapterSize + 1;
+                                      }),
+                                child: Text(
+                                  context.tr('level_title', <Object>[
+                                    context.strings.difficultyLabel(
+                                      nextLevel.difficulty,
+                                    ),
+                                    nextNumber,
+                                  ]),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton.filledTonal(
+                          tooltip: MaterialLocalizations.of(
+                            context,
+                          ).nextPageTooltip,
+                          onPressed: _busy
+                              ? null
+                              : () => setState(() => _chapter++),
+                          icon: const Icon(Icons.chevron_right_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: levels.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 230,
+                            mainAxisExtent: 142,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                          ),
+                      itemBuilder: (context, index) {
+                        final level = levels[index];
+                        return _LevelCard(
+                          level: level,
+                          progress: widget.store.progressForCareerLevel(
+                            level.number,
+                          ),
+                          unlocked: widget.store.isCareerLevelUnlocked(
+                            level.number,
+                          ),
+                          current: level.number == nextNumber,
+                          loading: _generatingLevel == level.number,
+                          onTap:
+                              widget.store.isCareerLevelUnlocked(level.number) &&
+                                  !_busy
+                              ? () => _openCareer(level)
+                              : null,
+                        );
+                      },
                     ),
                   ],
                 ),
               ),
-              if (selected)
-                Icon(Icons.check_rounded, color: accent, size: 18),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _journey({required bool compact, required bool wide}) {
-    final next = widget.store.nextCareerLevelNumberFor(_variant);
-    final pageStart = _page * _pageSize + 1;
-    final levels = List<int>.generate(_pageSize, (index) => pageStart + index);
-    return Column(
-      children: [
-        _nextLevelStrip(next),
-        SizedBox(height: compact ? 6 : 8),
-        SizedBox(
-          height: 40,
-          child: Row(
-            children: [
-              IconButton.filledTonal(
-                onPressed: _page <= 0 || _busy
-                    ? null
-                    : () => setState(() => _page--),
-                style: IconButton.styleFrom(
-                  fixedSize: const Size(38, 38),
-                  padding: EdgeInsets.zero,
-                ),
-                icon: const Icon(Icons.chevron_left_rounded),
-              ),
-              Expanded(
-                child: Text(
-                  '${context.tr('career')} · ${_page + 1}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              IconButton.filledTonal(
-                onPressed: _busy ? null : () => setState(() => _page++),
-                style: IconButton.styleFrom(
-                  fixedSize: const Size(38, 38),
-                  padding: EdgeInsets.zero,
-                ),
-                icon: const Icon(Icons.chevron_right_rounded),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: compact ? 4 : 6),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final columns = wide ? 4 : 2;
-              final rows = (_pageSize / columns).ceil();
-              final gap = compact ? 6.0 : 8.0;
-              final extent =
-                  (constraints.maxHeight - gap * (rows - 1)) / rows;
-              return GridView.builder(
-                padding: EdgeInsets.zero,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: levels.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
-                  crossAxisSpacing: gap,
-                  mainAxisSpacing: gap,
-                  mainAxisExtent: extent,
-                ),
-                itemBuilder: (context, index) => _levelTile(
-                  level: levels[index],
-                  next: next,
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _nextLevelStrip(int level) {
-    final difficulty = _difficultyForLevel(level);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _busy ? null : () => _openCareer(level),
-        borderRadius: BorderRadius.circular(15),
-        child: Ink(
-          height: 54,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF12352A).withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(
-              color: const Color(0xFF29D398).withValues(alpha: .55),
-            ),
-          ),
-          child: Row(
-            children: [
-              _busyLevel == level
-                  ? const SizedBox.square(
-                      dimension: 26,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(
-                      Icons.play_circle_fill_rounded,
-                      color: Color(0xFF29D398),
-                      size: 30,
-                    ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '${context.tr('continue_action')}  ',
-                        style: const TextStyle(
-                          color: Color(0xFF29D398),
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      TextSpan(
-                        text:
-                            '${_variant.label} · ${context.strings.difficultyLabel(difficulty)} · $level',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                '${widget.store.completedCareerLevelCountFor(_variant)}',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _levelTile({required int level, required int next}) {
-    final unlocked = widget.store.isCareerLevelUnlocked(
-      level,
-      variant: _variant,
-    );
-    final progress = widget.store.progressForCareerLevel(
-      level,
-      variant: _variant,
-    );
-    final current = level == next;
-    final accent = current
-        ? const Color(0xFF29D398)
-        : progress != null
-        ? const Color(0xFFFFC73D)
-        : const Color(0xFF35D2FF);
-    final stars = progress == null
-        ? ''
-        : List<String>.filled(progress.stars, '★').join();
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: unlocked && !_busy ? () => _openCareer(level) : null,
-        borderRadius: BorderRadius.circular(14),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: const Color(0xFF0A1728).withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: unlocked
-                  ? accent.withValues(alpha: current ? .72 : .32)
-                  : Colors.white.withValues(alpha: .08),
-              width: current ? 1.7 : 1,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(7),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (_busyLevel == level)
-                  const SizedBox.square(
-                    dimension: 26,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  Icon(
-                    unlocked
-                        ? progress != null
-                              ? Icons.workspace_premium_rounded
-                              : Icons.grid_4x4_rounded
-                        : Icons.lock_rounded,
-                    color: unlocked ? accent : Colors.white30,
-                    size: 25,
-                  ),
-                const SizedBox(height: 2),
-                Text(
-                  '$level',
-                  style: TextStyle(
-                    color: unlocked ? Colors.white : Colors.white38,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  context.strings.difficultyLabel(_difficultyForLevel(level)),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: unlocked
-                        ? Colors.white.withValues(alpha: .58)
-                        : Colors.white30,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (stars.isNotEmpty)
-                  Text(
-                    stars,
-                    style: const TextStyle(
-                      color: Color(0xFFFFC73D),
-                      fontSize: 11,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _practice({required bool compact, required bool wide}) {
-    final entries = <({
-      String title,
-      String subtitle,
-      SudokuDifficulty difficulty,
-      bool daily,
-    })>[
-      (
-        title: context.tr('daily_sudoku'),
-        subtitle: context.tr('daily_subtitle'),
-        difficulty: SudokuDifficulty.medium,
-        daily: true,
-      ),
-      for (final difficulty in SudokuDifficulty.values)
-        (
-          title: context.strings.difficultyLabel(difficulty),
-          subtitle: _variant.id == SudokuVariantId.classic16
-              ? '${_variant.label} · 1–16'
-              : context.tr('random_clue_count', <Object>[
-                  PuzzleCatalog.targetClueCount(difficulty),
-                ]),
-          difficulty: difficulty,
-          daily: false,
-        ),
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = wide ? 3 : 2;
-        final rows = (entries.length / columns).ceil();
-        final gap = compact ? 6.0 : 8.0;
-        final extent = (constraints.maxHeight - gap * (rows - 1)) / rows;
-        return GridView.builder(
-          padding: EdgeInsets.zero,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: entries.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: gap,
-            mainAxisSpacing: gap,
-            mainAxisExtent: extent,
-          ),
-          itemBuilder: (context, index) {
-            final entry = entries[index];
-            return _practiceTile(
-              title: entry.title,
-              subtitle: entry.subtitle,
-              difficulty: entry.difficulty,
-              daily: entry.daily,
             );
           },
         );
@@ -581,303 +238,153 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
     );
   }
 
-  Widget _practiceTile({
-    required String title,
-    required String subtitle,
-    required SudokuDifficulty difficulty,
-    required bool daily,
-  }) {
-    final accent = daily ? const Color(0xFF29D398) : _accent(difficulty);
-    final busy = daily ? _busyDaily : _busyPractice == difficulty;
-    final progress = widget.store.progressFor(
-      _practiceProgressId(difficulty, daily: daily),
-      variant: _variant,
-    );
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _busy
-            ? null
-            : daily
-            ? _openDaily
-            : () => _openPractice(difficulty),
-        borderRadius: BorderRadius.circular(15),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: const Color(0xFF0A1728).withValues(alpha: .92),
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: accent.withValues(alpha: .4)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+  Widget _practiceTab() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth >= 840 ? 760.0 : 680.0;
+        return Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
               children: [
-                if (busy)
-                  const SizedBox.square(
-                    dimension: 32,
-                    child: CircularProgressIndicator(strokeWidth: 3),
-                  )
-                else
-                  DuelAssetIcon(
-                    _variant.id == SudokuVariantId.classic16
-                        ? DuelAsset.board16Pro
-                        : daily
-                        ? DuelAsset.statusSuccessPro
-                        : DuelAsset.board9Pro,
-                    size: progress == null ? 48 : 40,
-                  ),
-                const SizedBox(height: 4),
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+                _HeroPanel(
+                  title: context.tr('practice'),
+                  subtitle: context.tr('career_random_intro'),
+                  icon: DuelAsset.grid,
                 ),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: accent.withValues(alpha: .8),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
+                const SizedBox(height: 14),
+                _PracticeCard(
+                  icon: Icons.today_rounded,
+                  title: context.tr('daily_sudoku'),
+                  subtitle: context.tr('daily_subtitle'),
+                  accent: const Color(0xFF29D398),
+                  loading: _generatingDaily,
+                  onTap: _busy ? null : _openDaily,
                 ),
-                if (progress != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    context.tr('best_time', <Object>[
-                      formatDuration(progress.bestSeconds),
+                const SizedBox(height: 10),
+                for (final difficulty in SudokuDifficulty.values) ...[
+                  _PracticeCard(
+                    icon: Icons.grid_4x4_rounded,
+                    title: context.strings.difficultyLabel(difficulty),
+                    subtitle: context.tr('random_clue_count', <Object>[
+                      PuzzleCatalog.targetClueCount(difficulty),
                     ]),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    accent: _difficultyAccent(difficulty),
+                    loading: _generatingPractice == difficulty,
+                    onTap: _busy ? null : () => _openPractice(difficulty),
                   ),
-                  const SizedBox(height: 2),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 7,
-                    runSpacing: 2,
-                    children: [
-                      Text(
-                        context.tr('hints_count', <Object>[progress.bestHints]),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .68),
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        context.tr('mistakes_count', <Object>[
-                          progress.bestMistakes,
-                        ]),
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .68),
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(height: 10),
                 ],
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  String _practiceProgressId(
-    SudokuDifficulty difficulty, {
-    required bool daily,
-  }) => daily ? 'practice-daily' : 'practice-${difficulty.name}';
-
-  SudokuDifficulty _difficultyForLevel(int level) {
-    if (_variant.id == SudokuVariantId.classic9) {
-      return CareerCatalog.levelAt(level).difficulty;
-    }
-    final cycle = ((level - 1) ~/ 4).clamp(0, 4).toInt();
-    return SudokuDifficulty.values[cycle];
-  }
-
-  Future<SudokuPuzzle> _careerPuzzle(int level) async {
-    final difficulty = _difficultyForLevel(level);
-    if (_variant.id == SudokuVariantId.classic9) {
-      return Future<SudokuPuzzle>(
-        () => CareerCatalog.puzzleFor(CareerCatalog.levelAt(level)),
-      );
-    }
-    return Classic16PuzzleFactory.generate(
-      difficulty: difficulty,
-      seed: 16000 + level,
-      id: 'career-$level',
-      title: '${_variant.label} ${difficulty.label} $level',
-    );
-  }
-
-  Future<void> _openCareer(int initialLevel) async {
+  Future<void> _openCareer(CareerLevel initialLevel) async {
     var level = initialLevel;
     while (mounted) {
-      if (!widget.store.isCareerLevelUnlocked(level, variant: _variant)) return;
-      setState(() => _busyLevel = level);
-      try {
-        final puzzle = await _careerPuzzle(level);
-        if (!mounted) return;
-        setState(() => _busyLevel = null);
-        final result = await Navigator.of(context).push<EnhancedGameExit>(
-          MaterialPageRoute(
-            builder: (_) => EnhancedGameScreen(
-              puzzle: puzzle,
-              store: widget.store,
-              interstitialContext: GameInterstitialContext.careerWin,
-              completionTitle:
-                  '${_variant.label} · ${context.strings.difficultyLabel(puzzle.difficulty)} · $level',
-              onCompleted:
-                  ({required seconds, required mistakes, required hints}) async {
-                    final wasCompleted = widget.store.isCompleted(
-                      'career-$level',
-                      variant: _variant,
-                    );
-                    await widget.store.recordResult(
-                      puzzleId: 'career-$level',
-                      seconds: seconds,
-                      mistakes: mistakes,
-                      hints: hints,
-                      variant: _variant,
-                    );
-                    if (!wasCompleted && level % 5 == 0) {
-                      await widget.store.addHints(1);
-                    }
-                    await _claimEligibleAchievements();
-                  },
-            ),
+      if (!widget.store.isCareerLevelUnlocked(level.number)) return;
+      setState(() => _generatingLevel = level.number);
+      final puzzle = await Future<SudokuPuzzle>(
+        () => CareerCatalog.puzzleFor(level),
+      );
+      if (!mounted) return;
+      setState(() => _generatingLevel = null);
+      final wasCompleted = widget.store.isCompleted(level.id);
+      final result = await Navigator.of(context).push<EnhancedGameExit>(
+        MaterialPageRoute(
+          builder: (gameContext) => EnhancedGameScreen(
+            puzzle: puzzle,
+            store: widget.store,
+            completionTitle: gameContext.tr('level_title', <Object>[
+              gameContext.strings.difficultyLabel(level.difficulty),
+              level.number,
+            ]),
+            onCompleted:
+                ({
+                  required seconds,
+                  required mistakes,
+                  required hints,
+                }) async {
+                  await widget.store.recordResult(
+                    puzzleId: level.id,
+                    seconds: seconds,
+                    mistakes: mistakes,
+                    hints: hints,
+                  );
+                  if (!wasCompleted && level.hintReward > 0) {
+                    await widget.store.addHints(level.hintReward);
+                  }
+                  await _claimEligibleAchievements();
+                },
           ),
-        );
-        if (!mounted || result != EnhancedGameExit.next) return;
-        level++;
-        setState(() => _page = (level - 1) ~/ _pageSize);
-      } catch (_) {
-        if (mounted) {
-          setState(() => _busyLevel = null);
-          await GameModal.error(
-            context,
-            title: context.tr('career'),
-            message: context.tr('try_again'),
-            retryLabel: context.tr('retry'),
-            cancelLabel: context.tr('cancel'),
-          );
-        }
-        return;
-      }
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _chapter =
+            (widget.store.nextCareerLevelNumber - 1) ~/ _chapterSize + 1;
+      });
+      if (result != EnhancedGameExit.next) return;
+      level = CareerCatalog.levelAt(level.number + 1);
     }
   }
 
   Future<void> _openPractice(SudokuDifficulty difficulty) async {
-    setState(() => _busyPractice = difficulty);
-    try {
-      final puzzle = _variant.id == SudokuVariantId.classic16
-          ? Classic16PuzzleFactory.generate(difficulty: difficulty)
-          : PuzzleCatalog.generatePuzzle(difficulty);
-      if (!mounted) return;
-      setState(() => _busyPractice = null);
-      await _openPuzzle(
-        puzzle,
-        summaryId: _practiceProgressId(difficulty, daily: false),
-      );
-    } catch (_) {
-      if (mounted) {
-        setState(() => _busyPractice = null);
-        await _showGenerationError(context.tr('practice'));
-      }
-    }
+    setState(() => _generatingPractice = difficulty);
+    final puzzle = await Future<SudokuPuzzle>(
+      () => PuzzleCatalog.generatePuzzle(difficulty),
+    );
+    if (!mounted) return;
+    setState(() => _generatingPractice = null);
+    await _openStandalonePuzzle(
+      puzzle,
+      progressId: 'practice-${difficulty.name}',
+    );
   }
 
   Future<void> _openDaily() async {
-    setState(() => _busyDaily = true);
-    try {
-      final now = DateTime.now();
-      final seed = DateTime(now.year, now.month, now.day)
-          .difference(DateTime(2025))
-          .inDays
-          .abs();
-      final puzzle = _variant.id == SudokuVariantId.classic16
-          ? Classic16PuzzleFactory.generate(
-              difficulty: SudokuDifficulty.medium,
-              seed: seed,
-              id: 'daily-classic16-$seed',
-              title: '${_variant.label} ${context.tr('daily_sudoku')}',
-            )
-          : PuzzleCatalog.dailyPuzzle(now);
-      if (!mounted) return;
-      setState(() => _busyDaily = false);
-      await _openPuzzle(
-        puzzle,
-        summaryId: _practiceProgressId(
-          SudokuDifficulty.medium,
-          daily: true,
-        ),
-      );
-    } catch (_) {
-      if (mounted) {
-        setState(() => _busyDaily = false);
-        await _showGenerationError(context.tr('daily_sudoku'));
-      }
-    }
+    setState(() => _generatingDaily = true);
+    final puzzle = await Future<SudokuPuzzle>(
+      () => PuzzleCatalog.dailyPuzzle(DateTime.now()),
+    );
+    if (!mounted) return;
+    setState(() => _generatingDaily = false);
+    await _openStandalonePuzzle(puzzle, progressId: puzzle.id);
   }
 
-  Future<void> _openPuzzle(
+  Future<void> _openStandalonePuzzle(
     SudokuPuzzle puzzle, {
-    String? summaryId,
+    required String progressId,
   }) async {
-    await Navigator.of(context).push<void>(
+    await Navigator.of(context).push<EnhancedGameExit>(
       MaterialPageRoute(
         builder: (_) => EnhancedGameScreen(
           puzzle: puzzle,
           store: widget.store,
           showNextAction: false,
-          interstitialContext: GameInterstitialContext.practice,
           onCompleted:
-              ({required seconds, required mistakes, required hints}) async {
+              ({
+                required seconds,
+                required mistakes,
+                required hints,
+              }) async {
                 await widget.store.recordResult(
-                  puzzleId: puzzle.id,
+                  puzzleId: progressId,
                   seconds: seconds,
                   mistakes: mistakes,
                   hints: hints,
-                  variant: _variant,
                 );
-                if (summaryId != null && summaryId != puzzle.id) {
-                  await widget.store.recordResult(
-                    puzzleId: summaryId,
-                    seconds: seconds,
-                    mistakes: mistakes,
-                    hints: hints,
-                    variant: _variant,
-                  );
-                }
+                await _claimEligibleAchievements();
               },
         ),
       ),
     );
     if (mounted) setState(() {});
-  }
-
-  Future<void> _showGenerationError(String title) async {
-    await GameModal.error(
-      context,
-      title: title,
-      message: context.tr('try_again'),
-      retryLabel: context.tr('retry'),
-      cancelLabel: context.tr('cancel'),
-    );
   }
 
   Future<void> _claimEligibleAchievements() async {
@@ -894,12 +401,313 @@ class _CareerHubScreenState extends State<CareerHubScreen> {
       await _economy.claimAchievement(achievement);
     }
   }
+}
 
-  Color _accent(SudokuDifficulty difficulty) => switch (difficulty) {
+class _HeroPanel extends StatelessWidget {
+  const _HeroPanel({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.trailing,
+  });
+
+  final String title;
+  final String subtitle;
+  final String icon;
+  final String? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: const Color(0xFF101B20).withValues(alpha: .94),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            DuelAssetIcon(icon, size: 58),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 23,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .72),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (trailing != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      trailing!,
+                      style: const TextStyle(
+                        color: Color(0xFFFFC94D),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NextLevelCard extends StatelessWidget {
+  const _NextLevelCard({
+    required this.level,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final CareerLevel level;
+  final bool loading;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _difficultyAccent(level.difficulty);
+    return Card(
+      color: accent.withValues(alpha: .16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              SizedBox.square(
+                dimension: 48,
+                child: loading
+                    ? Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: CircularProgressIndicator(color: accent),
+                      )
+                    : Icon(Icons.play_arrow_rounded, color: accent, size: 42),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('continue_action'),
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      context.tr('level_title', <Object>[
+                        context.strings.difficultyLabel(level.difficulty),
+                        level.number,
+                      ]),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_rounded, color: accent),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LevelCard extends StatelessWidget {
+  const _LevelCard({
+    required this.level,
+    required this.progress,
+    required this.unlocked,
+    required this.current,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final CareerLevel level;
+  final LevelProgress? progress;
+  final bool unlocked;
+  final bool current;
+  final bool loading;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _difficultyAccent(level.difficulty);
+    return Card(
+      color: const Color(0xFF101B20).withValues(alpha: .95),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(
+          color: current
+              ? accent
+              : accent.withValues(alpha: unlocked ? .28 : .10),
+          width: current ? 2 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: accent.withValues(alpha: .16),
+                    child: loading
+                        ? Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: accent,
+                            ),
+                          )
+                        : Icon(
+                            unlocked
+                                ? Icons.grid_4x4_rounded
+                                : Icons.lock_outline_rounded,
+                            color: unlocked
+                                ? accent
+                                : Colors.white.withValues(alpha: .36),
+                          ),
+                  ),
+                  const Spacer(),
+                  if (progress != null)
+                    Row(
+                      children: List<Widget>.generate(
+                        3,
+                        (index) => Icon(
+                          index < progress!.stars
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          size: 17,
+                          color: const Color(0xFFFFC94D),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                context.tr('level_title', <Object>[
+                  context.strings.difficultyLabel(level.difficulty),
+                  level.number,
+                ]),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unlocked
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: .42),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                !unlocked
+                    ? context.tr('complete_previous_level')
+                    : progress == null
+                    ? context.tr('new_level')
+                    : context.tr('best_time', <Object>[
+                        formatDuration(progress!.bestSeconds),
+                      ]),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unlocked
+                      ? accent.withValues(alpha: .9)
+                      : Colors.white.withValues(alpha: .34),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PracticeCard extends StatelessWidget {
+  const _PracticeCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    required this.loading,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final bool loading;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: const Color(0xFF101B20).withValues(alpha: .95),
+      child: ListTile(
+        minTileHeight: 76,
+        onTap: onTap,
+        leading: SizedBox.square(
+          dimension: 48,
+          child: loading
+              ? Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: CircularProgressIndicator(color: accent),
+                )
+              : Icon(icon, color: accent, size: 32),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(color: Colors.white.withValues(alpha: .66)),
+        ),
+        trailing: Icon(Icons.arrow_forward_rounded, color: accent),
+      ),
+    );
+  }
+}
+
+Color _difficultyAccent(SudokuDifficulty difficulty) {
+  return switch (difficulty) {
     SudokuDifficulty.beginner => const Color(0xFF29D398),
-    SudokuDifficulty.easy => const Color(0xFF35D2FF),
-    SudokuDifficulty.medium => const Color(0xFFFFC73D),
-    SudokuDifficulty.hard => const Color(0xFFFF8B3D),
-    SudokuDifficulty.expert => const Color(0xFFFF525E),
+    SudokuDifficulty.easy => const Color(0xFF3AA9FF),
+    SudokuDifficulty.medium => const Color(0xFFFFC94D),
+    SudokuDifficulty.hard => const Color(0xFFFF8A3D),
+    SudokuDifficulty.expert => const Color(0xFFFF5C7A),
   };
 }

@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/user_safe_error.dart';
-import '../../widgets/responsive_layout.dart';
-
 import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
 import '../../data/game_session_store.dart';
@@ -14,6 +11,7 @@ import '../../data/local_progress_store.dart';
 import '../../data/ux_game_session_store.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../services/ads_service.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
@@ -28,6 +26,8 @@ import '../duel/matchmaking_screen.dart';
 import '../duel/online_duel_screen.dart';
 import '../economy/coin_store_screen.dart';
 import '../game/enhanced_game_screen.dart';
+import '../game/game_screen.dart';
+import '../game/hint_economy.dart';
 import '../settings/ux_settings_screen.dart';
 import '../social/profile_hub_screen.dart';
 import '../social/social_hub_screen.dart';
@@ -160,8 +160,9 @@ class _UxRootScreenState extends State<UxRootScreen> {
         _push.openedChallengeId.value = null;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
-            builder: (_) =>
-                UxChallengeInvitationScreen(challengeId: challengeId),
+            builder: (_) => UxChallengeInvitationScreen(
+              challengeId: challengeId,
+            ),
           ),
         );
       } else if (rematchId != null && rematchId.isNotEmpty) {
@@ -206,10 +207,10 @@ class _UxRootScreenState extends State<UxRootScreen> {
       if (mounted) setState(() => _profile = updated);
       return true;
     } on PlayerProfileException catch (error) {
-      if (mounted) _snack(UserSafeError.message(context, error));
+      if (mounted) _snack(error.message);
       return false;
     } on SocialApiException catch (error) {
-      if (mounted) _snack(UserSafeError.message(context, error));
+      if (mounted) _snack(error.message);
       return false;
     } catch (_) {
       if (mounted) _snack(context.tr('try_again_when_connected'));
@@ -276,7 +277,9 @@ class _UxRootScreenState extends State<UxRootScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      context.tr('friend_id_value', <Object>[profile.publicId]),
+                      context.tr('friend_id_value', <Object>[
+                        profile.publicId,
+                      ]),
                     ),
                   ],
                 ),
@@ -325,7 +328,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
         _snack(context.tr('challenge_timed_out'));
         return;
       }
-      final response = await showAdaptiveBottomSheet<bool>(
+      final response = await showModalBottomSheet<bool>(
         context: context,
         isDismissible: false,
         enableDrag: false,
@@ -352,7 +355,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
         );
       }
     } on EconomyApiException catch (error) {
-      if (mounted) _snack(UserSafeError.message(context, error));
+      if (mounted) _snack(error.message);
     } catch (_) {
       if (mounted) _snack(context.tr('rematch_invitation_load_failed'));
     }
@@ -374,9 +377,9 @@ class _UxRootScreenState extends State<UxRootScreen> {
   }
 
   Future<void> _open(Widget screen) async {
-    await Navigator.of(
-      context,
-    ).push<void>(MaterialPageRoute(builder: (_) => screen));
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => screen),
+    );
     await _refreshAfterRoute();
   }
 
@@ -426,7 +429,11 @@ class _UxRootScreenState extends State<UxRootScreen> {
                   level.number,
                 ]),
           onCompleted:
-              ({required seconds, required mistakes, required hints}) async {
+              ({
+                required seconds,
+                required mistakes,
+                required hints,
+              }) async {
                 final id = level?.id ?? session.puzzle.id;
                 await widget.store.recordResult(
                   puzzleId: id,
@@ -459,19 +466,27 @@ class _UxRootScreenState extends State<UxRootScreen> {
     );
     if (!mounted) return;
     final wasCompleted = widget.store.isCompleted(level.id);
-    await _legacySessions.clearAll();
-    if (!mounted) return;
-    await Navigator.of(context).push<EnhancedGameExit>(
+    await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (gameContext) => EnhancedGameScreen(
+        builder: (gameContext) => GameScreen(
           puzzle: puzzle,
-          store: widget.store,
           completionTitle: gameContext.tr('level_title', <Object>[
             gameContext.strings.difficultyLabel(level.difficulty),
             level.number,
           ]),
+          mistakeLimit: 3,
+          coinContinueCost: 25,
+          onCoinContinue: (_) => _economy.spendCareerContinue(),
+          onRewardedContinue: AdsService.instance.showRewarded,
+          onConsumeHint: () =>
+              HintEconomy.consumeOrAcquire(gameContext, widget.store),
+          hintBalanceProvider: () => widget.store.hints,
           onCompleted:
-              ({required seconds, required mistakes, required hints}) async {
+              ({
+                required seconds,
+                required mistakes,
+                required hints,
+              }) async {
                 await widget.store.recordResult(
                   puzzleId: level.id,
                   seconds: seconds,
@@ -558,8 +573,9 @@ class _UxRootScreenState extends State<UxRootScreen> {
                           badge: _socialBadge,
                           onProfile: _openProfile,
                           onSocial: _openSocial,
-                          onSettings: () =>
-                              _open(UxSettingsScreen(store: widget.store)),
+                          onSettings: () => _open(
+                            UxSettingsScreen(store: widget.store),
+                          ),
                         ),
                         const SizedBox(height: 34),
                         Text(
@@ -590,8 +606,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
                                     legacyLevel.number,
                                   ])
                                 : _sessionTitle(context, resume),
-                            elapsed:
-                                resume?.elapsedSeconds ??
+                            elapsed: resume?.elapsedSeconds ??
                                 _legacySession!.elapsedSeconds,
                             loading: _openingSession,
                             onTap: _resume,
@@ -615,8 +630,9 @@ class _UxRootScreenState extends State<UxRootScreen> {
                           trailing: context.tr('completed_levels', <Object>[
                             widget.store.completedCareerLevelCount,
                           ]),
-                          onTap: () =>
-                              _open(CareerHubScreen(store: widget.store)),
+                          onTap: () => _open(
+                            CareerHubScreen(store: widget.store),
+                          ),
                         ),
                         const SizedBox(height: 12),
                         _FeatureCard(
@@ -694,9 +710,9 @@ class _UxRootScreenState extends State<UxRootScreen> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 }
 
@@ -720,8 +736,6 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = profile?.displayName ?? 'Sudoku Player';
-    final metrics = ResponsiveMetrics.of(context);
-    final compact = metrics.isTiny || metrics.hasLargeText;
     return Row(
       children: [
         Expanded(
@@ -734,24 +748,23 @@ class _TopBar extends StatelessWidget {
                   displayName: name,
                   avatarKey: 'home-$name',
                   radius: 20,
-                  semanticLabel: context.tr('player_avatar_semantics', <Object>[
-                    name,
-                  ]),
+                  semanticLabel: context.tr(
+                    'player_avatar_semantics',
+                    <Object>[name],
+                  ),
                 ),
-                if (!compact) ...[
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -850,7 +863,9 @@ class _ResumeCard extends StatelessWidget {
       color: const Color(0xFF173127).withValues(alpha: .96),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: const Color(0xFF29D398).withValues(alpha: .48)),
+        side: BorderSide(
+          color: const Color(0xFF29D398).withValues(alpha: .48),
+        ),
       ),
       child: ListTile(
         minTileHeight: 82,
@@ -912,7 +927,9 @@ class _FeatureCard extends StatelessWidget {
       color: const Color(0xFF101B20).withValues(alpha: .96),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(prominent ? 26 : 20),
-        side: BorderSide(color: accent.withValues(alpha: prominent ? .5 : .28)),
+        side: BorderSide(
+          color: accent.withValues(alpha: prominent ? .5 : .28),
+        ),
       ),
       child: InkWell(
         onTap: onTap,
@@ -926,7 +943,10 @@ class _FeatureCard extends StatelessWidget {
             children: [
               SizedBox.square(
                 dimension: prominent ? 68 : 54,
-                child: DuelAssetIcon(icon, size: prominent ? 58 : 44),
+                child: DuelAssetIcon(
+                  icon,
+                  size: prominent ? 58 : 44,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -960,7 +980,10 @@ class _FeatureCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   trailing!,
-                  style: TextStyle(color: accent, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    color: accent,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
               const SizedBox(width: 6),
@@ -1054,7 +1077,9 @@ class _RematchSheetState extends State<_RematchSheet> {
       .inSeconds
       .clamp(0, 99);
 
-  int get _fee => _economy.entryFeeForDifficulty(widget.invitation.difficulty);
+  int get _fee => _economy.entryFeeForDifficulty(
+        widget.invitation.difficulty,
+      );
 
   bool get _canAccept => _seconds > 0 && _economy.balance >= _fee;
 
@@ -1084,9 +1109,9 @@ class _RematchSheetState extends State<_RematchSheet> {
   }
 
   Future<void> _store() async {
-    await Navigator.of(
-      context,
-    ).push<void>(MaterialPageRoute(builder: (_) => const CoinStoreScreen()));
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
+    );
     await _economy.refresh(showLoading: false);
     if (mounted) setState(() {});
   }
@@ -1102,9 +1127,9 @@ class _RematchSheetState extends State<_RematchSheet> {
           Text(
             context.tr('rematch_invitation_title'),
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1133,9 +1158,7 @@ class _RematchSheetState extends State<_RematchSheet> {
             ),
           if (!_canAccept) const SizedBox(height: 8),
           FilledButton(
-            onPressed: _canAccept
-                ? () => Navigator.of(context).pop(true)
-                : null,
+            onPressed: _canAccept ? () => Navigator.of(context).pop(true) : null,
             child: Text(context.tr('accept')),
           ),
           TextButton(
