@@ -156,22 +156,14 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
       }
 
       if (!mounted) return;
-      final value = await _showIdentityDialog(profile, platformPlayer);
-      if (value == null) return;
-      await PlayerProfileService.instance.update(
-        username: value.username,
-        displayName: value.displayName,
-        discoverable: true,
-        nameSource: value.nameSource,
-      );
+      await _showIdentityDialog(profile, platformPlayer);
     } catch (_) {
       // Online identity onboarding is retried from Settings/social screens and
       // must never block offline Sudoku play.
     }
   }
 
-  Future<({String username, String displayName, String nameSource})?>
-  _showIdentityDialog(
+  Future<PlayerProfilePreferences?> _showIdentityDialog(
     PlayerProfilePreferences profile,
     PlatformPlayer? platformPlayer,
   ) async {
@@ -186,132 +178,187 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
         ? _platformSource()
         : 'custom';
 
-    final result =
-        await showDialog<
-          ({String username, String displayName, String nameSource})
-        >(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) => StatefulBuilder(
-            builder: (context, setDialogState) {
-              final valid =
-                  displayController.text.trim().length >= 2 &&
-                  RegExp(
-                    r'^[a-z0-9_]{3,20}$',
-                  ).hasMatch(usernameController.text.trim().toLowerCase());
-              return AlertDialog(
-                title: Text(context.tr('create_player_profile')),
-                content: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 440),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(context.tr('create_player_profile_body')),
-                        RadioGroup<String>(
-                          groupValue: selectedSource,
-                          onChanged: (value) {
-                            if (value == null) return;
-                            setDialogState(() {
-                              selectedSource = value;
-                              if (value == _platformSource() &&
-                                  suggestedName?.isNotEmpty == true) {
-                                displayController.text = suggestedName!;
-                                usernameController.text = _suggestUsername(
-                                  suggestedName,
-                                  profile.publicId,
-                                );
-                              }
-                            });
-                          },
-                          child: Column(
-                            children: [
-                              if (suggestedName?.isNotEmpty == true) ...[
-                                const SizedBox(height: 14),
-                                RadioListTile<String>(
-                                  value: _platformSource(),
-                                  contentPadding: EdgeInsets.zero,
-                                  title: Text(suggestedName!),
-                                  subtitle: Text(
-                                    context.tr('use_platform_name'),
-                                  ),
-                                ),
-                              ],
+    final result = await showDialog<PlayerProfilePreferences>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        var saving = false;
+        String? errorText;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final normalizedUsername = usernameController.text
+                .trim()
+                .toLowerCase();
+            final displayName = displayController.text.trim();
+            final valid =
+                displayName.length >= 2 &&
+                RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(normalizedUsername);
+            return AlertDialog(
+              title: Text(context.tr('create_player_profile')),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(context.tr('create_player_profile_body')),
+                      RadioGroup<String>(
+                        groupValue: selectedSource,
+                        onChanged: (value) {
+                          if (saving || value == null) return;
+                          setDialogState(() {
+                            errorText = null;
+                            selectedSource = value;
+                            if (value == _platformSource() &&
+                                suggestedName?.isNotEmpty == true) {
+                              displayController.text = suggestedName!;
+                              usernameController.text = _suggestUsername(
+                                suggestedName,
+                                profile.publicId,
+                              );
+                            }
+                          });
+                        },
+                        child: Column(
+                          children: [
+                            if (suggestedName?.isNotEmpty == true) ...[
+                              const SizedBox(height: 14),
                               RadioListTile<String>(
-                                value: 'custom',
+                                value: _platformSource(),
                                 contentPadding: EdgeInsets.zero,
-                                title: Text(context.tr('use_custom_profile')),
+                                title: Text(suggestedName!),
+                                subtitle: Text(context.tr('use_platform_name')),
                               ),
                             ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: displayController,
-                          autofocus: suggestedName?.isNotEmpty != true,
-                          maxLength: 24,
-                          textInputAction: TextInputAction.next,
-                          decoration: InputDecoration(
-                            labelText: context.tr('display_name'),
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (_) {
-                            selectedSource = 'custom';
-                            setDialogState(() {});
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: usernameController,
-                          maxLength: 20,
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          textInputAction: TextInputAction.done,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp('[a-zA-Z0-9_]'),
+                            RadioListTile<String>(
+                              value: 'custom',
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(context.tr('use_custom_profile')),
                             ),
                           ],
-                          decoration: InputDecoration(
-                            labelText: context.tr('unique_username'),
-                            helperText: context.tr('username_helper'),
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (_) => setDialogState(() {}),
                         ),
-                        const SizedBox(height: 8),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: displayController,
+                        enabled: !saving,
+                        autofocus: suggestedName?.isNotEmpty != true,
+                        maxLength: 24,
+                        textInputAction: TextInputAction.next,
+                        decoration: InputDecoration(
+                          labelText: context.tr('display_name'),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) {
+                          selectedSource = 'custom';
+                          errorText = null;
+                          setDialogState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: usernameController,
+                        enabled: !saving,
+                        maxLength: 20,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textInputAction: TextInputAction.done,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp('[a-zA-Z0-9_]'),
+                          ),
+                        ],
+                        decoration: InputDecoration(
+                          labelText: context.tr('unique_username'),
+                          helperText: context.tr('username_helper'),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) {
+                          errorText = null;
+                          setDialogState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        context.tr('friend_id_value', <Object>[
+                          profile.publicId,
+                        ]),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (errorText != null) ...[
+                        const SizedBox(height: 12),
                         Text(
-                          context.tr('friend_id_value', <Object>[
-                            profile.publicId,
-                          ]),
-                          style: Theme.of(context).textTheme.bodySmall,
+                          errorText!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
-                actions: [
-                  FilledButton(
-                    onPressed: !valid
-                        ? null
-                        : () => Navigator.of(dialogContext).pop((
-                            username: usernameController.text
-                                .trim()
-                                .toLowerCase(),
-                            displayName: displayController.text.trim(),
-                            nameSource: selectedSource,
-                          )),
-                    child: Text(context.tr('continue_action')),
-                  ),
-                ],
-              );
-            },
-          ),
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: !valid || saving
+                      ? null
+                      : () async {
+                          setDialogState(() {
+                            saving = true;
+                            errorText = null;
+                          });
+                          try {
+                            final updated = await PlayerProfileService.instance
+                                .update(
+                                  username: normalizedUsername,
+                                  displayName: displayName,
+                                  discoverable: true,
+                                  nameSource: selectedSource,
+                                );
+                            if (dialogContext.mounted) {
+                              Navigator.of(dialogContext).pop(updated);
+                            }
+                          } catch (error) {
+                            if (!dialogContext.mounted) return;
+                            setDialogState(() {
+                              saving = false;
+                              errorText = _profileSaveError(context, error);
+                            });
+                          }
+                        },
+                  child: saving
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(context.tr('continue_action')),
+                ),
+              ],
+            );
+          },
         );
+      },
+    );
     displayController.dispose();
     usernameController.dispose();
     return result;
+  }
+
+  String _profileSaveError(BuildContext context, Object error) {
+    if (error is PlayerProfileException &&
+        (error.statusCode == 400 || error.statusCode == 409)) {
+      return error.message;
+    }
+    if (error is SocialApiException &&
+        (error.statusCode == 400 || error.statusCode == 409)) {
+      return error.message;
+    }
+    if (error is FirebaseSessionException) {
+      return UserSafeError.message(context, error);
+    }
+    return UserSafeError.message(context, error);
   }
 
   String _platformSource() {

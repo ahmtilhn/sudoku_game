@@ -86,19 +86,35 @@ class PlayerProfilePreferences {
       publicId: json['publicId']?.toString() ?? '',
       username: json['username']?.toString() ?? '',
       displayName: json['displayName']?.toString() ?? 'Sudoku Player',
-      profileConfirmed: json['profileConfirmed'] == true,
-      discoverable: json['discoverable'] != false,
+      profileConfirmed: _boolFromJson(json['profileConfirmed']),
+      discoverable: _boolFromJson(json['discoverable'], defaultValue: true),
       nameSource: json['nameSource']?.toString() ?? 'generated',
-      rating: (json['rating'] as num?)?.toInt() ?? 1000,
-      gamesPlayed: (json['gamesPlayed'] as num?)?.toInt() ?? 0,
-      wins: (json['wins'] as num?)?.toInt() ?? 0,
+      rating: _intFromJson(json['rating'], defaultValue: 1000),
+      gamesPlayed: _intFromJson(json['gamesPlayed']),
+      wins: _intFromJson(json['wins']),
       platformDisplayName: json['platformDisplayName']?.toString(),
       avatarUrl: PlatformProfilePolicy.normalizedAvatarUrl(
         json['avatarUrl']?.toString(),
       ),
-      platformConnected: json['platformConnected'] == true,
+      platformConnected: _boolFromJson(json['platformConnected']),
     );
   }
+}
+
+bool _boolFromJson(Object? value, {bool defaultValue = false}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  final normalized = value?.toString().trim().toLowerCase();
+  if (normalized == null || normalized.isEmpty) return defaultValue;
+  if (normalized == 'true' || normalized == '1') return true;
+  if (normalized == 'false' || normalized == '0') return false;
+  return defaultValue;
+}
+
+int _intFromJson(Object? value, {int defaultValue = 0}) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString().trim() ?? '') ?? defaultValue;
 }
 
 class PlayerProfileService {
@@ -118,7 +134,8 @@ class PlayerProfileService {
     final platformAvatar = PlatformProfilePolicy.normalizedAvatarUrl(
       player?.avatarUrl,
     );
-    final platformConnected = player != null && player.playerId.trim().isNotEmpty;
+    final platformConnected =
+        player != null && player.playerId.trim().isNotEmpty;
 
     PlayerProfilePreferences preferences;
     try {
@@ -128,7 +145,9 @@ class PlayerProfileService {
           platformName.isNotEmpty &&
           SocialApiClient.instance.configured) {
         try {
-          await SocialApiClient.instance.ensureProfile(displayName: platformName);
+          await SocialApiClient.instance.ensureProfile(
+            displayName: platformName,
+          );
           preferences = await _loadRemotePreferences();
         } catch (_) {
           final fallback = PlayerProfilePreferences(
@@ -226,22 +245,23 @@ class PlayerProfileService {
     required String nameSource,
   }) async {
     final platformMetadata = current.value;
-    final updated = PlayerProfilePreferences.fromJson(
-      await _request(
-        'PUT',
-        '/v1/me/preferences',
-        body: <String, Object>{
-          'username': username.trim().toLowerCase(),
-          'displayName': displayName.trim(),
-          'discoverable': discoverable,
-          'nameSource': nameSource,
-        },
-      ),
-    ).copyWith(
-      platformDisplayName: platformMetadata?.platformDisplayName,
-      avatarUrl: platformMetadata?.avatarUrl,
-      platformConnected: platformMetadata?.platformConnected,
-    );
+    final updated =
+        PlayerProfilePreferences.fromJson(
+          await _request(
+            'PUT',
+            '/v1/me/preferences',
+            body: <String, Object>{
+              'username': username.trim().toLowerCase(),
+              'displayName': displayName.trim(),
+              'discoverable': discoverable,
+              'nameSource': nameSource,
+            },
+          ),
+        ).copyWith(
+          platformDisplayName: platformMetadata?.platformDisplayName,
+          avatarUrl: platformMetadata?.avatarUrl,
+          platformConnected: platformMetadata?.platformConnected,
+        );
     current.value = updated;
     return updated;
   }
