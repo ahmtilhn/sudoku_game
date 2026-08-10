@@ -1,0 +1,44 @@
+name: Matchmaking Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/matchmaking-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Matchmaking regression tests
+        run: |
+          flutter test test/matchmaking_backoff_test.dart
+          flutter test test/matchmaking_stage_animation_test.dart
+          flutter test test/online_variant_navigation_regression_test.dart
+          flutter test test/variant_matchmaking_client_test.dart
+
+      - name: Build debug APK
+        run: flutter build apk --debug
