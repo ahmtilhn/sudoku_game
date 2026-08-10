@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('online matchmaking keeps expert visible and variant-safe', () {
+  test('online matchmaking keeps expert visible, variant-safe, and cancel-race safe', () {
     final source = File(
       'lib/features/duel/matchmaking_screen.dart',
     ).readAsStringSync();
@@ -21,7 +21,9 @@ void main() {
       contains('Future<VariantMatchmakingResult> _joinSelectedQueue()'),
     );
     expect(source, contains("roomId.startsWith('classic16:')"));
-    expect(source, isNot(contains('SocialApiClient.instance.activeMatch()')));
+    expect(source, contains('final pending = _activeQueueRequest;'));
+    expect(source, contains('await _matchmaking.cancelRankedQueue();'));
+    expect(source, contains('SocialApiClient.instance.activeMatch()'));
   });
 
   test('challenge notification navigation is owned by the root gate', () {
