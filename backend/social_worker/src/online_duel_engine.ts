@@ -17,6 +17,7 @@ import {
   otherSeat,
   remember,
   replayEvent,
+  responseTimes,
   seatFor,
   stateBoardSize,
   stateCellCount,
@@ -76,6 +77,7 @@ export function createInitialDuelState(input: {
     scores: { A: 0, B: 0 },
     mistakes: { A: 0, B: 0 },
     correctMoves: { A: 0, B: 0 },
+    responseTimeMs: { A: 0, B: 0 },
     timeouts: { A: 0, B: 0 },
     consecutiveTimeouts: { A: 0, B: 0 },
     currentTurnSeat,
@@ -218,6 +220,7 @@ export function applyMove(
   timeoutStreaks(state)[seat] = 0;
   const correct = state.solution[cellIndex] === value;
   if (correct) {
+    responseTimes(state)[seat] += responseTimeForTurn(state, now);
     state.board[cellIndex] = value;
     state.scores[seat] += 10;
     state.correctMoves[seat]++;
@@ -565,9 +568,26 @@ function finishByScore(
   state.finishReason = reason;
   state.winnerSeat =
     state.scores.A === state.scores.B
-      ? null
+      ? winnerBySpeedOrDiscipline(state)
       : state.scores.A > state.scores.B
-      ? 'A'
-      : 'B';
+        ? 'A'
+        : 'B';
   state.revision++;
+}
+
+function responseTimeForTurn(state: DuelState, now: number): number {
+  if (state.turnStartedAt === null) return TURN_DURATION_MS;
+  return Math.max(0, Math.min(TURN_DURATION_MS, now - state.turnStartedAt));
+}
+
+function winnerBySpeedOrDiscipline(state: DuelState): Seat | null {
+  const times = responseTimes(state);
+  if (times.A !== times.B) return times.A < times.B ? 'A' : 'B';
+  if (state.mistakes.A !== state.mistakes.B) {
+    return state.mistakes.A < state.mistakes.B ? 'A' : 'B';
+  }
+  if (state.timeouts.A !== state.timeouts.B) {
+    return state.timeouts.A < state.timeouts.B ? 'A' : 'B';
+  }
+  return null;
 }

@@ -6,8 +6,10 @@ import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
 import '../../data/local_progress_store.dart';
 import '../../data/puzzle_catalog.dart';
+import '../../domain/classic16_puzzle_factory.dart';
 import '../../domain/samurai_sudoku.dart';
 import '../../domain/sudoku.dart';
+import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
 import '../../widgets/app_backdrop.dart';
@@ -30,6 +32,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
 
   final EconomyService _economy = EconomyService.instance;
   late final TabController _tabs;
+  SudokuVariant _careerVariant = SudokuVariant.classic9;
   late int _chapter;
   int? _generatingLevel;
   SudokuDifficulty? _generatingPractice;
@@ -40,7 +43,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
   void initState() {
     super.initState();
     _tabs = TabController(length: 2, vsync: this);
-    _chapter = (widget.store.nextCareerLevelNumber - 1) ~/ _chapterSize + 1;
+    _chapter = _chapterForVariant(_careerVariant);
     _economy.addListener(_refresh);
     unawaited(_economy.initialize());
   }
@@ -61,6 +64,19 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       _generatingPractice != null ||
       _generatingDaily ||
       _generatingSamurai;
+
+  int _chapterForVariant(SudokuVariant variant) =>
+      (widget.store.nextCareerLevelNumberFor(variant) - 1) ~/
+          _chapterSize +
+      1;
+
+  void _selectCareerVariant(SudokuVariant variant) {
+    if (_careerVariant == variant || _busy) return;
+    setState(() {
+      _careerVariant = variant;
+      _chapter = _chapterForVariant(variant);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +148,8 @@ class _CareerHubScreenState extends State<CareerHubScreen>
     return AnimatedBuilder(
       animation: widget.store,
       builder: (context, _) {
-        final nextNumber = widget.store.nextCareerLevelNumber;
+        final variant = _careerVariant;
+        final nextNumber = widget.store.nextCareerLevelNumberFor(variant);
         final nextLevel = CareerCatalog.levelAt(nextNumber);
         final chapterStart = (_chapter - 1) * _chapterSize + 1;
         final levels = List<CareerLevel>.generate(
@@ -143,16 +160,25 @@ class _CareerHubScreenState extends State<CareerHubScreen>
           builder: (context, constraints) {
             final maxWidth = constraints.maxWidth >= 840 ? 760.0 : 680.0;
             final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.3;
-            final cardExtent = largeText ? 210.0 : 164.0;
-            final cardMaxExtent = largeText ? 320.0 : 230.0;
-            final designedCompleted = widget.store.completedCareerLevelCount
+            final cardExtent = largeText ? 248.0 : 196.0;
+            final cardMaxExtent = largeText ? 340.0 : 246.0;
+            final completed = widget.store.completedCareerLevelCountFor(
+              variant,
+            );
+            final designedCompleted = completed
                 .clamp(0, CareerCatalog.designedLevelCount)
                 .toInt();
-            final totalStars = CareerCatalog.levels.fold<int>(
+            final starsThrough = nextNumber > CareerCatalog.designedLevelCount
+                ? nextNumber - 1
+                : CareerCatalog.designedLevelCount;
+            final totalStars = CareerCatalog.levelsThrough(starsThrough).fold<int>(
               0,
               (total, level) =>
                   total +
-                  (widget.store.progressForCareerLevel(level.number)?.stars ??
+                  (widget.store.progressForCareerLevel(
+                        level.number,
+                        variant: variant,
+                      )?.stars ??
                       0),
             );
             return Center(
@@ -166,15 +192,22 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                       subtitle: context.tr('career_intro'),
                       icon: DuelAsset.homeCareerRelic,
                       trailing: context.tr('completed_levels', <Object>[
-                        widget.store.completedCareerLevelCount,
+                        completed,
                       ]),
+                    ),
+                    const SizedBox(height: 12),
+                    _CareerVariantSelector(
+                      selected: variant,
+                      enabled: !_busy,
+                      onSelected: _selectCareerVariant,
                     ),
                     const SizedBox(height: 12),
                     _CareerProgressPanel(
                       completed: designedCompleted,
                       total: CareerCatalog.designedLevelCount,
                       stars: totalStars,
-                      maxStars: CareerCatalog.designedLevelCount * 3,
+                      totalCompleted: completed,
+                      variant: variant,
                       nextLevel: nextLevel,
                     ),
                     const SizedBox(height: 14),
@@ -182,7 +215,9 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                       level: nextLevel,
                       progress: widget.store.progressForCareerLevel(
                         nextLevel.number,
+                        variant: variant,
                       ),
+                      variant: variant,
                       loading: _generatingLevel == nextLevel.number,
                       onTap: _busy ? null : () => _openCareer(nextLevel),
                     ),
@@ -216,9 +251,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                                 onPressed: _busy
                                     ? null
                                     : () => setState(() {
-                                        _chapter =
-                                            (nextNumber - 1) ~/ _chapterSize +
-                                            1;
+                                        _chapter = _chapterForVariant(variant);
                                       }),
                                 child: Text(
                                   context.tr('level_title', <Object>[
@@ -263,15 +296,18 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                           level: level,
                           progress: widget.store.progressForCareerLevel(
                             level.number,
+                            variant: variant,
                           ),
                           unlocked: widget.store.isCareerLevelUnlocked(
                             level.number,
+                            variant: variant,
                           ),
                           current: level.number == nextNumber,
                           loading: _generatingLevel == level.number,
                           onTap:
                               widget.store.isCareerLevelUnlocked(
                                     level.number,
+                                    variant: variant,
                                   ) &&
                                   !_busy
                               ? () => _openCareer(level)
@@ -371,15 +407,18 @@ class _CareerHubScreenState extends State<CareerHubScreen>
 
   Future<void> _openCareer(CareerLevel initialLevel) async {
     var level = initialLevel;
+    final variant = _careerVariant;
     while (mounted) {
-      if (!widget.store.isCareerLevelUnlocked(level.number)) return;
+      if (!widget.store.isCareerLevelUnlocked(level.number, variant: variant)) {
+        return;
+      }
       setState(() => _generatingLevel = level.number);
       final puzzle = await Future<SudokuPuzzle>(
-        () => CareerCatalog.puzzleFor(level),
+        () => _careerPuzzleFor(level, variant),
       );
       if (!mounted) return;
       setState(() => _generatingLevel = null);
-      final wasCompleted = widget.store.isCompleted(level.id);
+      final wasCompleted = widget.store.isCompleted(level.id, variant: variant);
       final result = await Navigator.of(context).push<EnhancedGameExit>(
         MaterialPageRoute(
           builder: (gameContext) => EnhancedGameScreen(
@@ -396,6 +435,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                     seconds: seconds,
                     mistakes: mistakes,
                     hints: hints,
+                    variant: variant,
                   );
                   if (!wasCompleted && level.hintReward > 0) {
                     await widget.store.addHints(level.hintReward);
@@ -407,11 +447,23 @@ class _CareerHubScreenState extends State<CareerHubScreen>
       );
       if (!mounted) return;
       setState(() {
-        _chapter = (widget.store.nextCareerLevelNumber - 1) ~/ _chapterSize + 1;
+        _chapter = _chapterForVariant(variant);
       });
       if (result != EnhancedGameExit.next) return;
       level = CareerCatalog.levelAt(level.number + 1);
     }
+  }
+
+  SudokuPuzzle _careerPuzzleFor(CareerLevel level, SudokuVariant variant) {
+    if (variant.id == SudokuVariantId.classic16) {
+      return Classic16PuzzleFactory.generate(
+        difficulty: level.difficulty,
+        seed: level.seed,
+        id: level.id,
+        title: '16x16 ${level.title}',
+      );
+    }
+    return CareerCatalog.puzzleFor(level);
   }
 
   Future<void> _openPractice(SudokuDifficulty difficulty) async {
@@ -648,19 +700,81 @@ class _HeroPanel extends StatelessWidget {
   }
 }
 
+class _CareerVariantSelector extends StatelessWidget {
+  const _CareerVariantSelector({
+    required this.selected,
+    required this.enabled,
+    required this.onSelected,
+  });
+
+  final SudokuVariant selected;
+  final bool enabled;
+  final ValueChanged<SudokuVariant> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF101B20).withValues(alpha: .88),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .07)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: SegmentedButton<SudokuVariant>(
+          segments: [
+            for (final variant in SudokuVariant.values)
+              ButtonSegment<SudokuVariant>(
+                value: variant,
+                icon: Icon(
+                  variant.id == SudokuVariantId.classic16
+                      ? Icons.grid_on_rounded
+                      : Icons.grid_4x4_rounded,
+                ),
+                label: Text(variant.label),
+              ),
+          ],
+          selected: <SudokuVariant>{selected},
+          onSelectionChanged: enabled
+              ? (values) => onSelected(values.first)
+              : null,
+          style: ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            foregroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? Colors.black.withValues(alpha: .84)
+                  : Colors.white,
+            ),
+            backgroundColor: WidgetStateProperty.resolveWith(
+              (states) => states.contains(WidgetState.selected)
+                  ? const Color(0xFFFFC94D)
+                  : Colors.white.withValues(alpha: .04),
+            ),
+            side: WidgetStateProperty.all(
+              BorderSide(color: Colors.white.withValues(alpha: .10)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CareerProgressPanel extends StatelessWidget {
   const _CareerProgressPanel({
     required this.completed,
     required this.total,
     required this.stars,
-    required this.maxStars,
+    required this.totalCompleted,
+    required this.variant,
     required this.nextLevel,
   });
 
   final int completed;
   final int total;
   final int stars;
-  final int maxStars;
+  final int totalCompleted;
+  final SudokuVariant variant;
   final CareerLevel nextLevel;
 
   @override
@@ -688,7 +802,7 @@ class _CareerProgressPanel extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Career Progress',
+                    variant.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -731,8 +845,10 @@ class _CareerProgressPanel extends StatelessWidget {
                     SizedBox(
                       width: width,
                       child: _CareerMetric(
-                        value: '$completed/$total',
-                        label: 'Levels',
+                        value: totalCompleted > total
+                            ? '$completed/$total+'
+                            : '$completed/$total',
+                        label: 'Milestone',
                         asset: DuelAsset.grid,
                         color: const Color(0xFF3AA9FF),
                       ),
@@ -740,7 +856,7 @@ class _CareerProgressPanel extends StatelessWidget {
                     SizedBox(
                       width: width,
                       child: _CareerMetric(
-                        value: '$stars/$maxStars',
+                        value: '$stars',
                         label: 'Stars',
                         asset: DuelAsset.trophy,
                         color: const Color(0xFFFFC94D),
@@ -749,8 +865,10 @@ class _CareerProgressPanel extends StatelessWidget {
                     SizedBox(
                       width: width,
                       child: _CareerMetric(
-                        value: '${nextLevel.chapter}',
-                        label: 'Chapter',
+                        value: totalCompleted > total
+                            ? 'Endless'
+                            : '${nextLevel.chapter}',
+                        label: totalCompleted > total ? 'Track' : 'Chapter',
                         asset: DuelAsset.careerBook,
                         color: const Color(0xFF29D398),
                       ),
@@ -759,7 +877,7 @@ class _CareerProgressPanel extends StatelessWidget {
                       width: width,
                       child: _CareerMetric(
                         value: '${nextLevel.number}',
-                        label: 'Next',
+                        label: 'Next level',
                         asset: DuelAsset.leaderboardCrownPro,
                         color: _difficultyAccent(nextLevel.difficulty),
                       ),
@@ -834,12 +952,14 @@ class _NextLevelCard extends StatelessWidget {
   const _NextLevelCard({
     required this.level,
     required this.progress,
+    required this.variant,
     required this.loading,
     required this.onTap,
   });
 
   final CareerLevel level;
   final LevelProgress? progress;
+  final SudokuVariant variant;
   final bool loading;
   final VoidCallback? onTap;
 
@@ -897,11 +1017,21 @@ class _NextLevelCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _DifficultyChip(
-                          label: context.strings.difficultyLabel(
-                            level.difficulty,
-                          ),
-                          color: accent,
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            _DifficultyChip(
+                              label: context.strings.difficultyLabel(
+                                level.difficulty,
+                              ),
+                              color: accent,
+                            ),
+                            _DifficultyChip(
+                              label: variant.label,
+                              color: const Color(0xFF3AA9FF),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -920,17 +1050,10 @@ class _NextLevelCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: onTap,
-                    icon: const Icon(Icons.play_arrow_rounded, size: 19),
-                    label: Text(context.tr('continue_action')),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: accent,
-                      foregroundColor: Colors.black.withValues(alpha: .84),
-                      textStyle: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ),
+                  if (!compact) ...[
+                    const SizedBox(width: 8),
+                    _PlayButton(accent: accent, onTap: onTap),
+                  ],
                 ],
               ),
               const SizedBox(height: 12),
@@ -952,9 +1075,37 @@ class _NextLevelCard extends StatelessWidget {
                     _StarRow(stars: progress!.stars, color: accent),
                 ],
               ),
+              if (compact) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: _PlayButton(accent: accent, onTap: onTap),
+                ),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PlayButton extends StatelessWidget {
+  const _PlayButton({required this.accent, required this.onTap});
+
+  final Color accent;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.play_arrow_rounded, size: 19),
+      label: Text(context.tr('continue_action')),
+      style: FilledButton.styleFrom(
+        backgroundColor: accent,
+        foregroundColor: Colors.black.withValues(alpha: .84),
+        textStyle: const TextStyle(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -1182,50 +1333,44 @@ class _LevelCard extends StatelessWidget {
                                 : Colors.white.withValues(alpha: .36),
                           ),
                   ),
-                  const Spacer(),
-                  _DifficultyChip(
-                    label: context.strings.difficultyLabel(level.difficulty),
-                    color: accent,
-                  ),
-                  const SizedBox(width: 6),
-                  if (current)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: .14),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        context.tr('continue_action'),
-                        style: TextStyle(
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _DifficultyChip(
+                          label: context.strings.difficultyLabel(
+                            level.difficulty,
+                          ),
                           color: accent,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
                         ),
-                      ),
-                    ),
-                  if (current) const SizedBox(width: 6),
-                  if (progress != null)
-                    Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(
-                          children: List<Widget>.generate(
-                            3,
-                            (index) => Icon(
-                              index < progress!.stars
-                                  ? Icons.star_rounded
-                                  : Icons.star_border_rounded,
-                              size: 17,
-                              color: const Color(0xFFFFC94D),
+                        if (current)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: .14),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              context.tr('continue_action'),
+                              style: TextStyle(
+                                color: accent,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
-                        ),
-                      ),
+                        if (progress != null)
+                          _StarRow(stars: progress!.stars, color: accent),
+                      ],
                     ),
+                  ),
                 ],
               ),
               const Spacer(),

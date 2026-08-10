@@ -90,6 +90,7 @@ export type DuelState = {
   scores: Record<Seat, number>;
   mistakes: Record<Seat, number>;
   correctMoves: Record<Seat, number>;
+  responseTimeMs?: Record<Seat, number>;
   timeouts: Record<Seat, number>;
   consecutiveTimeouts?: Record<Seat, number>;
   currentTurnSeat: Seat;
@@ -148,6 +149,10 @@ export function stateCellCount(state: DuelState): number {
 
 export function timeoutStreaks(state: DuelState): Record<Seat, number> {
   return (state.consecutiveTimeouts ??= { A: 0, B: 0 });
+}
+
+export function responseTimes(state: DuelState): Record<Seat, number> {
+  return (state.responseTimeMs ??= { A: 0, B: 0 });
 }
 
 export function isTerminalStatus(status: MatchStatus): boolean {

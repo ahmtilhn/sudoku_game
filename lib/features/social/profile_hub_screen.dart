@@ -7,12 +7,10 @@ import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../duel/leaderboards_screen.dart';
-import '../economy/wallet_history_screen.dart';
 import 'competitive_profile_card.dart';
 import 'platform_services_screen.dart';
-import 'social_hub_screen.dart';
 
-enum _ProfileTab { friends, wallet, leaderboards, platform }
+enum _ProfileTab { leaderboards, platform }
 
 class ProfileHubScreen extends StatefulWidget {
   const ProfileHubScreen({super.key});
@@ -25,7 +23,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   CompetitiveProfile? _profile;
   bool _loading = true;
   String? _error;
-  _ProfileTab _selectedTab = _ProfileTab.friends;
+  _ProfileTab _selectedTab = _ProfileTab.leaderboards;
 
   @override
   void initState() {
@@ -104,22 +102,6 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
 
   List<_ProfileTabData> _tabs(BuildContext context) {
     return [
-      _ProfileTabData(
-        tab: _ProfileTab.friends,
-        asset: DuelAsset.people,
-        title: context.tr('friends_challenges'),
-        subtitle: context.tr('friend_requests'),
-        accent: const Color(0xFF3AA9FF),
-        onOpen: () => _open(const SocialHubScreen()),
-      ),
-      _ProfileTabData(
-        tab: _ProfileTab.wallet,
-        asset: DuelAsset.coin,
-        title: context.tr('coin_history'),
-        subtitle: context.tr('server_wallet_history'),
-        accent: const Color(0xFFFFC94D),
-        onOpen: () => _open(const WalletHistoryScreen()),
-      ),
       _ProfileTabData(
         tab: _ProfileTab.leaderboards,
         asset: DuelAsset.leaderboardCrownPro,

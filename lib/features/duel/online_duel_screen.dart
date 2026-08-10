@@ -473,7 +473,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       title: 'Online Duel',
       difficulty: _difficulty(snapshot.difficulty),
       puzzle: snapshot.puzzle,
-      solution: List<int>.filled(81, 1),
+      solution: List<int>.filled(snapshot.cellCount, 1),
+      size: snapshot.boardSize,
+      boxRows: snapshot.boardSize == 16 ? 4 : 3,
+      boxColumns: snapshot.boardSize == 16 ? 4 : 3,
     );
     return LayoutBuilder(
       builder: (context, constraints) {
