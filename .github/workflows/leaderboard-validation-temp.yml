@@ -5,6 +5,12 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/leaderboard-validation-temp.yml'
+      - 'lib/features/duel/leaderboards_screen.dart'
+      - 'lib/services/competitive_leaderboard_api.dart'
+      - 'lib/services/platform_leaderboard_service.dart'
+      - 'test/platform_leaderboard_service_test.dart'
+      - 'test/online_duel_leaderboard_mirror_test.dart'
+      - 'test/home_profile_leaderboard_upgrade_test.dart'
 
 permissions:
   contents: read
