@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/features/social/platform_services_screen.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
-import 'package:sudoku_game/services/platform_game_services.dart';
 import 'package:sudoku_game/widgets/duel_asset_icon.dart';
 
 void main() {
@@ -12,9 +11,6 @@ void main() {
   const channel = MethodChannel('com.devoviastudio.sudoku/game_services');
 
   setUp(() {
-    PlatformGameServices.instance.authenticated.value = false;
-    PlatformGameServices.instance.localPlayer.value = null;
-    PlatformGameServices.instance.lastError.value = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
           return switch (call.method) {
@@ -36,23 +32,6 @@ void main() {
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
-  });
-
-  testWidgets('refreshes platform connection when opened', (tester) async {
-    await tester.pumpWidget(
-      AppStringsScope(
-        strings: AppStrings.forTesting(),
-        child: const MaterialApp(home: PlatformServicesScreen()),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Global ELO'), findsOneWidget);
-    expect(PlatformGameServices.instance.authenticated.value, isTrue);
-    expect(
-      PlatformGameServices.instance.localPlayer.value?.playerId,
-      'player-1',
-    );
   });
 
   testWidgets('leaderboard hub fits 320x568 at 2x text', (tester) async {

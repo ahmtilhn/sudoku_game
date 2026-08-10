@@ -38,9 +38,6 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
   List<SocialChallenge> _pendingChallenges = const <SocialChallenge>[];
 
   bool get _backendReady => _push.configured && _social.configured;
-  String get _platformName => Theme.of(context).platform == TargetPlatform.iOS
-      ? 'Game Center'
-      : 'Google Play Games';
 
   @override
   void initState() {
@@ -336,7 +333,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       return _MessageCard(
         icon: Icons.sports_esports_outlined,
         title: context.tr('online_account_unavailable'),
-        body: UxCopy.platformNotConnected(context, platformName: _platformName),
+        body: UxCopy.platformNotConnected(context),
       );
     }
     if (!_platformAuthenticated) {
