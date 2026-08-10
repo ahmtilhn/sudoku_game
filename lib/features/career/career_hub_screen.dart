@@ -122,20 +122,28 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                   ),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabs,
-          tabs: [
-            Tab(text: context.tr('career')),
-            Tab(text: context.tr('practice')),
-          ],
-        ),
       ),
       body: AppBackdrop(
         child: SafeArea(
           top: false,
-          child: TabBarView(
-            controller: _tabs,
-            children: [_careerTab(), _practiceTab()],
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: _CareerHeaderControls(
+                  selected: _careerVariant,
+                  enabled: !_busy,
+                  controller: _tabs,
+                  onSelected: _selectCareerVariant,
+                ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabs,
+                  children: [_careerTab(), _practiceTab()],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -188,21 +196,6 @@ class _CareerHubScreenState extends State<CareerHubScreen>
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                   children: [
-                    _HeroPanel(
-                      title: context.tr('career'),
-                      subtitle: context.tr('career_intro'),
-                      icon: DuelAsset.homeCareerRelic,
-                      trailing: context.tr('completed_levels', <Object>[
-                        completed,
-                      ]),
-                    ),
-                    const SizedBox(height: 12),
-                    _CareerVariantSelector(
-                      selected: variant,
-                      enabled: !_busy,
-                      onSelected: _selectCareerVariant,
-                    ),
-                    const SizedBox(height: 12),
                     _CareerProgressPanel(
                       completed: designedCompleted,
                       total: CareerCatalog.designedLevelCount,
@@ -603,13 +596,11 @@ class _HeroPanel extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
-    this.trailing,
   });
 
   final String title;
   final String subtitle;
   final String icon;
-  final String? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -668,30 +659,70 @@ class _HeroPanel extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  if (trailing != null) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFC94D).withValues(alpha: .12),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        trailing!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFFFC94D),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CareerHeaderControls extends StatelessWidget {
+  const _CareerHeaderControls({
+    required this.selected,
+    required this.enabled,
+    required this.controller,
+    required this.onSelected,
+  });
+
+  final SudokuVariant selected;
+  final bool enabled;
+  final TabController controller;
+  final ValueChanged<SudokuVariant> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _CareerVariantSelector(
+              selected: selected,
+              enabled: enabled,
+              onSelected: onSelected,
+            ),
+            const SizedBox(height: 10),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xFF101B20).withValues(alpha: .9),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white.withValues(alpha: .07)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: TabBar(
+                  controller: controller,
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: BoxDecoration(
+                    color: const Color(0xFFFFC94D),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  labelColor: Colors.black.withValues(alpha: .84),
+                  unselectedLabelColor: Colors.white.withValues(alpha: .72),
+                  labelStyle: const TextStyle(fontWeight: FontWeight.w900),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                  ),
+                  tabs: [
+                    Tab(text: context.tr('career')),
+                    Tab(text: context.tr('practice')),
+                  ],
+                ),
               ),
             ),
           ],
