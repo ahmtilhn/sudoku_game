@@ -12,10 +12,7 @@ import '../../widgets/player_avatar.dart';
 import '../duel/online_duel_screen.dart';
 
 class ChallengeInvitationScreen extends StatefulWidget {
-  const ChallengeInvitationScreen({
-    super.key,
-    required this.challengeId,
-  });
+  const ChallengeInvitationScreen({super.key, required this.challengeId});
 
   final String challengeId;
 
@@ -57,25 +54,25 @@ class _ChallengeInvitationScreenState
   int get _remainingSeconds {
     final challenge = _challenge;
     if (challenge == null) return 0;
-    return challenge.expiresAt.difference(DateTime.now()).inSeconds.clamp(
-      0,
-      86400,
-    );
+    return challenge.expiresAt
+        .difference(DateTime.now())
+        .inSeconds
+        .clamp(0, 86400)
+        .toInt();
   }
 
-  bool get _expired {
-    final challenge = _challenge;
-    return challenge != null &&
-        (challenge.status != 'pending' || _remainingSeconds <= 0);
-  }
+  bool get _expired =>
+      _challenge != null &&
+      (_challenge!.status != 'pending' || _remainingSeconds <= 0);
 
   Future<void> _load() async {
     _timer?.cancel();
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final challenges = await _social.loadPendingChallenges();
       SocialChallenge? selected;
@@ -85,7 +82,6 @@ class _ChallengeInvitationScreenState
           break;
         }
       }
-
       if (!mounted) return;
       if (selected == null) {
         setState(() {
@@ -94,13 +90,10 @@ class _ChallengeInvitationScreenState
         });
         return;
       }
-
       setState(() => _challenge = selected);
       _timer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted) return;
-        if (_remainingSeconds <= 0) {
-          _timer?.cancel();
-        }
+        if (_remainingSeconds <= 0) _timer?.cancel();
         setState(() {});
       });
     } on SocialApiException catch (error) {
@@ -117,7 +110,6 @@ class _ChallengeInvitationScreenState
   Future<void> _respond(bool accept) async {
     final challenge = _challenge;
     if (challenge == null || _processing || _expired) return;
-
     setState(() {
       _processing = true;
       _error = null;
@@ -128,7 +120,6 @@ class _ChallengeInvitationScreenState
         accept: accept,
       );
       if (!mounted) return;
-
       if (!accept) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr('challenge_declined'))),
@@ -136,13 +127,11 @@ class _ChallengeInvitationScreenState
         Navigator.of(context).pop();
         return;
       }
-
       final roomId = updated.roomId;
       if (roomId == null || roomId.isEmpty) {
         setState(() => _error = context.tr('matchmaking_start_failed'));
         return;
       }
-
       await _economy.refresh(showLoading: false);
       if (!mounted) return;
       await Navigator.of(context).pushReplacement<void, void>(
@@ -175,43 +164,36 @@ class _ChallengeInvitationScreenState
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                child: _loading
-                    ? const Center(
-                        key: ValueKey('loading'),
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF29D398),
-                        ),
-                      )
-                    : _challenge == null
-                    ? _ChallengeUnavailable(
-                        key: const ValueKey('unavailable'),
-                        message:
-                            _error ?? context.tr('challenge_timed_out'),
-                        onRetry: _load,
-                        onClose: () => Navigator.of(context).pop(),
-                      )
-                    : _ChallengeInvitationCard(
-                        key: ValueKey(_challenge!.id),
-                        challenge: _challenge!,
-                        remainingSeconds: _remainingSeconds,
-                        expired: _expired,
-                        processing: _processing,
-                        error: _error,
-                        balance: _economy.balance,
-                        entryFee: _economy.entryFeeForDifficulty(
-                          _challenge!.difficulty,
-                        ),
-                        winnerPot: _economy.winnerPotForDifficulty(
-                          _challenge!.difficulty,
-                        ),
-                        canAccept: _economy.canEnterOnline,
-                        onAccept: () => _respond(true),
-                        onDecline: () => _respond(false),
-                        onRetry: _load,
+              child: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF29D398),
                       ),
-              ),
+                    )
+                  : _challenge == null
+                  ? _UnavailableState(
+                      message: _error ?? context.tr('challenge_timed_out'),
+                      onRetry: _load,
+                      onClose: () => Navigator.of(context).pop(),
+                    )
+                  : _InvitationCard(
+                      challenge: _challenge!,
+                      remainingSeconds: _remainingSeconds,
+                      expired: _expired,
+                      processing: _processing,
+                      error: _error,
+                      balance: _economy.balance,
+                      entryFee: _economy.entryFeeForDifficulty(
+                        _challenge!.difficulty,
+                      ),
+                      winnerPot: _economy.winnerPotForDifficulty(
+                        _challenge!.difficulty,
+                      ),
+                      canAccept: _economy.canEnterOnline,
+                      onAccept: () => _respond(true),
+                      onDecline: () => _respond(false),
+                      onRetry: _load,
+                    ),
             ),
           ),
         ),
@@ -220,9 +202,8 @@ class _ChallengeInvitationScreenState
   }
 }
 
-class _ChallengeInvitationCard extends StatelessWidget {
-  const _ChallengeInvitationCard({
-    super.key,
+class _InvitationCard extends StatelessWidget {
+  const _InvitationCard({
     required this.challenge,
     required this.remainingSeconds,
     required this.expired,
@@ -254,233 +235,210 @@ class _ChallengeInvitationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final difficulty = _parseDifficulty(challenge.difficulty);
     final accent = _difficultyAccent(difficulty);
-    final timeLabel = _formatCountdown(remainingSeconds);
-
-    return SingleChildScrollView(
-      key: key,
+    return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-      child: Column(
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  accent.withValues(alpha: .24),
-                  const Color(0xFF111C20).withValues(alpha: .96),
-                  const Color(0xFF071014).withValues(alpha: .98),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: accent.withValues(alpha: .46)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: .32),
-                  blurRadius: 28,
-                  offset: const Offset(0, 16),
-                ),
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accent.withValues(alpha: .24),
+                const Color(0xFF111C20).withValues(alpha: .97),
+                const Color(0xFF071014),
               ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-              child: Column(
-                children: [
-                  _InvitationStatusPill(
-                    expired: expired,
-                    remainingSeconds: remainingSeconds,
-                    accent: accent,
-                  ),
-                  const SizedBox(height: 20),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: accent.withValues(alpha: .10),
-                          border: Border.all(
-                            color: accent.withValues(alpha: .30),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: accent.withValues(alpha: .12),
-                              blurRadius: 30,
-                            ),
-                          ],
-                        ),
-                        child: const SizedBox.square(dimension: 112),
-                      ),
-                      PlayerAvatar(
-                        displayName: challenge.challenger.displayName,
-                        avatarKey:
-                            'challenge-${challenge.challenger.publicId}',
-                        radius: 48,
-                        semanticLabel: context.tr(
-                          'player_avatar_semantics',
-                          <Object>[challenge.challenger.displayName],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    challenge.challenger.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 25,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '@${challenge.challenger.username}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .56),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    context.tr('wants_to_play_again', <Object>[
-                      challenge.challenger.displayName,
-                    ]),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .78),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _InvitationMetric(
-                          asset: DuelAsset.grid,
-                          label: context.strings.difficultyLabel(difficulty),
-                          value: '${difficulty.index + 1}/5',
-                          color: accent,
-                        ),
-                      ),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: _InvitationMetric(
-                          asset: DuelAsset.trophy,
-                          label: context.tr('rating'),
-                          value: '${challenge.challenger.rating}',
-                          color: const Color(0xFFFFC94D),
-                        ),
-                      ),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: _InvitationMetric(
-                          asset: DuelAsset.target,
-                          label: context.tr('time'),
-                          value: timeLabel,
-                          color: const Color(0xFF3AA9FF),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _EconomySummary(
-                    balance: balance,
-                    entryFee: entryFee,
-                    winnerPot: winnerPot,
-                  ),
-                  if (!canAccept && !expired) ...[
-                    const SizedBox(height: 12),
-                    _InlineWarning(
-                      message: context.tr('not_enough_coins_online', <Object>[
-                        entryFee,
-                      ]),
-                    ),
-                  ],
-                  if (error != null) ...[
-                    const SizedBox(height: 12),
-                    _InlineWarning(message: error!, retry: onRetry),
-                  ],
-                  const SizedBox(height: 20),
-                  if (expired)
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: onRetry,
-                        icon: const Icon(Icons.refresh_rounded),
-                        label: Text(context.tr('try_again')),
-                      ),
-                    )
-                  else ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: processing || !canAccept ? null : onAccept,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(54),
-                          backgroundColor: accent,
-                          foregroundColor: const Color(0xFF071014),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        icon: processing
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                ),
-                              )
-                            : const Icon(Icons.bolt_rounded),
-                        label: Text(context.tr('accept')),
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        onPressed: processing ? null : onDecline,
-                        child: Text(context.tr('decline')),
-                      ),
-                    ),
-                  ],
-                ],
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: accent.withValues(alpha: .48)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .32),
+                blurRadius: 28,
+                offset: const Offset(0, 16),
               ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _StatusPill(
+                  expired: expired,
+                  seconds: remainingSeconds,
+                  color: accent,
+                ),
+                const SizedBox(height: 22),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent.withValues(alpha: .10),
+                    border: Border.all(color: accent.withValues(alpha: .32)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accent.withValues(alpha: .14),
+                        blurRadius: 30,
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: PlayerAvatar(
+                      displayName: challenge.challenger.displayName,
+                      avatarKey: 'challenge-${challenge.challenger.publicId}',
+                      radius: 48,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  challenge.challenger.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '@${challenge.challenger.username}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .56),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('wants_to_play_again', <Object>[
+                    challenge.challenger.displayName,
+                  ]),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .78),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _Metric(
+                        asset: DuelAsset.grid,
+                        label: context.strings.difficultyLabel(difficulty),
+                        value: '${difficulty.index + 1}/5',
+                        color: accent,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _Metric(
+                        asset: DuelAsset.trophy,
+                        label: context.tr('rating'),
+                        value: '${challenge.challenger.rating}',
+                        color: const Color(0xFFFFC94D),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _Metric(
+                        asset: DuelAsset.target,
+                        label: context.tr('time'),
+                        value: _countdown(remainingSeconds),
+                        color: const Color(0xFF3AA9FF),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _EconomyBar(
+                  balance: balance,
+                  entryFee: entryFee,
+                  winnerPot: winnerPot,
+                ),
+                if (!canAccept && !expired) ...[
+                  const SizedBox(height: 12),
+                  _Warning(
+                    message: context.tr('not_enough_coins_online', <Object>[
+                      entryFee,
+                    ]),
+                  ),
+                ],
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  _Warning(message: error!, onRetry: onRetry),
+                ],
+                const SizedBox(height: 20),
+                if (expired)
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: onRetry,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: Text(context.tr('try_again')),
+                    ),
+                  )
+                else ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: processing || !canAccept ? null : onAccept,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(54),
+                        backgroundColor: accent,
+                        foregroundColor: const Color(0xFF071014),
+                        textStyle: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      icon: processing
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.bolt_rounded),
+                      label: Text(context.tr('accept')),
+                    ),
+                  ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: processing ? null : onDecline,
+                      child: Text(context.tr('decline')),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _InvitationStatusPill extends StatelessWidget {
-  const _InvitationStatusPill({
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
     required this.expired,
-    required this.remainingSeconds,
-    required this.accent,
+    required this.seconds,
+    required this.color,
   });
 
   final bool expired;
-  final int remainingSeconds;
-  final Color accent;
+  final int seconds;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final color = expired ? const Color(0xFFFF5C7A) : accent;
+    final resolved = expired ? const Color(0xFFFF5C7A) : color;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .12),
+        color: resolved.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: .34)),
+        border: Border.all(color: resolved.withValues(alpha: .34)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
@@ -489,16 +447,14 @@ class _InvitationStatusPill extends StatelessWidget {
           children: [
             Icon(
               expired ? Icons.timer_off_outlined : Icons.bolt_rounded,
-              color: color,
+              color: resolved,
               size: 17,
             ),
             const SizedBox(width: 6),
             Text(
-              expired
-                  ? context.tr('challenge_timed_out')
-                  : _formatCountdown(remainingSeconds),
+              expired ? context.tr('challenge_timed_out') : _countdown(seconds),
               style: TextStyle(
-                color: color,
+                color: resolved,
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),
@@ -510,8 +466,8 @@ class _InvitationStatusPill extends StatelessWidget {
   }
 }
 
-class _InvitationMetric extends StatelessWidget {
-  const _InvitationMetric({
+class _Metric extends StatelessWidget {
+  const _Metric({
     required this.asset,
     required this.label,
     required this.value,
@@ -532,7 +488,7 @@ class _InvitationMetric extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: .20)),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Column(
           children: [
             DuelAssetIcon(asset, size: 21, color: color),
@@ -543,11 +499,9 @@ class _InvitationMetric extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 2),
             Text(
               label,
               maxLines: 1,
@@ -565,8 +519,8 @@ class _InvitationMetric extends StatelessWidget {
   }
 }
 
-class _EconomySummary extends StatelessWidget {
-  const _EconomySummary({
+class _EconomyBar extends StatelessWidget {
+  const _EconomyBar({
     required this.balance,
     required this.entryFee,
     required this.winnerPot,
@@ -587,7 +541,7 @@ class _EconomySummary extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(13),
+        padding: const EdgeInsets.all(12),
         child: Row(
           children: [
             Expanded(
@@ -596,21 +550,11 @@ class _EconomySummary extends StatelessWidget {
                 value: balance,
               ),
             ),
-            Container(
-              width: 1,
-              height: 38,
-              color: Colors.white.withValues(alpha: .08),
-            ),
             Expanded(
               child: _CoinValue(
                 label: context.tr('entry_fee'),
                 value: entryFee,
               ),
-            ),
-            Container(
-              width: 1,
-              height: 38,
-              color: Colors.white.withValues(alpha: .08),
             ),
             Expanded(
               child: _CoinValue(
@@ -644,21 +588,15 @@ class _CoinValue extends StatelessWidget {
               color: Color(0xFFFFC94D),
             ),
             const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                '$value',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
+            Text(
+              '$value',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 3),
         Text(
           label,
           maxLines: 1,
@@ -674,11 +612,11 @@ class _CoinValue extends StatelessWidget {
   }
 }
 
-class _InlineWarning extends StatelessWidget {
-  const _InlineWarning({required this.message, this.retry});
+class _Warning extends StatelessWidget {
+  const _Warning({required this.message, this.onRetry});
 
   final String message;
-  final VoidCallback? retry;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -710,11 +648,10 @@ class _InlineWarning extends StatelessWidget {
                 ),
               ),
             ),
-            if (retry != null)
+            if (onRetry != null)
               IconButton(
                 tooltip: context.tr('try_again'),
-                onPressed: retry,
-                visualDensity: VisualDensity.compact,
+                onPressed: onRetry,
                 icon: const Icon(
                   Icons.refresh_rounded,
                   color: Colors.white,
@@ -728,9 +665,8 @@ class _InlineWarning extends StatelessWidget {
   }
 }
 
-class _ChallengeUnavailable extends StatelessWidget {
-  const _ChallengeUnavailable({
-    super.key,
+class _UnavailableState extends StatelessWidget {
+  const _UnavailableState({
     required this.message,
     required this.onRetry,
     required this.onClose,
@@ -743,7 +679,6 @@ class _ChallengeUnavailable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      key: key,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 60, 16, 28),
       children: [
@@ -767,7 +702,6 @@ class _ChallengeUnavailable extends StatelessWidget {
                 const SizedBox(height: 14),
                 Text(
                   context.tr('challenge_timed_out'),
-                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 21,
@@ -780,7 +714,6 @@ class _ChallengeUnavailable extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .64),
-                    height: 1.35,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -823,9 +756,9 @@ Color _difficultyAccent(SudokuDifficulty difficulty) => switch (difficulty) {
   SudokuDifficulty.expert => const Color(0xFFFF5C7A),
 };
 
-String _formatCountdown(int seconds) {
-  final safeSeconds = seconds.clamp(0, 86400);
-  final minutes = safeSeconds ~/ 60;
-  final remainder = safeSeconds % 60;
+String _countdown(int seconds) {
+  final safe = seconds.clamp(0, 86400).toInt();
+  final minutes = safe ~/ 60;
+  final remainder = safe % 60;
   return '$minutes:${remainder.toString().padLeft(2, '0')}';
 }

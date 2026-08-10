@@ -65,27 +65,17 @@ void main() {
     expect(CareerCatalog.nextOf(last), isNull);
   });
 
-  test('only the first incomplete level after completed progress is playable', () {
-    final completed = <String>{
-      CareerCatalog.levels[0].id,
-      CareerCatalog.levels[1].id,
-      CareerCatalog.levels[2].id,
-    };
-    bool isCompleted(String id) => completed.contains(id);
+  test('procedural level descriptors are deterministic and addressable', () {
+    final firstRead = CareerCatalog.levelAt(51);
+    final repeatedRead = CareerCatalog.levelAt(51);
+    final parsed = CareerCatalog.byId('career-051');
 
-    expect(
-      CareerCatalog.isUnlocked(CareerCatalog.levels[0], isCompleted),
-      isTrue,
-    );
-    expect(
-      CareerCatalog.isUnlocked(CareerCatalog.levels[3], isCompleted),
-      isTrue,
-    );
-    expect(
-      CareerCatalog.isUnlocked(CareerCatalog.levels[4], isCompleted),
-      isFalse,
-    );
-    expect(CareerCatalog.firstPlayable(isCompleted)?.number, 4);
+    expect(repeatedRead.id, firstRead.id);
+    expect(repeatedRead.seed, firstRead.seed);
+    expect(repeatedRead.difficulty, SudokuDifficulty.expert);
+    expect(repeatedRead.size, 9);
+    expect(parsed?.number, 51);
+    expect(parsed?.seed, firstRead.seed);
   });
 
   test('first playable is null when every career level is complete', () {

@@ -119,7 +119,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          timeout --signal=TERM 10m \
+          timeout --signal=TERM 8m \
             flutter test --coverage --reporter expanded --concurrency=1
 
       - name: Upload coverage
