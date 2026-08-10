@@ -5,13 +5,18 @@ import 'package:flutter/material.dart';
 
 import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
+import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
+import '../../services/competitive_leaderboard_api.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
+import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/game_modal.dart';
 import '../../widgets/player_avatar.dart';
+
+enum _LeaderboardAudience { world, friends, aroundMe }
 
 class LeaderboardsScreen extends StatefulWidget {
   const LeaderboardsScreen({super.key});
@@ -31,16 +36,30 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
         PlatformLeaderboardScope.expert,
       ];
 
+  final CompetitiveLeaderboardApi _leaderboards =
+      CompetitiveLeaderboardApi.instance;
   final PlatformGameServices _games = PlatformGameServices.instance;
+  final SocialApiClient _social = SocialApiClient.instance;
 
-  bool _loading = true;
-  bool _openingNative = false;
+  SudokuVariant _variant = SudokuVariant.classic9;
   PlatformLeaderboardScope _selectedScope = PlatformLeaderboardScope.global;
+  _LeaderboardAudience _audience = _LeaderboardAudience.world;
+  List<CompetitiveLeaderboardEntry> _entries =
+      const <CompetitiveLeaderboardEntry>[];
+  CompetitiveLeaderboardCurrentPlayer? _currentPlayer;
+  CompetitiveProfile? _profile;
+  String? _nextCursor;
+  String? _error;
+  bool _loading = true;
+  bool _loadingMore = false;
+  bool _openingNative = false;
+  int _requestSerial = 0;
 
   @override
   void initState() {
     super.initState();
     _games.localPlayer.addListener(_refreshPlatformIdentity);
+    unawaited(_loadIdentity());
     unawaited(_load());
   }
 
@@ -54,35 +73,115 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _load() async {
-    if (mounted) {
-      setState(() {
-        _loading = true;
-      });
-    }
+  Future<void> _loadIdentity() async {
     try {
-      if (!await _games.isConfigured()) return;
-      final authenticated = await _games.refreshAuthentication();
-      if (authenticated && _games.localPlayer.value == null) {
-        _games.localPlayer.value = await _games.getLocalPlayer();
+      if (await _games.isConfigured()) {
+        final authenticated = await _games.refreshAuthentication();
+        if (authenticated && _games.localPlayer.value == null) {
+          _games.localPlayer.value = await _games.getLocalPlayer();
+        }
       }
-      if (!mounted) return;
-      setState(() {});
     } catch (error) {
-      debugPrint('Leaderboard load failed: $error');
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      debugPrint('Leaderboard platform identity failed: $error');
+    }
+
+    try {
+      if (_social.configured) {
+        final profile = await _social.loadCompetitiveProfile();
+        if (mounted) setState(() => _profile = profile);
+      }
+    } catch (error) {
+      debugPrint('Leaderboard profile identity failed: $error');
     }
   }
 
-  Future<void> _openNative(PlatformLeaderboardScope scope) async {
-    if (_openingNative) return;
+  Future<void> _load({bool reset = true}) async {
+    final requestId = ++_requestSerial;
+    if (mounted) {
+      setState(() {
+        if (reset) {
+          _loading = true;
+          _entries = const <CompetitiveLeaderboardEntry>[];
+          _nextCursor = null;
+          _currentPlayer = null;
+        } else {
+          _loadingMore = true;
+        }
+        _error = null;
+      });
+    }
+
+    try {
+      final page = await _leaderboards.load(
+        scope: _selectedScope.name,
+        variant: _variant.key,
+        mode: _modeFor(_audience),
+        cursor: reset ? null : _nextCursor,
+        limit: 50,
+      );
+      if (!mounted || requestId != _requestSerial) return;
+
+      final incoming = !reset && _audience == _LeaderboardAudience.world
+          ? page.entries
+                .map(
+                  (entry) => entry.copyWith(rank: entry.rank + _entries.length),
+                )
+                .toList(growable: false)
+          : page.entries;
+      setState(() {
+        _entries = reset
+            ? incoming
+            : <CompetitiveLeaderboardEntry>[..._entries, ...incoming];
+        _currentPlayer = page.currentPlayer;
+        _nextCursor = page.nextCursor;
+      });
+    } catch (error) {
+      if (!mounted || requestId != _requestSerial) return;
+      setState(() {
+        _error = UserSafeError.message(context, error);
+      });
+    } finally {
+      if (mounted && requestId == _requestSerial) {
+        setState(() {
+          _loading = false;
+          _loadingMore = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loading || _loadingMore || _nextCursor == null) return;
+    if (_audience != _LeaderboardAudience.world) return;
+    await _load(reset: false);
+  }
+
+  void _selectVariant(SudokuVariant variant) {
+    if (_variant == variant) return;
+    setState(() => _variant = variant);
+    unawaited(_load());
+  }
+
+  void _selectScope(PlatformLeaderboardScope scope) {
+    if (_selectedScope == scope) return;
+    setState(() => _selectedScope = scope);
+    unawaited(_load());
+  }
+
+  void _selectAudience(_LeaderboardAudience audience) {
+    if (_audience == audience) return;
+    setState(() => _audience = audience);
+    unawaited(_load());
+  }
+
+  Future<void> _openNative() async {
+    if (_openingNative || _variant != SudokuVariant.classic9) return;
     setState(() => _openingNative = true);
     try {
       final platform = kIsWeb ? null : defaultTargetPlatform;
       final leaderboardId = platform == null
           ? null
-          : const PlatformLeaderboardIds().idFor(platform, scope);
+          : const PlatformLeaderboardIds().idFor(platform, _selectedScope);
       var opened = false;
       if (leaderboardId != null && await _games.isConfigured()) {
         var authenticated = await _games.refreshAuthentication();
@@ -93,10 +192,8 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
           opened = await _games.showLeaderboard(leaderboardId: leaderboardId);
         }
       }
-      debugPrint('Native leaderboard ${scope.name} opened=$opened');
-      if (!opened && defaultTargetPlatform == TargetPlatform.iOS) {
-        final fallback = await _games.showLeaderboard();
-        if (fallback) return;
+      if (!opened && !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+        opened = await _games.showLeaderboard();
       }
       if (!opened && mounted) {
         await GameModal.warning(
@@ -107,7 +204,6 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
         );
       }
     } catch (error) {
-      debugPrint('Native leaderboard ${scope.name} failed: $error');
       if (mounted) {
         await GameModal.error(
           context,
@@ -122,13 +218,91 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     }
   }
 
+  Future<void> _showPlayerDetails(CompetitiveLeaderboardEntry entry) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF0A1728),
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PlayerAvatar(
+                displayName: entry.displayName,
+                avatarKey: entry.avatarKey,
+                radius: 34,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                entry.displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (entry.username.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '@${entry.username}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .55),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  _StatPill(
+                    icon: Icons.emoji_events_rounded,
+                    label: context.tr('rank'),
+                    value: entry.isProvisional ? '—' : '#${entry.rank}',
+                  ),
+                  _StatPill(
+                    icon: Icons.bolt_rounded,
+                    label: context.tr('current_elo'),
+                    value: '${entry.rating}',
+                  ),
+                  _StatPill(
+                    icon: Icons.sports_esports_rounded,
+                    label: context.tr('wins_losses_draws'),
+                    value: '${entry.wins}/${entry.losses}/${entry.draws}',
+                  ),
+                  _StatPill(
+                    icon: Icons.percent_rounded,
+                    label: context.tr('win_rate'),
+                    value: '${(entry.winRate * 100).round()}%',
+                  ),
+                  if (entry.winStreak > 0)
+                    _StatPill(
+                      icon: Icons.local_fire_department_rounded,
+                      label: context.tr('win_streak'),
+                      value: '${entry.winStreak}',
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final platformPlayer = _games.localPlayer.value;
-    final name = platformPlayer?.displayName ?? 'Sudoku Player';
-    final platformName = defaultTargetPlatform == TargetPlatform.iOS
-        ? 'Game Center'
-        : 'Google Play Games';
+    final displayName = _profile?.displayName.trim().isNotEmpty == true
+        ? _profile!.displayName
+        : platformPlayer?.displayName ?? context.tr('you');
+    final current = _currentPlayer;
 
     return Scaffold(
       backgroundColor: const Color(0xFF07111E),
@@ -138,22 +312,46 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 920),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
                 child: Column(
                   children: [
                     _Header(
                       busy: _loading,
+                      nativeBusy: _openingNative,
+                      showNative: _variant == SudokuVariant.classic9,
+                      platformName: _platformName(),
                       onBack: () => Navigator.of(context).pop(),
-                      onRefresh: _load,
+                      onRefresh: () => _load(),
+                      onNative: _openNative,
                     ),
                     const SizedBox(height: 8),
                     _Hero(
-                      name: name,
-                      platformName: platformName,
+                      displayName: displayName,
                       player: platformPlayer,
+                      rating: current?.rating,
+                      rank: current?.rank,
+                      variantLabel: _variant.label,
+                      scopeLabel: _scopeLabel(context, _selectedScope),
                     ),
-                    const SizedBox(height: 10),
-                    Expanded(child: _body(platformName)),
+                    const SizedBox(height: 9),
+                    _Filters(
+                      variant: _variant,
+                      scope: _selectedScope,
+                      audience: _audience,
+                      onVariant: _selectVariant,
+                      onScope: _selectScope,
+                      onAudience: _selectAudience,
+                    ),
+                    const SizedBox(height: 9),
+                    Expanded(child: _buildLeaderboardBody()),
+                    if (!_loading && current != null) ...[
+                      const SizedBox(height: 8),
+                      _CurrentPlayerBar(
+                        displayName: displayName,
+                        player: platformPlayer,
+                        current: current,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -164,73 +362,94 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     );
   }
 
-  Widget _body(String platformName) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 560;
-        return ListView(
-          padding: const EdgeInsets.only(bottom: 8),
-          children: [
-            _SelectedLeaderboardPanel(
-              label: _scopeLabel(context, _selectedScope),
-              scopeName: _scopeSubtitle(context, _selectedScope),
-              platformName: platformName,
-              accent: _scopeColor(_selectedScope),
-              busy: _openingNative,
-              onOpen: () => _openNative(_selectedScope),
-            ),
-            const SizedBox(height: 10),
-            if (compact)
-              for (final scope in _scopes) ...[
-                _LeaderboardRow(
-                  label: _scopeLabel(context, scope),
-                  subtitle: _scopeSubtitle(context, scope),
-                  accent: _scopeColor(scope),
-                  selected: scope == _selectedScope,
-                  busy: _openingNative,
-                  onSelect: () => setState(() => _selectedScope = scope),
-                  onOpen: () => _openNative(scope),
-                ),
-                const SizedBox(height: 8),
-              ]
-            else
-              Wrap(
-                spacing: 9,
-                runSpacing: 9,
-                children: [
-                  for (final scope in _scopes)
-                    SizedBox(
-                      width: (constraints.maxWidth - 18) / 3,
-                      child: _LeaderboardRow(
-                        label: _scopeLabel(context, scope),
-                        subtitle: _scopeSubtitle(context, scope),
-                        accent: _scopeColor(scope),
-                        selected: scope == _selectedScope,
-                        busy: _openingNative,
-                        onSelect: () => setState(() => _selectedScope = scope),
-                        onOpen: () => _openNative(scope),
-                      ),
-                    ),
-                ],
-              ),
+  Widget _buildLeaderboardBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return _InlineState(
+        icon: Icons.cloud_off_rounded,
+        message: _error!,
+        actionLabel: context.tr('try_again'),
+        onAction: () => _load(),
+      );
+    }
+    if (_entries.isEmpty) {
+      return _InlineState(
+        icon: Icons.leaderboard_outlined,
+        message: context.tr('leaderboard_empty'),
+        actionLabel: context.tr('refresh'),
+        onAction: () => _load(),
+      );
+    }
+
+    final showPodium =
+        _audience == _LeaderboardAudience.world &&
+        _entries.length >= 3 &&
+        _entries.take(3).every((entry) => !entry.isProvisional);
+    final listStart = showPodium ? 3 : 0;
+
+    return RefreshIndicator(
+      onRefresh: () => _load(),
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 6),
+        children: [
+          if (showPodium) ...[
+            _Podium(entries: _entries.take(3).toList(growable: false)),
+            const SizedBox(height: 9),
           ],
-        );
-      },
+          for (final entry in _entries.skip(listStart)) ...[
+            _LeaderboardEntryTile(
+              entry: entry,
+              onTap: () => _showPlayerDetails(entry),
+            ),
+            const SizedBox(height: 7),
+          ],
+          if (_audience == _LeaderboardAudience.world && _nextCursor != null)
+            Center(
+              child: FilledButton.tonalIcon(
+                onPressed: _loadingMore ? null : _loadMore,
+                icon: _loadingMore
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.expand_more_rounded),
+                label: Text(context.tr('continue_action')),
+              ),
+            ),
+        ],
+      ),
     );
+  }
+
+  String _platformName() {
+    if (kIsWeb) return context.tr('leaderboards');
+    return defaultTargetPlatform == TargetPlatform.iOS
+        ? 'Game Center'
+        : 'Google Play Games';
   }
 }
 
 class _Header extends StatelessWidget {
   const _Header({
     required this.busy,
+    required this.nativeBusy,
+    required this.showNative,
+    required this.platformName,
     required this.onBack,
     required this.onRefresh,
+    required this.onNative,
   });
 
   final bool busy;
+  final bool nativeBusy;
+  final bool showNative;
+  final String platformName;
   final VoidCallback onBack;
   final VoidCallback onRefresh;
+  final VoidCallback onNative;
 
   @override
   Widget build(BuildContext context) {
@@ -240,14 +459,10 @@ class _Header extends StatelessWidget {
         children: [
           IconButton.filledTonal(
             onPressed: onBack,
-            style: IconButton.styleFrom(
-              fixedSize: const Size(40, 40),
-              padding: EdgeInsets.zero,
-            ),
             icon: const Icon(Icons.arrow_back_rounded, size: 20),
           ),
           const SizedBox(width: 8),
-          const DuelAssetIcon(DuelAsset.leaderboardCrownPro, size: 38),
+          const DuelAssetIcon(DuelAsset.leaderboardCrownPro, size: 36),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -259,12 +474,24 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
+          if (showNative)
+            IconButton.filledTonal(
+              tooltip: platformName,
+              onPressed: nativeBusy ? null : onNative,
+              icon: nativeBusy
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sports_esports_rounded),
+            ),
+          const SizedBox(width: 5),
           IconButton.filledTonal(
             tooltip: context.tr('refresh'),
             onPressed: busy ? null : onRefresh,
             icon: busy
                 ? const SizedBox.square(
-                    dimension: 17,
+                    dimension: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.refresh_rounded),
@@ -277,53 +504,57 @@ class _Header extends StatelessWidget {
 
 class _Hero extends StatelessWidget {
   const _Hero({
-    required this.name,
-    required this.platformName,
+    required this.displayName,
     required this.player,
+    required this.rating,
+    required this.rank,
+    required this.variantLabel,
+    required this.scopeLabel,
   });
 
-  final String name;
-  final String platformName;
+  final String displayName;
   final PlatformPlayer? player;
+  final int? rating;
+  final int? rank;
+  final String variantLabel;
+  final String scopeLabel;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 116,
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFFFFC73D).withValues(alpha: .16),
-            const Color(0xFF7A5CFF).withValues(alpha: .12),
+            const Color(0xFFFFC73D).withValues(alpha: .15),
+            const Color(0xFF7A5CFF).withValues(alpha: .11),
             const Color(0xFF0A1728).withValues(alpha: .98),
           ],
         ),
-        borderRadius: BorderRadius.circular(21),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFFFC73D).withValues(alpha: .46),
+          color: const Color(0xFFFFC73D).withValues(alpha: .4),
         ),
       ),
       child: Row(
         children: [
-          const DuelAssetIcon(DuelAsset.leaderboardCrownPro, size: 88),
-          const SizedBox(width: 10),
-          _PlatformAvatarBadge(
-            name: name,
-            player: player,
-            platformName: platformName,
+          PlayerAvatar(
+            displayName: displayName,
+            avatarKey: 'home-profile-leaderboard',
+            localAvatarBytes: player?.avatarBytes,
+            remoteApprovedImageUrl: player?.avatarUrl,
+            radius: 29,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -334,25 +565,27 @@ class _Hero extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  platformName,
+                  '$variantLabel · $scopeLabel',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFFB7A9FF),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .56),
                     fontSize: 11,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                   ),
-                ),
-                const SizedBox(height: 7),
-                Row(
-                  children: [
-                    _HeroValue(label: context.tr('current_elo'), value: 'ELO'),
-                    const SizedBox(width: 14),
-                    _HeroValue(label: context.tr('leaderboards'), value: '6'),
-                  ],
                 ),
               ],
             ),
+          ),
+          const SizedBox(width: 8),
+          _HeroValue(
+            label: context.tr('current_elo'),
+            value: rating == null ? '—' : '$rating',
+          ),
+          const SizedBox(width: 12),
+          _HeroValue(
+            label: context.tr('rank'),
+            value: rank == null ? '—' : '#$rank',
           ),
         ],
       ),
@@ -369,20 +602,20 @@ class _HeroValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
           value,
           style: const TextStyle(
             color: Color(0xFFFFC73D),
-            fontSize: 15,
+            fontSize: 16,
             fontWeight: FontWeight.w900,
           ),
         ),
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: .5),
+            color: Colors.white.withValues(alpha: .46),
             fontSize: 9,
           ),
         ),
@@ -391,174 +624,177 @@ class _HeroValue extends StatelessWidget {
   }
 }
 
-class _PlatformAvatarBadge extends StatelessWidget {
-  const _PlatformAvatarBadge({
-    required this.name,
-    required this.player,
-    required this.platformName,
+class _Filters extends StatelessWidget {
+  const _Filters({
+    required this.variant,
+    required this.scope,
+    required this.audience,
+    required this.onVariant,
+    required this.onScope,
+    required this.onAudience,
   });
 
-  final String name;
-  final PlatformPlayer? player;
-  final String platformName;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasImage =
-        player?.avatarBytes != null ||
-        (player?.avatarUrl?.trim().isNotEmpty ?? false);
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: hasImage
-                  ? const Color(0xFF29D398)
-                  : Colors.white.withValues(alpha: .22),
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF29D398).withValues(
-                  alpha: hasImage ? .24 : 0,
-                ),
-                blurRadius: 18,
-              ),
-            ],
-          ),
-          child: PlayerAvatar(
-            displayName: name,
-            avatarKey: 'leaderboards-google-play-$name',
-            localAvatarBytes: player?.avatarBytes,
-            remoteApprovedImageUrl: player?.avatarUrl,
-            radius: 31,
-            semanticLabel: context.tr('player_avatar_semantics', <Object>[
-              name,
-            ]),
-          ),
-        ),
-        Positioned(
-          right: -2,
-          bottom: -2,
-          child: Tooltip(
-            message: platformName,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: hasImage
-                    ? const Color(0xFF29D398)
-                    : const Color(0xFF7A8496),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF07111E), width: 2),
-              ),
-              child: const Icon(
-                Icons.sports_esports_rounded,
-                color: Colors.white,
-                size: 12,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SelectedLeaderboardPanel extends StatelessWidget {
-  const _SelectedLeaderboardPanel({
-    required this.label,
-    required this.scopeName,
-    required this.platformName,
-    required this.accent,
-    required this.busy,
-    required this.onOpen,
-  });
-
-  final String label;
-  final String scopeName;
-  final String platformName;
-  final Color accent;
-  final bool busy;
-  final VoidCallback onOpen;
+  final SudokuVariant variant;
+  final PlatformLeaderboardScope scope;
+  final _LeaderboardAudience audience;
+  final ValueChanged<SudokuVariant> onVariant;
+  final ValueChanged<PlatformLeaderboardScope> onScope;
+  final ValueChanged<_LeaderboardAudience> onAudience;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(15, 14, 14, 14),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFF0A1728).withValues(alpha: .92),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accent.withValues(alpha: .55)),
+        color: const Color(0xFF0A1728).withValues(alpha: .86),
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: .16),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const DuelAssetIcon(
-              DuelAsset.leaderboardCrownPro,
-              size: 42,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    height: 1.05,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$scopeName · $platformName',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .62),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          FilledButton.icon(
-            onPressed: busy ? null : onOpen,
-            style: FilledButton.styleFrom(
-              backgroundColor: accent,
-              foregroundColor: const Color(0xFF07111E),
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          SegmentedButton<SudokuVariant>(
+            segments: const [
+              ButtonSegment(
+                value: SudokuVariant.classic9,
+                label: Text('9×9'),
+                icon: Icon(Icons.grid_3x3_rounded),
               ),
+              ButtonSegment(
+                value: SudokuVariant.classic16,
+                label: Text('16×16'),
+                icon: Icon(Icons.grid_4x4_rounded),
+              ),
+            ],
+            selected: <SudokuVariant>{variant},
+            showSelectedIcon: false,
+            onSelectionChanged: (values) => onVariant(values.first),
+          ),
+          const SizedBox(height: 9),
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _LeaderboardScreenData.scopes.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 7),
+              itemBuilder: (context, index) {
+                final value = _LeaderboardScreenData.scopes[index];
+                return ChoiceChip(
+                  selected: scope == value,
+                  label: Text(_scopeLabel(context, value)),
+                  onSelected: (_) => onScope(value),
+                  visualDensity: VisualDensity.compact,
+                );
+              },
             ),
-            icon: busy
-                ? const SizedBox.square(
-                    dimension: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.open_in_new_rounded, size: 18),
-            label: Text(
-              context.tr('continue_action'),
-              style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 9),
+          SegmentedButton<_LeaderboardAudience>(
+            segments: [
+              ButtonSegment(
+                value: _LeaderboardAudience.world,
+                label: Text(context.tr('world')),
+                icon: const Icon(Icons.public_rounded),
+              ),
+              ButtonSegment(
+                value: _LeaderboardAudience.friends,
+                label: Text(context.tr('friends')),
+                icon: const Icon(Icons.group_rounded),
+              ),
+              ButtonSegment(
+                value: _LeaderboardAudience.aroundMe,
+                label: Text(context.tr('you')),
+                icon: const Icon(Icons.my_location_rounded),
+              ),
+            ],
+            selected: <_LeaderboardAudience>{audience},
+            showSelectedIcon: false,
+            onSelectionChanged: (values) => onAudience(values.first),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Podium extends StatelessWidget {
+  const _Podium({required this.entries});
+
+  final List<CompetitiveLeaderboardEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final ordered = <CompetitiveLeaderboardEntry>[
+      entries[1],
+      entries[0],
+      entries[2],
+    ];
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (var index = 0; index < ordered.length; index++) ...[
+          Expanded(
+            child: _PodiumCard(
+              entry: ordered[index],
+              elevated: index == 1,
+            ),
+          ),
+          if (index != ordered.length - 1) const SizedBox(width: 7),
+        ],
+      ],
+    );
+  }
+}
+
+class _PodiumCard extends StatelessWidget {
+  const _PodiumCard({required this.entry, required this.elevated});
+
+  final CompetitiveLeaderboardEntry entry;
+  final bool elevated;
+
+  @override
+  Widget build(BuildContext context) {
+    final medal = switch (entry.rank) { 1 => '🥇', 2 => '🥈', _ => '🥉' };
+    return Container(
+      padding: EdgeInsets.fromLTRB(8, elevated ? 14 : 10, 8, 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A1728).withValues(alpha: .9),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: entry.rank == 1
+              ? const Color(0xFFFFC73D).withValues(alpha: .5)
+              : Colors.white.withValues(alpha: .09),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(medal, style: TextStyle(fontSize: elevated ? 25 : 21)),
+          const SizedBox(height: 5),
+          PlayerAvatar(
+            displayName: entry.displayName,
+            avatarKey: entry.avatarKey,
+            radius: elevated ? 25 : 22,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            entry.displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${entry.rating} ELO',
+            style: const TextStyle(
+              color: Color(0xFFFFC73D),
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -567,86 +803,91 @@ class _SelectedLeaderboardPanel extends StatelessWidget {
   }
 }
 
-class _LeaderboardRow extends StatelessWidget {
-  const _LeaderboardRow({
-    required this.label,
-    required this.subtitle,
-    required this.accent,
-    required this.selected,
-    required this.busy,
-    required this.onSelect,
-    required this.onOpen,
-  });
+class _LeaderboardEntryTile extends StatelessWidget {
+  const _LeaderboardEntryTile({required this.entry, required this.onTap});
 
-  final String label;
-  final String subtitle;
-  final Color accent;
-  final bool selected;
-  final bool busy;
-  final VoidCallback onSelect;
-  final VoidCallback onOpen;
+  final CompetitiveLeaderboardEntry entry;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = selected
-        ? accent
-        : Colors.white.withValues(alpha: .11);
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onSelect,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(15),
+        onTap: onTap,
         child: Ink(
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
           decoration: BoxDecoration(
-            color: selected
-                ? accent.withValues(alpha: .14)
-                : const Color(0xFF0A1728).withValues(alpha: .72),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: borderColor),
+            color: const Color(0xFF0A1728).withValues(alpha: .82),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.white.withValues(alpha: .08)),
           ),
           child: Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: selected ? .2 : .11),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Text(
-                    _scopeMark(label),
-                    style: TextStyle(
-                      color: accent,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
+              SizedBox(
+                width: 42,
+                child: entry.isProvisional
+                    ? const Icon(
+                        Icons.hourglass_top_rounded,
+                        color: Color(0xFFB7A9FF),
+                        size: 20,
+                      )
+                    : Text(
+                        '#${entry.rank}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 7),
+              PlayerAvatar(
+                displayName: entry.displayName,
+                avatarKey: entry.avatarKey,
+                radius: 21,
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            entry.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        if (entry.country != null) ...[
+                          const SizedBox(width: 5),
+                          Text(
+                            entry.country!,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .42),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      selected ? context.tr('current_elo') : subtitle,
+                      '${context.tr('wins_losses_draws')} ${entry.wins}/${entry.losses}/${entry.draws}'
+                      '${entry.winStreak > 0 ? ' · 🔥${entry.winStreak}' : ''}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: .52),
+                        color: Colors.white.withValues(alpha: .48),
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                       ),
@@ -654,21 +895,27 @@ class _LeaderboardRow extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                tooltip: context.tr('leaderboards'),
-                onPressed: busy ? null : onOpen,
-                style: IconButton.styleFrom(
-                  foregroundColor: accent,
-                  fixedSize: const Size(38, 38),
-                  padding: EdgeInsets.zero,
-                ),
-                icon: Icon(
-                  selected
-                      ? Icons.radio_button_checked_rounded
-                      : Icons.open_in_new_rounded,
-                  color: accent,
-                  size: 19,
-                ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${entry.rating}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFC73D),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    'ELO',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .42),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -678,25 +925,175 @@ class _LeaderboardRow extends StatelessWidget {
   }
 }
 
-String _scopeSubtitle(BuildContext context, PlatformLeaderboardScope scope) {
-  return scope == PlatformLeaderboardScope.global
-      ? context.tr('current_elo')
-      : 'ELO';
+class _CurrentPlayerBar extends StatelessWidget {
+  const _CurrentPlayerBar({
+    required this.displayName,
+    required this.player,
+    required this.current,
+  });
+
+  final String displayName;
+  final PlatformPlayer? player;
+  final CompetitiveLeaderboardCurrentPlayer current;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161F36),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: const Color(0xFF7A5CFF).withValues(alpha: .6),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .2),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          PlayerAvatar(
+            displayName: displayName,
+            avatarKey: 'home-profile-leaderboard-sticky',
+            localAvatarBytes: player?.avatarBytes,
+            remoteApprovedImageUrl: player?.avatarUrl,
+            radius: 19,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              context.tr('you'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Text(
+            current.rank == null ? '—' : '#${current.rank}',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .7),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            '${current.rating} ELO',
+            style: const TextStyle(
+              color: Color(0xFFFFC73D),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-String _scopeMark(String label) {
-  final parts = label
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((part) => part.isNotEmpty)
-      .toList(growable: false);
-  if (parts.isEmpty) return '?';
-  if (parts.length == 1) {
-    return parts.first.substring(0, 1).toUpperCase();
+class _StatPill extends StatelessWidget {
+  const _StatPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .06),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFFB7A9FF), size: 16),
+          const SizedBox(width: 6),
+          Text(
+            '$label $value',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
   }
-  return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
-      .toUpperCase();
 }
+
+class _InlineState extends StatelessWidget {
+  const _InlineState({
+    required this.icon,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final IconData icon;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.white.withValues(alpha: .5), size: 42),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .68),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonal(
+              onPressed: onAction,
+              child: Text(actionLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LeaderboardScreenData {
+  const _LeaderboardScreenData._();
+
+  static const List<PlatformLeaderboardScope> scopes =
+      <PlatformLeaderboardScope>[
+        PlatformLeaderboardScope.global,
+        PlatformLeaderboardScope.beginner,
+        PlatformLeaderboardScope.easy,
+        PlatformLeaderboardScope.medium,
+        PlatformLeaderboardScope.hard,
+        PlatformLeaderboardScope.expert,
+      ];
+}
+
+String _modeFor(_LeaderboardAudience audience) => switch (audience) {
+  _LeaderboardAudience.world => 'top',
+  _LeaderboardAudience.friends => 'friends',
+  _LeaderboardAudience.aroundMe => 'around_me',
+};
 
 String _scopeLabel(BuildContext context, PlatformLeaderboardScope scope) {
   if (scope == PlatformLeaderboardScope.global) return context.tr('global_elo');
@@ -705,12 +1102,3 @@ String _scopeLabel(BuildContext context, PlatformLeaderboardScope scope) {
   );
   return context.strings.difficultyLabel(difficulty);
 }
-
-Color _scopeColor(PlatformLeaderboardScope scope) => switch (scope) {
-  PlatformLeaderboardScope.global => const Color(0xFFFFC73D),
-  PlatformLeaderboardScope.beginner => const Color(0xFF35D2FF),
-  PlatformLeaderboardScope.easy => const Color(0xFF29D398),
-  PlatformLeaderboardScope.medium => const Color(0xFF7A5CFF),
-  PlatformLeaderboardScope.hard => const Color(0xFFFF8C42),
-  PlatformLeaderboardScope.expert => const Color(0xFFFF5868),
-};
