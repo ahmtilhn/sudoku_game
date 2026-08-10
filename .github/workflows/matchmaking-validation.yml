@@ -30,7 +30,7 @@ jobs:
       - name: Resolve packages
         run: flutter pub get
 
-      - name: Analyze
+      - name: Analyze current main
         run: flutter analyze --fatal-infos
 
       - name: Matchmaking regression tests
