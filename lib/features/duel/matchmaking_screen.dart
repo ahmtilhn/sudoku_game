@@ -15,7 +15,12 @@ import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/ux_feedback.dart';
 import '../economy/coin_store_screen.dart';
+<<<<<<< HEAD
 import 'duel_screen.dart';
+=======
+import '../game/enhanced_game_screen.dart';
+import 'matchmaking_stage.dart';
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
 import 'pre_match_ready_screen.dart';
 
 class MatchmakingScreen extends StatefulWidget {
@@ -33,10 +38,16 @@ class MatchmakingScreen extends StatefulWidget {
 }
 
 class _MatchmakingScreenState extends State<MatchmakingScreen> {
+<<<<<<< HEAD
   static const Duration _queueRefreshInterval = Duration(seconds: 45);
+=======
+  final EconomyService _economy = EconomyService.instance;
+  final VariantMatchmakingClient _matchmaking = VariantMatchmakingClient.instance;
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
 
   final EconomyService _economy = EconomyService.instance;
   late SudokuDifficulty _difficulty;
+<<<<<<< HEAD
   late String _variant;
   bool _searching = false;
   bool _polling = false;
@@ -44,6 +55,19 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   Timer? _pollTimer;
   int _pollAttempt = 0;
   DateTime? _lastQueueRefresh;
+=======
+  late SudokuVariant _variant;
+  CompetitiveProfile? _profile;
+  bool _searching = false;
+  bool _polling = false;
+  bool _cancelling = false;
+  bool _openingRoom = false;
+  Timer? _pollTimer;
+  int _pollAttempt = 0;
+  int? _queueRating;
+  String? _searchStatus;
+  Future<VariantMatchmakingResult>? _activeQueueRequest;
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
 
   int get _selectedEntryFee => _economy.entryFeeForDifficulty(_difficulty.name);
 
@@ -61,7 +85,14 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   @override
   void dispose() {
     _pollTimer?.cancel();
+<<<<<<< HEAD
     _economy.removeListener(_onEconomyChanged);
+=======
+    if (_searching && !_openingRoom) {
+      unawaited(_matchmaking.cancelRankedQueue());
+    }
+    _economy.removeListener(_refresh);
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
     super.dispose();
   }
 
@@ -72,7 +103,27 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   @override
   Widget build(BuildContext context) {
     if (_searching) {
+<<<<<<< HEAD
       return _FullScreenSearchingStage(onCancel: _cancelSearch, error: _error);
+=======
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) unawaited(_cancelSearch());
+        },
+        child: MatchmakingStage(
+          currentPlayer: _currentVisualPlayer(context),
+          actionLabel: context.tr('cancel_search'),
+          actionIcon: Icons.close_rounded,
+          actionBusy: _cancelling,
+          onAction: _cancelling ? null : _cancelSearch,
+          onClose: _cancelling ? null : _cancelSearch,
+          searchStatus: _cancelling
+              ? context.tr('cancel_search')
+              : _searchStatus,
+        ),
+      );
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
     }
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
@@ -117,6 +168,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                             ),
                           ),
                         ],
+<<<<<<< HEAD
                       ),
                       const SizedBox(height: 12),
                       _EntrySummary(economy: _economy, difficulty: _difficulty),
@@ -127,6 +179,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
+=======
+                        const Spacer(),
+                        _EntryBar(
+                          fee: _entryFee,
+                          pot: _economy.winnerPotForDifficulty(_difficulty.name),
+                          variant: _variant,
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -231,7 +290,48 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                 ),
                               ],
                             ),
+<<<<<<< HEAD
                           ),
+=======
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: FilledButton.icon(
+                                onPressed: _economy.loading
+                                    ? null
+                                    : _canEnter
+                                        ? _findOpponent
+                                        : _showInsufficientCoins,
+                                style: FilledButton.styleFrom(
+                                  minimumSize: Size(0, compact ? 46 : 50),
+                                  backgroundColor: _canEnter
+                                      ? const Color(0xFF29D398)
+                                      : const Color(0xFFFFC73D),
+                                  foregroundColor: const Color(0xFF07111E),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                icon: Icon(
+                                  _canEnter
+                                      ? Icons.travel_explore_rounded
+                                      : Icons.lock_rounded,
+                                  size: 20,
+                                ),
+                                label: Text(
+                                  _canEnter
+                                      ? context.tr('find_opponent')
+                                      : context.tr('open_coin_store'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
                         ),
                       ],
                     ],
@@ -245,12 +345,151 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     );
   }
 
+<<<<<<< HEAD
   void _openLocalPractice() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => DuelScreen(difficulty: _difficulty)),
     );
   }
 
+=======
+  MatchmakingVisualPlayer _currentVisualPlayer(BuildContext context) {
+    final profile = _profile;
+    if (profile == null) {
+      return MatchmakingVisualPlayer(
+        displayName: context.tr('you'),
+        avatarKey: 'matchmaking-you',
+        rating: _queueRating,
+      );
+    }
+    return MatchmakingVisualPlayer(
+      displayName: profile.displayName,
+      avatarKey: profile.avatarKey,
+      rankLabel: profile.rankName,
+      gamesPlayed: profile.wins + profile.losses + profile.draws,
+      winRate: profile.winRate,
+      rating: _queueRating ?? profile.currentElo,
+    );
+  }
+
+  Widget _variantSection(bool compact) {
+    return _SectionCard(
+      title: 'Sudoku',
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final variant in SudokuVariant.values) ...[
+            Expanded(
+              child: _VariantCard(
+                variant: variant,
+                selected: _variant.id == variant.id,
+                compact: compact,
+                onTap: () => setState(() => _variant = variant),
+              ),
+            ),
+            if (variant != SudokuVariant.values.last) const SizedBox(width: 7),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _difficultySection(bool compact) {
+    return _SectionCard(
+      title: context.tr('choose_duel_difficulty'),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final buttonWidth = (constraints.maxWidth - 12) / 3;
+          return Align(
+            alignment: Alignment.topCenter,
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              alignment: WrapAlignment.center,
+              runAlignment: WrapAlignment.center,
+              children: [
+                for (final difficulty in SudokuDifficulty.values)
+                  SizedBox(
+                    width: buttonWidth,
+                    height: compact ? 30 : 34,
+                    child: ChoiceChip(
+                      selected: _difficulty == difficulty,
+                      onSelected: (_) {
+                        setState(() => _difficulty = difficulty);
+                      },
+                      label: SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          context.strings.difficultyLabel(difficulty),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      showCheckmark: false,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                      selectedColor: const Color(0xFF29D398),
+                      backgroundColor: const Color(0xFF122234),
+                      labelStyle: TextStyle(
+                        color: _difficulty == difficulty
+                            ? const Color(0xFF07111E)
+                            : Colors.white,
+                        fontSize: compact ? 10 : 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      side: BorderSide(
+                        color: _difficulty == difficulty
+                            ? const Color(0xFF29D398)
+                            : Colors.white.withValues(alpha: .14),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _openLocalPractice() async {
+    final store = await LocalProgressStore.create();
+    final puzzle = _variant.id == SudokuVariantId.classic16
+        ? Classic16PuzzleFactory.generate(difficulty: _difficulty)
+        : SudokuEngine.generate(difficulty: _difficulty, size: 9);
+    if (!mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => EnhancedGameScreen(
+          puzzle: puzzle,
+          store: store,
+          allowNotes: true,
+          showNextAction: false,
+          onCompleted: ({required seconds, required mistakes, required hints}) =>
+              store.recordResult(
+                puzzleId: puzzle.id,
+                seconds: seconds,
+                mistakes: mistakes,
+                hints: hints,
+                variant: _variant,
+              ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openStore() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
+    );
+    await _economy.refresh(showLoading: false);
+  }
+
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
   Future<void> _showInsufficientCoins() async {
     await _economy.refresh();
     if (!mounted) return;
@@ -354,8 +593,17 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     );
   }
 
+  Future<void> _loadCurrentProfile() async {
+    try {
+      final profile = await SocialApiClient.instance.loadCompetitiveProfile();
+      if (mounted) setState(() => _profile = profile);
+    } catch (_) {
+      // Matchmaking can continue with the authenticated room identity fallback.
+    }
+  }
+
   Future<void> _findOpponent() async {
-    if (_searching) return;
+    if (_searching || _openingRoom) return;
     await _economy.refresh();
     if (!mounted) return;
     if (!_canEnterSelectedDifficulty) {
@@ -365,12 +613,20 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
     setState(() {
       _searching = true;
+<<<<<<< HEAD
       _error = null;
       _lastQueueRefresh = null;
+=======
+      _cancelling = false;
+      _searchStatus = null;
+      _queueRating = null;
+      _pollAttempt = 0;
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
     });
 
     try {
       await FirebaseSessionService.ensureAnonymousSession();
+<<<<<<< HEAD
       final result = await SocialApiClient.instance.joinRankedQueue(
         difficulty: _difficulty.name,
         variant: _variant,
@@ -380,6 +636,14 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       final roomId = result.roomId;
       if (roomId != null && roomId.isNotEmpty) {
         _openOnlineRoom(roomId);
+=======
+      unawaited(_loadCurrentProfile());
+      final result = await _joinSelectedQueue();
+      if (!mounted || !_searching) return;
+      _queueRating = result.rating;
+      if (result.matched) {
+        _openMatchedResult(result);
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
         return;
       }
 
@@ -389,8 +653,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           context.tr('matchmaking_unexpected_response'),
         );
       }
+<<<<<<< HEAD
       _lastQueueRefresh = DateTime.now();
       _startPollingForMatch();
+=======
+      if (mounted) setState(() {});
+      _startPolling();
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
     } on FirebaseSessionException catch (error) {
       if (!mounted) return;
       _stopSearchWithError(UserSafeError.message(context, error));
@@ -398,16 +667,145 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       if (error.statusCode == 409) {
         await _economy.refresh(showLoading: false);
       }
+<<<<<<< HEAD
+=======
+      if (mounted) {
+        await _stopWithError(UserSafeError.message(context, error));
+      }
+    } catch (_) {
+      if (mounted) {
+        await _stopWithError(context.tr('matchmaking_start_failed'));
+      }
+    }
+  }
+
+  Future<VariantMatchmakingResult> _joinSelectedQueue() async {
+    late final Future<VariantMatchmakingResult> request;
+    request = _matchmaking
+        .joinRankedQueue(
+          difficulty: _difficulty.name,
+          variant: _variant,
+        )
+        .then((result) {
+          if (result.variant.id != _variant.id ||
+              result.boardSize != _variant.boardSize ||
+              result.cellCount != _variant.cellCount) {
+            throw const SocialApiException(
+              409,
+              'The matchmaking room does not match the selected Sudoku size.',
+            );
+          }
+          return result;
+        });
+    _activeQueueRequest = request;
+    try {
+      return await request;
+    } finally {
+      if (identical(_activeQueueRequest, request)) {
+        _activeQueueRequest = null;
+      }
+    }
+  }
+
+  void _openMatchedResult(VariantMatchmakingResult result) {
+    if (_openingRoom) return;
+    final roomId = result.roomId?.trim() ?? '';
+    if (roomId.isEmpty) {
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
+      return;
+    }
+    if (_variant.id == SudokuVariantId.classic16 &&
+        !roomId.startsWith('classic16:')) {
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
+      return;
+    }
+    if (_variant.id == SudokuVariantId.classic9 &&
+        roomId.startsWith('classic16:')) {
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
+      return;
+    }
+    _openOnlineRoom(roomId);
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollAttempt = 0;
+    _scheduleNextPoll(immediate: true);
+  }
+
+  void _scheduleNextPoll({bool immediate = false}) {
+    _pollTimer?.cancel();
+    if (!_searching || _cancelling || !mounted) return;
+    final delay = immediate
+        ? Duration.zero
+        : matchmakingFallbackDelay(_pollAttempt++);
+    _pollTimer = Timer(delay, () => unawaited(_pollForMatch()));
+  }
+
+  Future<void> _pollForMatch() async {
+    if (!_searching || _polling || _cancelling) return;
+    _polling = true;
+    try {
+      final result = await _joinSelectedQueue();
+      if (!mounted || !_searching) return;
+      _queueRating = result.rating ?? _queueRating;
+      if (result.matched) {
+        _openMatchedResult(result);
+        return;
+      }
+      if (_searchStatus != null) {
+        setState(() => _searchStatus = null);
+      } else {
+        setState(() {});
+      }
+    } on SocialApiException catch (error) {
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
       if (!mounted) return;
       _stopSearchWithError(UserSafeError.message(context, error));
     } catch (_) {
+<<<<<<< HEAD
       _stopSearchWithError(context.tr('matchmaking_start_failed'));
     }
   }
 
-  Future<void> _cancelSearch() async {
+=======
+      if (mounted) {
+        setState(() {
+          _searchStatus = context.tr('connection_interrupted_retrying');
+        });
+      }
+    } finally {
+      _polling = false;
+      if (_searching && !_cancelling) _scheduleNextPoll();
+    }
+  }
+
+  Future<void> _stopWithError(String message) async {
     _pollTimer?.cancel();
     _pollTimer = null;
+    if (!mounted) return;
+    setState(() {
+      _searching = false;
+      _polling = false;
+      _cancelling = false;
+      _pollAttempt = 0;
+    });
+    final retry = await GameModal.error(
+      context,
+      title: context.tr('online_duel'),
+      message: message,
+      retryLabel: context.tr('retry'),
+      cancelLabel: context.tr('cancel'),
+    );
+    if (retry && mounted) unawaited(_findOpponent());
+  }
+
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
+  Future<void> _cancelSearch() async {
+    if (_cancelling || !_searching || _openingRoom) return;
+    _pollTimer?.cancel();
+    _pollTimer = null;
+<<<<<<< HEAD
     if (mounted) {
       setState(() {
         _searching = false;
@@ -418,16 +816,92 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       });
     }
 
+=======
+    final pending = _activeQueueRequest;
+    setState(() {
+      _cancelling = true;
+      _searchStatus = null;
+    });
+
+    VariantMatchmakingResult? lateResult;
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
     try {
       await SocialApiClient.instance.cancelRankedQueue();
     } catch (_) {
+<<<<<<< HEAD
       // Local play remains available if queue cancellation cannot reach server.
+=======
+      // A second cleanup attempt follows after any in-flight join completes.
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
     }
+
+    if (pending != null) {
+      try {
+        lateResult = await pending;
+      } catch (_) {
+        lateResult = null;
+      }
+    }
+    if (!mounted || _openingRoom) return;
+    if (lateResult?.matched == true) {
+      _cancelling = false;
+      _openMatchedResult(lateResult!);
+      return;
+    }
+
+    try {
+      // If the first DELETE raced a POST that re-created our queue row,
+      // clean it again after that POST has completed.
+      await _matchmaking.cancelRankedQueue();
+    } catch (_) {
+      // Returning to the selection screen must remain possible while offline.
+    }
+
+    try {
+      // Another player's coordinator may have claimed our queue entry just
+      // before DELETE. Recover that funded room instead of abandoning it.
+      final active = await SocialApiClient.instance.activeMatch();
+      final roomId = active?['roomId']?.toString().trim() ?? '';
+      if (roomId.isNotEmpty && mounted) {
+        _cancelling = false;
+        _openRecoveredRoom(roomId);
+        return;
+      }
+    } catch (_) {
+      // Offline cancellation still returns to the selection screen.
+    }
+
+    if (!mounted || _openingRoom) return;
+    setState(() {
+      _searching = false;
+      _polling = false;
+      _cancelling = false;
+      _searchStatus = null;
+      _pollAttempt = 0;
+      _activeQueueRequest = null;
+    });
+  }
+
+  void _openRecoveredRoom(String roomId) {
+    if (_variant.id == SudokuVariantId.classic16 &&
+        !roomId.startsWith('classic16:')) {
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
+      return;
+    }
+    if (_variant.id == SudokuVariantId.classic9 &&
+        roomId.startsWith('classic16:')) {
+      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
+      return;
+    }
+    _openOnlineRoom(roomId);
   }
 
   void _openOnlineRoom(String roomId) {
+    if (_openingRoom || !mounted) return;
+    _openingRoom = true;
     _pollTimer?.cancel();
     _pollTimer = null;
+<<<<<<< HEAD
     if (mounted) {
       setState(() {
         _searching = false;
@@ -441,15 +915,43 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         .push(
           MaterialPageRoute(
             builder: (_) => PreMatchReadyScreen(roomId: roomId),
+=======
+    setState(() {
+      _searching = false;
+      _polling = false;
+      _cancelling = false;
+      _searchStatus = null;
+    });
+    final initialPlayer = _currentVisualPlayer(context);
+    Navigator.of(context)
+        .push<String>(
+          PageRouteBuilder<String>(
+            transitionDuration: const Duration(milliseconds: 180),
+            reverseTransitionDuration: const Duration(milliseconds: 160),
+            pageBuilder: (_, _, _) => PreMatchReadyScreen(
+              roomId: roomId,
+              initialCurrentPlayer: initialPlayer,
+            ),
+            transitionsBuilder: (_, animation, _, child) => FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOut,
+              ),
+              child: child,
+            ),
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
           ),
         )
         .then((action) {
           unawaited(_economy.refresh(showLoading: false));
           if (!mounted) return;
+          _openingRoom = false;
           if (action == 'new_match') {
             unawaited(_findOpponent());
           } else if (action == 'menu') {
             Navigator.of(context).pop();
+          } else {
+            setState(() {});
           }
         });
   }
@@ -699,11 +1201,206 @@ class _StartActions extends StatelessWidget {
     required this.onLocalPractice,
   });
 
+<<<<<<< HEAD
   final bool canEnterOnline;
   final bool loading;
   final VoidCallback onFindOpponent;
   final VoidCallback onInsufficientCoins;
   final VoidCallback onLocalPractice;
+=======
+  final SudokuVariant variant;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final is16 = variant.id == SudokuVariantId.classic16;
+    final accent = is16 ? const Color(0xFF35D2FF) : const Color(0xFFFFC73D);
+    return Semantics(
+      selected: selected,
+      button: true,
+      label: variant.label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(13),
+          child: Ink(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 7 : 9,
+              vertical: 6,
+            ),
+            decoration: BoxDecoration(
+              color: selected
+                  ? accent.withValues(alpha: .15)
+                  : const Color(0xFF07111E),
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(
+                color: selected
+                    ? accent
+                    : Colors.white.withValues(alpha: .09),
+                width: selected ? 1.7 : 1,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: compact ? 42 : 48,
+                  height: compact ? 42 : 48,
+                  child: Center(
+                    child: DuelAssetIcon(
+                      is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
+                      size: compact ? 38 : 44,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        variant.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        strutStyle: const StrutStyle(
+                          forceStrutHeight: true,
+                          height: 1.05,
+                        ),
+                        style: TextStyle(
+                          color: selected ? accent : Colors.white,
+                          fontSize: compact ? 13 : 15,
+                          height: 1.05,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        is16 ? '1–16' : '1–9',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .55),
+                          fontSize: 10,
+                          height: 1.05,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: 19,
+                  child: selected
+                      ? Icon(Icons.check_rounded, color: accent, size: 18)
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EntryBar extends StatelessWidget {
+  const _EntryBar({
+    required this.fee,
+    required this.pot,
+    required this.variant,
+  });
+
+  final int fee;
+  final int pot;
+  final SudokuVariant variant;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFFFC73D).withValues(alpha: .10),
+            const Color(0xFF102235),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF29D398).withValues(alpha: .32),
+        ),
+      ),
+      child: Row(
+        children: [
+          const DuelAssetIcon(DuelAsset.coin, size: 40),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _EntryValue(
+                    label: context.tr('entry_fee'),
+                    value: context.tr('coin_amount', <Object>[fee]),
+                    color: const Color(0xFFFFC73D),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white.withValues(alpha: .38),
+                    size: 18,
+                  ),
+                ),
+                Expanded(
+                  child: _EntryValue(
+                    label: context.tr('winner_pot'),
+                    value: context.tr('coin_amount', <Object>[pot]),
+                    color: const Color(0xFF29D398),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 5),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFF07111E).withValues(alpha: .62),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              variant.label,
+              style: const TextStyle(
+                color: Color(0xFF35D2FF),
+                fontSize: 9.5,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EntryValue extends StatelessWidget {
+  const _EntryValue({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
 
   @override
   Widget build(BuildContext context) {
@@ -747,6 +1444,7 @@ class _StartActions extends StatelessWidget {
     );
   }
 }
+<<<<<<< HEAD
 
 class _FullScreenSearchingStage extends StatefulWidget {
   const _FullScreenSearchingStage({required this.onCancel, this.error});
@@ -1230,3 +1928,5 @@ class _SelectionGlyph extends StatelessWidget {
     );
   }
 }
+=======
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('online matchmaking keeps expert visible and variant-safe', () {
+  test('online matchmaking keeps expert visible, variant-safe, and cancel-race safe', () {
     final source = File(
       'lib/features/duel/matchmaking_screen.dart',
     ).readAsStringSync();
@@ -12,9 +12,19 @@ void main() {
       source,
       contains('for (final difficulty in SudokuDifficulty.values)'),
     );
+<<<<<<< HEAD
     expect(source, contains('SocialApiClient.instance.joinRankedQueue('));
     expect(source, contains('variant: _variant'));
     expect(source, contains("widget.initialVariant == 'samurai'"));
+=======
+    expect(
+      source,
+      contains('Future<VariantMatchmakingResult> _joinSelectedQueue()'),
+    );
+    expect(source, contains("roomId.startsWith('classic16:')"));
+    expect(source, contains('final pending = _activeQueueRequest;'));
+    expect(source, contains('await _matchmaking.cancelRankedQueue();'));
+>>>>>>> 57ac512da8bc2fd8e78c3eab5c59e303afa81a83
     expect(source, contains('SocialApiClient.instance.activeMatch()'));
   });
 
