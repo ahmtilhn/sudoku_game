@@ -190,7 +190,7 @@ class _ProfileHeader extends StatelessWidget {
           children: [
             _RankBadge(label: profile.rankName),
             _SoftBadge(
-              label: platformConnected ? platformName : 'Account',
+              label: platformConnected ? platformName : context.tr('account'),
               color: platformConnected
                   ? const Color(0xFF29D398)
                   : const Color(0xFF8EA2AD),
@@ -198,7 +198,7 @@ class _ProfileHeader extends StatelessWidget {
             ),
             if (privateProfile)
               _SoftBadge(
-                label: 'Private',
+                label: context.tr('private'),
                 color: const Color(0xFFB7A9FF),
                 asset: DuelAsset.lock,
               ),
@@ -230,7 +230,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
               Text(
-                'ELO',
+                context.tr('home_rating_label'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: .52),
                   fontSize: 11,
@@ -279,8 +279,8 @@ class _ProfileHeader extends StatelessWidget {
               color: const Color(0xFF29D398),
             ),
             _EloMicroMetric(
-              label: 'Record',
-              value: '$gamesPlayed games',
+              label: context.tr('record'),
+              value: context.tr('games_count', <Object>[gamesPlayed]),
               color: const Color(0xFF3AA9FF),
             ),
           ],
@@ -402,7 +402,7 @@ class _FriendIdPill extends StatelessWidget {
                   maxWidth: MediaQuery.sizeOf(context).width - 126,
                 ),
                 child: Text(
-                  publicId.isEmpty ? 'Friend ID' : publicId,
+                  publicId.isEmpty ? context.tr('friend_id') : publicId,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -443,19 +443,19 @@ class _ProfilePerformanceStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final cells = [
       _PerformanceCellData(
-        label: 'Wins',
+        label: context.tr('wins'),
         value: '${profile.wins}',
         asset: DuelAsset.trophy,
         accent: const Color(0xFF66C7FF),
       ),
       _PerformanceCellData(
-        label: 'Losses',
+        label: context.tr('losses'),
         value: '${profile.losses}',
         asset: DuelAsset.grid,
         accent: const Color(0xFFB7A9FF),
       ),
       _PerformanceCellData(
-        label: 'Games',
+        label: context.tr('games'),
         value: '$gamesPlayed',
         asset: DuelAsset.grid,
         accent: const Color(0xFF3AA9FF),

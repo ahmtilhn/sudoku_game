@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
 import '../../services/economy_v3_api_client.dart';
 import '../../services/economy_v3_service.dart';
@@ -34,7 +35,10 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
     await _economy.initialize();
     if (!mounted) return;
     final result = await _economy.claimDailyIfAvailable();
-    if (!mounted || result == null || !result.granted || result.reward == null) {
+    if (!mounted ||
+        result == null ||
+        !result.granted ||
+        result.reward == null) {
       return;
     }
     await _showRewardDialog(result);
@@ -61,7 +65,9 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                 side: BorderSide(color: Colors.white.withValues(alpha: .12)),
               ),
               title: Text(
-                'Day ${result.cycleDay ?? result.state.dailyCycleDay} reward',
+                context.tr('daily_reward_day_title', <Object>[
+                  result.cycleDay ?? result.state.dailyCycleDay,
+                ]),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
@@ -82,8 +88,10 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                   const SizedBox(height: 14),
                   Text(
                     reward.isCoin
-                        ? '+${reward.amount} Coins'
-                        : '+1 Hint Refill',
+                        ? context.tr('coin_reward_value', <Object>[
+                            reward.amount,
+                          ])
+                        : context.tr('hint_refill_reward_value'),
                     style: const TextStyle(
                       color: Color(0xFFFFC94D),
                       fontSize: 24,
@@ -94,9 +102,9 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                   Text(
                     reward.isCoin
                         ? (doubled
-                              ? 'Daily reward doubled.'
-                              : 'Come back tomorrow to continue your 30-day track.')
-                        : 'A Hint Refill restores an empty hint meter to full.',
+                              ? context.tr('daily_reward_doubled')
+                              : context.tr('daily_reward_track_body'))
+                        : context.tr('hint_refill_reward_body'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .72),
@@ -113,8 +121,8 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                         ? null
                         : () async {
                             setDialogState(() => doubling = true);
-                            final doubledResult =
-                                await _economy.doubleLastDailyReward();
+                            final doubledResult = await _economy
+                                .doubleLastDailyReward();
                             if (!mounted) return;
                             setDialogState(() {
                               doubling = false;
@@ -123,12 +131,22 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                           },
                     icon: const Icon(Icons.ondemand_video_rounded),
                     label: Text(
-                      doubling ? 'Loading…' : 'Watch ad · +${reward.amount}',
+                      doubling
+                          ? context.tr('loading')
+                          : context.tr('watch_ad_reward_value', <Object>[
+                              reward.amount,
+                            ]),
                     ),
                   ),
                 TextButton(
-                  onPressed: doubling ? null : () => Navigator.of(context).pop(),
-                  child: Text(doubled ? 'Continue' : 'Collect'),
+                  onPressed: doubling
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  child: Text(
+                    doubled
+                        ? context.tr('continue_action')
+                        : context.tr('collect'),
+                  ),
                 ),
               ],
             );

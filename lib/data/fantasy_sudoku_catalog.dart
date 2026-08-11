@@ -1,4 +1,5 @@
 import '../domain/sudoku.dart';
+import '../localization/app_strings.dart';
 
 class FantasySudokuCatalog {
   const FantasySudokuCatalog._();
@@ -27,7 +28,7 @@ class FantasySudokuCatalog {
 
     return SudokuPuzzle(
       id: 'fantasy-16-$normalizedSeed',
-      title: '16×16 Fantasy',
+      title: AppStrings.english['fantasy_mode_title']!,
       difficulty: SudokuDifficulty.expert,
       puzzle: List<int>.unmodifiable(transform(_basePuzzle)),
       solution: List<int>.unmodifiable(transform(_baseSolution)),

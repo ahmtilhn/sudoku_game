@@ -425,7 +425,7 @@ class _CareerHubScreenState extends State<CareerHubScreen>
         difficulty: level.difficulty,
         seed: level.seed,
         id: level.id,
-        title: '16x16 Level ${level.number}',
+        title: context.tr('fantasy_level_title', <Object>[level.number]),
       );
     }
     return CareerCatalog.puzzleFor(level);
@@ -943,7 +943,7 @@ class _CareerProgressPanel extends StatelessWidget {
                         value: totalCompleted > total
                             ? '$completed/$total+'
                             : '$completed/$total',
-                        label: 'Milestone',
+                        label: context.tr('milestone'),
                         asset: DuelAsset.grid,
                         color: const Color(0xFF3AA9FF),
                       ),
@@ -952,7 +952,7 @@ class _CareerProgressPanel extends StatelessWidget {
                       width: width,
                       child: _CareerMetric(
                         value: '$stars',
-                        label: 'Stars',
+                        label: context.tr('stars'),
                         asset: DuelAsset.trophy,
                         color: const Color(0xFFFFC94D),
                       ),
@@ -963,7 +963,9 @@ class _CareerProgressPanel extends StatelessWidget {
                         value: totalCompleted > total
                             ? 'Endless'
                             : '${nextLevel.chapter}',
-                        label: totalCompleted > total ? 'Track' : 'Chapter',
+                        label: totalCompleted > total
+                            ? context.tr('track')
+                            : context.tr('chapter'),
                         asset: DuelAsset.careerBook,
                         color: const Color(0xFF29D398),
                       ),
@@ -972,7 +974,7 @@ class _CareerProgressPanel extends StatelessWidget {
                       width: width,
                       child: _CareerMetric(
                         value: '${nextLevel.number}',
-                        label: 'Next level',
+                        label: context.tr('next_level'),
                         asset: DuelAsset.leaderboardCrownPro,
                         color: _difficultyAccent(nextLevel.difficulty),
                       ),

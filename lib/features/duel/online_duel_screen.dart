@@ -489,7 +489,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     }
     final puzzle = SudokuPuzzle(
       id: 'online-${snapshot.matchId}',
-      title: 'Online Duel',
+      title: context.tr('online_duel'),
       difficulty: _difficulty(snapshot.difficulty),
       puzzle: snapshot.puzzle,
       solution: List<int>.filled(snapshot.cellCount, 1),

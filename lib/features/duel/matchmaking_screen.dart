@@ -279,7 +279,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   Widget _variantSection(bool compact) {
     return _SectionCard(
-      title: 'Sudoku',
+      title: context.tr('sudoku'),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

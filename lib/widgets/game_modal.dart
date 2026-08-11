@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_strings.dart';
 import 'duel_asset_icon.dart';
 
 enum GameModalTone { info, success, warning, error, offline }
@@ -212,7 +213,7 @@ class _GameModalDialog extends StatelessWidget {
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('OK'),
+                        child: Text(context.tr('ok')),
                       ),
                     ),
                 ],

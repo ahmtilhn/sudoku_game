@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../localization/app_strings.dart';
 import 'reminder_message_catalog.dart';
 
 class ReminderNotificationService {
@@ -135,16 +136,16 @@ class ReminderNotificationService {
     final messages = ReminderMessageCatalog.shuffled(seed: _seed ^ daySeed);
     final scheduledDates = _nextScheduleDates(now);
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         'daily_sudoku_challenges',
-        'Daily Sudoku challenges',
+        AppStrings.english['daily_sudoku_challenges']!,
         channelDescription:
-            'Daily reminders to return for a fresh Sudoku challenge.',
+            AppStrings.english['daily_sudoku_challenges_channel']!,
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
       ),
-      iOS: DarwinNotificationDetails(
+      iOS: const DarwinNotificationDetails(
         threadIdentifier: 'daily-sudoku-challenges',
       ),
     );
@@ -152,7 +153,7 @@ class ReminderNotificationService {
     for (var index = 0; index < scheduledDates.length; index++) {
       await _plugin.zonedSchedule(
         id: _firstNotificationId + index,
-        title: 'Sudoku Duel',
+        title: AppStrings.english['app_name']!,
         body: messages[index],
         scheduledDate: scheduledDates[index],
         notificationDetails: details,

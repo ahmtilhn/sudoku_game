@@ -216,10 +216,10 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
                   InPageHeader(
-                    title: 'Friends & challenges',
+                    title: context.tr('friends_challenges'),
                     actions: [
                       IconButton(
-                        tooltip: 'Refresh',
+                        tooltip: context.tr('refresh'),
                         onPressed: _loading ? null : _refresh,
                         icon: const Icon(Icons.refresh),
                       ),
@@ -228,7 +228,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
                   if (_error != null) ...[
                     _MessageCard(
                       icon: Icons.error_outline,
-                      title: 'Service message',
+                      title: context.tr('service_message'),
                       body: _error!,
                     ),
                     const SizedBox(height: 12),
@@ -271,7 +271,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
                     if (_searchResults.isNotEmpty) ...[
                       const SizedBox(height: 14),
                       _SocialPlayerSection(
-                        title: 'Search results',
+                        title: context.tr('search_results'),
                         emptyText: '',
                         players: _searchResults,
                         onChallenge: _challenge,
@@ -282,17 +282,15 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
                     _buildPendingChallenges(),
                     const SizedBox(height: 22),
                     _SocialPlayerSection(
-                      title: 'Sudoku Duel friends',
-                      emptyText:
-                          'Search a username and send a friend request to build your list.',
+                      title: context.tr('sudoku_duel_friends'),
+                      emptyText: context.tr('friends_empty_body'),
                       players: _friends,
                       onChallenge: _challenge,
                     ),
                     const SizedBox(height: 22),
                     _SocialPlayerSection(
-                      title: 'Recent opponents',
-                      emptyText:
-                          'Players you finish an online match with will appear here.',
+                      title: context.tr('recent_opponents'),
+                      emptyText: context.tr('recent_opponents_empty_body'),
                       players: _recentOpponents,
                       onChallenge: _challenge,
                       onAddFriend: _addFriend,
@@ -321,11 +319,10 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         body: UxCopy.accountError(context),
       );
     }
-    return const _MessageCard(
+    return _MessageCard(
       icon: Icons.cloud_done_outlined,
-      title: 'Cross-platform social service',
-      body:
-          'Sudoku Duel usernames, friends, recent opponents, and challenges are connected through the shared backend.',
+      title: context.tr('cross_platform_social_service'),
+      body: context.tr('cross_platform_social_service_body'),
     );
   }
 
@@ -355,17 +352,15 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
           ),
           title: Text(
             granted
-                ? 'Challenge notifications enabled'
-                : 'Enable challenge notifications',
+                ? context.tr('challenge_notifications_enabled')
+                : context.tr('enable_challenge_notifications'),
           ),
-          subtitle: const Text(
-            'Receive invitations and responses even while Sudoku Duel is closed.',
-          ),
+          subtitle: Text(context.tr('challenge_notifications_body')),
           trailing: granted
               ? const Icon(Icons.check_circle_outline)
               : FilledButton(
                   onPressed: _enableChallengeNotifications,
-                  child: const Text('Enable'),
+                  child: Text(context.tr('enable')),
                 ),
         ),
       ),
@@ -379,8 +374,8 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       onSubmitted: (_) => _search(),
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.search),
-        labelText: 'Search Sudoku Duel username',
-        helperText: 'Enter at least 3 characters.',
+        labelText: context.tr('search_sudoku_duel_username'),
+        helperText: context.tr('enter_three_characters'),
         border: const OutlineInputBorder(),
         suffixIcon: _searching
             ? const Padding(
@@ -392,7 +387,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
                 ),
               )
             : IconButton(
-                tooltip: 'Search',
+                tooltip: context.tr('search'),
                 onPressed: _search,
                 icon: const Icon(Icons.search),
               ),
@@ -410,18 +405,17 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Pending challenges',
+          context.tr('pending_challenges'),
           style: Theme.of(
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 10),
         if (incoming.isEmpty)
-          const _MessageCard(
+          _MessageCard(
             icon: Icons.bolt_outlined,
-            title: 'No pending challenges',
-            body:
-                'New invitations will appear here and can also arrive by push notification.',
+            title: context.tr('no_pending_challenges'),
+            body: context.tr('pending_challenges_empty_body'),
           )
         else
           for (final challenge in incoming)
@@ -433,19 +427,22 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 subtitle: Text(
-                  '${_difficultyLabel(challenge.difficulty)} challenge · expires ${_shortTime(challenge.expiresAt)}',
+                  context.tr('challenge_expires_at', <Object>[
+                    _difficultyLabel(challenge.difficulty),
+                    _shortTime(challenge.expiresAt),
+                  ]),
                 ),
                 trailing: Wrap(
                   spacing: 4,
                   children: [
                     IconButton(
-                      tooltip: 'Decline',
+                      tooltip: context.tr('decline'),
                       onPressed: () => _respondChallenge(challenge, false),
                       icon: const Icon(Icons.close),
                     ),
                     FilledButton(
                       onPressed: () => _respondChallenge(challenge, true),
-                      child: const Text('Accept'),
+                      child: Text(context.tr('accept')),
                     ),
                   ],
                 ),
@@ -467,7 +464,10 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
   Future<void> _addFriend(SocialPlayer player) async {
     try {
       await _social.sendFriendRequest(player.publicId);
-      _showMessage('Friend request sent to ${player.displayName}.');
+      if (!mounted) return;
+      _showMessage(
+        context.tr('friend_request_sent_to', <Object>[player.displayName]),
+      );
       await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
       if (!mounted) return;
@@ -479,7 +479,9 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
     final difficulty = await showDialog<SudokuDifficulty>(
       context: context,
       builder: (dialogContext) => SimpleDialog(
-        title: Text('Challenge ${player.displayName}'),
+        title: Text(
+          context.tr('challenge_player', <Object>[player.displayName]),
+        ),
         children: [
           for (final value in SudokuDifficulty.values)
             SimpleDialogOption(
@@ -499,7 +501,10 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
         recipientPublicId: player.publicId,
         difficulty: difficulty.name,
       );
-      _showMessage('Challenge sent to ${player.displayName}.');
+      if (!mounted) return;
+      _showMessage(
+        context.tr('challenge_sent_to', <Object>[player.displayName]),
+      );
       await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
       if (!mounted) return;
@@ -521,7 +526,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
           ),
         );
       } else {
-        _showMessage('Challenge declined.');
+        _showMessage(context.tr('challenge_declined'));
       }
       await _refreshSocial(showLoading: false);
     } on SocialApiException catch (error) {
@@ -537,7 +542,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
 
   String _difficultyLabel(String value) {
     return value.isEmpty
-        ? 'Easy'
+        ? context.tr('difficulty_easy')
         : '${value[0].toUpperCase()}${value.substring(1)}';
   }
 
@@ -564,21 +569,21 @@ class _SignInCard extends StatelessWidget {
             const Icon(Icons.sports_esports_outlined, size: 44),
             const SizedBox(height: 12),
             Text(
-              'Connect your platform profile',
+              context.tr('connect_platform_profile'),
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Use Play Games or Game Center for native friends, leaderboards, achievements, and player profiles.',
+            Text(
+              context.tr('connect_platform_profile_body'),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
               onPressed: onPressed,
               icon: const Icon(Icons.login),
-              label: const Text('Connect platform profile'),
+              label: Text(context.tr('connect_platform_profile')),
             ),
           ],
         ),
@@ -598,7 +603,7 @@ class _PlatformProfileCard extends StatelessWidget {
       child: ListTile(
         leading: const CircleAvatar(child: Icon(Icons.person_outline)),
         title: Text(
-          player?.displayName ?? 'Connected player',
+          player?.displayName ?? context.tr('connected_player'),
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         subtitle: Text(
@@ -628,17 +633,17 @@ class _PlatformActions extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: () => _run(context, services.showLeaderboard),
           icon: const Icon(Icons.leaderboard_outlined),
-          label: const Text('Leaderboard'),
+          label: Text(context.tr('leaderboard')),
         ),
         OutlinedButton.icon(
           onPressed: () => _run(context, services.showAchievements),
           icon: const Icon(Icons.emoji_events_outlined),
-          label: const Text('Achievements'),
+          label: Text(context.tr('achievements')),
         ),
         OutlinedButton.icon(
           onPressed: () => _run(context, services.showFriends),
           icon: const Icon(Icons.people_outline),
-          label: const Text('Platform friends'),
+          label: Text(context.tr('platform_friends')),
         ),
       ],
     );

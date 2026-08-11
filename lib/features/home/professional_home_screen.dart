@@ -325,7 +325,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
       _HomeModeData(
         asset: DuelAsset.homePlayScene,
         title: context.tr('play'),
-        subtitle: '9×9 · 16×16',
+        subtitle: context.tr('classic_variants_short'),
         accent: const Color(0xFFFFC73D),
         onTap: _showQuickPlay,
         primary: true,

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../domain/sudoku.dart';
+import '../localization/app_strings.dart';
 
 class PuzzleCatalog {
   const PuzzleCatalog._();
@@ -51,7 +52,7 @@ class PuzzleCatalog {
       SudokuDifficulty.medium,
       seed: seed,
       idPrefix: 'daily',
-      title: 'Daily Sudoku',
+      title: AppStrings.english['daily_puzzle_title']!,
     );
   }
 
@@ -63,13 +64,13 @@ class PuzzleCatalog {
       difficulty,
       seed: seed,
       idPrefix: 'duel',
-      title: 'Duel',
+      title: AppStrings.english['duel_puzzle_title']!,
     );
   }
 
-  static const SudokuPuzzle tutorialPuzzle = SudokuPuzzle(
+  static final SudokuPuzzle tutorialPuzzle = SudokuPuzzle(
     id: 'tutorial-4x4',
-    title: 'Mini Sudoku',
+    title: AppStrings.english['mini_sudoku_title']!,
     difficulty: SudokuDifficulty.beginner,
     size: 4,
     boxRows: 2,

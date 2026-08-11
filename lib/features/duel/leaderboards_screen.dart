@@ -760,16 +760,16 @@ class _Filters extends StatelessWidget {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SegmentedButton<SudokuVariant>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: SudokuVariant.classic9,
-                  label: Text('9×9'),
-                  icon: Icon(Icons.grid_3x3_rounded),
+                  label: Text(context.tr('classic_9x9')),
+                  icon: const Icon(Icons.grid_3x3_rounded),
                 ),
                 ButtonSegment(
                   value: SudokuVariant.classic16,
-                  label: Text('16×16'),
-                  icon: Icon(Icons.grid_4x4_rounded),
+                  label: Text(context.tr('classic_16x16')),
+                  icon: const Icon(Icons.grid_4x4_rounded),
                 ),
               ],
               selected: <SudokuVariant>{variant},
@@ -956,9 +956,11 @@ class _LeaderboardSummaryStrip extends StatelessWidget {
                 SizedBox(
                   width: width,
                   child: _SummaryCell(
-                    label: 'Zirve',
+                    label: context.tr('top_rank'),
                     value: top == null ? '-' : top.displayName,
-                    detail: top == null ? 'No score' : '${top.rating} ELO',
+                    detail: top == null
+                        ? context.tr('no_score')
+                        : context.tr('rating_value', <Object>[top.rating]),
                     asset: DuelAsset.leaderboardCrownPro,
                     color: const Color(0xFF66C7FF),
                   ),
@@ -966,11 +968,11 @@ class _LeaderboardSummaryStrip extends StatelessWidget {
                 SizedBox(
                   width: width,
                   child: _SummaryCell(
-                    label: 'Senin siranda',
+                    label: context.tr('your_rank'),
                     value: currentRank == null ? '-' : '#$currentRank',
                     detail: current == null
-                        ? 'No ELO'
-                        : '${current!.rating} ELO',
+                        ? context.tr('no_elo')
+                        : context.tr('rating_value', <Object>[current!.rating]),
                     asset: DuelAsset.profilePro,
                     color: const Color(0xFFB7A9FF),
                   ),
@@ -978,9 +980,11 @@ class _LeaderboardSummaryStrip extends StatelessWidget {
                 SizedBox(
                   width: width,
                   child: _SummaryCell(
-                    label: 'Tablo',
+                    label: context.tr('board'),
                     value: audienceLabel,
-                    detail: '${entries.length} shown',
+                    detail: context.tr('entries_shown', <Object>[
+                      entries.length,
+                    ]),
                     asset: DuelAsset.people,
                     color: const Color(0xFF29D398),
                   ),
@@ -1148,7 +1152,7 @@ class _PodiumCard extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            '${tier.label} · ${entry.rating} ELO',
+            '${tier.label(context)} · ${context.tr('rating_value', <Object>[entry.rating])}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -1251,7 +1255,7 @@ class _LeaderboardEntryTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${tier.label} · ${context.tr('wins_losses_draws')} ${entry.wins}/${entry.losses}/${entry.draws}'
+                      '${tier.label(context)} · ${context.tr('wins_losses_draws')} ${entry.wins}/${entry.losses}/${entry.draws}'
                       '${entry.winStreak > 0 ? ' · Streak ${entry.winStreak}' : ''}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1318,54 +1322,56 @@ class _LeaderboardEntryTile extends StatelessWidget {
 
 class _EloTierData {
   const _EloTierData({
-    required this.label,
+    required this.labelKey,
     required this.shortLabel,
     required this.color,
   });
 
-  final String label;
+  final String labelKey;
   final String shortLabel;
   final Color color;
+
+  String label(BuildContext context) => context.tr(labelKey);
 }
 
 _EloTierData _tierForRating(int rating) {
   if (rating >= 2100) {
     return const _EloTierData(
-      label: 'Master',
+      labelKey: 'tier_master',
       shortLabel: 'M',
       color: Color(0xFF29D398),
     );
   }
   if (rating >= 1800) {
     return const _EloTierData(
-      label: 'Diamond',
+      labelKey: 'tier_diamond',
       shortLabel: 'D',
       color: Color(0xFFB7A9FF),
     );
   }
   if (rating >= 1600) {
     return const _EloTierData(
-      label: 'Platinum',
+      labelKey: 'tier_platinum',
       shortLabel: 'P',
       color: Color(0xFF66C7FF),
     );
   }
   if (rating >= 1400) {
     return const _EloTierData(
-      label: 'Gold',
+      labelKey: 'tier_gold',
       shortLabel: 'G',
       color: Color(0xFFD1E889),
     );
   }
   if (rating >= 1200) {
     return const _EloTierData(
-      label: 'Silver',
+      labelKey: 'tier_silver',
       shortLabel: 'S',
       color: Color(0xFFC8D7E3),
     );
   }
   return const _EloTierData(
-    label: 'Bronze',
+    labelKey: 'tier_bronze',
     shortLabel: 'B',
     color: Color(0xFF9AA7B2),
   );

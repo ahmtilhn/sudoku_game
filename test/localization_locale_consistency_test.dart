@@ -39,6 +39,28 @@ void main() {
     }
   });
 
+  test('visible UI strings are routed through the localization catalog', () {
+    final directUiString = RegExp(
+      r"(Text|SelectableText)\('\w|"
+      r"title: '\w|subtitle: '\w|label: '\w|tooltip: '\w|"
+      r"helperText: '\w|labelText: '\w|hintText: '\w|"
+      r"child: const Text\('\w|child: Text\('\w",
+    );
+    final libFiles = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'));
+
+    for (final file in libFiles) {
+      final source = file.readAsStringSync();
+      expect(
+        directUiString.hasMatch(source),
+        isFalse,
+        reason: '${file.path} contains visible copy outside AppStrings',
+      );
+    }
+  });
+
   test('English localization catalog does not contain Turkish UI copy', () {
     final raw = File(
       'assets/localization/Localizable.xcstrings',

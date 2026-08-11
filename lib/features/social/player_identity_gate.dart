@@ -84,7 +84,7 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
           invitation.isSender ||
           invitation.expiresAt.isBefore(DateTime.now())) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This rematch invitation has expired.')),
+          SnackBar(content: Text(context.tr('rematch_invitation_expired'))),
         );
         return;
       }

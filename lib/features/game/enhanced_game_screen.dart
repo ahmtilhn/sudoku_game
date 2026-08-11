@@ -847,7 +847,7 @@ class _GameResultSheetState extends State<_GameResultSheet> {
                     value: '${widget.hints}',
                   ),
                   _ResultRow(
-                    label: 'Coin',
+                    label: context.tr('coin'),
                     value: '+${widget.earnedCoins}',
                     icon: const DuelAssetIcon(
                       DuelAsset.coin,
