@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- flutter_local_notifications resolves AndroidInitializationSettings by
-         drawable name, so keep this alias separate from the mipmap launcher. -->
-    <item name="ic_launcher" type="drawable">@drawable/ic_stat_sudoku</item>
-</resources>
