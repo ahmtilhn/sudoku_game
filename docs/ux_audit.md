@@ -52,7 +52,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | social | `ChallengeWaitingScreen`<br>`lib/features/social/challenge_waiting_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
 | social | `FriendRequestsScreen`<br>`lib/features/social/friend_requests_screen.dart` | Production screen | — | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | social | `GooglePlayGamesScreen`<br>`lib/features/social/google_play_games_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| social | `PlatformServicesScreen`<br>`lib/features/social/platform_services_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
+| social | `PlatformServicesScreen`<br>`lib/features/social/platform_services_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `PlatformSocialScreen`<br>`lib/features/social/platform_social_screen.dart` | Production screen | — | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `PlayerProfileScreen`<br>`lib/features/social/player_profile_screen.dart` | Forwarding wrapper | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | social | `ProfileHubScreen`<br>`lib/features/social/profile_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
@@ -72,7 +72,6 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 - `lib/features/home/ux_root_screen.dart`: Remote failure path needs user-safe mapping review
 - `lib/features/social/challenge_invitation_screen.dart`: Remote failure path needs user-safe mapping review
 - `lib/features/social/challenge_waiting_screen.dart`: Remote failure path needs user-safe mapping review
-- `lib/features/social/platform_services_screen.dart`: Remote failure path needs user-safe mapping review
 - `lib/features/social/profile_hub_screen.dart`: Remote failure path needs user-safe mapping review
 - `lib/features/social/social_hub_screen.dart`: Remote failure path needs user-safe mapping review
 - `lib/features/social/ux_challenge_invitation_screen.dart`: Remote failure path needs user-safe mapping review
