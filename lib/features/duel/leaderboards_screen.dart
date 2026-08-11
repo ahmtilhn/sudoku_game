@@ -956,7 +956,7 @@ class _LeaderboardSummaryStrip extends StatelessWidget {
                 SizedBox(
                   width: width,
                   child: _SummaryCell(
-                    label: 'Top player',
+                    label: 'Zirve',
                     value: top == null ? '-' : top.displayName,
                     detail: top == null ? 'No score' : '${top.rating} ELO',
                     asset: DuelAsset.leaderboardCrownPro,
@@ -966,7 +966,7 @@ class _LeaderboardSummaryStrip extends StatelessWidget {
                 SizedBox(
                   width: width,
                   child: _SummaryCell(
-                    label: context.tr('rank'),
+                    label: 'Senin siranda',
                     value: currentRank == null ? '-' : '#$currentRank',
                     detail: current == null
                         ? 'No ELO'
@@ -978,7 +978,7 @@ class _LeaderboardSummaryStrip extends StatelessWidget {
                 SizedBox(
                   width: width,
                   child: _SummaryCell(
-                    label: 'Board',
+                    label: 'Tablo',
                     value: audienceLabel,
                     detail: '${entries.length} shown',
                     asset: DuelAsset.people,
@@ -1100,41 +1100,41 @@ class _PodiumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final medal = switch (entry.rank) {
-      1 => '#1',
-      2 => '#2',
-      _ => '#3',
-    };
-    final accent = entry.rank == 1
-        ? const Color(0xFF66C7FF)
-        : entry.rank == 2
-        ? const Color(0xFFB7A9FF)
-        : const Color(0xFF29D398);
+    final tier = _tierForRating(entry.rating);
+    final accent = entry.rank == 1 ? const Color(0xFF66C7FF) : tier.color;
     return Container(
-      padding: EdgeInsets.fromLTRB(9, elevated ? 15 : 11, 9, 11),
+      padding: EdgeInsets.fromLTRB(10, elevated ? 16 : 12, 10, 12),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: elevated ? .30 : .22),
-        borderRadius: BorderRadius.circular(17),
+        color: Colors.black.withValues(alpha: elevated ? .34 : .23),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: accent.withValues(alpha: .28)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            medal,
-            style: TextStyle(
-              color: accent,
-              fontSize: elevated ? 18 : 15,
-              fontWeight: FontWeight.w900,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: accent.withValues(alpha: .2)),
+            ),
+            child: Text(
+              '#${entry.rank}',
+              style: TextStyle(
+                color: accent,
+                fontSize: elevated ? 16 : 13,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
-          const SizedBox(height: 5),
-          PlayerAvatar(
-            displayName: entry.displayName,
-            avatarKey: entry.avatarKey,
-            radius: elevated ? 25 : 22,
+          const SizedBox(height: 8),
+          _EloTierEmblem(
+            rating: entry.rating,
+            size: elevated ? 58 : 50,
+            elevated: elevated,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             entry.displayName,
             maxLines: 1,
@@ -1146,9 +1146,11 @@ class _PodiumCard extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Text(
-            '${entry.rating} ELO',
+            '${tier.label} · ${entry.rating} ELO',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: accent,
               fontSize: 11,
@@ -1169,9 +1171,10 @@ class _LeaderboardEntryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tier = _tierForRating(entry.rating);
     final accent = entry.rank <= 3 && !entry.isProvisional
         ? const Color(0xFF66C7FF)
-        : const Color(0xFFB7A9FF);
+        : tier.color;
     final winRate = '${(entry.winRate * 100).round()}%';
     return Material(
       color: Colors.transparent,
@@ -1179,7 +1182,7 @@ class _LeaderboardEntryTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(17),
         onTap: onTap,
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: .22),
             borderRadius: BorderRadius.circular(17),
@@ -1188,12 +1191,13 @@ class _LeaderboardEntryTile extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 36,
+                width: 52,
+                height: 46,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: .11),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: accent.withValues(alpha: .16)),
                 ),
                 child: entry.isProvisional
                     ? const Icon(
@@ -1204,19 +1208,16 @@ class _LeaderboardEntryTile extends StatelessWidget {
                     : Text(
                         '#${entry.rank}',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 16,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
               ),
-              const SizedBox(width: 7),
-              PlayerAvatar(
-                displayName: entry.displayName,
-                avatarKey: entry.avatarKey,
-                radius: 21,
-              ),
               const SizedBox(width: 10),
+              _EloTierEmblem(rating: entry.rating, size: 46),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1250,7 +1251,7 @@ class _LeaderboardEntryTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${context.tr('wins_losses_draws')} ${entry.wins}/${entry.losses}/${entry.draws}'
+                      '${tier.label} · ${context.tr('wins_losses_draws')} ${entry.wins}/${entry.losses}/${entry.draws}'
                       '${entry.winStreak > 0 ? ' · Streak ${entry.winStreak}' : ''}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1271,7 +1272,7 @@ class _LeaderboardEntryTile extends StatelessWidget {
                     '${entry.rating}',
                     style: TextStyle(
                       color: accent,
-                      fontSize: 15,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -1308,6 +1309,119 @@ class _LeaderboardEntryTile extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EloTierData {
+  const _EloTierData({
+    required this.label,
+    required this.shortLabel,
+    required this.color,
+  });
+
+  final String label;
+  final String shortLabel;
+  final Color color;
+}
+
+_EloTierData _tierForRating(int rating) {
+  if (rating >= 2100) {
+    return const _EloTierData(
+      label: 'Master',
+      shortLabel: 'M',
+      color: Color(0xFF29D398),
+    );
+  }
+  if (rating >= 1800) {
+    return const _EloTierData(
+      label: 'Diamond',
+      shortLabel: 'D',
+      color: Color(0xFFB7A9FF),
+    );
+  }
+  if (rating >= 1600) {
+    return const _EloTierData(
+      label: 'Platinum',
+      shortLabel: 'P',
+      color: Color(0xFF66C7FF),
+    );
+  }
+  if (rating >= 1400) {
+    return const _EloTierData(
+      label: 'Gold',
+      shortLabel: 'G',
+      color: Color(0xFFD1E889),
+    );
+  }
+  if (rating >= 1200) {
+    return const _EloTierData(
+      label: 'Silver',
+      shortLabel: 'S',
+      color: Color(0xFFC8D7E3),
+    );
+  }
+  return const _EloTierData(
+    label: 'Bronze',
+    shortLabel: 'B',
+    color: Color(0xFF9AA7B2),
+  );
+}
+
+class _EloTierEmblem extends StatelessWidget {
+  const _EloTierEmblem({
+    required this.rating,
+    required this.size,
+    this.elevated = false,
+  });
+
+  final int rating;
+  final double size;
+  final bool elevated;
+
+  @override
+  Widget build(BuildContext context) {
+    final tier = _tierForRating(rating);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.black.withValues(alpha: elevated ? .28 : .20),
+        border: Border.all(
+          color: tier.color.withValues(alpha: .36),
+          width: 1.4,
+        ),
+        boxShadow: elevated
+            ? [
+                BoxShadow(
+                  color: tier.color.withValues(alpha: .18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 7),
+                ),
+              ]
+            : null,
+      ),
+      child: Center(
+        child: Container(
+          width: size - 10,
+          height: size - 10,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: tier.color.withValues(alpha: .12),
+            border: Border.all(color: tier.color.withValues(alpha: .18)),
+          ),
+          child: Text(
+            tier.shortLabel,
+            style: TextStyle(
+              color: tier.color,
+              fontSize: size * .34,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ),
