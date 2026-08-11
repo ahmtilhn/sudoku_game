@@ -11,6 +11,7 @@ import '../../services/player_profile_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/reminder_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/in_page_header.dart';
 import '../economy/coin_store_screen.dart';
 import '../economy/wallet_history_screen.dart';
 import 'account_protection_screen.dart';
@@ -59,7 +60,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final firebase = FirebaseServices.instance;
     final ads = AdsService.instance;
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('settings'))),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -72,6 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   builder: (context, _) => ListView(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
                     children: [
+                      InPageHeader(title: context.tr('settings')),
                       _sectionTitle(context, context.tr('player_account')),
                       const SizedBox(height: 10),
                       _PlayerAccountCard(

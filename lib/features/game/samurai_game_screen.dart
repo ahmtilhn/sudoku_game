@@ -10,21 +10,25 @@ import '../../data/samurai_game_session_store.dart';
 import '../../data/ux_game_session_store.dart';
 import '../../domain/samurai_sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/samurai_board.dart';
 import '../../widgets/ux_feedback.dart';
 import 'hint_economy.dart';
 
-typedef SamuraiGameCompleted = Future<void> Function({
-  required int seconds,
-  required int mistakes,
-  required int hints,
-});
+typedef SamuraiGameCompleted =
+    Future<void> Function({
+      required int seconds,
+      required int mistakes,
+      required int hints,
+    });
 
 enum SamuraiGameExit { menu }
 
 enum _SamuraiPauseAction { resume, restart, menu }
+
 enum _SamuraiLossAction { restart, menu }
+
 enum _SamuraiResultAction { restart, menu }
 
 class SamuraiGameScreen extends StatefulWidget {
@@ -127,8 +131,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
     _stopwatch.start();
     _clockTimer ??= Timer.periodic(const Duration(milliseconds: 250), (_) {
       if (!mounted || !_stopwatch.isRunning) return;
-      final seconds =
-          _elapsedOffsetSeconds + _stopwatch.elapsed.inSeconds;
+      final seconds = _elapsedOffsetSeconds + _stopwatch.elapsed.inSeconds;
       if (seconds != _elapsedSeconds) {
         setState(() => _elapsedSeconds = seconds);
       }
@@ -204,8 +207,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
         _errorIndex = index;
       });
       _schedulePersist();
-      if (widget.mistakeLimit != null &&
-          _mistakes >= widget.mistakeLimit!) {
+      if (widget.mistakeLimit != null && _mistakes >= widget.mistakeLimit!) {
         Future<void>.microtask(_showLossSheet);
       } else {
         Future<void>.delayed(const Duration(milliseconds: 650), () {
@@ -559,24 +561,6 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
         if (!didPop) unawaited(_showPauseMenu());
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(context.tr('samurai_sudoku')),
-          actions: <Widget>[
-            Center(
-              child: Text(
-                formatDuration(_elapsedSeconds),
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-            ),
-            IconButton(
-              key: const ValueKey<String>('samurai-action-pause'),
-              tooltip: context.tr('pause'),
-              onPressed: _inputEnabled ? _showPauseMenu : null,
-              icon: const Icon(Icons.pause_circle_outline_rounded),
-            ),
-            const SizedBox(width: 4),
-          ],
-        ),
         bottomNavigationBar: NumberPadDock(
           child: NumberPad(
             maxValue: 9,
@@ -594,6 +578,25 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
         body: SafeArea(
           child: Column(
             children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: InPageHeader(
+                  title: context.tr('samurai_sudoku'),
+                  padding: EdgeInsets.zero,
+                  actions: <Widget>[
+                    Text(
+                      formatDuration(_elapsedSeconds),
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    IconButton(
+                      key: const ValueKey<String>('samurai-action-pause'),
+                      tooltip: context.tr('pause'),
+                      onPressed: _inputEnabled ? _showPauseMenu : null,
+                      icon: const Icon(Icons.pause_circle_outline_rounded),
+                    ),
+                  ],
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: Row(

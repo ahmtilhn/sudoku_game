@@ -163,4 +163,17 @@ void main() {
     expect(source, contains('variant: variant'));
     expect(source, isNot(contains('maxStars')));
   });
+
+  test('feature screens do not reintroduce scaffold app bars', () {
+    final sourceFiles = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'));
+
+    for (final file in sourceFiles) {
+      final source = file.readAsStringSync();
+      expect(source, isNot(contains('appBar:')));
+      expect(source, isNot(contains('AppBar(')));
+    }
+  });
 }

@@ -5,6 +5,7 @@ import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/ux_feedback.dart';
 
 class WalletHistoryScreen extends StatefulWidget {
@@ -32,16 +33,6 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('coin_history')),
-        actions: [
-          IconButton(
-            tooltip: context.tr('refresh'),
-            onPressed: _reload,
-            icon: const DuelAssetIcon(DuelAsset.refresh, size: 22),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: FutureBuilder<List<CoinLedgerEntry>>(
           future: _entries,
@@ -81,13 +72,27 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
                 return Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: maxWidth),
-                    child: ListView.separated(
+                    child: ListView(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                      itemCount: entries.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        return _LedgerTile(entry: entries[index]);
-                      },
+                      children: [
+                        InPageHeader(
+                          title: context.tr('coin_history'),
+                          actions: [
+                            IconButton(
+                              tooltip: context.tr('refresh'),
+                              onPressed: _reload,
+                              icon: const DuelAssetIcon(
+                                DuelAsset.refresh,
+                                size: 22,
+                              ),
+                            ),
+                          ],
+                        ),
+                        for (final entry in entries) ...[
+                          _LedgerTile(entry: entry),
+                          const SizedBox(height: 8),
+                        ],
+                      ],
                     ),
                   ),
                 );
@@ -111,33 +116,42 @@ class _LedgerTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final amount = NumberFormat.decimalPattern().format(entry.amount.abs());
     final balance = NumberFormat.decimalPattern().format(entry.balanceAfter);
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      leading: CircleAvatar(
-        backgroundColor: positive
-            ? scheme.primaryContainer
-            : scheme.surfaceContainerHighest,
-        child: DuelAssetIcon(
-          DuelAsset.coin,
-          size: 22,
-          color: positive ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .045),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .45)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        leading: CircleAvatar(
+          backgroundColor: positive
+              ? scheme.primaryContainer.withValues(alpha: .72)
+              : scheme.surfaceContainerHighest.withValues(alpha: .72),
+          child: DuelAssetIcon(
+            DuelAsset.coin,
+            size: 22,
+            color: positive
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
+          ),
         ),
-      ),
-      title: Text(
-        _reasonLabel(context, entry),
-        style: const TextStyle(fontWeight: FontWeight.w700),
-      ),
-      subtitle: Text(
-        context.tr('coin_history_balance_after', <Object>[
-          DateFormat.yMMMd().add_Hm().format(entry.createdAt.toLocal()),
-          balance,
-        ]),
-      ),
-      trailing: Text(
-        '${positive ? '+' : '-'}$amount',
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w900,
-          color: positive ? scheme.primary : scheme.onSurface,
+        title: Text(
+          _reasonLabel(context, entry),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          context.tr('coin_history_balance_after', <Object>[
+            DateFormat.yMMMd().add_Hm().format(entry.createdAt.toLocal()),
+            balance,
+          ]),
+        ),
+        trailing: Text(
+          '${positive ? '+' : '-'}$amount',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+            color: positive ? scheme.primary : scheme.onSurface,
+          ),
         ),
       ),
     );

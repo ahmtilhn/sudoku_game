@@ -7,6 +7,7 @@ import '../../localization/app_strings.dart';
 import '../../services/player_profile_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/player_avatar.dart';
 import 'ux_challenge_invitation_screen.dart';
 
@@ -157,9 +158,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
             Text(
               context.tr('choose_duel_difficulty'),
               textAlign: TextAlign.center,
-              style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                sheetContext,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 10),
             for (final item in SudokuDifficulty.values)
@@ -188,49 +189,24 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   Future<void> _openChallenge(SocialChallenge challenge) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
-        builder: (_) => UxChallengeInvitationScreen(
-          challengeId: challenge.id,
-        ),
+        builder: (_) => UxChallengeInvitationScreen(challengeId: challenge.id),
       ),
     );
     await _load();
   }
 
   void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(context.tr('friends_challenges')),
-        actions: [
-          IconButton(
-            tooltip: context.tr('refresh'),
-            onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabs,
-          isScrollable: true,
-          tabs: [
-            Tab(text: '${context.tr('friend_requests')} (${_requests.length})'),
-            Tab(text: '${context.tr('friends')} (${_friends.length})'),
-            Tab(text: '${context.tr('challenge')} (${_incoming.length})'),
-            Tab(text: context.tr('opponent')),
-          ],
-        ),
-      ),
       body: AppBackdrop(
         child: SafeArea(
-          top: false,
           child: Column(
             children: [
               Center(
@@ -240,6 +216,36 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                     child: Column(
                       children: [
+                        InPageHeader(
+                          title: context.tr('friends_challenges'),
+                          actions: [
+                            IconButton(
+                              tooltip: context.tr('refresh'),
+                              onPressed: _loading ? null : _load,
+                              icon: const Icon(Icons.refresh_rounded),
+                            ),
+                          ],
+                        ),
+                        TabBar(
+                          controller: _tabs,
+                          isScrollable: true,
+                          tabs: [
+                            Tab(
+                              text:
+                                  '${context.tr('friend_requests')} (${_requests.length})',
+                            ),
+                            Tab(
+                              text:
+                                  '${context.tr('friends')} (${_friends.length})',
+                            ),
+                            Tab(
+                              text:
+                                  '${context.tr('challenge')} (${_incoming.length})',
+                            ),
+                            Tab(text: context.tr('opponent')),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
                         TextField(
                           controller: _search,
                           enabled: !_searching,

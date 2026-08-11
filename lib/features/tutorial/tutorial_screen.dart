@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/local_progress_store.dart';
 import '../../data/puzzle_catalog.dart';
 import '../../localization/app_strings.dart';
+import '../../widgets/in_page_header.dart';
 import '../game/game_screen.dart';
 
 class TutorialScreen extends StatelessWidget {
@@ -12,62 +13,64 @@ class TutorialScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('tutorial_title'))),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-        children: [
-          _RuleCard(
-            number: '1',
-            title: context.tr('rule_rows_title'),
-            description: context.tr('rule_rows_description'),
-            icon: Icons.view_stream_outlined,
-          ),
-          const SizedBox(height: 12),
-          _RuleCard(
-            number: '2',
-            title: context.tr('rule_columns_title'),
-            description: context.tr('rule_columns_description'),
-            icon: Icons.view_column_outlined,
-          ),
-          const SizedBox(height: 12),
-          _RuleCard(
-            number: '3',
-            title: context.tr('rule_boxes_title'),
-            description: context.tr('rule_boxes_description'),
-            icon: Icons.grid_view_outlined,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            context.tr('tutorial_ready'),
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 14),
-          FilledButton.icon(
-            onPressed: () async {
-              final completed = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => GameScreen(
-                    puzzle: PuzzleCatalog.tutorialPuzzle,
-                    completionTitle: context.tr('tutorial_completed'),
-                    onCompleted:
-                        ({
-                          required seconds,
-                          required mistakes,
-                          required hints,
-                        }) => store.markTutorialComplete(),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+          children: [
+            InPageHeader(title: context.tr('tutorial_title')),
+            _RuleCard(
+              number: '1',
+              title: context.tr('rule_rows_title'),
+              description: context.tr('rule_rows_description'),
+              icon: Icons.view_stream_outlined,
+            ),
+            const SizedBox(height: 12),
+            _RuleCard(
+              number: '2',
+              title: context.tr('rule_columns_title'),
+              description: context.tr('rule_columns_description'),
+              icon: Icons.view_column_outlined,
+            ),
+            const SizedBox(height: 12),
+            _RuleCard(
+              number: '3',
+              title: context.tr('rule_boxes_title'),
+              description: context.tr('rule_boxes_description'),
+              icon: Icons.grid_view_outlined,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              context.tr('tutorial_ready'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: () async {
+                final completed = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => GameScreen(
+                      puzzle: PuzzleCatalog.tutorialPuzzle,
+                      completionTitle: context.tr('tutorial_completed'),
+                      onCompleted:
+                          ({
+                            required seconds,
+                            required mistakes,
+                            required hints,
+                          }) => store.markTutorialComplete(),
+                    ),
                   ),
-                ),
-              );
-              if (context.mounted && completed == true) {
-                Navigator.of(context).pop();
-              }
-            },
-            icon: const Icon(Icons.play_arrow),
-            label: Text(context.tr('start_mini_tutorial')),
-          ),
-        ],
+                );
+                if (context.mounted && completed == true) {
+                  Navigator.of(context).pop();
+                }
+              },
+              icon: const Icon(Icons.play_arrow),
+              label: Text(context.tr('start_mini_tutorial')),
+            ),
+          ],
+        ),
       ),
     );
   }

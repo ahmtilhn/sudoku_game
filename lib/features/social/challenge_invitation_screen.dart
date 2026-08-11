@@ -8,6 +8,7 @@ import '../../services/economy_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/player_avatar.dart';
 import '../duel/pre_match_ready_screen.dart';
 
@@ -155,15 +156,8 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(context.tr('challenge')),
-      ),
       body: AppBackdrop(
         child: SafeArea(
-          top: false,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
@@ -242,6 +236,7 @@ class _ChallengeCard extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
+        InPageHeader(title: context.tr('challenge')),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -667,8 +662,10 @@ class _UnavailableChallenge extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 60, 16, 28),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
+        InPageHeader(title: context.tr('challenge')),
+        const SizedBox(height: 52),
         Container(
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(

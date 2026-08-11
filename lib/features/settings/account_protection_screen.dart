@@ -8,6 +8,7 @@ import '../../services/account_deletion_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/player_profile_service.dart';
+import '../../widgets/in_page_header.dart';
 
 String _accountText(BuildContext _, {required String en, required String tr}) {
   return PlatformDispatcher.instance.locale.languageCode == 'tr' ? tr : en;
@@ -53,11 +54,6 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _accountText(context, en: 'Player account', tr: 'Oyuncu hesabı'),
-        ),
-      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) => Center(
@@ -73,6 +69,13 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   32 + MediaQuery.viewInsetsOf(context).bottom,
                 ),
                 children: [
+                  InPageHeader(
+                    title: _accountText(
+                      context,
+                      en: 'Player account',
+                      tr: 'Oyuncu hesabı',
+                    ),
+                  ),
                   _StatusCard(user: _user),
                   const SizedBox(height: 16),
                   if (_protected)

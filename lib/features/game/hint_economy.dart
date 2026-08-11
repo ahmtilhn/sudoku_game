@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
-import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
-import '../../services/firebase_session_service.dart';
+import '../../services/economy_v3_service.dart';
 import '../../widgets/duel_asset_icon.dart';
 
 class HintEconomy {
@@ -24,7 +23,15 @@ class HintEconomy {
     if (!context.mounted) return false;
 
     final economy = EconomyService.instance;
+    final economyV3 = EconomyV3Service.instance;
     await economy.refresh(showLoading: false);
+    if (!context.mounted) return false;
+
+    final refillSize = await economyV3.consumeHintRefill();
+    if (refillSize > 0) {
+      await store.addHints(refillSize);
+      return store.consumeHint();
+    }
     if (!context.mounted) return false;
 
     final action = await showModalBottomSheet<_HintAction>(
@@ -40,9 +47,9 @@ class HintEconomy {
             Text(
               context.tr('hints'),
               textAlign: TextAlign.center,
-              style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                sheetContext,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -85,12 +92,11 @@ class HintEconomy {
     if (!context.mounted || action == null) return false;
 
     if (action == _HintAction.coin) {
-      try {
-        await FirebaseSessionService.ensureAnonymousSession();
-        final snapshot = await EconomyApiClient.instance.spendCareerContinue(
-          'hint:${DateTime.now().microsecondsSinceEpoch}',
-        );
-        await economy.applyPurchaseWallet(snapshot);
+      final purchased = await economyV3.purchaseHint(
+        requestId: 'hint:${DateTime.now().microsecondsSinceEpoch}',
+      );
+      if (purchased) {
+        await economy.refresh(showLoading: false);
         await store.addHints(1);
         final consumed = await store.consumeHint();
         if (context.mounted && consumed) {
@@ -103,26 +109,24 @@ class HintEconomy {
           );
         }
         return consumed;
-      } on EconomyApiException catch (error) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error.message)),
-          );
-        }
-        return false;
-      } catch (_) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.tr('try_again_when_connected'))),
-          );
-        }
-        return false;
       }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              economyV3.error ??
+                  economy.error ??
+                  context.tr('not_enough_coins'),
+            ),
+          ),
+        );
+      }
+      return false;
     }
 
-    final watched = await AdsService.instance.showRewarded();
+    final earned = await economyV3.earnHintWithAd();
     if (!context.mounted) return false;
-    if (!watched) {
+    if (!earned) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
       );

@@ -7,8 +7,11 @@ import 'package:intl/intl.dart';
 import '../../localization/app_strings.dart';
 import '../../services/coin_store_service.dart';
 import '../../services/economy_service.dart';
+import '../../services/economy_v3_api_client.dart';
+import '../../services/economy_v3_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/in_page_header.dart';
 import 'wallet_history_screen.dart';
 
 class CoinStoreScreen extends StatefulWidget {
@@ -21,20 +24,24 @@ class CoinStoreScreen extends StatefulWidget {
 class _CoinStoreScreenState extends State<CoinStoreScreen> {
   final CoinStoreService _store = CoinStoreService.instance;
   final EconomyService _economy = EconomyService.instance;
+  final EconomyV3Service _economyV3 = EconomyV3Service.instance;
 
   @override
   void initState() {
     super.initState();
     _store.addListener(_refresh);
     _economy.addListener(_refresh);
+    _economyV3.addListener(_refresh);
     unawaited(_store.initialize());
     unawaited(_economy.initialize());
+    unawaited(_economyV3.initialize());
   }
 
   @override
   void dispose() {
     _store.removeListener(_refresh);
     _economy.removeListener(_refresh);
+    _economyV3.removeListener(_refresh);
     super.dispose();
   }
 
@@ -43,19 +50,28 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
   }
 
   Future<void> _reload() async {
-    await Future.wait<void>([_store.refreshProducts(), _economy.refresh()]);
+    await Future.wait<void>([
+      _store.refreshProducts(),
+      _economy.refresh(),
+      _economyV3.refresh(),
+    ]);
   }
 
   Future<void> _claimDaily() async {
-    final claimed = await _economy.claimDailyLogin();
+    final result = await _economyV3.claimDailyIfAvailable();
+    final claimed = result?.granted == true;
+    await _economy.refresh(showLoading: false);
     if (!mounted) return;
+    final reward = result?.reward;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           claimed
-              ? context.tr('coin_added_wallet', <Object>[
-                  _economy.wallet?.dailyLoginAmount ?? 50,
-                ])
+              ? reward == null
+                    ? context.tr('coin_added_wallet', const <Object>[0])
+                    : reward.isCoin
+                    ? context.tr('coin_added_wallet', <Object>[reward.amount])
+                    : context.tr('daily_hint_refill_reward')
               : _economy.error ?? context.tr('try_again'),
         ),
       ),
@@ -63,15 +79,15 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
   }
 
   Future<void> _claimAd() async {
-    final claimed = await _economy.claimDailyRewardedAd();
+    final result = await _economyV3.doubleLastDailyReward();
+    final claimed = result?.granted == true;
+    await _economy.refresh(showLoading: false);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           claimed
-              ? context.tr('coin_added_wallet', <Object>[
-                  _economy.wallet?.dailyAdAmount ?? 50,
-                ])
+              ? context.tr('coin_added_wallet', <Object>[result?.amount ?? 0])
               : _economy.error ?? context.tr('rewarded_ad_unavailable'),
         ),
       ),
@@ -82,23 +98,8 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(context.tr('coin_store')),
-        actions: [
-          IconButton(
-            tooltip: context.tr('coin_history'),
-            onPressed: () => Navigator.of(context).push<void>(
-              MaterialPageRoute(builder: (_) => const WalletHistoryScreen()),
-            ),
-            icon: const DuelAssetIcon(DuelAsset.notes, size: 22),
-          ),
-        ],
-      ),
       body: AppBackdrop(
         child: SafeArea(
-          top: false,
           child: RefreshIndicator(
             onRefresh: _reload,
             child: LayoutBuilder(
@@ -118,9 +119,32 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                           constraints: BoxConstraints(maxWidth: maxWidth),
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-                            child: _BalanceCard(
-                              balance: _economy.balance,
-                              loading: _economy.loading,
+                            child: Column(
+                              children: [
+                                InPageHeader(
+                                  title: context.tr('coin_store'),
+                                  actions: [
+                                    IconButton(
+                                      tooltip: context.tr('coin_history'),
+                                      onPressed: () =>
+                                          Navigator.of(context).push<void>(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const WalletHistoryScreen(),
+                                            ),
+                                          ),
+                                      icon: const DuelAssetIcon(
+                                        DuelAsset.notes,
+                                        size: 22,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                _BalanceCard(
+                                  balance: _economy.balance,
+                                  loading: _economy.loading,
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -134,9 +158,12 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: _DailyRewardsCard(
                               wallet: _economy.wallet,
+                              state: _economyV3.state,
                               noAds: _economy.noAds,
-                              loginBusy: _economy.claimingDaily,
-                              adBusy: _economy.showingDailyAd,
+                              loginBusy:
+                                  _economy.claimingDaily || _economyV3.loading,
+                              adBusy:
+                                  _economy.showingDailyAd || _economyV3.loading,
                               onClaimLogin: _claimDaily,
                               onClaimAd: _claimAd,
                             ),
@@ -337,6 +364,7 @@ class _BalanceCard extends StatelessWidget {
 class _DailyRewardsCard extends StatelessWidget {
   const _DailyRewardsCard({
     required this.wallet,
+    required this.state,
     required this.noAds,
     required this.loginBusy,
     required this.adBusy,
@@ -345,6 +373,7 @@ class _DailyRewardsCard extends StatelessWidget {
   });
 
   final dynamic wallet;
+  final EconomyV3State? state;
   final bool noAds;
   final bool loginBusy;
   final bool adBusy;
@@ -353,9 +382,21 @@ class _DailyRewardsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loginAvailable = wallet?.dailyLoginAvailable == true;
-    final adAvailable = wallet?.dailyAdAvailable == true && !noAds;
-    final reset = wallet?.nextDailyResetAt as DateTime?;
+    final loginAvailable =
+        state?.dailyAvailable ?? wallet?.dailyLoginAvailable == true;
+    final adAvailable =
+        (state?.canDoubleLastCoinReward ?? wallet?.dailyAdAvailable == true) &&
+        !noAds;
+    final reset =
+        state?.nextDailyResetAt ?? wallet?.nextDailyResetAt as DateTime?;
+    final nextReward = state?.nextReward;
+    final calendar = state?.calendar ?? const <EconomyV3Reward>[];
+    final cycleDay = state?.dailyCycleDay ?? 1;
+    final completedInCycle = state == null
+        ? 0
+        : state!.dailyAvailable
+        ? cycleDay - 1
+        : cycleDay;
     return _StorePanel(
       accent: const Color(0xFF29D398),
       child: Column(
@@ -388,6 +429,14 @@ class _DailyRewardsCard extends StatelessWidget {
               style: TextStyle(color: Colors.white.withValues(alpha: .62)),
             ),
           ],
+          if (calendar.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            _DailyCalendarGrid(
+              calendar: calendar,
+              cycleDay: cycleDay,
+              completedInCycle: completedInCycle,
+            ),
+          ],
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -412,9 +461,13 @@ class _DailyRewardsCard extends StatelessWidget {
                             )
                           : const Icon(Icons.card_giftcard_rounded),
                       label: Text(
-                        context.tr('claim_daily_coin', <Object>[
-                          wallet?.dailyLoginAmount ?? 50,
-                        ]),
+                        nextReward == null
+                            ? context.tr('home_daily_reward_title')
+                            : nextReward.isCoin
+                            ? context.tr('claim_daily_coin', <Object>[
+                                nextReward.amount,
+                              ])
+                            : context.tr('claim_hint_refill'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -435,7 +488,9 @@ class _DailyRewardsCard extends StatelessWidget {
                             : const Icon(Icons.ondemand_video_outlined),
                         label: Text(
                           context.tr('watch_ad_for_coin', <Object>[
-                            wallet?.dailyAdAmount ?? 50,
+                            state?.dailyLastClaimAmount ??
+                                wallet?.dailyAdAmount ??
+                                50,
                           ]),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -447,6 +502,118 @@ class _DailyRewardsCard extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DailyCalendarGrid extends StatelessWidget {
+  const _DailyCalendarGrid({
+    required this.calendar,
+    required this.cycleDay,
+    required this.completedInCycle,
+  });
+
+  final List<EconomyV3Reward> calendar;
+  final int cycleDay;
+  final int completedInCycle;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 520 ? 6 : 5;
+        final tileWidth =
+            (constraints.maxWidth - ((columns - 1) * 6)) / columns;
+        return Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (var index = 0; index < calendar.length; index++)
+              SizedBox(
+                width: tileWidth,
+                child: _DailyCalendarTile(
+                  day: index + 1,
+                  reward: calendar[index],
+                  claimed: index + 1 <= completedInCycle,
+                  current: index + 1 == cycleDay,
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DailyCalendarTile extends StatelessWidget {
+  const _DailyCalendarTile({
+    required this.day,
+    required this.reward,
+    required this.claimed,
+    required this.current,
+  });
+
+  final int day;
+  final EconomyV3Reward reward;
+  final bool claimed;
+  final bool current;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = current
+        ? const Color(0xFF3AA9FF)
+        : claimed
+        ? const Color(0xFF29D398)
+        : Colors.white;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: current ? .28 : .18),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: accent.withValues(alpha: current ? .55 : .22),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              context.tr('daily_day_short', <Object>[day]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: accent.withValues(alpha: .95),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Icon(
+              claimed
+                  ? Icons.check_circle_rounded
+                  : reward.isHintRefill
+                  ? Icons.refresh_rounded
+                  : Icons.monetization_on_rounded,
+              size: 16,
+              color: accent.withValues(alpha: .9),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              reward.isCoin
+                  ? '${reward.amount}'
+                  : context.tr('hint_refill_short'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .78),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

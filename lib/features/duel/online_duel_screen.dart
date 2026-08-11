@@ -14,6 +14,7 @@ import '../../services/online_duel_transport.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/sudoku_board.dart';
@@ -358,19 +359,6 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       },
       child: Scaffold(
         backgroundColor: activeArena ? const Color(0xFF0B1215) : null,
-        appBar: activeArena
-            ? null
-            : AppBar(
-                toolbarHeight: 48,
-                titleSpacing: 16,
-                title: Text(
-                  snapshot == null
-                      ? context.tr('online_duel')
-                      : context.strings.difficultyLabel(
-                          _difficulty(snapshot.difficulty),
-                        ),
-                ),
-              ),
         bottomNavigationBar: snapshot == null
             ? null
             : Theme(
@@ -379,10 +367,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                   ignoring: inputLocked,
                   child: NumberPadDock(
                     child: NumberPad(
-                      maxValue: 9,
+                      maxValue: snapshot.boardSize,
                       completedValues: completedSudokuNumbers(
                         board: snapshot.board,
-                        maxValue: 9,
+                        maxValue: snapshot.boardSize,
                       ),
                       enabled: !inputLocked,
                       onNumber: _enterNumber,
@@ -433,40 +421,70 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   }
 
   Widget _buildBody(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const DuelAssetIcon(DuelAsset.cloud, size: 44),
-              const SizedBox(height: 12),
-              Text(
-                context.tr('online_connection_failed', <Object>[_error!]),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _error = null;
-                    _loading = true;
-                  });
-                  unawaited(_connect());
-                },
-                icon: const DuelAssetIcon(DuelAsset.refresh, size: 22),
-                label: Text(context.tr('refresh')),
-              ),
-            ],
+    if (_loading) {
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: InPageHeader(title: context.tr('online_duel')),
           ),
-        ),
+          const Expanded(child: Center(child: CircularProgressIndicator())),
+        ],
+      );
+    }
+    if (_error != null) {
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: InPageHeader(title: context.tr('online_duel')),
+          ),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const DuelAssetIcon(DuelAsset.cloud, size: 44),
+                    const SizedBox(height: 12),
+                    Text(
+                      context.tr('online_connection_failed', <Object>[_error!]),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 14),
+                    FilledButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _error = null;
+                          _loading = true;
+                        });
+                        unawaited(_connect());
+                      },
+                      icon: const DuelAssetIcon(DuelAsset.refresh, size: 22),
+                      label: Text(context.tr('refresh')),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
     final snapshot = _snapshot;
     if (snapshot == null) {
-      return Center(child: Text(context.tr('online_waiting_snapshot')));
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: InPageHeader(title: context.tr('online_duel')),
+          ),
+          Expanded(
+            child: Center(child: Text(context.tr('online_waiting_snapshot'))),
+          ),
+        ],
+      );
     }
     final puzzle = SudokuPuzzle(
       id: 'online-${snapshot.matchId}',
@@ -522,6 +540,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
           ),
           child: Column(
             children: [
+              InPageHeader(
+                title: context.strings.difficultyLabel(
+                  _difficulty(snapshot.difficulty),
+                ),
+                padding: EdgeInsets.only(bottom: compact ? 4 : 8),
+              ),
               if (snapshot.status == OnlineDuelStatus.readyWindow ||
                   snapshot.status == OnlineDuelStatus.waiting)
                 Padding(

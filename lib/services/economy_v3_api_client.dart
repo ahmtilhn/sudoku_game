@@ -30,9 +30,12 @@ class EconomyV3State {
   const EconomyV3State({
     required this.balance,
     required this.dailyCycleDay,
+    required this.dailyClaimsTotal,
+    required this.dailyLastClaimAmount,
     required this.dailyAvailable,
     required this.nextReward,
     required this.canDoubleLastCoinReward,
+    this.nextDailyResetAt,
     required this.calendar,
     required this.hintRefills,
     required this.hintRefillSize,
@@ -48,9 +51,12 @@ class EconomyV3State {
 
   final int balance;
   final int dailyCycleDay;
+  final int dailyClaimsTotal;
+  final int dailyLastClaimAmount;
   final bool dailyAvailable;
   final EconomyV3Reward nextReward;
   final bool canDoubleLastCoinReward;
+  final DateTime? nextDailyResetAt;
   final List<EconomyV3Reward> calendar;
   final int hintRefills;
   final int hintRefillSize;
@@ -81,9 +87,8 @@ class EconomyV3State {
         ? calendarRaw
               .whereType<Map>()
               .map(
-                (item) => EconomyV3Reward.fromJson(
-                  item.cast<String, dynamic>(),
-                ),
+                (item) =>
+                    EconomyV3Reward.fromJson(item.cast<String, dynamic>()),
               )
               .toList(growable: false)
         : const <EconomyV3Reward>[];
@@ -93,9 +98,14 @@ class EconomyV3State {
     return EconomyV3State(
       balance: (json['balance'] as num?)?.toInt() ?? 0,
       dailyCycleDay: (daily['cycleDay'] as num?)?.toInt() ?? 1,
+      dailyClaimsTotal: (daily['claimsTotal'] as num?)?.toInt() ?? 0,
+      dailyLastClaimAmount: (daily['lastClaimAmount'] as num?)?.toInt() ?? 0,
       dailyAvailable: daily['available'] == true,
       nextReward: EconomyV3Reward.fromJson(nextRewardMap),
       canDoubleLastCoinReward: daily['canDoubleLastCoinReward'] == true,
+      nextDailyResetAt: DateTime.tryParse(
+        daily['nextResetAt']?.toString() ?? '',
+      ),
       calendar: calendar,
       hintRefills: (inventory['hintRefills'] as num?)?.toInt() ?? 0,
       hintRefillSize: (inventory['hintRefillSize'] as num?)?.toInt() ?? 3,
@@ -106,10 +116,8 @@ class EconomyV3State {
       recoveryEarnedToday: (recovery['earnedToday'] as num?)?.toInt() ?? 0,
       recoveryPopupCountToday:
           (recovery['popupCountToday'] as num?)?.toInt() ?? 0,
-      recoveryDailyCoinCap:
-          (recovery['dailyCoinCap'] as num?)?.toInt() ?? 150,
-      recoveryDailyPopupCap:
-          (recovery['dailyPopupCap'] as num?)?.toInt() ?? 3,
+      recoveryDailyCoinCap: (recovery['dailyCoinCap'] as num?)?.toInt() ?? 150,
+      recoveryDailyPopupCap: (recovery['dailyPopupCap'] as num?)?.toInt() ?? 3,
     );
   }
 }

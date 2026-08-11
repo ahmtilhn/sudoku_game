@@ -12,57 +12,60 @@ void main() {
     expect(positiveCoinDelta(1000, 975), 0);
   });
 
-  test('practice bests improve independently and stay variant-scoped', () async {
-    final store = await LocalProgressStore.createInMemory();
+  test(
+    'practice bests improve independently and stay variant-scoped',
+    () async {
+      final store = await LocalProgressStore.createInMemory();
 
-    await store.recordResult(
-      puzzleId: 'practice-easy',
-      seconds: 180,
-      mistakes: 2,
-      hints: 1,
-      variant: SudokuVariant.classic9,
-    );
-    await store.recordResult(
-      puzzleId: 'practice-easy',
-      seconds: 150,
-      mistakes: 3,
-      hints: 2,
-      variant: SudokuVariant.classic9,
-    );
-    await store.recordResult(
-      puzzleId: 'practice-easy',
-      seconds: 200,
-      mistakes: 1,
-      hints: 0,
-      variant: SudokuVariant.classic9,
-    );
+      await store.recordResult(
+        puzzleId: 'practice-easy',
+        seconds: 180,
+        mistakes: 2,
+        hints: 1,
+        variant: SudokuVariant.classic9,
+      );
+      await store.recordResult(
+        puzzleId: 'practice-easy',
+        seconds: 150,
+        mistakes: 3,
+        hints: 2,
+        variant: SudokuVariant.classic9,
+      );
+      await store.recordResult(
+        puzzleId: 'practice-easy',
+        seconds: 200,
+        mistakes: 1,
+        hints: 0,
+        variant: SudokuVariant.classic9,
+      );
 
-    final classic9 = store.progressFor(
-      'practice-easy',
-      variant: SudokuVariant.classic9,
-    );
-    expect(classic9, isNotNull);
-    expect(classic9!.bestSeconds, 150);
-    expect(classic9.bestMistakes, 1);
-    expect(classic9.bestHints, 0);
+      final classic9 = store.progressFor(
+        'practice-easy',
+        variant: SudokuVariant.classic9,
+      );
+      expect(classic9, isNotNull);
+      expect(classic9!.bestSeconds, 150);
+      expect(classic9.bestMistakes, 1);
+      expect(classic9.bestHints, 0);
 
-    await store.recordResult(
-      puzzleId: 'practice-easy',
-      seconds: 320,
-      mistakes: 4,
-      hints: 3,
-      variant: SudokuVariant.classic16,
-    );
-    final classic16 = store.progressFor(
-      'practice-easy',
-      variant: SudokuVariant.classic16,
-    );
-    expect(classic16, isNotNull);
-    expect(classic16!.bestSeconds, 320);
-    expect(classic16.bestMistakes, 4);
-    expect(classic16.bestHints, 3);
-    expect(classic9.bestSeconds, 150);
-  });
+      await store.recordResult(
+        puzzleId: 'practice-easy',
+        seconds: 320,
+        mistakes: 4,
+        hints: 3,
+        variant: SudokuVariant.classic16,
+      );
+      final classic16 = store.progressFor(
+        'practice-easy',
+        variant: SudokuVariant.classic16,
+      );
+      expect(classic16, isNotNull);
+      expect(classic16!.bestSeconds, 320);
+      expect(classic16.bestMistakes, 4);
+      expect(classic16.bestHints, 3);
+      expect(classic9.bestSeconds, 150);
+    },
+  );
 
   test('career practice cards use stable summary ids and show all bests', () {
     final source = File(
@@ -93,14 +96,19 @@ void main() {
     expect(game, contains('balanceBeforeCompletion'));
     expect(game, contains('completionCoinReward'));
     expect(game, contains('initialEarnedCoins'));
-    expect(game, contains('GameInterstitialService.instance.recordAndMaybeShow'));
+    expect(
+      game,
+      contains('GameInterstitialService.instance.recordAndMaybeShow'),
+    );
     expect(game, contains('DuelAsset.coin'));
     expect(game, isNot(contains('watch_and_earn_coin')));
     expect(game, isNot(contains('claimCareerRewardedInterstitialCoins')));
 
     expect(
       economy,
-      contains('Future<int> claimCareerRewardedInterstitialCoins() async => 0;'),
+      contains(
+        'Future<int> claimCareerRewardedInterstitialCoins() async => 0;',
+      ),
     );
     expect(economy, isNot(contains('confirmCareerAd(prepared.token)')));
     expect(sync, contains('_economy.claimCareer('));
@@ -128,10 +136,27 @@ void main() {
       expect(
         entry.value,
         contains('DuelAsset.coin'),
-        reason: '${entry.key} must use assets/images/ui/coin.png via DuelAsset.coin',
+        reason:
+            '${entry.key} must use assets/images/ui/coin.png via DuelAsset.coin',
       );
     }
     expect(sources['hint'], isNot(contains('Icons.monetization_on_outlined')));
     expect(sources['career'], isNot(contains('Icons.monetization_on_rounded')));
   });
+
+  test(
+    'hint acquisition uses Economy V3 purchase, reward, and refill flows',
+    () {
+      final hint = File(
+        'lib/features/game/hint_economy.dart',
+      ).readAsStringSync();
+
+      expect(hint, contains('EconomyV3Service.instance'));
+      expect(hint, contains('consumeHintRefill()'));
+      expect(hint, contains('purchaseHint('));
+      expect(hint, contains('earnHintWithAd()'));
+      expect(hint, isNot(contains('spendCareerContinue(')));
+      expect(hint, isNot(contains('showRewarded()')));
+    },
+  );
 }

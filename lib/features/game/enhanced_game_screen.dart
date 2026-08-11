@@ -13,6 +13,7 @@ import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/game_interstitial_service.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 import 'hint_economy.dart';
@@ -658,29 +659,6 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
           ]);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.strings.puzzleTitle(widget.puzzle)),
-        actions: [
-          IconButton(
-            key: const ValueKey<String>('action-pause'),
-            tooltip: context.tr('pause'),
-            onPressed: enabled ? _showPauseSheet : null,
-            icon: const Icon(Icons.pause_rounded),
-          ),
-          Semantics(
-            label: context.tr('time'),
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Text(
-                  formatDuration(_elapsedSeconds),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
       bottomNavigationBar: NumberPadDock(
         child: NumberPad(
           maxValue: widget.puzzle.size,
@@ -715,6 +693,31 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
                         const LinearProgressIndicator(),
                         const SizedBox(height: 12),
                       ],
+                      InPageHeader(
+                        title: context.strings.puzzleTitle(widget.puzzle),
+                        actions: [
+                          IconButton(
+                            key: const ValueKey<String>('action-pause'),
+                            tooltip: context.tr('pause'),
+                            onPressed: enabled ? _showPauseSheet : null,
+                            icon: const Icon(Icons.pause_rounded),
+                          ),
+                          Semantics(
+                            label: context.tr('time'),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: Text(
+                                formatDuration(_elapsedSeconds),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       Wrap(
                         alignment: WrapAlignment.center,
                         spacing: 8,

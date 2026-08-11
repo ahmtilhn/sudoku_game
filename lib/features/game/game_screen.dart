@@ -8,6 +8,7 @@ import '../../data/game_session_store.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 
@@ -54,8 +55,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
-    with WidgetsBindingObserver {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   final GameSessionStore _sessionStore = GameSessionStore.instance;
   final Stopwatch _stopwatch = Stopwatch();
   late List<int> _board;
@@ -603,20 +603,6 @@ class _GameScreenState extends State<GameScreen>
           ]);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.strings.puzzleTitle(widget.puzzle)),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text(
-                formatDuration(_elapsedSeconds),
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-        ],
-      ),
       bottomNavigationBar: NumberPadDock(
         child: NumberPad(
           maxValue: widget.puzzle.size,
@@ -651,6 +637,20 @@ class _GameScreenState extends State<GameScreen>
                         const LinearProgressIndicator(),
                         const SizedBox(height: 12),
                       ],
+                      InPageHeader(
+                        title: context.strings.puzzleTitle(widget.puzzle),
+                        actions: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              formatDuration(_elapsedSeconds),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       Row(
                         children: [
                           Chip(

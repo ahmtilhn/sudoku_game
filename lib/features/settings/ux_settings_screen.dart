@@ -8,6 +8,7 @@ import '../../services/firebase_services.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/reminder_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/in_page_header.dart';
 import '../economy/wallet_history_screen.dart';
 import 'account_protection_screen.dart';
 
@@ -27,9 +28,7 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
   bool _crashBusy = false;
 
   void _open(Widget screen) {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => screen),
-    );
+    Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => screen));
   }
 
   @override
@@ -37,9 +36,9 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
     final reminders = ReminderNotificationService.instance;
     final push = PushNotificationService.instance;
     final firebase = FirebaseServices.instance;
-    final socialAvailable = push.configured && SocialApiClient.instance.configured;
+    final socialAvailable =
+        push.configured && SocialApiClient.instance.configured;
     return Scaffold(
-      appBar: AppBar(title: Text(context.tr('settings'))),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -49,6 +48,7 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
               builder: (context, _) => ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 children: [
+                  InPageHeader(title: context.tr('settings')),
                   _heading(context.tr('player_account')),
                   Card(
                     child: Column(
@@ -61,8 +61,7 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                             context.tr('account_protection_banner_body'),
                           ),
                           trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () =>
-                              _open(const AccountProtectionScreen()),
+                          onTap: () => _open(const AccountProtectionScreen()),
                         ),
                         const Divider(height: 1),
                         ListTile(
@@ -110,13 +109,9 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                             onChanged: _dailyBusy
                                 ? null
                                 : (value) => _setDaily(reminders, value),
-                            title: Text(
-                              context.tr('daily_sudoku_challenges'),
-                            ),
+                            title: Text(context.tr('daily_sudoku_challenges')),
                             subtitle: Text(
-                              context.tr(
-                                'daily_sudoku_challenges_subtitle',
-                              ),
+                              context.tr('daily_sudoku_challenges_subtitle'),
                             ),
                           ),
                         ),
@@ -128,9 +123,7 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                               horizontal: 16,
                               vertical: 4,
                             ),
-                            secondary: const Icon(
-                              Icons.notifications_outlined,
-                            ),
+                            secondary: const Icon(Icons.notifications_outlined),
                             value: enabled,
                             onChanged: !socialAvailable || _pushBusy
                                 ? null
@@ -226,9 +219,9 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -308,8 +301,8 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
   }
 
   void _snack(String key) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(context.tr(key))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.tr(key))));
   }
 }

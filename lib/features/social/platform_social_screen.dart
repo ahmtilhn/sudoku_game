@@ -7,6 +7,7 @@ import '../../localization/ux_copy.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/in_page_header.dart';
 import '../duel/online_duel_screen.dart';
 import 'competitive_profile_card.dart';
 
@@ -206,16 +207,6 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Friends & challenges'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: _loading ? null : _refresh,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -224,6 +215,16 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
+                  InPageHeader(
+                    title: 'Friends & challenges',
+                    actions: [
+                      IconButton(
+                        tooltip: 'Refresh',
+                        onPressed: _loading ? null : _refresh,
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ],
+                  ),
                   if (_error != null) ...[
                     _MessageCard(
                       icon: Icons.error_outline,

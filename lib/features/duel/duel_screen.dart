@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../data/puzzle_catalog.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 import '../../widgets/ux_feedback.dart';
@@ -119,8 +120,8 @@ class _DuelScreenState extends State<DuelScreen> {
     final winner = _scores[0] == _scores[1]
         ? null
         : _scores[0] > _scores[1]
-            ? 0
-            : 1;
+        ? 0
+        : 1;
     final restart = await showAdaptiveBottomSheet<bool>(
       context: context,
       isDismissible: false,
@@ -161,19 +162,6 @@ class _DuelScreenState extends State<DuelScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('duel_puzzle_title')),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Chip(
-                label: Text(context.strings.difficultyLabel(widget.difficulty)),
-              ),
-            ),
-          ),
-        ],
-      ),
       bottomNavigationBar: NumberPadDock(
         child: NumberPad(
           maxValue: 9,
@@ -196,6 +184,18 @@ class _DuelScreenState extends State<DuelScreen> {
                   width: width,
                   child: Column(
                     children: [
+                      InPageHeader(
+                        title: context.tr('duel_puzzle_title'),
+                        actions: [
+                          Chip(
+                            label: Text(
+                              context.strings.difficultyLabel(
+                                widget.difficulty,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       Row(
                         children: [
                           Expanded(
@@ -310,10 +310,9 @@ class _PlayerScore extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '$score',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
         ],
       ),

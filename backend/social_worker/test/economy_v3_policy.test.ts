@@ -20,6 +20,38 @@ describe('Economy V3 policy', () => {
     ).length;
 
     expect(DAILY_REWARD_CALENDAR).toHaveLength(30);
+    expect(DAILY_REWARD_CALENDAR).toEqual([
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'hint_refill', amount: 1 },
+      { kind: 'coin', amount: 70 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 100 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 70 },
+      { kind: 'hint_refill', amount: 1 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 70 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 120 },
+      { kind: 'hint_refill', amount: 1 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 70 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'hint_refill', amount: 1 },
+      { kind: 'coin', amount: 70 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 70 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'hint_refill', amount: 1 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'coin', amount: 70 },
+      { kind: 'coin', amount: 50 },
+      { kind: 'hint_refill', amount: 1 },
+      { kind: 'coin', amount: 150 },
+    ]);
     expect(coins).toBe(1560);
     expect(refills).toBe(6);
     expect(DAILY_REWARD_CALENDAR[29]).toEqual({ kind: 'coin', amount: 150 });

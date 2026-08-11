@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../localization/app_strings.dart';
 import '../../services/service_diagnostics_service.dart';
+import '../../widgets/in_page_header.dart';
 
 class ServiceDiagnosticsScreen extends StatefulWidget {
   const ServiceDiagnosticsScreen({super.key});
@@ -50,21 +51,6 @@ class _ServiceDiagnosticsScreenState extends State<ServiceDiagnosticsScreen> {
   Widget build(BuildContext context) {
     final report = _report;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('service_diagnostics')),
-        actions: [
-          IconButton(
-            tooltip: context.tr('copy_diagnostics'),
-            onPressed: report == null ? null : _copy,
-            icon: const Icon(Icons.copy_rounded),
-          ),
-          IconButton(
-            tooltip: context.tr('refresh'),
-            onPressed: _loading ? null : _run,
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -74,6 +60,21 @@ class _ServiceDiagnosticsScreenState extends State<ServiceDiagnosticsScreen> {
                 : ListView(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                     children: [
+                      InPageHeader(
+                        title: context.tr('service_diagnostics'),
+                        actions: [
+                          IconButton(
+                            tooltip: context.tr('copy_diagnostics'),
+                            onPressed: report == null ? null : _copy,
+                            icon: const Icon(Icons.copy_rounded),
+                          ),
+                          IconButton(
+                            tooltip: context.tr('refresh'),
+                            onPressed: _loading ? null : _run,
+                            icon: const Icon(Icons.refresh_rounded),
+                          ),
+                        ],
+                      ),
                       if (_loading) const LinearProgressIndicator(),
                       if (_loading) const SizedBox(height: 12),
                       if (report != null) ...[

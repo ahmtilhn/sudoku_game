@@ -7,6 +7,7 @@ import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/in_page_header.dart';
 
 class PlatformServicesScreen extends StatefulWidget {
   const PlatformServicesScreen({super.key});
@@ -63,20 +64,15 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(_platformTitle),
-      ),
       body: AppBackdrop(
         child: SafeArea(
-          top: false,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 680),
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 children: [
+                  InPageHeader(title: _platformTitle),
                   if (_busy) const LinearProgressIndicator(),
                   if (_busy) const SizedBox(height: 12),
                   if (_error != null) ...[

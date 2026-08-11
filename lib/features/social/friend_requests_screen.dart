@@ -6,6 +6,7 @@ import '../../services/firebase_runtime_config.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/ux_feedback.dart';
 
 class FriendRequestsScreen extends StatefulWidget {
@@ -90,16 +91,6 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(context.tr('friend_requests')),
-        actions: [
-          IconButton(
-            tooltip: context.tr('refresh'),
-            onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -108,6 +99,16 @@ class _FriendRequestsScreenState extends State<FriendRequestsScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
+                  InPageHeader(
+                    title: context.tr('friend_requests'),
+                    actions: [
+                      IconButton(
+                        tooltip: context.tr('refresh'),
+                        onPressed: _loading ? null : _load,
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ],
+                  ),
                   if (_error != null)
                     UxStatePanel.error(
                       context,

@@ -6,6 +6,7 @@ import '../../localization/ux_copy.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
 import '../../widgets/app_backdrop.dart';
+import '../../widgets/in_page_header.dart';
 
 class GooglePlayGamesScreen extends StatefulWidget {
   const GooglePlayGamesScreen({super.key});
@@ -188,7 +189,6 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
     };
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Google Play Games')),
       body: AppBackdrop(
         child: SafeArea(
           child: Center(
@@ -197,6 +197,7 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 children: [
+                  const InPageHeader(title: 'Google Play Games'),
                   if (_busy)
                     const Padding(
                       padding: EdgeInsets.only(bottom: 12),

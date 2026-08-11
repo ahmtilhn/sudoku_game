@@ -7,6 +7,7 @@ import '../../services/platform_game_services.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/in_page_header.dart';
 import '../duel/leaderboards_screen.dart';
 import 'competitive_profile_card.dart';
 import 'platform_services_screen.dart';
@@ -81,15 +82,8 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     final tabs = _tabs(context);
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: true,
-        title: const SizedBox.shrink(),
-      ),
       body: AppBackdrop(
         child: SafeArea(
-          top: false,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 680),
@@ -97,8 +91,9 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                       children: [
+                        InPageHeader(title: context.tr('profile')),
                         if (_profile != null)
                           CompetitiveProfileCard(profile: _profile!),
                         if (_error != null)

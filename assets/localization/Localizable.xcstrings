@@ -4725,6 +4725,46 @@
         }
       }
     },
+    "daily_day_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Day %1d"
+          }
+        }
+      }
+    },
+    "claim_hint_refill": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claim Hint Refill"
+          }
+        }
+      }
+    },
+    "hint_refill_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refill"
+          }
+        }
+      }
+    },
+    "daily_hint_refill_reward": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hint Refill added."
+          }
+        }
+      }
+    },
     "coin_history": {
       "localizations": {
         "en": {

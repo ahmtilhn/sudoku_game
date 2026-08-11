@@ -8,6 +8,7 @@ import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/in_page_header.dart';
 import '../../widgets/player_avatar.dart';
 import '../duel/pre_match_ready_screen.dart';
 
@@ -22,16 +23,12 @@ ChallengeWaitingEndReason inferMissingChallengeEndReason({
 }
 
 class ChallengeWaitingScreen extends StatefulWidget {
-  const ChallengeWaitingScreen({
-    super.key,
-    required this.challenge,
-  });
+  const ChallengeWaitingScreen({super.key, required this.challenge});
 
   final SocialChallenge challenge;
 
   @override
-  State<ChallengeWaitingScreen> createState() =>
-      _ChallengeWaitingScreenState();
+  State<ChallengeWaitingScreen> createState() => _ChallengeWaitingScreenState();
 }
 
 class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
@@ -129,13 +126,13 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
 
       _missingPolls++;
       if (_missingPolls < 2) return;
-      _finish(
-        inferMissingChallengeEndReason(secondsLeft: _secondsLeft),
-      );
+      _finish(inferMissingChallengeEndReason(secondsLeft: _secondsLeft));
     } on SocialApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) setState(() => _error = context.tr('try_again_when_connected'));
+      if (mounted) {
+        setState(() => _error = context.tr('try_again_when_connected'));
+      }
     } finally {
       _checking = false;
     }
@@ -157,9 +154,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     _pollTimer?.cancel();
     _clockTimer?.cancel();
     await Navigator.of(context).pushReplacement<void, void>(
-      MaterialPageRoute(
-        builder: (_) => PreMatchReadyScreen(roomId: roomId),
-      ),
+      MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
     );
   }
 
@@ -175,8 +170,9 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     return switch (_endReason) {
       ChallengeWaitingEndReason.declined => context.tr('try_again'),
       ChallengeWaitingEndReason.expired => context.tr('try_again'),
-      ChallengeWaitingEndReason.none =>
-        context.tr('searching_similar_opponents'),
+      ChallengeWaitingEndReason.none => context.tr(
+        'searching_similar_opponents',
+      ),
     };
   }
 
@@ -191,20 +187,15 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(context.tr('challenge')),
-      ),
       body: AppBackdrop(
         child: SafeArea(
-          top: false,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
+                  InPageHeader(title: context.tr('challenge')),
                   Card(
                     color: const Color(0xFF101B20).withValues(alpha: .96),
                     shape: RoundedRectangleBorder(
@@ -215,10 +206,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
                       child: Column(
                         children: [
-                          _StatusOrb(
-                            accent: accent,
-                            endReason: _endReason,
-                          ),
+                          _StatusOrb(accent: accent, endReason: _endReason),
                           const SizedBox(height: 18),
                           Text(
                             _title(context),
@@ -272,7 +260,9 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                             children: [
                               _InfoChip(
                                 asset: DuelAsset.grid,
-                                label: context.strings.difficultyLabel(difficulty),
+                                label: context.strings.difficultyLabel(
+                                  difficulty,
+                                ),
                                 accent: accent,
                               ),
                               _InfoChip(
@@ -296,18 +286,18 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .errorContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.errorContainer,
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Text(
                                 _error!,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onErrorContainer,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onErrorContainer,
                                 ),
                               ),
                             ),
@@ -381,10 +371,7 @@ class _StatusOrb extends StatelessWidget {
             )
           : SizedBox.square(
               dimension: 48,
-              child: CircularProgressIndicator(
-                strokeWidth: 4,
-                color: accent,
-              ),
+              child: CircularProgressIndicator(strokeWidth: 4, color: accent),
             ),
     );
   }

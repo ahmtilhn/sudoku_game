@@ -11,6 +11,7 @@ import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/in_page_header.dart';
 import '../game/enhanced_game_screen.dart';
 
 class CareerScreen extends StatefulWidget {
@@ -58,40 +59,8 @@ class _CareerScreenState extends State<CareerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(context.tr('career')),
-        actions: [
-          AnimatedBuilder(
-            animation: widget.store,
-            builder: (context, _) => Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Row(
-                children: [
-                  _ResourceChip(
-                    asset: DuelAsset.lightbulb,
-                    value: '${widget.store.hints}',
-                    color: const Color(0xFF29D398),
-                  ),
-                  const SizedBox(width: 6),
-                  _ResourceChip(
-                    asset: DuelAsset.coin,
-                    value: _economy.loading && _economy.wallet == null
-                        ? '...'
-                        : '${_economy.balance}',
-                    color: const Color(0xFFFFC94D),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
       body: AppBackdrop(
         child: SafeArea(
-          top: false,
           child: RefreshIndicator(
             onRefresh: () async {
               await Future.wait<void>(<Future<void>>[
@@ -118,7 +87,9 @@ class _CareerScreenState extends State<CareerScreen> {
                           _selectedChapter,
                         );
                         final completedLevels = CareerCatalog.levels
-                            .where((level) => widget.store.isCompleted(level.id))
+                            .where(
+                              (level) => widget.store.isCompleted(level.id),
+                            )
                             .length;
                         final totalStars = CareerCatalog.levels.fold<int>(
                           0,
@@ -131,6 +102,26 @@ class _CareerScreenState extends State<CareerScreen> {
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                           children: [
+                            InPageHeader(
+                              title: context.tr('career'),
+                              actions: [
+                                _ResourceChip(
+                                  asset: DuelAsset.lightbulb,
+                                  value: '${widget.store.hints}',
+                                  color: const Color(0xFF29D398),
+                                ),
+                                const SizedBox(width: 6),
+                                _ResourceChip(
+                                  asset: DuelAsset.coin,
+                                  value:
+                                      _economy.loading &&
+                                          _economy.wallet == null
+                                      ? '...'
+                                      : '${_economy.balance}',
+                                  color: const Color(0xFF3AA9FF),
+                                ),
+                              ],
+                            ),
                             _CareerIntroPanel(
                               completedLevels: completedLevels,
                               totalLevels: CareerCatalog.levels.length,
@@ -142,8 +133,7 @@ class _CareerScreenState extends State<CareerScreen> {
                               const SizedBox(height: 14),
                               _ResumeCareerCard(
                                 level: activeLevel,
-                                elapsedSeconds:
-                                    _activeSession!.elapsedSeconds,
+                                elapsedSeconds: _activeSession!.elapsedSeconds,
                                 generating:
                                     _generatingLevelId == activeLevel.id,
                                 onTap: _generatingLevelId == null
@@ -167,8 +157,9 @@ class _CareerScreenState extends State<CareerScreen> {
                             const SizedBox(height: 12),
                             LayoutBuilder(
                               builder: (context, gridConstraints) {
-                                final columns =
-                                    gridConstraints.maxWidth >= 620 ? 2 : 1;
+                                final columns = gridConstraints.maxWidth >= 620
+                                    ? 2
+                                    : 1;
                                 return GridView.builder(
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
@@ -196,8 +187,8 @@ class _CareerScreenState extends State<CareerScreen> {
                                       current: currentLevel?.id == level.id,
                                       generating:
                                           _generatingLevelId == level.id,
-                                      onTap: unlocked &&
-                                              _generatingLevelId == null
+                                      onTap:
+                                          unlocked && _generatingLevelId == null
                                           ? () => _startLevel(level)
                                           : null,
                                     );
@@ -205,7 +196,8 @@ class _CareerScreenState extends State<CareerScreen> {
                                 );
                               },
                             ),
-                            if (completedLevels == CareerCatalog.levels.length) ...[
+                            if (completedLevels ==
+                                CareerCatalog.levels.length) ...[
                               const SizedBox(height: 18),
                               _CareerCompletePanel(
                                 completedLevels: completedLevels,
@@ -295,10 +287,7 @@ class _CareerScreenState extends State<CareerScreen> {
         ? '${context.tr('new_level')}: ${_levelTitle(context, nextLevel)}'
         : context.tr('congratulations');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
 
     await _showCareerRewardOffer();
@@ -713,11 +702,7 @@ class _ResumeCareerCard extends StatelessWidget {
                   ],
                 ),
               ),
-              DuelAssetIcon(
-                DuelAsset.arrowForward,
-                size: 22,
-                color: accent,
-              ),
+              DuelAssetIcon(DuelAsset.arrowForward, size: 22, color: accent),
             ],
           ),
         ),
@@ -743,7 +728,11 @@ class _ChapterSelector extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          for (var chapter = 1; chapter <= SudokuDifficulty.values.length; chapter++) ...[
+          for (
+            var chapter = 1;
+            chapter <= SudokuDifficulty.values.length;
+            chapter++
+          ) ...[
             _ChapterChip(
               chapter: chapter,
               selected: chapter == selectedChapter,
@@ -849,7 +838,9 @@ class _ChapterSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final difficulty = levels.first.difficulty;
     final accent = _difficultyAccent(difficulty);
-    final completed = levels.where((level) => store.isCompleted(level.id)).length;
+    final completed = levels
+        .where((level) => store.isCompleted(level.id))
+        .length;
     final stars = levels.fold<int>(
       0,
       (total, level) => total + (store.progressFor(level.id)?.stars ?? 0),
@@ -871,11 +862,7 @@ class _ChapterSummary extends StatelessWidget {
               ),
               child: SizedBox.square(
                 dimension: 44,
-                child: DuelAssetIcon(
-                  DuelAsset.grid,
-                  size: 25,
-                  color: accent,
-                ),
+                child: DuelAssetIcon(DuelAsset.grid, size: 25, color: accent),
               ),
             ),
             const SizedBox(width: 12),
@@ -996,12 +983,12 @@ class _CareerLevelCard extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF172226).withValues(
-                    alpha: unlocked ? .82 : .48,
-                  ),
-                  const Color(0xFF071014).withValues(
-                    alpha: unlocked ? .94 : .70,
-                  ),
+                  const Color(
+                    0xFF172226,
+                  ).withValues(alpha: unlocked ? .82 : .48),
+                  const Color(
+                    0xFF071014,
+                  ).withValues(alpha: unlocked ? .94 : .70),
                 ],
               ),
               borderRadius: BorderRadius.circular(22),
@@ -1292,10 +1279,7 @@ class _InlineError extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              color: Color(0xFFFF8FA3),
-            ),
+            const Icon(Icons.error_outline_rounded, color: Color(0xFFFF8FA3)),
             const SizedBox(width: 9),
             Expanded(
               child: Text(
