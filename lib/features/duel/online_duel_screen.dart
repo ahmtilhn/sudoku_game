@@ -328,11 +328,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       if (!mounted || action == null) return;
       if (action.startsWith('rematch:')) {
         final roomId = action.substring('rematch:'.length);
-        await Navigator.of(context).pushReplacement<void, void>(
-          MaterialPageRoute(
-            builder: (_) => PreMatchReadyScreen(roomId: roomId),
-          ),
-        );
+        await _handoffToRematch(roomId);
       } else if (action == 'new_match') {
         await Navigator.of(context).pushReplacement<void, void>(
           MaterialPageRoute(builder: (_) => const MatchmakingScreen()),
@@ -341,6 +337,21 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         Navigator.of(context).pop(action);
       }
     });
+  }
+
+  Future<void> _handoffToRematch(String roomId) async {
+    _resultSettlementTimer?.cancel();
+    _resultSettlementTimer = null;
+    await _subscription?.cancel();
+    await _feedbackSubscription?.cancel();
+    await _controller?.dispose();
+    _subscription = null;
+    _feedbackSubscription = null;
+    _controller = null;
+    if (!mounted) return;
+    await Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
+    );
   }
 
   @override
@@ -604,6 +615,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
   Timer? _clockTimer;
   RematchInvitation? _invitation;
   bool _busy = false;
+  bool _openingAcceptedRoom = false;
   String? _statusMessage;
   String? _friendshipStatus;
 
@@ -920,7 +932,10 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
   }
 
   Future<void> _openAcceptedRoom(String roomId) async {
+    if (_openingAcceptedRoom) return;
+    _openingAcceptedRoom = true;
     _pollTimer?.cancel();
+    _clockTimer?.cancel();
     if (!mounted) return;
     Navigator.of(context).pop('rematch:$roomId');
   }
