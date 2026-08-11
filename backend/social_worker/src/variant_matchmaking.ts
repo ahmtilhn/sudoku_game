@@ -206,11 +206,12 @@ async function coordinateRankedMatch(
     `SELECT room_id, difficulty, variant, board_size, cell_count
      FROM matches
      WHERE (player_a_id = ? OR player_b_id = ?)
+       AND variant = ?
        AND status IN (${ACTIVE_MATCH_STATUSES})
-     ORDER BY created_at DESC
-     LIMIT 1`,
+      ORDER BY created_at DESC
+      LIMIT 1`,
   )
-    .bind(input.playerId, input.playerId)
+    .bind(input.playerId, input.playerId, input.variant)
     .first<{
       room_id: string;
       difficulty: string;

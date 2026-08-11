@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/io.dart';
 
 import 'firebase_session_service.dart';
@@ -259,7 +260,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
     }
     return (
       firebaseIdToken: token,
-      appCheckToken: await _appCheckToken(forceRefresh: true),
+      appCheckToken: await _appCheckToken(),
     );
   }
 
@@ -319,7 +320,8 @@ Future<String?> _appCheckToken({bool forceRefresh = false}) async {
         .getToken(forceRefresh)
         .timeout(WebSocketOnlineDuelTransport._appCheckTimeout);
     return token == null || token.isEmpty ? null : token;
-  } catch (_) {
+  } catch (error) {
+    debugPrint('Online duel App Check token unavailable: $error');
     return null;
   }
 }

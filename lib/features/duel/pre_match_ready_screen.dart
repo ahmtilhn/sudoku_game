@@ -182,7 +182,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         _connectionState = controller.connectionState;
       });
       controller.requestSnapshot();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('Pre-match room connection failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
       setState(() {
         _error = UserSafeError.message(context, error);
