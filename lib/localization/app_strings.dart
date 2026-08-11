@@ -135,6 +135,7 @@ class AppStrings {
     'connection_interrupted_retrying':
         'The connection was interrupted. Retrying...',
     'leaderboards': 'Leaderboards',
+    'native_leaderboard_short': 'Native',
     'global_elo': 'Global ELO',
     'friends': 'Friends',
     'country': 'Country',

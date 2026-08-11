@@ -34,8 +34,9 @@ void main() {
       'lib/features/social/profile_hub_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('_ProfileTabs'));
-    expect(source, contains('_ProfileTabPanel'));
+    expect(source, contains('_ProfileQuickStats'));
+    expect(source, contains('_ProfileActionGrid'));
+    expect(source, contains('_ProfileActionCard'));
     expect(source, contains('_selectedTab'));
     expect(source, contains('DuelAsset.leaderboardCrownPro'));
     expect(source, contains('LeaderboardsScreen'));
@@ -133,6 +134,8 @@ void main() {
       expect(source, contains("_LeaderboardAudience.aroundMe => 'around_me'"));
       expect(source, contains('PlatformLeaderboardService.instance'));
       expect(source, contains('_platformLeaderboards.show(_selectedScope)'));
+      expect(source, contains('Sudoku Duel ELO'));
+      expect(source, contains('native_leaderboard_short'));
       expect(source, isNot(contains('entry.copyWith(rank:')));
     },
   );

@@ -80,6 +80,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   @override
   Widget build(BuildContext context) {
     final tabs = _tabs(context);
+    final platformPlayer = _games.localPlayer.value;
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
       body: AppBackdrop(
@@ -94,23 +95,22 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                       children: [
                         InPageHeader(title: context.tr('profile')),
-                        if (_profile != null)
+                        if (_profile != null) ...[
                           CompetitiveProfileCard(profile: _profile!),
+                          const SizedBox(height: 12),
+                          _ProfileQuickStats(
+                            profile: _profile!,
+                            platformPlayer: platformPlayer,
+                          ),
+                        ],
                         if (_error != null)
                           _ProfileNotice(message: _error!, onRetry: _load),
-                        const SizedBox(height: 14),
-                        _ProfileTabs(
+                        const SizedBox(height: 12),
+                        _ProfileActionGrid(
                           tabs: tabs,
                           selected: _selectedTab,
                           onSelected: (value) =>
                               setState(() => _selectedTab = value),
-                        ),
-                        const SizedBox(height: 12),
-                        _ProfileTabPanel(
-                          tab: tabs.firstWhere(
-                            (tab) => tab.tab == _selectedTab,
-                            orElse: () => tabs.first,
-                          ),
                         ),
                       ],
                     ),
@@ -129,6 +129,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         title: context.tr('leaderboards'),
         subtitle: context.tr('home_rating_label'),
         accent: const Color(0xFFB7A9FF),
+        metric: '9x9 / 16x16',
         onOpen: () => _open(const LeaderboardsScreen()),
       ),
       if (Platform.isAndroid || Platform.isIOS)
@@ -138,9 +139,119 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
           title: Platform.isIOS ? 'Game Center' : 'Google Play Games',
           subtitle: context.tr('leaderboards'),
           accent: const Color(0xFF29D398),
+          metric: Platform.isIOS ? 'Native' : 'Play Games',
           onOpen: () => _open(const PlatformServicesScreen()),
         ),
     ];
+  }
+}
+
+class _ProfileQuickStats extends StatelessWidget {
+  const _ProfileQuickStats({
+    required this.profile,
+    required this.platformPlayer,
+  });
+
+  final CompetitiveProfile profile;
+  final PlatformPlayer? platformPlayer;
+
+  @override
+  Widget build(BuildContext context) {
+    final games = profile.wins + profile.losses + profile.draws;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 16) / 3;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            SizedBox(
+              width: itemWidth,
+              child: _MetricTile(
+                label: context.tr('current_elo'),
+                value: '${profile.currentElo}',
+                asset: DuelAsset.leaderboardCrownPro,
+                color: const Color(0xFF3AA9FF),
+              ),
+            ),
+            SizedBox(
+              width: itemWidth,
+              child: _MetricTile(
+                label: context.tr('wins_losses_draws'),
+                value: '${profile.wins}/${profile.losses}/${profile.draws}',
+                asset: DuelAsset.trophy,
+                color: const Color(0xFF29D398),
+              ),
+            ),
+            SizedBox(
+              width: itemWidth,
+              child: _MetricTile(
+                label: platformPlayer == null ? 'Account' : 'Platform',
+                value: platformPlayer == null ? '$games games' : 'Linked',
+                asset: DuelAsset.profilePro,
+                color: const Color(0xFFB7A9FF),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MetricTile extends StatelessWidget {
+  const _MetricTile({
+    required this.label,
+    required this.value,
+    required this.asset,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final String asset;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .045),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: .20)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(11),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DuelAssetIcon(asset, size: 20, color: color),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .58),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -188,8 +299,28 @@ class _ProfileNotice extends StatelessWidget {
   }
 }
 
-class _ProfileTabs extends StatelessWidget {
-  const _ProfileTabs({
+class _ProfileTabData {
+  const _ProfileTabData({
+    required this.tab,
+    required this.asset,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    required this.metric,
+    required this.onOpen,
+  });
+
+  final _ProfileTab tab;
+  final String asset;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final String metric;
+  final VoidCallback onOpen;
+}
+
+class _ProfileActionGrid extends StatelessWidget {
+  const _ProfileActionGrid({
     required this.tabs,
     required this.selected,
     required this.onSelected,
@@ -201,75 +332,59 @@ class _ProfileTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: tabs.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final tab = tabs[index];
-          final active = selected == tab.tab;
-          return ChoiceChip(
-            selected: active,
-            onSelected: (_) => onSelected(tab.tab),
-            avatar: DuelAssetIcon(tab.asset, size: 18),
-            label: Text(tab.title),
-            labelStyle: TextStyle(
-              color: active
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: .72),
-              fontWeight: FontWeight.w900,
-            ),
-            selectedColor: tab.accent.withValues(alpha: .24),
-            backgroundColor: const Color(0xFF101B20).withValues(alpha: .9),
-            side: BorderSide(color: tab.accent.withValues(alpha: .28)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(999),
-            ),
-          );
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 560 ? 2 : 1;
+        final width = (constraints.maxWidth - ((columns - 1) * 10)) / columns;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final tab in tabs)
+              SizedBox(
+                width: width,
+                child: _ProfileActionCard(
+                  tab: tab,
+                  selected: selected == tab.tab,
+                  onSelected: () => onSelected(tab.tab),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _ProfileTabData {
-  const _ProfileTabData({
+class _ProfileActionCard extends StatelessWidget {
+  const _ProfileActionCard({
     required this.tab,
-    required this.asset,
-    required this.title,
-    required this.subtitle,
-    required this.accent,
-    required this.onOpen,
+    required this.selected,
+    required this.onSelected,
   });
 
-  final _ProfileTab tab;
-  final String asset;
-  final String title;
-  final String subtitle;
-  final Color accent;
-  final VoidCallback onOpen;
-}
-
-class _ProfileTabPanel extends StatelessWidget {
-  const _ProfileTabPanel({required this.tab});
-
   final _ProfileTabData tab;
+  final bool selected;
+  final VoidCallback onSelected;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: tab.onOpen,
+        onTap: () {
+          onSelected();
+          tab.onOpen();
+        },
         borderRadius: BorderRadius.circular(18),
         child: Ink(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            color: const Color(0xFF101B20).withValues(alpha: .92),
+            color: Colors.white.withValues(alpha: selected ? .065 : .04),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: tab.accent.withValues(alpha: .28)),
+            border: Border.all(
+              color: tab.accent.withValues(alpha: selected ? .46 : .22),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,21 +431,14 @@ class _ProfileTabPanel extends StatelessWidget {
                   Icon(Icons.chevron_right_rounded, color: tab.accent),
                 ],
               ),
-              const SizedBox(height: 14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: .16),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  _body(context),
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .72),
-                    fontWeight: FontWeight.w700,
-                    height: 1.25,
-                  ),
+              const SizedBox(height: 12),
+              Text(
+                tab.metric,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: tab.accent,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
@@ -338,12 +446,5 @@ class _ProfileTabPanel extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _body(BuildContext context) {
-    return switch (tab.tab) {
-      _ProfileTab.leaderboards => context.tr('home_rating_label'),
-      _ProfileTab.platform => tab.title,
-    };
   }
 }

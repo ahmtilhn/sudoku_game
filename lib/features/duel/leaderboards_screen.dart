@@ -457,18 +457,43 @@ class _Header extends StatelessWidget {
           const DuelAssetIcon(DuelAsset.leaderboardCrownPro, size: 36),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              context.tr('leaderboards'),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('leaderboards'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  'Sudoku Duel ELO',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .62),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
-          if (showNative)
+          if (showNative) ...[
+            Text(
+              context.tr('native_leaderboard_short'),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .56),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(width: 5),
             IconButton.filledTonal(
               tooltip: platformName,
               onPressed: nativeBusy ? null : onNative,
@@ -479,6 +504,7 @@ class _Header extends StatelessWidget {
                     )
                   : const Icon(Icons.sports_esports_rounded),
             ),
+          ],
           const SizedBox(width: 5),
           IconButton.filledTonal(
             tooltip: context.tr('refresh'),
