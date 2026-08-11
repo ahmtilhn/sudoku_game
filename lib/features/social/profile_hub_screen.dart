@@ -168,17 +168,17 @@ class _ProfileQuickStats extends StatelessWidget {
             SizedBox(
               width: itemWidth,
               child: _MetricTile(
-                label: context.tr('current_elo'),
-                value: '${profile.currentElo}',
+                label: context.tr('season_peak'),
+                value: '${profile.seasonPeak}',
                 asset: DuelAsset.leaderboardCrownPro,
-                color: const Color(0xFF3AA9FF),
+                color: const Color(0xFF66C7FF),
               ),
             ),
             SizedBox(
               width: itemWidth,
               child: _MetricTile(
-                label: context.tr('wins_losses_draws'),
-                value: '${profile.wins}/${profile.losses}/${profile.draws}',
+                label: context.tr('win_rate'),
+                value: '${(profile.winRate * 100).round()}%',
                 asset: DuelAsset.trophy,
                 color: const Color(0xFF29D398),
               ),
@@ -216,16 +216,25 @@ class _MetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .045),
+        color: Colors.black.withValues(alpha: .18),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: .20)),
+        border: Border.all(color: color.withValues(alpha: .18)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(11),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 11),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DuelAssetIcon(asset, size: 20, color: color),
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: DuelAssetIcon(asset, size: 20, color: color),
+            ),
             const SizedBox(height: 8),
             Text(
               value,
@@ -233,7 +242,7 @@ class _MetricTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: FontWeight.w900,
               ),
             ),

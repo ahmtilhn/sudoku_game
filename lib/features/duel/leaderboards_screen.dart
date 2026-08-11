@@ -569,20 +569,12 @@ class _Hero extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFFFC73D).withValues(alpha: .15),
-            const Color(0xFF7A5CFF).withValues(alpha: .11),
-            const Color(0xFF0A1728).withValues(alpha: .98),
-          ],
-        ),
+        color: Colors.black.withValues(alpha: .24),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFFFC73D).withValues(alpha: .4),
+          color: const Color(0xFF66C7FF).withValues(alpha: .24),
         ),
         boxShadow: [
           BoxShadow(
@@ -595,28 +587,40 @@ class _Hero extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 430;
-          final values = Row(
-            mainAxisSize: MainAxisSize.min,
+          final values = Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: compact ? WrapAlignment.start : WrapAlignment.end,
             children: [
               _HeroValue(
                 label: context.tr('current_elo'),
                 value: rating == null ? '—' : '$rating',
+                color: const Color(0xFF66C7FF),
               ),
-              const SizedBox(width: 14),
               _HeroValue(
                 label: context.tr('rank'),
                 value: rank == null ? '—' : '#$rank',
+                color: const Color(0xFFB7A9FF),
               ),
             ],
           );
           final identity = Row(
             children: [
-              PlayerAvatar(
-                displayName: displayName,
-                avatarKey: 'home-profile-leaderboard',
-                localAvatarBytes: player?.avatarBytes,
-                remoteApprovedImageUrl: player?.avatarUrl,
-                radius: 29,
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF66C7FF).withValues(alpha: .28),
+                  ),
+                ),
+                child: PlayerAvatar(
+                  displayName: displayName,
+                  avatarKey: 'home-profile-leaderboard',
+                  localAvatarBytes: player?.avatarBytes,
+                  remoteApprovedImageUrl: player?.avatarUrl,
+                  radius: 29,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -659,6 +663,7 @@ class _Hero extends StatelessWidget {
           return Row(
             children: [
               Expanded(child: identity),
+              const SizedBox(width: 12),
               values,
             ],
           );
@@ -669,34 +674,49 @@ class _Hero extends StatelessWidget {
 }
 
 class _HeroValue extends StatelessWidget {
-  const _HeroValue({required this.label, required this.value});
+  const _HeroValue({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   final String label;
   final String value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Color(0xFFFFC73D),
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
+    return Container(
+      constraints: const BoxConstraints(minWidth: 82),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: .18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: .46),
-            fontSize: 9,
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .54),
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -724,7 +744,7 @@ class _Filters extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0A1728).withValues(alpha: .86),
+        color: Colors.black.withValues(alpha: .20),
         borderRadius: BorderRadius.circular(19),
         border: Border.all(color: Colors.white.withValues(alpha: .08)),
       ),
@@ -922,25 +942,33 @@ class _PodiumCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final medal = switch (entry.rank) {
-      1 => '🥇',
-      2 => '🥈',
-      _ => '🥉',
+      1 => '#1',
+      2 => '#2',
+      _ => '#3',
     };
+    final accent = entry.rank == 1
+        ? const Color(0xFF66C7FF)
+        : entry.rank == 2
+        ? const Color(0xFFB7A9FF)
+        : const Color(0xFF29D398);
     return Container(
       padding: EdgeInsets.fromLTRB(9, elevated ? 15 : 11, 9, 11),
       decoration: BoxDecoration(
-        color: const Color(0xFF0A1728).withValues(alpha: .9),
+        color: Colors.black.withValues(alpha: elevated ? .30 : .22),
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(
-          color: entry.rank == 1
-              ? const Color(0xFFFFC73D).withValues(alpha: .5)
-              : Colors.white.withValues(alpha: .09),
-        ),
+        border: Border.all(color: accent.withValues(alpha: .28)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(medal, style: TextStyle(fontSize: elevated ? 25 : 21)),
+          Text(
+            medal,
+            style: TextStyle(
+              color: accent,
+              fontSize: elevated ? 18 : 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 5),
           PlayerAvatar(
             displayName: entry.displayName,
@@ -962,8 +990,8 @@ class _PodiumCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             '${entry.rating} ELO',
-            style: const TextStyle(
-              color: Color(0xFFFFC73D),
+            style: TextStyle(
+              color: accent,
               fontSize: 11,
               fontWeight: FontWeight.w900,
             ),
@@ -983,8 +1011,8 @@ class _LeaderboardEntryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = entry.rank <= 3 && !entry.isProvisional
-        ? const Color(0xFFFFC73D)
-        : const Color(0xFF3AA9FF);
+        ? const Color(0xFF66C7FF)
+        : const Color(0xFFB7A9FF);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -993,7 +1021,7 @@ class _LeaderboardEntryTile extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF0A1728).withValues(alpha: .82),
+            color: Colors.black.withValues(alpha: .20),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: accent.withValues(alpha: .18)),
           ),
@@ -1081,8 +1109,8 @@ class _LeaderboardEntryTile extends StatelessWidget {
                 children: [
                   Text(
                     '${entry.rating}',
-                    style: const TextStyle(
-                      color: Color(0xFFFFC73D),
+                    style: TextStyle(
+                      color: accent,
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1123,10 +1151,10 @@ class _CurrentPlayerBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFF161F36),
+        color: Colors.black.withValues(alpha: .30),
         borderRadius: BorderRadius.circular(15),
         border: Border.all(
-          color: const Color(0xFF7A5CFF).withValues(alpha: .6),
+          color: const Color(0xFF66C7FF).withValues(alpha: .28),
         ),
         boxShadow: [
           BoxShadow(
@@ -1166,7 +1194,7 @@ class _CurrentPlayerBar extends StatelessWidget {
           Text(
             '$rating ELO',
             style: const TextStyle(
-              color: Color(0xFFFFC73D),
+              color: Color(0xFF66C7FF),
               fontWeight: FontWeight.w900,
             ),
           ),

@@ -38,22 +38,23 @@ class CompetitiveProfileCard extends StatelessWidget {
             platformConnected: platformPlayer != null,
             platformPlayer: platformPlayer,
             rankName: profile.rankName,
-            currentElo: profile.currentElo,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          _RatingPanel(profile: profile),
+          const SizedBox(height: 12),
           _ProfileStatGrid(
             stats: [
               _ProfileStatData(
                 asset: DuelAsset.trophy,
                 value: '${profile.wins}',
                 label: 'Wins',
-                accent: const Color(0xFFFFC94D),
+                accent: const Color(0xFF66C7FF),
               ),
               _ProfileStatData(
                 asset: DuelAsset.grid,
                 value: '${profile.losses}',
                 label: 'Losses',
-                accent: const Color(0xFFFF8A3D),
+                accent: const Color(0xFFB7A9FF),
               ),
               _ProfileStatData(
                 asset: DuelAsset.grid,
@@ -69,8 +70,6 @@ class CompetitiveProfileCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _RatingPanel(profile: profile),
           const SizedBox(height: 12),
           _AchievementSummary(profile: profile),
         ],
@@ -100,21 +99,14 @@ class _ProfileSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF162833).withValues(alpha: .96),
-            const Color(0xFF0E181D).withValues(alpha: .96),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+        color: Colors.black.withValues(alpha: .23),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: .075)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: .22),
-            blurRadius: 22,
-            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: .20),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -134,7 +126,6 @@ class _ProfileHeader extends StatelessWidget {
     required this.platformConnected,
     required this.platformPlayer,
     required this.rankName,
-    required this.currentElo,
   });
 
   final String displayName;
@@ -146,7 +137,6 @@ class _ProfileHeader extends StatelessWidget {
   final bool platformConnected;
   final PlatformPlayer? platformPlayer;
   final String rankName;
-  final int currentElo;
 
   @override
   Widget build(BuildContext context) {
@@ -226,11 +216,6 @@ class _ProfileHeader extends StatelessWidget {
           children: [
             _RankBadge(label: rankName),
             _SoftBadge(
-              label: '$currentElo ELO',
-              color: const Color(0xFFFFC94D),
-              asset: DuelAsset.leaderboardCrownPro,
-            ),
-            _SoftBadge(
               label: platformConnected ? '$platformName Connected' : 'Account',
               color: platformConnected
                   ? const Color(0xFF29D398)
@@ -282,7 +267,7 @@ class _RankBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SoftBadge(
       label: label,
-      color: const Color(0xFF3AA9FF),
+      color: const Color(0xFF66C7FF),
       asset: DuelAsset.trophy,
     );
   }
@@ -389,9 +374,9 @@ class _ProfileStatData extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFF071014).withValues(alpha: .58),
+        color: Colors.white.withValues(alpha: .045),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: .07)),
+        border: Border.all(color: accent.withValues(alpha: .18)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(11),
@@ -406,7 +391,7 @@ class _ProfileStatData extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 20,
+                fontSize: 21,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -438,60 +423,135 @@ class _RatingPanel extends StatelessWidget {
     final nextMilestone = ((profile.currentElo ~/ 100) + 1) * 100;
     final floor = nextMilestone - 100;
     final progress = ((profile.currentElo - floor) / 100).clamp(0.0, 1.0);
-    return DecoratedBox(
+    final remaining = (nextMilestone - profile.currentElo).clamp(0, 9999);
+    return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0A151A).withValues(alpha: .72),
+        color: Colors.black.withValues(alpha: .22),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFF3AA9FF).withValues(alpha: .18),
+          color: const Color(0xFF66C7FF).withValues(alpha: .24),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 440;
+                final identity = Row(
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF66C7FF).withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF66C7FF).withValues(alpha: .22),
+                        ),
+                      ),
+                      child: const DuelAssetIcon(
+                        DuelAsset.leaderboardCrownPro,
+                        size: 34,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            profile.rankName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Peak ${profile.seasonPeak}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .58),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+                final score = Column(
+                  crossAxisAlignment: compact
+                      ? CrossAxisAlignment.start
+                      : CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${profile.currentElo}',
+                      style: const TextStyle(
+                        color: Color(0xFF66C7FF),
+                        fontSize: 34,
+                        height: .95,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'ELO',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .56),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                );
+                if (compact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [identity, const SizedBox(height: 14), score],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: identity),
+                    const SizedBox(width: 14),
+                    score,
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    profile.rankName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 9,
+                      backgroundColor: Colors.white.withValues(alpha: .08),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF66C7FF),
+                      ),
                     ),
                   ),
                 ),
-                Text(
-                  '${profile.currentElo} ELO',
-                  style: const TextStyle(
-                    color: Color(0xFFFFC94D),
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
               ],
-            ),
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: Colors.white.withValues(alpha: .08),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFF3AA9FF),
-                ),
-              ),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Peak ${profile.seasonPeak}',
+                    '$remaining ELO to $nextMilestone',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -502,7 +562,7 @@ class _RatingPanel extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Next $nextMilestone',
+                  '$floor-$nextMilestone',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .62),
                     fontSize: 12,
@@ -528,7 +588,7 @@ class _AchievementSummary extends StatelessWidget {
     final showcase = profile.achievementShowcase.take(4).toList();
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .13),
+        color: Colors.black.withValues(alpha: .16),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withValues(alpha: .06)),
       ),
@@ -542,7 +602,7 @@ class _AchievementSummary extends StatelessWidget {
                 const DuelAssetIcon(
                   DuelAsset.trophy,
                   size: 20,
-                  color: Color(0xFFFFC94D),
+                  color: Color(0xFFB7A9FF),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -559,7 +619,7 @@ class _AchievementSummary extends StatelessWidget {
                 Text(
                   '${profile.achievementCount}',
                   style: const TextStyle(
-                    color: Color(0xFFFFC94D),
+                    color: Color(0xFFB7A9FF),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -582,7 +642,7 @@ class _AchievementSummary extends StatelessWidget {
                   for (final achievement in showcase)
                     _SoftBadge(
                       label: achievement.title,
-                      color: const Color(0xFFFFC94D),
+                      color: const Color(0xFFB7A9FF),
                       asset: DuelAsset.trophy,
                     ),
                 ],
