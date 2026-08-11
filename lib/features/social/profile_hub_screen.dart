@@ -80,32 +80,26 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   @override
   Widget build(BuildContext context) {
     final tabs = _tabs(context);
-    final platformPlayer = _games.localPlayer.value;
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
       body: AppBackdrop(
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 680),
+              constraints: const BoxConstraints(maxWidth: 740),
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
                       children: [
                         InPageHeader(title: context.tr('profile')),
                         if (_profile != null) ...[
                           CompetitiveProfileCard(profile: _profile!),
-                          const SizedBox(height: 12),
-                          _ProfileQuickStats(
-                            profile: _profile!,
-                            platformPlayer: platformPlayer,
-                          ),
                         ],
                         if (_error != null)
                           _ProfileNotice(message: _error!, onRetry: _load),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         _ProfileActionGrid(
                           tabs: tabs,
                           selected: _selectedTab,
@@ -143,144 +137,6 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
           onOpen: () => _open(const PlatformServicesScreen()),
         ),
     ];
-  }
-}
-
-class _ProfileQuickStats extends StatelessWidget {
-  const _ProfileQuickStats({
-    required this.profile,
-    required this.platformPlayer,
-  });
-
-  final CompetitiveProfile profile;
-  final PlatformPlayer? platformPlayer;
-
-  @override
-  Widget build(BuildContext context) {
-    final games = profile.wins + profile.losses + profile.draws;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 460;
-        final itemWidth = compact
-            ? constraints.maxWidth
-            : (constraints.maxWidth - 16) / 3;
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: .16),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: .06)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                SizedBox(
-                  width: itemWidth,
-                  child: _MetricTile(
-                    label: context.tr('season_peak'),
-                    value: '${profile.seasonPeak}',
-                    asset: DuelAsset.leaderboardCrownPro,
-                    color: const Color(0xFF66C7FF),
-                  ),
-                ),
-                SizedBox(
-                  width: itemWidth,
-                  child: _MetricTile(
-                    label: context.tr('win_rate'),
-                    value: '${(profile.winRate * 100).round()}%',
-                    asset: DuelAsset.trophy,
-                    color: const Color(0xFF29D398),
-                  ),
-                ),
-                SizedBox(
-                  width: itemWidth,
-                  child: _MetricTile(
-                    label: platformPlayer == null ? 'Account' : 'Platform',
-                    value: platformPlayer == null ? '$games games' : 'Linked',
-                    asset: DuelAsset.profilePro,
-                    color: const Color(0xFFB7A9FF),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({
-    required this.label,
-    required this.value,
-    required this.asset,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final String asset;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .07),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: .15)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: DuelAssetIcon(asset, size: 20, color: color),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .58),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

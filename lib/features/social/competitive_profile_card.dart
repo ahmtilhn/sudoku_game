@@ -29,6 +29,7 @@ class CompetitiveProfileCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _ProfileHeader(
+            profile: profile,
             displayName: displayName,
             username: profile.username,
             publicId: profile.publicId,
@@ -37,11 +38,6 @@ class CompetitiveProfileCard extends StatelessWidget {
             platformName: _platformLabel(platformPlayer),
             platformConnected: platformPlayer != null,
             platformPlayer: platformPlayer,
-            rankName: profile.rankName,
-          ),
-          const SizedBox(height: 14),
-          _RatingPanel(
-            profile: profile,
             gamesPlayed: gamesPlayed,
             winRate: winRate,
           ),
@@ -80,24 +76,25 @@ class _ProfileSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .23),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.black.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withValues(alpha: .075)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: .20),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: .24),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
+      child: Padding(padding: const EdgeInsets.all(10), child: child),
     );
   }
 }
 
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
+    required this.profile,
     required this.displayName,
     required this.username,
     required this.publicId,
@@ -106,9 +103,11 @@ class _ProfileHeader extends StatelessWidget {
     required this.platformName,
     required this.platformConnected,
     required this.platformPlayer,
-    required this.rankName,
+    required this.gamesPlayed,
+    required this.winRate,
   });
 
+  final CompetitiveProfile profile;
   final String displayName;
   final String username;
   final String publicId;
@@ -117,10 +116,15 @@ class _ProfileHeader extends StatelessWidget {
   final String platformName;
   final bool platformConnected;
   final PlatformPlayer? platformPlayer;
-  final String rankName;
+  final int gamesPlayed;
+  final String winRate;
 
   @override
   Widget build(BuildContext context) {
+    final nextMilestone = ((profile.currentElo ~/ 100) + 1) * 100;
+    final floor = nextMilestone - 100;
+    final progress = ((profile.currentElo - floor) / 100).clamp(0.0, 1.0);
+    final remaining = (nextMilestone - profile.currentElo).clamp(0, 9999);
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact =
@@ -148,91 +152,200 @@ class _ProfileHeader extends StatelessWidget {
             ),
           ),
         );
-        final identity = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    displayName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: compact ? 20 : 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+        final identity = Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                displayName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: compact ? 22 : 24,
+                  height: 1.02,
+                  fontWeight: FontWeight.w900,
                 ),
-                if (privateProfile) ...[
-                  const SizedBox(width: 6),
-                  DuelAssetIcon(
-                    DuelAsset.lock,
-                    size: 16,
-                    color: Colors.white.withValues(alpha: .62),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '@$username · $publicId',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .62),
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
               ),
-            ),
-            const SizedBox(height: 8),
-            _FriendIdPill(publicId: publicId),
-          ],
+              const SizedBox(height: 5),
+              Text(
+                '@$username',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .58),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _FriendIdPill(publicId: publicId),
+            ],
+          ),
         );
 
         final status = Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 7,
+          runSpacing: 7,
           children: [
-            _RankBadge(label: rankName),
+            _RankBadge(label: profile.rankName),
             _SoftBadge(
-              label: platformConnected ? '$platformName Connected' : 'Account',
+              label: platformConnected ? platformName : 'Account',
               color: platformConnected
                   ? const Color(0xFF29D398)
                   : const Color(0xFF8EA2AD),
               asset: DuelAsset.profile,
             ),
+            if (privateProfile)
+              _SoftBadge(
+                label: 'Private',
+                color: const Color(0xFFB7A9FF),
+                asset: DuelAsset.lock,
+              ),
           ],
         );
 
-        if (compact) {
-          return Column(
+        final rating = Container(
+          width: compact ? double.infinity : 168,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF66C7FF).withValues(alpha: .08),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: const Color(0xFF66C7FF).withValues(alpha: .18),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: compact
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${profile.currentElo}',
+                style: const TextStyle(
+                  color: Color(0xFF66C7FF),
+                  fontSize: 42,
+                  height: .92,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                'ELO',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .52),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 7,
+                  backgroundColor: Colors.white.withValues(alpha: .08),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFF66C7FF),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                remaining == 0 ? '$floor-$nextMilestone' : '$remaining to next',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .56),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        );
+
+        final detailRail = Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          children: [
+            _EloMicroMetric(
+              label: context.tr('season_peak'),
+              value: '${profile.seasonPeak}',
+              color: const Color(0xFFB7A9FF),
+            ),
+            _EloMicroMetric(
+              label: context.tr('win_rate'),
+              value: winRate,
+              color: const Color(0xFF29D398),
+            ),
+            _EloMicroMetric(
+              label: 'Record',
+              value: '$gamesPlayed games',
+              color: const Color(0xFF3AA9FF),
+            ),
+          ],
+        );
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(compact ? 14 : 16),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .24),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: const Color(0xFF66C7FF).withValues(alpha: .16),
+            ),
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (compact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [avatar, const SizedBox(width: 14), identity],
+                    ),
+                    const SizedBox(height: 13),
+                    status,
+                    const SizedBox(height: 12),
+                    rating,
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    avatar,
+                    const SizedBox(width: 15),
+                    identity,
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 250),
+                          child: status,
+                        ),
+                        const SizedBox(height: 12),
+                        rating,
+                      ],
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 14),
+              Divider(height: 1, color: Colors.white.withValues(alpha: .07)),
+              const SizedBox(height: 12),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  avatar,
-                  const SizedBox(width: 14),
-                  Expanded(child: identity),
+                  const DuelAssetIcon(DuelAsset.leaderboardCrownPro, size: 32),
+                  const SizedBox(width: 10),
+                  Expanded(child: detailRail),
                 ],
               ),
-              const SizedBox(height: 12),
-              status,
             ],
-          );
-        }
-
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            avatar,
-            const SizedBox(width: 14),
-            Expanded(child: identity),
-            const SizedBox(width: 12),
-            Flexible(child: status),
-          ],
+          ),
         );
       },
     );
@@ -446,201 +559,6 @@ class _PerformanceCell extends StatelessWidget {
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RatingPanel extends StatelessWidget {
-  const _RatingPanel({
-    required this.profile,
-    required this.gamesPlayed,
-    required this.winRate,
-  });
-
-  final CompetitiveProfile profile;
-  final int gamesPlayed;
-  final String winRate;
-
-  @override
-  Widget build(BuildContext context) {
-    final nextMilestone = ((profile.currentElo ~/ 100) + 1) * 100;
-    final floor = nextMilestone - 100;
-    final progress = ((profile.currentElo - floor) / 100).clamp(0.0, 1.0);
-    final remaining = (nextMilestone - profile.currentElo).clamp(0, 9999);
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .26),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF66C7FF).withValues(alpha: .24),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 440;
-                final identity = Row(
-                  children: [
-                    Container(
-                      width: 58,
-                      height: 58,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF66C7FF).withValues(alpha: .12),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: const Color(0xFF66C7FF).withValues(alpha: .22),
-                        ),
-                      ),
-                      child: const DuelAssetIcon(
-                        DuelAsset.leaderboardCrownPro,
-                        size: 34,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            profile.rankName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            'Peak ${profile.seasonPeak}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: .58),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-                final score = Column(
-                  crossAxisAlignment: compact
-                      ? CrossAxisAlignment.start
-                      : CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${profile.currentElo}',
-                      style: const TextStyle(
-                        color: Color(0xFF66C7FF),
-                        fontSize: 42,
-                        height: .95,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      'ELO',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .56),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                );
-                if (compact) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [identity, const SizedBox(height: 14), score],
-                  );
-                }
-                return Row(
-                  children: [
-                    Expanded(child: identity),
-                    const SizedBox(width: 14),
-                    score,
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 7,
-              runSpacing: 7,
-              children: [
-                _EloMicroMetric(
-                  label: context.tr('season_peak'),
-                  value: '${profile.seasonPeak}',
-                  color: const Color(0xFFB7A9FF),
-                ),
-                _EloMicroMetric(
-                  label: context.tr('win_rate'),
-                  value: winRate,
-                  color: const Color(0xFF29D398),
-                ),
-                _EloMicroMetric(
-                  label: 'Record',
-                  value: '$gamesPlayed games',
-                  color: const Color(0xFF3AA9FF),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 9,
-                      backgroundColor: Colors.white.withValues(alpha: .08),
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF66C7FF),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    remaining == 0
-                        ? 'Milestone reached'
-                        : '$remaining ELO to $nextMilestone',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .62),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                Text(
-                  '$floor-$nextMilestone',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .62),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
             ),
           ],
         ),

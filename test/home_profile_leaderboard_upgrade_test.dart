@@ -33,8 +33,11 @@ void main() {
     final source = File(
       'lib/features/social/profile_hub_screen.dart',
     ).readAsStringSync();
+    final profileCard = File(
+      'lib/features/social/competitive_profile_card.dart',
+    ).readAsStringSync();
 
-    expect(source, contains('_ProfileQuickStats'));
+    expect(profileCard, contains('_ProfilePerformanceStrip'));
     expect(source, contains('_ProfileActionGrid'));
     expect(source, contains('_ProfileActionCard'));
     expect(source, contains('_selectedTab'));
