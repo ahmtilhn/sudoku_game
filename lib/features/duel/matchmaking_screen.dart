@@ -37,7 +37,8 @@ class MatchmakingScreen extends StatefulWidget {
 
 class _MatchmakingScreenState extends State<MatchmakingScreen> {
   final EconomyService _economy = EconomyService.instance;
-  final VariantMatchmakingClient _matchmaking = VariantMatchmakingClient.instance;
+  final VariantMatchmakingClient _matchmaking =
+      VariantMatchmakingClient.instance;
 
   late SudokuDifficulty _difficulty;
   late SudokuVariant _variant;
@@ -174,7 +175,9 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         const Spacer(),
                         _EntryBar(
                           fee: _entryFee,
-                          pot: _economy.winnerPotForDifficulty(_difficulty.name),
+                          pot: _economy.winnerPotForDifficulty(
+                            _difficulty.name,
+                          ),
                           variant: _variant,
                         ),
                         SizedBox(height: compact ? 8 : 10),
@@ -211,8 +214,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                 onPressed: _economy.loading
                                     ? null
                                     : _canEnter
-                                        ? _findOpponent
-                                        : _showInsufficientCoins,
+                                    ? _findOpponent
+                                    : _showInsufficientCoins,
                                 style: FilledButton.styleFrom(
                                   minimumSize: Size(0, compact ? 46 : 50),
                                   backgroundColor: _canEnter
@@ -371,23 +374,24 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
           store: store,
           allowNotes: true,
           showNextAction: false,
-          onCompleted: ({required seconds, required mistakes, required hints}) =>
-              store.recordResult(
-                puzzleId: puzzle.id,
-                seconds: seconds,
-                mistakes: mistakes,
-                hints: hints,
-                variant: _variant,
-              ),
+          onCompleted:
+              ({required seconds, required mistakes, required hints}) =>
+                  store.recordResult(
+                    puzzleId: puzzle.id,
+                    seconds: seconds,
+                    mistakes: mistakes,
+                    hints: hints,
+                    variant: _variant,
+                  ),
         ),
       ),
     );
   }
 
   Future<void> _openStore() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const CoinStoreScreen()));
     await _economy.refresh(showLoading: false);
   }
 
@@ -422,13 +426,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   Future<void> _findOpponent() async {
     if (_searching || _openingRoom) return;
-    await _economy.refresh();
-    if (!mounted) return;
-    if (!_canEnter) {
-      await _showInsufficientCoins();
-      return;
-    }
-
     setState(() {
       _searching = true;
       _cancelling = false;
@@ -439,6 +436,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
     try {
       await FirebaseSessionService.ensureAnonymousSession();
+      await _economy.refresh();
+      if (!mounted || !_searching) return;
+      if (!_canEnter) {
+        await _stopSearching();
+        await _showInsufficientCoins();
+        return;
+      }
       unawaited(_loadCurrentProfile());
       final result = await _joinSelectedQueue();
       if (!mounted || !_searching) return;
@@ -448,10 +452,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         return;
       }
       if (result.status != 'queued') {
-        throw const SocialApiException(
-          0,
-          'Unexpected matchmaking response.',
-        );
+        throw const SocialApiException(0, 'Unexpected matchmaking response.');
       }
       if (mounted) setState(() {});
       _startPolling();
@@ -471,13 +472,20 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     }
   }
 
+  Future<void> _stopSearching() async {
+    if (!mounted) return;
+    setState(() {
+      _searching = false;
+      _polling = false;
+      _cancelling = false;
+      _activeQueueRequest = null;
+    });
+  }
+
   Future<VariantMatchmakingResult> _joinSelectedQueue() async {
     late final Future<VariantMatchmakingResult> request;
     request = _matchmaking
-        .joinRankedQueue(
-          difficulty: _difficulty.name,
-          variant: _variant,
-        )
+        .joinRankedQueue(difficulty: _difficulty.name, variant: _variant)
         .then((result) {
           if (result.variant.id != _variant.id ||
               result.boardSize != _variant.boardSize ||
@@ -841,9 +849,7 @@ class _VariantCard extends StatelessWidget {
                   : const Color(0xFF07111E),
               borderRadius: BorderRadius.circular(13),
               border: Border.all(
-                color: selected
-                    ? accent
-                    : Colors.white.withValues(alpha: .09),
+                color: selected ? accent : Colors.white.withValues(alpha: .09),
                 width: selected ? 1.7 : 1,
               ),
             ),

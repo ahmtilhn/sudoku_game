@@ -26,8 +26,37 @@ void main() {
       expect(source, contains('final pending = _activeQueueRequest;'));
       expect(source, contains('await _matchmaking.cancelRankedQueue();'));
       expect(source, contains('SocialApiClient.instance.activeMatch()'));
+
+      final sessionIndex = source.indexOf(
+        'await FirebaseSessionService.ensureAnonymousSession();',
+      );
+      final findOpponentStart = source.indexOf('Future<void> _findOpponent()');
+      final walletIndex = source.indexOf(
+        'await _economy.refresh();',
+        findOpponentStart,
+      );
+      final queueIndex = source.indexOf(
+        'final result = await _joinSelectedQueue();',
+        findOpponentStart,
+      );
+      expect(findOpponentStart, greaterThanOrEqualTo(0));
+      expect(sessionIndex, greaterThanOrEqualTo(0));
+      expect(walletIndex, greaterThan(sessionIndex));
+      expect(queueIndex, greaterThan(walletIndex));
     },
   );
+
+  test('profile loading can actively recover the native platform player', () {
+    final source = File(
+      'lib/services/player_profile_service.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('authenticated = await games.authenticate();'));
+    expect(
+      source,
+      contains('games.localPlayer.value ?? await games.getLocalPlayer()'),
+    );
+  });
 
   test('online duel builds the board from snapshot variant metadata', () {
     final source = File(

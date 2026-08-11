@@ -7,6 +7,7 @@ class FirebaseRuntimeConfig {
   const FirebaseRuntimeConfig._();
 
   static const String expectedProjectId = 'focus-sweep-503417-d7';
+  static Future<bool>? _initialization;
 
   static bool get configured {
     if (kIsWeb) return false;
@@ -35,6 +36,17 @@ class FirebaseRuntimeConfig {
   }
 
   static Future<bool> initializeIfConfigured() async {
+    final pending = _initialization;
+    if (pending != null) return pending;
+
+    final operation = _initializeOnce().whenComplete(() {
+      _initialization = null;
+    });
+    _initialization = operation;
+    return operation;
+  }
+
+  static Future<bool> _initializeOnce() async {
     if (!configured) return false;
 
     if (Firebase.apps.isEmpty) {
