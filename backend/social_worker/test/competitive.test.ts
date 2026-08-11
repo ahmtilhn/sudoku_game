@@ -97,7 +97,7 @@ describe('competitive profile model', () => {
     expect(source).toContain(
       "scopes: ['global', 'beginner', 'easy', 'medium', 'hard', 'expert']",
     );
-    expect(source).toContain("'futureScopes'");
+    expect(source).toContain('futureScopes');
     expect(source).not.toContain("scope === 'country'");
     expect(source).not.toContain("scope === 'current_season'");
     expect(source).not.toContain("scope === 'daily_tournament'");

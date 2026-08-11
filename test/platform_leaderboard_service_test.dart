@@ -311,8 +311,9 @@ OnlineDuelSnapshot _snapshot({
   int globalElo = 1210,
   int difficultyElo = 1175,
 }) {
-  final puzzle = List<int>.filled(variant == 'classic16' ? 256 : 81, 0)
-    ..[0] = 1;
+  final cellCount = variant == 'classic16' ? 256 : 81;
+  final puzzle = List<int>.filled(cellCount, 0)..[0] = 1;
+  final board = List<int>.filled(cellCount, 1);
   return OnlineDuelSnapshot.fromJson(<String, dynamic>{
     'roomId': 'room-1',
     'matchId': matchId,
@@ -342,7 +343,7 @@ OnlineDuelSnapshot _snapshot({
       },
     },
     'puzzle': puzzle,
-    'board': List<int>.filled(81, 1),
+    'board': board,
     'scores': <String, int>{'A': 100, 'B': 80},
     'mistakes': <String, int>{'A': 0, 'B': 1},
     'correctMoves': <String, int>{'A': 10, 'B': 8},
