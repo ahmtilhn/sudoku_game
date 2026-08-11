@@ -395,24 +395,30 @@ export async function leaderboardPage(
     return friendsLeaderboard(env, input.scope, variant, input.viewerId, limit);
   }
   const rows = await env.DB.prepare(
-    `SELECT pr.*, p.public_id, p.username, p.display_name, p.avatar_key,
-            p.country_code
-     FROM player_variant_ratings pr
-     JOIN players p ON p.id = pr.player_id
-     WHERE pr.variant = ? AND pr.scope = ?
-       AND (
+    `SELECT ranked.*
+     FROM (
+       SELECT pr.*, p.public_id, p.username, p.display_name, p.avatar_key,
+              p.country_code,
+              ROW_NUMBER() OVER (
+                ORDER BY pr.rating DESC, pr.games_played DESC, pr.wins DESC,
+                         pr.draws DESC, pr.updated_at ASC, pr.player_id ASC
+              ) AS rank
+       FROM player_variant_ratings pr
+       JOIN players p ON p.id = pr.player_id
+       WHERE pr.variant = ? AND pr.scope = ?
+     ) ranked
+     WHERE (
          ? IS NULL
-         OR pr.rating < ?
-         OR (pr.rating = ? AND pr.games_played < ?)
-         OR (pr.rating = ? AND pr.games_played = ? AND pr.wins < ?)
-         OR (pr.rating = ? AND pr.games_played = ? AND pr.wins = ? AND pr.draws < ?)
-         OR (pr.rating = ? AND pr.games_played = ? AND pr.wins = ? AND pr.draws = ?
-             AND pr.updated_at > ?)
-         OR (pr.rating = ? AND pr.games_played = ? AND pr.wins = ? AND pr.draws = ?
-             AND pr.updated_at = ? AND pr.player_id > ?)
+         OR ranked.rating < ?
+         OR (ranked.rating = ? AND ranked.games_played < ?)
+         OR (ranked.rating = ? AND ranked.games_played = ? AND ranked.wins < ?)
+         OR (ranked.rating = ? AND ranked.games_played = ? AND ranked.wins = ? AND ranked.draws < ?)
+         OR (ranked.rating = ? AND ranked.games_played = ? AND ranked.wins = ? AND ranked.draws = ?
+             AND ranked.updated_at > ?)
+         OR (ranked.rating = ? AND ranked.games_played = ? AND ranked.wins = ? AND ranked.draws = ?
+             AND ranked.updated_at = ? AND ranked.player_id > ?)
        )
-     ORDER BY pr.rating DESC, pr.games_played DESC, pr.wins DESC, pr.draws DESC,
-              pr.updated_at ASC, pr.player_id ASC
+     ORDER BY ranked.rank ASC
      LIMIT ?`,
   )
     .bind(
@@ -486,11 +492,12 @@ async function leaderboardResponse(
   rows: Record<string, unknown>[],
   limit: number,
   mode: string,
+  currentRankOverride?: number | null,
 ): Promise<Record<string, unknown>> {
   const visible = rows.slice(0, limit);
   const next = rows.length > limit ? rows[limit - 1] : null;
-  const rankOffset = mode === 'top' ? 0 : 0;
   const version = await leaderboardVersion(env, scope, variant);
+  const currentRow = await variantRatingRow(env, viewerId, scope, variant);
   return {
     scope,
     variant,
@@ -500,7 +507,7 @@ async function leaderboardResponse(
     stale: version.stale,
     entries: await Promise.all(
       visible.map(async (row, index) => ({
-        rank: Number(row.rank ?? index + 1 + rankOffset),
+        rank: Number(row.rank ?? index + 1),
         publicId: row.public_id,
         username: row.username,
         displayName: row.display_name,
@@ -512,11 +519,26 @@ async function leaderboardResponse(
         losses: row.losses,
         draws: row.draws,
         winRate: winRate(Number(row.wins ?? 0), Number(row.losses ?? 0), Number(row.draws ?? 0)),
+        winStreak: Number(row.win_streak ?? 0),
+        bestRating: Number(row.best_rating ?? row.rating ?? 1000),
+        provisionalGames: Number(row.provisional_games ?? 0),
       })),
     ),
     currentPlayer: {
-      rank: await leaderboardRank(env, viewerId, scope, variant),
-      rating: Number((await variantRatingRow(env, viewerId, scope, variant))?.rating ?? 1000),
+      rank: currentRankOverride ?? await leaderboardRank(env, viewerId, scope, variant),
+      rating: Number(currentRow?.rating ?? 1000),
+      gamesPlayed: Number(currentRow?.games_played ?? 0),
+      wins: Number(currentRow?.wins ?? 0),
+      losses: Number(currentRow?.losses ?? 0),
+      draws: Number(currentRow?.draws ?? 0),
+      winRate: winRate(
+        Number(currentRow?.wins ?? 0),
+        Number(currentRow?.losses ?? 0),
+        Number(currentRow?.draws ?? 0),
+      ),
+      winStreak: Number(currentRow?.win_streak ?? 0),
+      bestRating: Number(currentRow?.best_rating ?? currentRow?.rating ?? 1000),
+      provisionalGames: Number(currentRow?.provisional_games ?? 0),
     },
     nextCursor: next
       ? encodeLeaderboardCursor({
@@ -570,27 +592,43 @@ async function friendsLeaderboard(
   limit: number,
 ): Promise<Record<string, unknown>> {
   const rows = await env.DB.prepare(
-    `SELECT pr.*, p.public_id, p.username, p.display_name, p.avatar_key,
-            p.country_code
-     FROM player_variant_ratings pr
-     JOIN players p ON p.id = pr.player_id
-     WHERE pr.variant = ? AND pr.scope = ?
-       AND (
-         pr.player_id = ?
-         OR pr.player_id IN (
-           SELECT CASE WHEN f.player_low_id = ? THEN f.player_high_id ELSE f.player_low_id END
-           FROM friendships f
-           WHERE (f.player_low_id = ? OR f.player_high_id = ?)
-             AND f.status = 'accepted'
+    `SELECT ranked.*
+     FROM (
+       SELECT pr.*, p.public_id, p.username, p.display_name, p.avatar_key,
+              p.country_code,
+              ROW_NUMBER() OVER (
+                ORDER BY pr.rating DESC, pr.games_played DESC, pr.wins DESC,
+                         pr.draws DESC, pr.updated_at ASC, pr.player_id ASC
+              ) AS rank
+       FROM player_variant_ratings pr
+       JOIN players p ON p.id = pr.player_id
+       WHERE pr.variant = ? AND pr.scope = ?
+         AND (
+           pr.player_id = ?
+           OR pr.player_id IN (
+             SELECT CASE WHEN f.player_low_id = ? THEN f.player_high_id ELSE f.player_low_id END
+             FROM friendships f
+             WHERE (f.player_low_id = ? OR f.player_high_id = ?)
+               AND f.status = 'accepted'
+           )
          )
-       )
-     ORDER BY pr.rating DESC, pr.games_played DESC, pr.wins DESC, pr.draws DESC,
-              pr.updated_at ASC, pr.player_id ASC
+     ) ranked
+     ORDER BY ranked.rank ASC
      LIMIT ?`,
   )
     .bind(variant, scope, viewerId, viewerId, viewerId, viewerId, limit)
     .all<Record<string, unknown>>();
-  return leaderboardResponse(env, scope, variant, viewerId, rows.results, limit, 'friends');
+  const currentRank = rows.results.find((row) => row.player_id === viewerId)?.rank;
+  return leaderboardResponse(
+    env,
+    scope,
+    variant,
+    viewerId,
+    rows.results,
+    limit,
+    'friends',
+    currentRank == null ? null : Number(currentRank),
+  );
 }
 
 async function achievementShowcase(

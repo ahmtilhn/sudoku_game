@@ -222,6 +222,46 @@ void main() {
     expect(calls, 0);
   });
 
+  test('does not mirror 16x16 ratings into native 9x9 leaderboards', () async {
+    var calls = 0;
+    final service = PlatformLeaderboardService(
+      ids: ids,
+      platform: TargetPlatform.android,
+      isConfigured: () async => true,
+      refreshAuthentication: () async => true,
+      submitScore: ({required score, leaderboardId}) async {
+        calls++;
+        return true;
+      },
+    );
+
+    final result = await service.mirrorFinalRatings(
+      _snapshot(variant: 'classic16'),
+    );
+
+    expect(result.status, PlatformLeaderboardMirrorStatus.skipped);
+    expect(calls, 0);
+  });
+
+  test('does not submit invalid ELO values to native leaderboards', () async {
+    var calls = 0;
+    final service = PlatformLeaderboardService(
+      ids: ids,
+      platform: TargetPlatform.android,
+      isConfigured: () async => true,
+      refreshAuthentication: () async => true,
+      submitScore: ({required score, leaderboardId}) async {
+        calls++;
+        return true;
+      },
+    );
+
+    final result = await service.mirrorFinalRatings(_snapshot(globalElo: 99));
+
+    expect(result.status, PlatformLeaderboardMirrorStatus.skipped);
+    expect(calls, 0);
+  });
+
   test('keeps platform calls disabled while IDs are placeholders', () async {
     var configuredChecks = 0;
     final service = PlatformLeaderboardService(
@@ -267,12 +307,17 @@ OnlineDuelSnapshot _snapshot({
   String mode = 'ranked',
   String status = 'completed',
   String youSeat = 'A',
+  String variant = 'classic9',
+  int globalElo = 1210,
+  int difficultyElo = 1175,
 }) {
-  final puzzle = List<int>.filled(81, 0)..[0] = 1;
+  final puzzle = List<int>.filled(variant == 'classic16' ? 256 : 81, 0)
+    ..[0] = 1;
   return OnlineDuelSnapshot.fromJson(<String, dynamic>{
     'roomId': 'room-1',
     'matchId': matchId,
     'mode': mode,
+    'variant': variant,
     'difficulty': 'easy',
     'status': status,
     'youSeat': youSeat,
@@ -311,10 +356,10 @@ OnlineDuelSnapshot _snapshot({
     'rating': <String, dynamic>{
       'A': <String, int>{
         'beforeGlobal': 1190,
-        'afterGlobal': 1210,
+        'afterGlobal': globalElo,
         'deltaGlobal': 20,
         'beforeDifficulty': 1155,
-        'afterDifficulty': 1175,
+        'afterDifficulty': difficultyElo,
         'deltaDifficulty': 20,
       },
       'B': <String, int>{

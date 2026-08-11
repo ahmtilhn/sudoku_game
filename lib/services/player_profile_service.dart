@@ -129,7 +129,7 @@ class PlayerProfileService {
 
   Future<PlayerProfilePreferences> load() async {
     final player = await _loadPlatformPlayer();
-    final platformName = player?.displayName.trim();
+    final platformName = player?.effectiveDisplayName.trim();
     final platformSource = player?.platform ?? 'google_play_games';
     final platformAvatar = PlatformProfilePolicy.normalizedAvatarUrl(
       player?.avatarUrl,

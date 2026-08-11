@@ -113,13 +113,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
       );
       if (!mounted || requestId != _requestSerial) return;
 
-      final incoming = !reset && _audience == _LeaderboardAudience.world
-          ? page.entries
-                .map(
-                  (entry) => entry.copyWith(rank: entry.rank + _entries.length),
-                )
-                .toList(growable: false)
-          : page.entries;
+      final incoming = page.entries;
       setState(() {
         _entries = reset
             ? incoming
@@ -291,7 +285,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     final platformPlayer = _games.localPlayer.value;
     final displayName = _profile?.displayName.trim().isNotEmpty == true
         ? _profile!.displayName
-        : platformPlayer?.displayName ?? context.tr('you');
+        : platformPlayer?.effectiveDisplayName ?? context.tr('you');
     final current = _currentPlayer;
     final currentRank = _effectiveCurrentRank();
 

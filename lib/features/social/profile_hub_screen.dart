@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
+import '../../services/platform_game_services.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
@@ -20,6 +21,7 @@ class ProfileHubScreen extends StatefulWidget {
 }
 
 class _ProfileHubScreenState extends State<ProfileHubScreen> {
+  final PlatformGameServices _games = PlatformGameServices.instance;
   CompetitiveProfile? _profile;
   bool _loading = true;
   String? _error;
@@ -28,7 +30,31 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   @override
   void initState() {
     super.initState();
+    _games.localPlayer.addListener(_platformIdentityChanged);
+    _refreshPlatformIdentity();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _games.localPlayer.removeListener(_platformIdentityChanged);
+    super.dispose();
+  }
+
+  void _platformIdentityChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshPlatformIdentity() async {
+    try {
+      if (!await _games.isConfigured()) return;
+      final authenticated = await _games.refreshAuthentication();
+      if (authenticated && _games.localPlayer.value == null) {
+        _games.localPlayer.value = await _games.getLocalPlayer();
+      }
+    } catch (_) {
+      // Remote profile remains usable without native platform identity.
+    }
   }
 
   Future<void> _load() async {

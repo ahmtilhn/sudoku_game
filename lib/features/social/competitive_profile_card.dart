@@ -15,7 +15,7 @@ class CompetitiveProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final platformPlayer = PlatformGameServices.instance.localPlayer.value;
-    final platformDisplayName = platformPlayer?.displayName.trim();
+    final platformDisplayName = platformPlayer?.effectiveDisplayName.trim();
     final displayName =
         platformDisplayName != null && platformDisplayName.isNotEmpty
         ? platformDisplayName

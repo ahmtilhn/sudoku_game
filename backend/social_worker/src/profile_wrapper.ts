@@ -136,16 +136,17 @@ async function handleCompetitive(
     }
     if (url.pathname === '/v1/competitive/leaderboards/hub' && request.method === 'GET') {
       return json(env, 200, {
-        scopes: [
-          'global',
-          'friends',
+        scopes: ['global', 'beginner', 'easy', 'medium', 'hard', 'expert'],
+        modes: ['top', 'around_me', 'friends'],
+        variants: ['classic9', 'classic16'],
+        futureScopes: [
           'country',
           'current_season',
           'daily_tournament',
           'weekend_tournament',
           'countries',
+          'clan',
         ],
-        futureScopes: ['clan'],
       });
     }
     if (/^\/v1\/competitive\/leaderboards\/[^/]+$/.test(url.pathname) && request.method === 'GET') {
@@ -495,12 +496,6 @@ function asCompetitivePlayer(row: ProfileRow): CompetitivePlayer {
 function validLeaderboardScope(scope: string): boolean {
   return (
     scope === 'global' ||
-    scope === 'friends' ||
-    scope === 'country' ||
-    scope === 'current_season' ||
-    scope === 'daily_tournament' ||
-    scope === 'weekend_tournament' ||
-    scope === 'countries' ||
     ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(scope)
   );
 }
@@ -514,9 +509,7 @@ function normalizeRatingVariant(value: string | null): 'classic9' | 'classic16' 
 }
 
 function ratingScope(scope: string): string {
-  return ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(scope)
-    ? scope
-    : 'global';
+  return ['beginner', 'easy', 'medium', 'hard', 'expert'].includes(scope) ? scope : 'global';
 }
 
 function clampLimit(value: string | null, fallback: number, max: number): number {

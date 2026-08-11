@@ -2,6 +2,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/services/platform_game_services.dart';
 
 void main() {
+  test('platform player uses Game Center alias when displayName is empty', () {
+    final player = PlatformPlayer.fromMap(<Object?, Object?>{
+      'platform': 'game_center',
+      'playerId': 'G:12345',
+      'displayName': '',
+      'alias': 'GC Pilot',
+    });
+
+    expect(player.displayName, 'GC Pilot');
+    expect(player.effectiveDisplayName, 'GC Pilot');
+    expect(player.toIdentity().displayName, 'GC Pilot');
+  });
+
   group('GameCenterIdentityProof', () {
     test('accepts the iOS bridge playerId fallback', () {
       final proof = GameCenterIdentityProof.fromMap(<Object?, Object?>{

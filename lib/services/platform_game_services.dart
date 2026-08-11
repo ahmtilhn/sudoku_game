@@ -37,19 +37,33 @@ class PlatformPlayer {
     return PlatformPlayerIdentity(
       platform: platform,
       platformPlayerId: playerId,
-      displayName: displayName,
+      displayName: effectiveDisplayName,
       authenticated: authenticated,
       avatarUrl: avatarUrl,
       lastUpdatedAt: DateTime.now(),
     );
   }
 
+  String get effectiveDisplayName {
+    final name = displayName.trim();
+    if (name.isNotEmpty && name != 'Player') return name;
+    final fallbackAlias = alias?.trim();
+    if (fallbackAlias != null && fallbackAlias.isNotEmpty) {
+      return fallbackAlias;
+    }
+    return name.isEmpty ? 'Player' : name;
+  }
+
   factory PlatformPlayer.fromMap(Map<Object?, Object?> map) {
+    final rawDisplayName = map['displayName']?.toString().trim() ?? '';
+    final rawAlias = map['alias']?.toString().trim();
     return PlatformPlayer(
       platform: map['platform']?.toString() ?? 'unknown',
       playerId: map['playerId']?.toString() ?? '',
-      displayName: map['displayName']?.toString() ?? 'Player',
-      alias: map['alias']?.toString(),
+      displayName: rawDisplayName.isNotEmpty
+          ? rawDisplayName
+          : (rawAlias?.isNotEmpty == true ? rawAlias! : 'Player'),
+      alias: rawAlias,
       avatarUrl: map['avatarUrl']?.toString(),
       avatarBytesBase64: map['avatarBytesBase64']?.toString(),
     );

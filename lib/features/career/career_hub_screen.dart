@@ -78,58 +78,28 @@ class _CareerHubScreenState extends State<CareerHubScreen>
 
   @override
   Widget build(BuildContext context) {
-    final compactHeader =
-        MediaQuery.sizeOf(context).width < 390 ||
-        MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: Text(context.tr('career')),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: compactHeader
-                ? Chip(
-                    avatar: const DuelAssetIcon(
-                      DuelAsset.coin,
-                      size: 18,
-                      color: Color(0xFFFFC94D),
-                    ),
-                    label: Text('${widget.store.hints} · ${_economy.balance}'),
-                  )
-                : Wrap(
-                    spacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Chip(
-                        avatar: const DuelAssetIcon(
-                          DuelAsset.lightbulb,
-                          size: 18,
-                        ),
-                        label: Text('${widget.store.hints}'),
-                      ),
-                      Chip(
-                        avatar: const DuelAssetIcon(
-                          DuelAsset.coin,
-                          size: 18,
-                          color: Color(0xFFFFC94D),
-                        ),
-                        label: Text('${_economy.balance}'),
-                      ),
-                    ],
-                  ),
-          ),
-        ],
-      ),
       body: AppBackdrop(
         child: SafeArea(
-          top: false,
+          top: true,
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton.filledTonal(
+                    tooltip: MaterialLocalizations.of(
+                      context,
+                    ).backButtonTooltip,
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: _CareerHeaderControls(
                   selected: _careerVariant,
                   enabled: !_busy,
@@ -702,7 +672,7 @@ class _CareerHeaderControls extends StatelessWidget {
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: BoxDecoration(
-                    color: const Color(0xFFFFC94D),
+                    color: const Color(0xFF7CC7FF).withValues(alpha: .86),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   labelColor: Colors.black.withValues(alpha: .84),
@@ -748,23 +718,23 @@ class _CareerVariantSelector extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxWidth < 430;
-            return Wrap(
-              spacing: 10,
-              runSpacing: 10,
+            final compact = constraints.maxWidth < 390;
+            final gap = compact ? 8.0 : 10.0;
+            return Row(
               children: [
-                for (final variant in SudokuVariant.values)
-                  SizedBox(
-                    width: compact
-                        ? constraints.maxWidth
-                        : (constraints.maxWidth - 10) / 2,
+                for (final variant in SudokuVariant.values) ...[
+                  if (variant != SudokuVariant.values.first)
+                    SizedBox(width: gap),
+                  Expanded(
                     child: _CareerVariantCard(
                       variant: variant,
                       selected: selected == variant,
                       enabled: enabled,
+                      compact: compact,
                       onTap: () => onSelected(variant),
                     ),
                   ),
+                ],
               ],
             );
           },
@@ -779,43 +749,50 @@ class _CareerVariantCard extends StatelessWidget {
     required this.variant,
     required this.selected,
     required this.enabled,
+    required this.compact,
     required this.onTap,
   });
 
   final SudokuVariant variant;
   final bool selected;
   final bool enabled;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final is16 = variant.id == SudokuVariantId.classic16;
-    final accent = is16 ? const Color(0xFF35D2FF) : const Color(0xFFFFC94D);
+    final accent = is16 ? const Color(0xFF7EE1C3) : const Color(0xFF7CC7FF);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(18),
         child: Ink(
-          height: 86,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          height: compact ? 78 : 86,
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 9 : 14,
+            vertical: compact ? 10 : 12,
+          ),
           decoration: BoxDecoration(
             color: selected
-                ? accent.withValues(alpha: .12)
-                : Colors.white.withValues(alpha: .045),
+                ? accent.withValues(alpha: .10)
+                : Colors.black.withValues(alpha: .22),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected ? accent : Colors.white.withValues(alpha: .10),
-              width: selected ? 1.7 : 1,
+              color: selected
+                  ? accent.withValues(alpha: .72)
+                  : Colors.white.withValues(alpha: .10),
+              width: selected ? 1.5 : 1,
             ),
           ),
           child: Row(
             children: [
               DuelAssetIcon(
                 is16 ? DuelAsset.board16Pro : DuelAsset.board9Pro,
-                size: 54,
+                size: compact ? 38 : 54,
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: compact ? 7 : 12),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -826,8 +803,10 @@ class _CareerVariantCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: selected ? accent : Colors.white,
-                        fontSize: 18,
+                        color: selected
+                            ? accent.withValues(alpha: .95)
+                            : Colors.white,
+                        fontSize: compact ? 14 : 18,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -838,6 +817,7 @@ class _CareerVariantCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: .58),
+                        fontSize: compact ? 11 : 14,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -846,7 +826,10 @@ class _CareerVariantCard extends StatelessWidget {
               ),
               Icon(
                 selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                color: selected ? accent : Colors.white.withValues(alpha: .26),
+                color: selected
+                    ? accent.withValues(alpha: .95)
+                    : Colors.white.withValues(alpha: .26),
+                size: compact ? 18 : 24,
               ),
             ],
           ),
@@ -1633,9 +1616,9 @@ class _PracticeCard extends StatelessWidget {
 Color _difficultyAccent(SudokuDifficulty difficulty) {
   return switch (difficulty) {
     SudokuDifficulty.beginner => const Color(0xFF29D398),
-    SudokuDifficulty.easy => const Color(0xFF3AA9FF),
-    SudokuDifficulty.medium => const Color(0xFFFFC94D),
-    SudokuDifficulty.hard => const Color(0xFFFF8A3D),
-    SudokuDifficulty.expert => const Color(0xFFFF5C7A),
+    SudokuDifficulty.easy => const Color(0xFF7CC7FF),
+    SudokuDifficulty.medium => const Color(0xFFB7A9FF),
+    SudokuDifficulty.hard => const Color(0xFF79D6D1),
+    SudokuDifficulty.expert => const Color(0xFFFF8EB3),
   };
 }

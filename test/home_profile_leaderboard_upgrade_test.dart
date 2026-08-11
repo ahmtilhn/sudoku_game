@@ -84,6 +84,8 @@ void main() {
 
     expect(dart, contains('avatarBytesBase64'));
     expect(dart, contains('Uint8List? get avatarBytes'));
+    expect(dart, contains('effectiveDisplayName'));
+    expect(dart, contains("rawAlias?.isNotEmpty == true"));
     expect(android, contains('avatarBytesBase64'));
     expect(android, contains('downloadAvatarBytes'));
     expect(android, contains('"avatarBytesBase64"'));
@@ -131,6 +133,7 @@ void main() {
       expect(source, contains("_LeaderboardAudience.aroundMe => 'around_me'"));
       expect(source, contains('PlatformLeaderboardService.instance'));
       expect(source, contains('_platformLeaderboards.show(_selectedScope)'));
+      expect(source, isNot(contains('entry.copyWith(rank:')));
     },
   );
 }

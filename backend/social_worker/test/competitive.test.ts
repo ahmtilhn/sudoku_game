@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 import {
   compareLeaderboardRows,
@@ -88,5 +89,29 @@ describe('competitive profile model', () => {
       unlockPreserved: true,
       attempts: 3,
     });
+  });
+
+  it('keeps future leaderboard scopes out of active routing', () => {
+    const source = readFileSync('src/profile_wrapper.ts', 'utf8');
+
+    expect(source).toContain(
+      "scopes: ['global', 'beginner', 'easy', 'medium', 'hard', 'expert']",
+    );
+    expect(source).toContain("'futureScopes'");
+    expect(source).not.toContain("scope === 'country'");
+    expect(source).not.toContain("scope === 'current_season'");
+    expect(source).not.toContain("scope === 'daily_tournament'");
+    expect(source).not.toContain("scope === 'weekend_tournament'");
+    expect(source).not.toContain("scope === 'countries'");
+  });
+
+  it('returns rank and placement stats from leaderboard rows', () => {
+    const source = readFileSync('src/competitive.ts', 'utf8');
+
+    expect(source).toContain('ROW_NUMBER() OVER');
+    expect(source).toContain('winStreak: Number(row.win_streak ?? 0)');
+    expect(source).toContain('bestRating: Number(row.best_rating ?? row.rating ?? 1000)');
+    expect(source).toContain('provisionalGames: Number(row.provisional_games ?? 0)');
+    expect(source).toContain('currentRankOverride');
   });
 });

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../domain/sudoku_variant.dart';
 import 'online_duel_models.dart';
 import 'platform_game_services.dart';
 import 'social_api_client.dart';
@@ -160,10 +161,21 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
         status: PlatformLeaderboardMirrorStatus.skipped,
       );
     }
+    if (snapshot.variant != SudokuVariant.classic9) {
+      return const PlatformLeaderboardMirrorResult(
+        status: PlatformLeaderboardMirrorStatus.skipped,
+      );
+    }
 
     final localRating = snapshot.rating?[snapshot.youSeat];
     final difficultyScope = scopeForDifficulty(snapshot.difficulty);
     if (localRating == null || difficultyScope == null) {
+      return const PlatformLeaderboardMirrorResult(
+        status: PlatformLeaderboardMirrorStatus.skipped,
+      );
+    }
+    if (!_validElo(localRating.afterGlobal) ||
+        !_validElo(localRating.afterDifficulty)) {
       return const PlatformLeaderboardMirrorResult(
         status: PlatformLeaderboardMirrorStatus.skipped,
       );
@@ -268,6 +280,7 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
             ? null
             : scopeForDifficulty(scopeName);
         if (scope == null || score == null) continue;
+        if (!_validElo(score)) continue;
         final leaderboardId = await _idFor(platform, scope);
         if (leaderboardId == null) continue;
         if (await _submitScore(score: score, leaderboardId: leaderboardId)) {
@@ -343,4 +356,6 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       return null;
     }
   }
+
+  bool _validElo(int value) => value >= 100 && value <= 3000;
 }

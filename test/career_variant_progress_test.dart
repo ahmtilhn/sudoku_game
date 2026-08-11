@@ -153,6 +153,8 @@ void main() {
     expect(source, contains('_CareerVariantCard'));
     expect(source, contains('_CareerHeaderControls'));
     expect(source, isNot(contains('bottom: TabBar(')));
+    expect(source, isNot(contains('appBar: AppBar(')));
+    expect(source, contains('return Row('));
     expect(source, contains('final cardExtent = largeText ? 268.0 : 218.0;'));
     expect(source, contains('SudokuVariantId.classic16'));
     expect(source, contains('Classic16PuzzleFactory.generate'));
