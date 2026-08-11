@@ -1,4 +1,5 @@
 import Flutter
+import FirebaseCore
 import GameKit
 import UIKit
 
@@ -18,6 +19,7 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    configureFirebaseIfNeeded()
     let launched = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     configureFlutterBridgesIfPossible()
     installGameCenterAuthenticationHandler()
@@ -41,6 +43,11 @@ import UIKit
     guard localizationChannel == nil || gameServicesChannel == nil else { return }
     guard let controller = window?.rootViewController as? FlutterViewController else { return }
     configureFlutterBridges(messenger: controller.binaryMessenger)
+  }
+
+  private func configureFirebaseIfNeeded() {
+    guard FirebaseApp.app() == nil else { return }
+    FirebaseApp.configure()
   }
 
   private func configureFlutterBridges(messenger: FlutterBinaryMessenger) {
