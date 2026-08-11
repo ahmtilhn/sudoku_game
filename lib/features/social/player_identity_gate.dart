@@ -13,7 +13,7 @@ import '../../services/platform_game_services.dart';
 import '../../services/player_profile_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
-import '../duel/online_duel_screen.dart';
+import '../duel/pre_match_ready_screen.dart';
 import '../home/main_experience_shell.dart';
 
 class PlayerIdentityGate extends StatefulWidget {
@@ -104,7 +104,7 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
         if (response && updated.roomId?.isNotEmpty == true) {
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => OnlineDuelScreen(roomId: updated.roomId!),
+              builder: (_) => PreMatchReadyScreen(roomId: updated.roomId!),
             ),
           );
         } else {

@@ -366,6 +366,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                 child: IgnorePointer(
                   ignoring: inputLocked,
                   child: NumberPadDock(
+                    compact: activeArena,
                     child: NumberPad(
                       maxValue: snapshot.boardSize,
                       completedValues: completedSudokuNumbers(
@@ -1632,43 +1633,31 @@ class _ArenaMatchLayout extends StatelessWidget {
       ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          compact ? 8 : 12,
-          compact ? 6 : 10,
-          compact ? 8 : 12,
-          compact ? 6 : 10,
+          compact ? 5 : 8,
+          compact ? 4 : 7,
+          compact ? 5 : 8,
+          compact ? 4 : 7,
         ),
         child: Column(
           children: [
             _MatchHeader(snapshot: snapshot, compact: compact),
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: OutlinedButton.icon(
-                onPressed: forfeiting ? null : onForfeit,
-                icon: forfeiting
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.flag_rounded, size: 18),
-                label: Text(context.tr('forfeit_and_leave')),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFFFB4AB),
-                  visualDensity: VisualDensity.compact,
-                  minimumSize: const Size(48, 42),
-                ),
-              ),
-            ),
-            SizedBox(height: compact ? 4 : 8),
+            SizedBox(height: compact ? 3 : 5),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 720;
-                  final boardMax = constraints.maxHeight < constraints.maxWidth
+                  final wide = constraints.maxWidth >= 760;
+                  final railWidth = wide ? 54.0 : 0.0;
+                  final historyWidth = wide ? 82.0 : 0.0;
+                  final horizontalChrome =
+                      railWidth + historyWidth + (wide ? 10.0 : 0.0);
+                  final boardMax =
+                      constraints.maxHeight <
+                          constraints.maxWidth - horizontalChrome
                       ? constraints.maxHeight
-                      : constraints.maxWidth;
+                      : constraints.maxWidth - horizontalChrome;
                   final boardSize = wide
-                      ? (boardMax - 10).clamp(280.0, 520.0)
-                      : boardMax.clamp(260.0, 520.0);
+                      ? boardMax.clamp(300.0, 680.0)
+                      : boardMax.clamp(280.0, 640.0);
                   final boardWidget = Center(
                     child: SizedBox.square(
                       dimension: boardSize,
@@ -1692,10 +1681,10 @@ class _ArenaMatchLayout extends StatelessWidget {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(width: 88, child: _ArenaToolRail()),
+                      const SizedBox(width: 54, child: _ArenaToolRail()),
                       Expanded(child: boardWidget),
                       SizedBox(
-                        width: 120,
+                        width: 82,
                         child: _MoveHistoryPanel(snapshot: snapshot),
                       ),
                     ],
@@ -1703,14 +1692,37 @@ class _ArenaMatchLayout extends StatelessWidget {
                 },
               ),
             ),
-            SizedBox(height: compact ? 4 : 8),
-            Text(
-              statusText,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white.withValues(alpha: .58),
-              ),
+            SizedBox(height: compact ? 3 : 5),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    statusText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withValues(alpha: .58),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                OutlinedButton.icon(
+                  onPressed: forfeiting ? null : onForfeit,
+                  icon: forfeiting
+                      ? const SizedBox.square(
+                          dimension: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.flag_rounded, size: 16),
+                  label: Text(context.tr('forfeit_and_leave')),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFFFB4AB),
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(44, 34),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -1746,8 +1758,8 @@ class _ArenaToolButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 58,
-      padding: const EdgeInsets.symmetric(vertical: 9),
+      width: 42,
+      padding: const EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
         color: const Color(0xFF2E3A50).withValues(alpha: .94),
         borderRadius: BorderRadius.circular(10),
@@ -1755,7 +1767,7 @@ class _ArenaToolButton extends StatelessWidget {
       ),
       child: Column(
         children: [
-          DuelAssetIcon(asset, color: const Color(0xFFFFC94D), size: 20),
+          DuelAssetIcon(asset, color: const Color(0xFFFFC94D), size: 17),
           const SizedBox(height: 4),
           Text(
             label,
@@ -1763,7 +1775,7 @@ class _ArenaToolButton extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.white.withValues(alpha: .88),
-              fontSize: 10,
+              fontSize: 8,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1785,7 +1797,7 @@ class _MoveHistoryPanel extends StatelessWidget {
         : OnlineDuelSeat.a;
     final opponent = snapshot.players[opponentSeat]!;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: const Color(0xFF2B374D).withValues(alpha: .96),
         borderRadius: BorderRadius.circular(12),
@@ -1799,11 +1811,11 @@ class _MoveHistoryPanel extends StatelessWidget {
             context.tr('last_move'),
             style: TextStyle(
               color: Colors.white.withValues(alpha: .86),
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _HistoryDot(
             color: const Color(0xFFE0B64B),
             label: opponent.displayName,
@@ -1872,11 +1884,10 @@ class _MatchHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final scoreA = snapshot.scores[OnlineDuelSeat.a] ?? 0;
     final scoreB = snapshot.scores[OnlineDuelSeat.b] ?? 0;
-    final total = (scoreA + scoreB).clamp(1, 999999);
-    final aShare = scoreA / total;
+    final total = (scoreA.abs() + scoreB.abs()).clamp(1, 999999);
     final scheme = Theme.of(context).colorScheme;
-    final height = compact ? 76.0 : 88.0;
-    final timerSize = compact ? 58.0 : 70.0;
+    final height = compact ? 70.0 : 82.0;
+    final timerSize = compact ? 54.0 : 64.0;
 
     return Semantics(
       label: context.tr('match_header_semantics'),
@@ -1887,18 +1898,14 @@ class _MatchHeader extends StatelessWidget {
           alignment: Alignment.topCenter,
           children: [
             Positioned.fill(
-              top: compact ? 10 : 12,
-              bottom: compact ? 6 : 8,
+              top: compact ? 9 : 11,
+              bottom: compact ? 8 : 10,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF29364B).withValues(alpha: .96),
-                  border: Border(
-                    top: BorderSide(
-                      color: const Color(0xFF64748D).withValues(alpha: .72),
-                    ),
-                    bottom: BorderSide(
-                      color: const Color(0xFF3E4D64).withValues(alpha: .9),
-                    ),
+                  color: const Color(0xFF172435).withValues(alpha: .94),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .10),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -1915,8 +1922,8 @@ class _MatchHeader extends StatelessWidget {
               ),
             ),
             Positioned.fill(
-              top: compact ? 10 : 12,
-              bottom: compact ? 6 : 8,
+              top: compact ? 9 : 11,
+              bottom: compact ? 8 : 10,
               child: IgnorePointer(
                 child: CustomPaint(
                   painter: _HeaderCircuitPainter(
@@ -1928,7 +1935,7 @@ class _MatchHeader extends StatelessWidget {
             ),
             Positioned.fill(
               top: compact ? 12 : 14,
-              bottom: compact ? 11 : 13,
+              bottom: compact ? 13 : 15,
               child: Row(
                 children: [
                   Expanded(
@@ -1938,7 +1945,7 @@ class _MatchHeader extends StatelessWidget {
                       compact: compact,
                     ),
                   ),
-                  SizedBox(width: timerSize + (compact ? 10 : 18)),
+                  SizedBox(width: timerSize + (compact ? 12 : 18)),
                   Expanded(
                     child: _DuelPlayerPlate(
                       snapshot: snapshot,
@@ -1959,8 +1966,8 @@ class _MatchHeader extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: compact ? 18 : 30,
-              right: compact ? 18 : 30,
+              left: compact ? 14 : 24,
+              right: compact ? 14 : 24,
               bottom: 0,
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -1975,15 +1982,18 @@ class _MatchHeader extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: SizedBox(
-                    height: compact ? 4 : 5,
+                    height: compact ? 3 : 4,
                     child: Row(
                       children: [
                         Expanded(
-                          flex: (aShare * 1000).round().clamp(1, 999).toInt(),
+                          flex: ((scoreA.abs() / total) * 1000)
+                              .round()
+                              .clamp(1, 999)
+                              .toInt(),
                           child: ColoredBox(color: scheme.primary),
                         ),
                         Expanded(
-                          flex: ((1 - aShare) * 1000)
+                          flex: ((scoreB.abs() / total) * 1000)
                               .round()
                               .clamp(1, 999)
                               .toInt(),
@@ -2185,7 +2195,7 @@ class _DuelPlayerPlate extends StatelessWidget {
     final accent = seat == OnlineDuelSeat.a ? scheme.primary : scheme.tertiary;
     final displayName = isLocalPlayer ? context.tr('you') : player.displayName;
     final score = snapshot.scores[seat] ?? 0;
-    final avatarRadius = compact ? 17.0 : 23.0;
+    final avatarRadius = compact ? 16.0 : 21.0;
     final seatKey = seat == OnlineDuelSeat.a ? 'A' : 'B';
     final avatar = KeyedSubtree(
       key: ValueKey<String>('duel-avatar-$seatKey'),
@@ -2204,7 +2214,7 @@ class _DuelPlayerPlate extends StatelessWidget {
     );
     final children = <Widget>[
       avatar,
-      SizedBox(width: compact ? 6 : 9),
+      SizedBox(width: compact ? 5 : 8),
       Expanded(
         child: Column(
           crossAxisAlignment: alignEnd
@@ -2375,6 +2385,7 @@ class _ScoreLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final negative = score < 0;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2383,8 +2394,10 @@ class _ScoreLine extends StatelessWidget {
         Text(
           '$score',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: .92),
-            fontSize: 12,
+            color: negative
+                ? const Color(0xFFFF5B6B)
+                : Colors.white.withValues(alpha: .96),
+            fontSize: 15,
             fontWeight: FontWeight.w900,
           ),
         ),

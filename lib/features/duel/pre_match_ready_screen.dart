@@ -39,6 +39,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   Object? _error;
   bool _readyPressed = false;
   bool _screenLoadedSent = false;
+  bool _autoReadySent = false;
   bool _handedOff = false;
   bool _allowPop = false;
   bool _connecting = false;
@@ -124,6 +125,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     await _controller?.dispose();
     _controller = null;
     _screenLoadedSent = false;
+    _autoReadySent = false;
 
     try {
       final transport = await WebSocketOnlineDuelTransport.connect(
@@ -153,6 +155,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           unawaited(HapticFeedback.mediumImpact());
         }
         _sendScreenLoaded();
+        _sendAutoReady();
         if (snapshot.status == OnlineDuelStatus.active) {
           unawaited(_openMatch(controller));
         }
@@ -218,6 +221,15 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
       _screenLoadedSent = true;
       _controller!.screenLoaded();
     });
+  }
+
+  void _sendAutoReady() {
+    if (_autoReadySent || _controller == null || !_readyStage) return;
+    _autoReadySent = true;
+    if (!_readyPressed && mounted) {
+      setState(() => _readyPressed = true);
+    }
+    _controller!.ready();
   }
 
   Future<void> _cancelAndLeave() async {

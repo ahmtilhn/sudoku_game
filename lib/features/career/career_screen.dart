@@ -9,6 +9,7 @@ import '../../data/local_progress_store.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
+import '../../services/platform_game_services.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/in_page_header.dart';
@@ -294,6 +295,7 @@ class _CareerScreenState extends State<CareerScreen> {
   }
 
   Future<void> _claimEligibleAchievements() async {
+    await _unlockPlatformFirstGrid();
     const achievements = <String>[
       'first_win',
       'games_25',
@@ -304,7 +306,21 @@ class _CareerScreenState extends State<CareerScreen> {
       'wins_250',
     ];
     for (final achievement in achievements) {
-      await _economy.claimAchievement(achievement);
+      try {
+        await _economy.claimAchievement(achievement);
+      } catch (error) {
+        debugPrint('Achievement claim skipped for $achievement: $error');
+      }
+    }
+  }
+
+  Future<void> _unlockPlatformFirstGrid() async {
+    try {
+      if (await PlatformGameServices.instance.refreshAuthentication()) {
+        await PlatformGameServices.instance.unlockAchievement();
+      }
+    } catch (error) {
+      debugPrint('Platform first-grid achievement unlock failed: $error');
     }
   }
 

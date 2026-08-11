@@ -3,8 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   applyMove,
   createInitialDuelState,
+  roomIdForVariant,
   snapshot,
+  variantFromRoomId,
 } from '../src/online_duel';
+import { normalizeDuelVariant } from '../src/sudoku_variant';
 
 const player = (id: string) => ({
   id,
@@ -33,6 +36,24 @@ function classic16State() {
 }
 
 describe('variant-aware online duel engine', () => {
+  it('normalizes legacy and current duel variants consistently', () => {
+    expect(normalizeDuelVariant('classic')).toBe('classic9');
+    expect(normalizeDuelVariant('classic9')).toBe('classic9');
+    expect(normalizeDuelVariant('classic16')).toBe('classic16');
+    expect(normalizeDuelVariant('samurai')).toBe('samurai');
+    expect(() => normalizeDuelVariant('16x16')).toThrow('Invalid Sudoku variant.');
+  });
+
+  it('keeps room ids variant-prefixed for matchmaking and room startup', () => {
+    const classic9Room = roomIdForVariant('classic9', 'match-9');
+    const classic16Room = roomIdForVariant('classic16', 'match-16');
+
+    expect(classic9Room).toBe('classic9:match-9');
+    expect(classic16Room).toBe('classic16:match-16');
+    expect(variantFromRoomId(classic9Room)).toBe('classic9');
+    expect(variantFromRoomId(classic16Room)).toBe('classic16');
+  });
+
   it('creates a numeric 16x16 room with dynamic metadata', () => {
     const duel = classic16State();
     const visible = snapshot(duel, 'A', 1_000);

@@ -56,13 +56,13 @@ class UxCopy {
       : 'Profile information is not ready yet.';
 
   static String connectedPlatform(BuildContext context) => _isTurkish(context)
-      ? 'Google Play Games bağlı'
-      : 'Google Play Games connected';
+      ? 'Platform profili bağlı'
+      : 'Platform profile connected';
 
   static String platformNotConnected(BuildContext context) =>
       _isTurkish(context)
-      ? 'Google Play Games bağlı değil'
-      : 'Google Play Games not connected';
+      ? 'Platform profili bağlı değil'
+      : 'Platform profile not connected';
 
   static String overview(BuildContext context) =>
       _isTurkish(context) ? 'Genel bakış' : 'Overview';

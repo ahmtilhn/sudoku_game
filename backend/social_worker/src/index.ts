@@ -34,6 +34,7 @@ import {
   snapshot,
   stateVariant,
 } from './online_duel';
+import { normalizeDuelVariant } from './sudoku_variant';
 
 export interface Env {
   DB: D1Database;
@@ -97,8 +98,6 @@ const DIFFICULTIES = new Set([
   'hard',
   'expert',
 ]);
-
-const DUEL_VARIANTS = new Set(['classic', 'samurai']);
 
 let cachedFcmAccessToken: { token: string; expiresAt: number } | null = null;
 
@@ -1637,11 +1636,11 @@ function requiredString(
 }
 
 function duelVariant(value: unknown): DuelVariant {
-  const variant = stringOrNull(value) ?? 'classic';
-  if (!DUEL_VARIANTS.has(variant)) {
+  try {
+    return normalizeDuelVariant(value, 'classic9');
+  } catch {
     throw new HttpError(400, 'Invalid duel variant.');
   }
-  return variant as DuelVariant;
 }
 
 function stringOrNull(value: unknown): string | null {
@@ -1693,7 +1692,17 @@ export class GameRoom {
     const roomId = request.headers.get('x-sudoku-room-id');
     if (!playerId || !roomId) return new Response('Missing room identity.', { status: 400 });
 
-    const duel = await this.loadOrCreate(roomId);
+    let duel: DuelState;
+    try {
+      duel = await this.loadOrCreate(roomId);
+    } catch (error) {
+      console.error('game room startup failed', {
+        roomId,
+        playerId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return new Response('Game room startup failed.', { status: 500 });
+    }
     const seat = this.seatForPlayer(duel, playerId);
     if (!seat) return new Response('Forbidden.', { status: 403 });
     const replacedSockets = this.state.getWebSockets(playerId);

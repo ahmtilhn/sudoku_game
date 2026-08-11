@@ -16,6 +16,7 @@ import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/player_profile_service.dart';
+import '../../services/platform_game_services.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
@@ -23,7 +24,7 @@ import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/player_avatar.dart';
 import '../career/career_hub_screen.dart';
 import '../duel/matchmaking_screen.dart';
-import '../duel/online_duel_screen.dart';
+import '../duel/pre_match_ready_screen.dart';
 import '../economy/coin_store_screen.dart';
 import '../game/enhanced_game_screen.dart';
 import '../game/samurai_game_screen.dart';
@@ -171,9 +172,8 @@ class _UxRootScreenState extends State<UxRootScreen> {
         _push.openedChallengeId.value = null;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
-            builder: (_) => UxChallengeInvitationScreen(
-              challengeId: challengeId,
-            ),
+            builder: (_) =>
+                UxChallengeInvitationScreen(challengeId: challengeId),
           ),
         );
       } else if (rematchId != null && rematchId.isNotEmpty) {
@@ -288,9 +288,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      context.tr('friend_id_value', <Object>[
-                        profile.publicId,
-                      ]),
+                      context.tr('friend_id_value', <Object>[profile.publicId]),
                     ),
                   ],
                 ),
@@ -355,7 +353,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
       if (response && updated.roomId?.isNotEmpty == true) {
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
-            builder: (_) => OnlineDuelScreen(roomId: updated.roomId!),
+            builder: (_) => PreMatchReadyScreen(roomId: updated.roomId!),
           ),
         );
       } else {
@@ -388,9 +386,9 @@ class _UxRootScreenState extends State<UxRootScreen> {
   }
 
   Future<void> _open(Widget screen) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => screen),
-    );
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => screen));
     await _refreshAfterRoute();
   }
 
@@ -443,11 +441,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
                   level.number,
                 ]),
           onCompleted:
-              ({
-                required seconds,
-                required mistakes,
-                required hints,
-              }) async {
+              ({required seconds, required mistakes, required hints}) async {
                 final id = level?.id ?? session.puzzle.id;
                 await widget.store.recordResult(
                   puzzleId: id,
@@ -477,11 +471,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
           initialSession: session,
           store: widget.store,
           onCompleted:
-              ({
-                required seconds,
-                required mistakes,
-                required hints,
-              }) async {
+              ({required seconds, required mistakes, required hints}) async {
                 await widget.store.recordResult(
                   puzzleId:
                       'practice-samurai-${session.puzzle.difficulty.name}',
@@ -518,11 +508,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
           ]),
           mistakeLimit: 3,
           onCompleted:
-              ({
-                required seconds,
-                required mistakes,
-                required hints,
-              }) async {
+              ({required seconds, required mistakes, required hints}) async {
                 await widget.store.recordResult(
                   puzzleId: level.id,
                   seconds: seconds,
@@ -540,6 +526,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
   }
 
   Future<void> _claimEligibleAchievements() async {
+    await _unlockPlatformFirstGrid();
     const achievements = <String>[
       'first_win',
       'games_25',
@@ -550,7 +537,21 @@ class _UxRootScreenState extends State<UxRootScreen> {
       'wins_250',
     ];
     for (final achievement in achievements) {
-      await _economy.claimAchievement(achievement);
+      try {
+        await _economy.claimAchievement(achievement);
+      } catch (error) {
+        debugPrint('Achievement claim skipped for $achievement: $error');
+      }
+    }
+  }
+
+  Future<void> _unlockPlatformFirstGrid() async {
+    try {
+      if (await PlatformGameServices.instance.refreshAuthentication()) {
+        await PlatformGameServices.instance.unlockAchievement();
+      }
+    } catch (error) {
+      debugPrint('Platform first-grid achievement unlock failed: $error');
     }
   }
 
@@ -610,9 +611,8 @@ class _UxRootScreenState extends State<UxRootScreen> {
                           badge: _socialBadge,
                           onProfile: _openProfile,
                           onSocial: _openSocial,
-                          onSettings: () => _open(
-                            UxSettingsScreen(store: widget.store),
-                          ),
+                          onSettings: () =>
+                              _open(UxSettingsScreen(store: widget.store)),
                         ),
                         const SizedBox(height: 34),
                         Text(
@@ -640,14 +640,15 @@ class _UxRootScreenState extends State<UxRootScreen> {
                             title: resume != null
                                 ? _sessionTitle(context, resume)
                                 : samurai != null
-                                    ? '${context.tr('samurai_sudoku')} · ${context.strings.difficultyLabel(samurai.puzzle.difficulty)}'
-                                    : context.tr('level_title', <Object>[
-                                        context.strings.difficultyLabel(
-                                          legacyLevel!.difficulty,
-                                        ),
-                                        legacyLevel.number,
-                                      ]),
-                            elapsed: resume?.elapsedSeconds ??
+                                ? '${context.tr('samurai_sudoku')} · ${context.strings.difficultyLabel(samurai.puzzle.difficulty)}'
+                                : context.tr('level_title', <Object>[
+                                    context.strings.difficultyLabel(
+                                      legacyLevel!.difficulty,
+                                    ),
+                                    legacyLevel.number,
+                                  ]),
+                            elapsed:
+                                resume?.elapsedSeconds ??
                                 samurai?.elapsedSeconds ??
                                 _legacySession!.elapsedSeconds,
                             loading: _openingSession,
@@ -672,9 +673,8 @@ class _UxRootScreenState extends State<UxRootScreen> {
                           trailing: context.tr('completed_levels', <Object>[
                             widget.store.completedCareerLevelCount,
                           ]),
-                          onTap: () => _open(
-                            CareerHubScreen(store: widget.store),
-                          ),
+                          onTap: () =>
+                              _open(CareerHubScreen(store: widget.store)),
                         ),
                         const SizedBox(height: 12),
                         _FeatureCard(
@@ -752,9 +752,9 @@ class _UxRootScreenState extends State<UxRootScreen> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -790,10 +790,9 @@ class _TopBar extends StatelessWidget {
                   displayName: name,
                   avatarKey: 'home-$name',
                   radius: 20,
-                  semanticLabel: context.tr(
-                    'player_avatar_semantics',
-                    <Object>[name],
-                  ),
+                  semanticLabel: context.tr('player_avatar_semantics', <Object>[
+                    name,
+                  ]),
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -905,9 +904,7 @@ class _ResumeCard extends StatelessWidget {
       color: const Color(0xFF173127).withValues(alpha: .96),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(22),
-        side: BorderSide(
-          color: const Color(0xFF29D398).withValues(alpha: .48),
-        ),
+        side: BorderSide(color: const Color(0xFF29D398).withValues(alpha: .48)),
       ),
       child: ListTile(
         minTileHeight: 82,
@@ -969,9 +966,7 @@ class _FeatureCard extends StatelessWidget {
       color: const Color(0xFF101B20).withValues(alpha: .96),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(prominent ? 26 : 20),
-        side: BorderSide(
-          color: accent.withValues(alpha: prominent ? .5 : .28),
-        ),
+        side: BorderSide(color: accent.withValues(alpha: prominent ? .5 : .28)),
       ),
       child: InkWell(
         onTap: onTap,
@@ -985,10 +980,7 @@ class _FeatureCard extends StatelessWidget {
             children: [
               SizedBox.square(
                 dimension: prominent ? 68 : 54,
-                child: DuelAssetIcon(
-                  icon,
-                  size: prominent ? 58 : 44,
-                ),
+                child: DuelAssetIcon(icon, size: prominent ? 58 : 44),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1022,10 +1014,7 @@ class _FeatureCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   trailing!,
-                  style: TextStyle(
-                    color: accent,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  style: TextStyle(color: accent, fontWeight: FontWeight.w900),
                 ),
               ],
               const SizedBox(width: 6),
@@ -1119,9 +1108,7 @@ class _RematchSheetState extends State<_RematchSheet> {
       .inSeconds
       .clamp(0, 99);
 
-  int get _fee => _economy.entryFeeForDifficulty(
-        widget.invitation.difficulty,
-      );
+  int get _fee => _economy.entryFeeForDifficulty(widget.invitation.difficulty);
 
   bool get _canAccept => _seconds > 0 && _economy.balance >= _fee;
 
@@ -1151,9 +1138,9 @@ class _RematchSheetState extends State<_RematchSheet> {
   }
 
   Future<void> _store() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const CoinStoreScreen()));
     await _economy.refresh(showLoading: false);
     if (mounted) setState(() {});
   }
@@ -1169,9 +1156,9 @@ class _RematchSheetState extends State<_RematchSheet> {
           Text(
             context.tr('rematch_invitation_title'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1200,7 +1187,9 @@ class _RematchSheetState extends State<_RematchSheet> {
             ),
           if (!_canAccept) const SizedBox(height: 8),
           FilledButton(
-            onPressed: _canAccept ? () => Navigator.of(context).pop(true) : null,
+            onPressed: _canAccept
+                ? () => Navigator.of(context).pop(true)
+                : null,
             child: Text(context.tr('accept')),
           ),
           TextButton(

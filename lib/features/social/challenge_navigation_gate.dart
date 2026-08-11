@@ -10,6 +10,7 @@ import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
+import '../../services/platform_game_services.dart';
 import '../../services/push_notification_service.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../game/game_screen.dart';
@@ -60,7 +61,8 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
     final level = metadata == null
         ? null
         : CareerCatalog.byId(metadata.puzzleId);
-    final showResume = level != null &&
+    final showResume =
+        level != null &&
         !_openingChallenge &&
         !_launchingSession &&
         (ModalRoute.of(context)?.isCurrent ?? false);
@@ -143,9 +145,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
 
     SudokuPuzzle puzzle;
     try {
-      puzzle = await Future<SudokuPuzzle>(
-        () => CareerCatalog.puzzleFor(level),
-      );
+      puzzle = await Future<SudokuPuzzle>(() => CareerCatalog.puzzleFor(level));
     } catch (_) {
       if (!mounted) return;
       setState(() => _launchingSession = false);
@@ -193,6 +193,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
   }
 
   Future<void> _claimEligibleAchievements() async {
+    await _unlockPlatformFirstGrid();
     const achievements = <String>[
       'first_win',
       'games_25',
@@ -203,7 +204,21 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
       'wins_250',
     ];
     for (final achievement in achievements) {
-      await _economy.claimAchievement(achievement);
+      try {
+        await _economy.claimAchievement(achievement);
+      } catch (error) {
+        debugPrint('Achievement claim skipped for $achievement: $error');
+      }
+    }
+  }
+
+  Future<void> _unlockPlatformFirstGrid() async {
+    try {
+      if (await PlatformGameServices.instance.refreshAuthentication()) {
+        await PlatformGameServices.instance.unlockAchievement();
+      }
+    } catch (error) {
+      debugPrint('Platform first-grid achievement unlock failed: $error');
     }
   }
 }

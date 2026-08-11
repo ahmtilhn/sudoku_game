@@ -8,7 +8,7 @@ import '../../services/platform_game_services.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/in_page_header.dart';
-import '../duel/online_duel_screen.dart';
+import '../duel/pre_match_ready_screen.dart';
 import 'competitive_profile_card.dart';
 
 class PlatformSocialScreen extends StatefulWidget {
@@ -517,7 +517,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
       if (accept && updated.roomId != null) {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => OnlineDuelScreen(roomId: updated.roomId!),
+            builder: (_) => PreMatchReadyScreen(roomId: updated.roomId!),
           ),
         );
       } else {
@@ -602,7 +602,8 @@ class _PlatformProfileCard extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         subtitle: Text(
-          player?.platform == 'game_center'
+          player?.platform == 'game_center' ||
+                  (player?.platform.toLowerCase().contains('ios') ?? false)
               ? 'Game Center'
               : 'Google Play Games',
         ),

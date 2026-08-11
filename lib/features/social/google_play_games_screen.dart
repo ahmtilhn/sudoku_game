@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/user_safe_error.dart';
@@ -6,7 +7,8 @@ import '../../localization/ux_copy.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
 import '../../widgets/app_backdrop.dart';
-import '../../widgets/in_page_header.dart';
+import '../../widgets/duel_asset_icon.dart';
+import '../../widgets/player_avatar.dart';
 
 class GooglePlayGamesScreen extends StatefulWidget {
   const GooglePlayGamesScreen({super.key});
@@ -22,6 +24,13 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
   bool _authenticated = false;
   PlatformPlayer? _player;
   String? _error;
+
+  String get _platformTitle {
+    if (kIsWeb) return context.tr('leaderboards');
+    return defaultTargetPlatform == TargetPlatform.iOS
+        ? 'Game Center'
+        : 'Google Play Games';
+  }
 
   @override
   void initState() {
@@ -61,9 +70,9 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
     try {
       final configured = await _games.isConfigured();
       if (!configured) {
-        throw const PlatformGameServicesException(
+        throw PlatformGameServicesException(
           'not_configured',
-          'The Google Play Games project ID is not configured in the Android app.',
+          '$_platformTitle is not configured for this app.',
         );
       }
 
@@ -128,9 +137,9 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
     try {
       final opened = await PlatformLeaderboardService.instance.show(scope);
       if (!opened) {
-        throw const PlatformGameServicesException(
+        throw PlatformGameServicesException(
           'leaderboard_unavailable',
-          'The Google Play leaderboard could not be opened.',
+          '$_platformTitle leaderboard could not be opened.',
         );
       }
       await _games.refreshAuthentication();
@@ -154,16 +163,16 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
     });
     try {
       if (!await _ensureAuthenticated()) {
-        throw const PlatformGameServicesException(
+        throw PlatformGameServicesException(
           'authentication_failed',
-          'Google Play Games authentication could not be completed.',
+          '$_platformTitle authentication could not be completed.',
         );
       }
       final opened = await _games.showAchievements();
       if (!opened) {
-        throw const PlatformGameServicesException(
+        throw PlatformGameServicesException(
           'achievements_unavailable',
-          'Google Play achievements could not be opened.',
+          '$_platformTitle achievements could not be opened.',
         );
       }
     } on PlatformGameServicesException catch (error) {
@@ -183,12 +192,14 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
   Widget build(BuildContext context) {
     final statusText = switch ((_configured, _authenticated)) {
       (false, _) => 'Not configured',
-      (true, true) => 'Connected',
-      (true, false) => 'Not connected',
+      (true, true) => context.tr('connected'),
+      (true, false) => context.tr('online_account_unavailable'),
       _ => 'Checking connection',
     };
+    final title = _platformTitle;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF07111E),
       body: AppBackdrop(
         child: SafeArea(
           child: Center(
@@ -197,140 +208,83 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 children: [
-                  const InPageHeader(title: 'Google Play Games'),
+                  _PlatformHeader(
+                    title: title,
+                    busy: _busy,
+                    onBack: () => Navigator.of(context).pop(),
+                    onRefresh: () => _refreshConnection(prompt: false),
+                  ),
                   if (_busy)
                     const Padding(
-                      padding: EdgeInsets.only(bottom: 12),
+                      padding: EdgeInsets.only(top: 10, bottom: 12),
                       child: LinearProgressIndicator(),
                     ),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                _authenticated
-                                    ? Icons.check_circle_outline
-                                    : Icons.cloud_off_outlined,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  statusText,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                              ),
-                              IconButton(
-                                tooltip: 'Check again',
-                                onPressed: _busy
-                                    ? null
-                                    : () => _refreshConnection(prompt: false),
-                                icon: const Icon(Icons.refresh),
-                              ),
-                            ],
-                          ),
-                          if (_player != null) ...[
-                            const SizedBox(height: 8),
-                            Text('Player: ${_player!.displayName}'),
-                            Text(
-                              'Player ID: ${_player!.playerId}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                          if (!_authenticated) ...[
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.icon(
-                                onPressed: _busy
-                                    ? null
-                                    : () => _refreshConnection(prompt: true),
-                                icon: const Icon(Icons.login),
-                                label: const Text('Connect / retry'),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
+                  const SizedBox(height: 12),
+                  _ConnectionPanel(
+                    title: title,
+                    statusText: statusText,
+                    authenticated: _authenticated,
+                    player: _player,
+                    busy: _busy,
+                    onConnect: () => _refreshConnection(prompt: true),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),
-                    Card(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      child: ListTile(
-                        leading: const Icon(Icons.error_outline),
-                        title: Text(context.tr('online_account_unavailable')),
-                        subtitle: Text(_error!),
-                      ),
+                    _InlineError(
+                      title: context.tr('online_account_unavailable'),
+                      message: _error!,
                     ),
-                    const SizedBox(height: 12),
                   ],
+                  const SizedBox(height: 18),
                   Text(
                     context.tr('leaderboards'),
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _LeaderboardTile(
-                    icon: Icons.public,
+                    asset: DuelAsset.leaderboardCrownPro,
                     title: context.tr('global_elo'),
                     onTap: _busy
                         ? null
                         : () =>
                               _openLeaderboard(PlatformLeaderboardScope.global),
                   ),
-                  _LeaderboardTile(
-                    icon: Icons.looks_one_outlined,
-                    title: context.tr('difficulty_beginner'),
-                    onTap: _busy
-                        ? null
-                        : () => _openLeaderboard(
-                            PlatformLeaderboardScope.beginner,
-                          ),
-                  ),
-                  _LeaderboardTile(
-                    icon: Icons.looks_two_outlined,
-                    title: context.tr('difficulty_easy'),
-                    onTap: _busy
-                        ? null
-                        : () => _openLeaderboard(PlatformLeaderboardScope.easy),
-                  ),
-                  _LeaderboardTile(
-                    icon: Icons.looks_3_outlined,
-                    title: context.tr('difficulty_medium'),
-                    onTap: _busy
-                        ? null
-                        : () =>
-                              _openLeaderboard(PlatformLeaderboardScope.medium),
-                  ),
-                  _LeaderboardTile(
-                    icon: Icons.looks_4_outlined,
-                    title: context.tr('difficulty_hard'),
-                    onTap: _busy
-                        ? null
-                        : () => _openLeaderboard(PlatformLeaderboardScope.hard),
-                  ),
-                  _LeaderboardTile(
-                    icon: Icons.workspace_premium_outlined,
-                    title: context.tr('difficulty_expert'),
-                    onTap: _busy
-                        ? null
-                        : () =>
-                              _openLeaderboard(PlatformLeaderboardScope.expert),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.emoji_events_outlined),
-                      title: const Text('Achievements'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: _busy ? null : _openAchievements,
+                  for (final item in <(String, PlatformLeaderboardScope)>[
+                    (
+                      context.tr('difficulty_beginner'),
+                      PlatformLeaderboardScope.beginner,
                     ),
+                    (
+                      context.tr('difficulty_easy'),
+                      PlatformLeaderboardScope.easy,
+                    ),
+                    (
+                      context.tr('difficulty_medium'),
+                      PlatformLeaderboardScope.medium,
+                    ),
+                    (
+                      context.tr('difficulty_hard'),
+                      PlatformLeaderboardScope.hard,
+                    ),
+                    (
+                      context.tr('difficulty_expert'),
+                      PlatformLeaderboardScope.expert,
+                    ),
+                  ])
+                    _LeaderboardTile(
+                      asset: DuelAsset.trophy,
+                      title: item.$1,
+                      onTap: _busy ? null : () => _openLeaderboard(item.$2),
+                    ),
+                  const SizedBox(height: 6),
+                  _LeaderboardTile(
+                    asset: DuelAsset.profilePro,
+                    title: context.tr('achievement_showcase'),
+                    onTap: _busy ? null : _openAchievements,
                   ),
                 ],
               ),
@@ -342,25 +296,225 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
   }
 }
 
+class _PlatformHeader extends StatelessWidget {
+  const _PlatformHeader({
+    required this.title,
+    required this.busy,
+    required this.onBack,
+    required this.onRefresh,
+  });
+
+  final String title;
+  final bool busy;
+  final VoidCallback onBack;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        IconButton.filledTonal(
+          onPressed: onBack,
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
+        const SizedBox(width: 10),
+        const DuelAssetIcon(DuelAsset.leaderboardCrownPro, size: 38),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 23,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        IconButton.filledTonal(
+          tooltip: context.tr('refresh'),
+          onPressed: busy ? null : onRefresh,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
+    );
+  }
+}
+
+class _ConnectionPanel extends StatelessWidget {
+  const _ConnectionPanel({
+    required this.title,
+    required this.statusText,
+    required this.authenticated,
+    required this.player,
+    required this.busy,
+    required this.onConnect,
+  });
+
+  final String title;
+  final String statusText;
+  final bool authenticated;
+  final PlatformPlayer? player;
+  final bool busy;
+  final VoidCallback onConnect;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = player?.effectiveDisplayName ?? title;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A1728).withValues(alpha: .82),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: (authenticated ? const Color(0xFF29D398) : Colors.white)
+              .withValues(alpha: authenticated ? .34 : .08),
+        ),
+      ),
+      child: Row(
+        children: [
+          PlayerAvatar(
+            displayName: displayName,
+            avatarKey: 'platform-services-player',
+            localAvatarBytes: player?.avatarBytes,
+            remoteApprovedImageUrl: player?.avatarUrl,
+            radius: 27,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  statusText,
+                  style: TextStyle(
+                    color: authenticated
+                        ? const Color(0xFF29D398)
+                        : Colors.white.withValues(alpha: .58),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!authenticated)
+            FilledButton(
+              onPressed: busy ? null : onConnect,
+              child: Text(context.tr('continue_action')),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LeaderboardTile extends StatelessWidget {
   const _LeaderboardTile({
-    required this.icon,
+    required this.asset,
     required this.title,
     required this.onTap,
   });
 
-  final IconData icon;
+  final String asset;
   final String title;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A1728).withValues(alpha: .82),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: .08)),
+            ),
+            child: Row(
+              children: [
+                DuelAssetIcon(asset, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white.withValues(alpha: .58),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.title, required this.message});
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: const Color(0xFF3A151D).withValues(alpha: .74),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFFF5B6B).withValues(alpha: .3),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded, color: Color(0xFFFFB4AB)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  message,
+                  style: TextStyle(color: Colors.white.withValues(alpha: .68)),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

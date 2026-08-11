@@ -10,6 +10,7 @@ import {
   type EconomyEnv,
   type FundedMatchInput,
 } from './economy';
+import { LOBBY_DEADLINE_MS } from './online_duel_model';
 import { roomIdForVariant } from './online_duel_factory';
 import {
   duelVariantConfig,
@@ -34,6 +35,7 @@ const DIFFICULTIES = new Set([
 const ACTIVE_MATCH_STATUSES =
   "'waiting', 'ready_window', 'countdown', 'active', 'paused'";
 const QUEUE_STALE_AFTER_MS = 2 * 60 * 1000;
+const MATCH_LOBBY_STALE_AFTER_MS = LOBBY_DEADLINE_MS;
 const DIFFICULTY_ORDER = ['beginner', 'easy', 'medium', 'hard', 'expert'];
 
 export type VariantMatchmakingEnv = EconomyEnv & {
@@ -202,6 +204,11 @@ async function coordinateRankedMatch(
   input: MatchmakingRequest,
 ): Promise<MatchmakingResult> {
   const config = duelVariantConfig(input.variant);
+  const now = new Date().toISOString();
+  const staleMatchBefore = new Date(
+    Date.now() - MATCH_LOBBY_STALE_AFTER_MS,
+  ).toISOString();
+  await cancelStaleRankedLobbies(env, staleMatchBefore, now);
   const active = await env.DB.prepare(
     `SELECT room_id, difficulty, variant, board_size, cell_count
      FROM matches
@@ -247,7 +254,6 @@ async function coordinateRankedMatch(
     );
   }
 
-  const now = new Date().toISOString();
   const staleBefore = new Date(
     Date.now() - QUEUE_STALE_AFTER_MS,
   ).toISOString();
@@ -387,6 +393,26 @@ function easierDifficulty(left: string, right: string): string {
 function difficultyRank(value: string): number {
   const index = DIFFICULTY_ORDER.indexOf(value);
   return index < 0 ? DIFFICULTY_ORDER.length : index;
+}
+
+async function cancelStaleRankedLobbies(
+  env: VariantMatchmakingEnv,
+  staleBefore: string,
+  now: string,
+): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE matches
+     SET status = 'cancelled',
+         finished_at = COALESCE(finished_at, ?),
+         finish_reason = COALESCE(finish_reason, 'lobby_timeout'),
+         updated_at = ?
+     WHERE mode = 'ranked'
+       AND status = 'waiting'
+       AND started_at IS NULL
+       AND created_at < ?`,
+  )
+    .bind(now, now, staleBefore)
+    .run();
 }
 
 async function createVariantFundedMatch(

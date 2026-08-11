@@ -19,23 +19,31 @@ Set<int> completedSudokuNumbers({
 }
 
 class NumberPadDock extends StatelessWidget {
-  const NumberPadDock({super.key, required this.child});
+  const NumberPadDock({super.key, required this.child, this.compact = false});
 
   final Widget child;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      elevation: 10,
-      color: Theme.of(context).colorScheme.surface,
+      elevation: compact ? 4 : 10,
+      color: Theme.of(
+        context,
+      ).colorScheme.surface.withValues(alpha: compact ? .94 : 1),
       child: SafeArea(
         top: false,
-        minimum: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        minimum: EdgeInsets.fromLTRB(
+          10,
+          compact ? 6 : 10,
+          10,
+          compact ? 8 : 12,
+        ),
         child: Align(
           alignment: Alignment.center,
           heightFactor: 1,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
+            constraints: BoxConstraints(maxWidth: compact ? 500 : 560),
             child: child,
           ),
         ),
@@ -76,14 +84,17 @@ class NumberPad extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = maxValue == 9 && constraints.maxWidth <= 520;
-        final spacing = compact ? 4.0 : 8.0;
+        final compact = constraints.maxWidth <= 520;
+        final dense = maxValue == 9;
+        final spacing = dense ? 3.0 : 4.0;
         final oneRowWidth = constraints.maxWidth - (spacing * (maxValue - 1));
         final oneRowButtonWidth = oneRowWidth / maxValue;
-        final buttonWidth = oneRowButtonWidth >= 48
-            ? oneRowButtonWidth.clamp(48.0, maxValue == 9 ? 58.0 : 72.0)
-            : 56.0;
-        final buttonHeight = compact ? 48.0 : 54.0;
+        final minTap = dense ? 38.0 : 34.0;
+        final maxTap = dense ? 46.0 : 40.0;
+        final buttonWidth = oneRowButtonWidth >= minTap
+            ? oneRowButtonWidth.clamp(minTap, maxTap)
+            : maxTap;
+        final buttonHeight = dense ? 40.0 : 36.0;
 
         return AnimatedOpacity(
           duration: const Duration(milliseconds: 180),
@@ -94,7 +105,7 @@ class NumberPad extends StatelessWidget {
               Wrap(
                 alignment: WrapAlignment.center,
                 spacing: spacing,
-                runSpacing: compact ? 4 : 8,
+                runSpacing: dense ? 3 : 4,
                 children: [
                   for (var value = 1; value <= maxValue; value++)
                     Builder(
@@ -110,15 +121,15 @@ class NumberPad extends StatelessWidget {
                                 : null,
                             style: FilledButton.styleFrom(
                               padding: EdgeInsets.zero,
-                              minimumSize: const Size(48, 48),
-                              tapTargetSize: MaterialTapTargetSize.padded,
+                              minimumSize: Size(minTap, buttonHeight),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               backgroundColor: scheme.secondaryContainer,
                               foregroundColor: scheme.onSecondaryContainer,
                             ),
                             child: Text(
                               '$value',
                               style: TextStyle(
-                                fontSize: compact ? 17 : 21,
+                                fontSize: dense ? 16 : 14,
                                 fontWeight: FontWeight.w800,
                                 decoration: isCompleted
                                     ? TextDecoration.lineThrough
@@ -131,7 +142,7 @@ class NumberPad extends StatelessWidget {
                     ),
                 ],
               ),
-              SizedBox(height: compact ? 6 : 12),
+              SizedBox(height: compact ? 5 : 8),
               Wrap(
                 alignment: WrapAlignment.center,
                 spacing: 4,
@@ -207,8 +218,8 @@ class _ActionButton extends StatelessWidget {
             ? scheme.primaryContainer
             : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        minimumSize: const Size(48, 44),
-        tapTargetSize: MaterialTapTargetSize.padded,
+        minimumSize: const Size(42, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -216,11 +227,7 @@ class _ActionButton extends StatelessWidget {
           Icon(icon, size: 18),
           const SizedBox(width: 5),
           Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ],
       ),
