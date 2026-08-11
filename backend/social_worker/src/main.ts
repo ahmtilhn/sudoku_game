@@ -22,7 +22,9 @@ import {
   walletSnapshot,
   type FundedMatchInput,
 } from './economy';
+import { roomIdForVariant } from './online_duel_factory';
 import worker, { Env, GameRoom } from './index';
+import { normalizeDuelVariant } from './sudoku_variant';
 
 export { GameRoom };
 
@@ -304,7 +306,8 @@ async function handleEconomyRoute(
         return json(env, 200, await rematchJson(env, invitation.id, playerId));
       }
 
-      const roomId = crypto.randomUUID();
+      const variant = normalizeDuelVariant(invitation.variant, 'classic9');
+      const roomId = roomIdForVariant(variant);
       const matchId = crypto.randomUUID();
       const funded: FundedMatchInput = {
         matchId,
@@ -312,6 +315,7 @@ async function handleEconomyRoute(
         challengeId: null,
         mode: 'friendly',
         difficulty: invitation.difficulty,
+        variant,
         playerAId: invitation.sender_id,
         playerBId: invitation.recipient_id,
         now: new Date().toISOString(),
@@ -572,6 +576,7 @@ export class MatchmakingQueue {
               : null,
           mode,
           difficulty: requiredDifficulty(body.difficulty),
+          variant: normalizeDuelVariant(body.variant, 'classic9'),
           playerAId: requiredInternalString(body.playerAId, 'playerAId'),
           playerBId: requiredInternalString(body.playerBId, 'playerBId'),
           now: requiredInternalString(body.now, 'now'),

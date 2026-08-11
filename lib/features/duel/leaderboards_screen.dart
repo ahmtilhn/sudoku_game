@@ -114,6 +114,12 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
       if (!mounted || requestId != _requestSerial) return;
 
       final incoming = page.entries;
+      debugPrint(
+        'Sudoku ELO leaderboard loaded: variant=${page.variant}, '
+        'scope=${page.scope}, mode=${page.mode}, entries=${incoming.length}, '
+        'currentGames=${page.currentPlayer.gamesPlayed}, '
+        'currentRank=${page.currentPlayer.rank}',
+      );
       setState(() {
         _entries = reset
             ? incoming
@@ -362,6 +368,24 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
       );
     }
     if (_entries.isEmpty) {
+      final current = _currentPlayer;
+      if (current != null && current.gamesPlayed > 0) {
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 6),
+          children: [
+            _CurrentOnlyCard(
+              displayName: _profile?.displayName.trim().isNotEmpty == true
+                  ? _profile!.displayName
+                  : (_games.localPlayer.value?.effectiveDisplayName ??
+                        context.tr('you')),
+              player: _games.localPlayer.value,
+              current: current,
+              rank: _effectiveCurrentRank(),
+            ),
+          ],
+        );
+      }
       return _InlineState(
         icon: Icons.leaderboard_outlined,
         message:
@@ -770,6 +794,92 @@ class _Filters extends StatelessWidget {
               showSelectedIcon: false,
               onSelectionChanged: (values) => onAudience(values.first),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CurrentOnlyCard extends StatelessWidget {
+  const _CurrentOnlyCard({
+    required this.displayName,
+    required this.player,
+    required this.current,
+    required this.rank,
+  });
+
+  final String displayName;
+  final PlatformPlayer? player;
+  final CompetitiveLeaderboardCurrentPlayer current;
+  final int? rank;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A1728).withValues(alpha: .84),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFF29D398).withValues(alpha: .22),
+        ),
+      ),
+      child: Row(
+        children: [
+          PlayerAvatar(
+            displayName: displayName,
+            avatarKey: 'leaderboard-current-only',
+            localAvatarBytes: player?.avatarBytes,
+            remoteApprovedImageUrl: player?.avatarUrl,
+            radius: 28,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${context.tr('wins_losses_draws')} '
+                  '${current.wins}/${current.losses}/${current.draws}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .58),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                rank == null ? '—' : '#$rank',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .58),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                '${current.rating}',
+                style: const TextStyle(
+                  color: Color(0xFF29D398),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
           ),
         ],
       ),

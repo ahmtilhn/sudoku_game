@@ -367,6 +367,7 @@ async function coordinateRankedMatch(
       challengeId: null,
       mode: 'ranked',
       difficulty: matchDifficulty,
+      variant: input.variant,
       playerAId: opponent.player_id,
       playerBId: input.playerId,
       now,

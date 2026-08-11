@@ -605,6 +605,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
   RematchInvitation? _invitation;
   bool _busy = false;
   String? _statusMessage;
+  String? _friendshipStatus;
 
   OnlineDuelSnapshot get snapshot => widget.snapshot;
 
@@ -632,6 +633,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       if (mounted) setState(() {});
     });
     unawaited(_pollRematches());
+    unawaited(_loadFriendshipStatus());
   }
 
   @override
@@ -724,7 +726,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
           invitePending: invite?.status == 'pending',
           onRematch: _createRematch,
           onNewMatch: () => Navigator.of(context).pop('new_match'),
-          onAddFriend: _addFriend,
+          onAddFriend: _canAddFriend ? _addFriend : null,
           onMenu: () => Navigator.of(context).pop('menu'),
         ),
         if (!canPlay) ...[
@@ -891,6 +893,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
   }
 
   Future<void> _addFriend() async {
+    if (!_canAddFriend) return;
     setState(() {
       _busy = true;
       _statusMessage = null;
@@ -898,12 +901,48 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     try {
       await SocialApiClient.instance.sendFriendRequest(opponent.publicId);
       if (!mounted) return;
-      setState(() => _statusMessage = context.tr('friend_request_sent'));
+      setState(() {
+        _friendshipStatus = 'pending';
+        _statusMessage = context.tr('friend_request_sent');
+      });
     } on SocialApiException catch (error) {
       if (!mounted) return;
-      setState(() => _statusMessage = error.message);
+      final message = error.message.toLowerCase();
+      setState(() {
+        if (message.contains('already friends')) {
+          _friendshipStatus = 'accepted';
+        } else if (message.contains('pending')) {
+          _friendshipStatus = 'pending';
+        }
+        _statusMessage = error.message;
+      });
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  bool get _canAddFriend =>
+      _friendshipStatus != 'accepted' && _friendshipStatus != 'pending';
+
+  Future<void> _loadFriendshipStatus() async {
+    try {
+      final friends = await SocialApiClient.instance.loadFriends();
+      if (!mounted) return;
+      if (friends.any((player) => player.publicId == opponent.publicId)) {
+        setState(() => _friendshipStatus = 'accepted');
+        return;
+      }
+      final recent = await SocialApiClient.instance.loadRecentOpponents();
+      if (!mounted) return;
+      for (final player in recent) {
+        if (player.publicId == opponent.publicId &&
+            player.friendshipStatus != null) {
+          setState(() => _friendshipStatus = player.friendshipStatus);
+          return;
+        }
+      }
+    } catch (error) {
+      debugPrint('Result friendship status unavailable: $error');
     }
   }
 }
@@ -1508,7 +1547,7 @@ class _ResultActionGrid extends StatelessWidget {
   final bool invitePending;
   final VoidCallback onRematch;
   final VoidCallback onNewMatch;
-  final VoidCallback onAddFriend;
+  final VoidCallback? onAddFriend;
   final VoidCallback onMenu;
 
   @override

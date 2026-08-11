@@ -1,4 +1,6 @@
 import { applyDailyRewardState, unlockAchievement } from './competitive';
+import { roomIdForVariant } from './online_duel_factory';
+import { normalizeDuelVariant, type DuelVariant } from './sudoku_variant';
 
 export const STARTER_COINS = 1000;
 export const ENTRY_FEES: Readonly<Record<DuelDifficultyKey, number>> = Object.freeze({
@@ -72,6 +74,7 @@ export type FundedMatchInput = {
   challengeId: string | null;
   mode: 'friendly' | 'ranked';
   difficulty: string;
+  variant?: DuelVariant;
   playerAId: string;
   playerBId: string;
   now: string;
@@ -83,6 +86,7 @@ export type RematchRow = {
   sender_id: string;
   recipient_id: string;
   difficulty: string;
+  variant?: string | null;
   status: string;
   room_id: string | null;
   created_at: string;
@@ -450,6 +454,9 @@ export async function createFundedMatch(
   ]);
   const entryFee = entryFeeForDifficulty(input.difficulty);
   const pot = entryFee * 2;
+  const variant = normalizeDuelVariant(input.variant, 'classic9');
+  const boardSize = variant === 'classic16' ? 16 : 9;
+  const cellCount = variant === 'classic16' ? 256 : 81;
   if (aBalance < entryFee || bBalance < entryFee) {
     throw new EconomyError(
       409,
@@ -502,8 +509,9 @@ export async function createFundedMatch(
     env.DB.prepare(
       `INSERT INTO matches (
          id, room_id, challenge_id, mode, difficulty, status,
-         player_a_id, player_b_id, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, ?, ?, ?)`,
+         player_a_id, player_b_id, variant, board_size, cell_count,
+         created_at, updated_at
+       ) VALUES (?, ?, ?, ?, ?, 'waiting', ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       input.matchId,
       input.roomId,
@@ -512,6 +520,9 @@ export async function createFundedMatch(
       input.difficulty,
       input.playerAId,
       input.playerBId,
+      variant,
+      boardSize,
+      cellCount,
       input.now,
       input.now,
     ),
@@ -533,7 +544,7 @@ export async function createRematchInvitation(
   previousMatchId: string,
 ): Promise<Record<string, unknown>> {
   const match = await env.DB.prepare(
-    `SELECT id, difficulty, status, player_a_id, player_b_id
+    `SELECT id, difficulty, status, player_a_id, player_b_id, variant
      FROM matches WHERE id = ? LIMIT 1`,
   )
     .bind(previousMatchId)
@@ -543,6 +554,7 @@ export async function createRematchInvitation(
       status: string;
       player_a_id: string;
       player_b_id: string;
+      variant?: string | null;
     }>();
   if (!match) throw new EconomyError(404, 'Completed match not found.');
   if (!['completed', 'forfeited', 'cancelled', 'abandoned'].includes(match.status)) {
@@ -556,6 +568,7 @@ export async function createRematchInvitation(
   if (!recipientId) throw new EconomyError(403, 'You are not a participant in this match.');
   const balance = await ensureStarterGrant(env, senderId);
   const entryFee = entryFeeForDifficulty(match.difficulty);
+  const variant = normalizeDuelVariant(match.variant, 'classic9');
   if (balance < entryFee) {
     throw new EconomyError(
       409,
@@ -575,9 +588,9 @@ export async function createRematchInvitation(
   const id = crypto.randomUUID();
   await env.DB.prepare(
     `INSERT INTO rematch_invitations (
-       id, previous_match_id, sender_id, recipient_id, difficulty,
+       id, previous_match_id, sender_id, recipient_id, difficulty, variant,
        status, created_at, updated_at, expires_at
-     ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
   )
     .bind(
       id,
@@ -585,6 +598,7 @@ export async function createRematchInvitation(
       senderId,
       recipientId,
       match.difficulty,
+      variant,
       now.toISOString(),
       now.toISOString(),
       expires.toISOString(),
@@ -960,6 +974,7 @@ async function rematchJsonFromRow(
     id: row.id,
     previousMatchId: row.previous_match_id,
     difficulty: row.difficulty,
+    variant: normalizeDuelVariant(row.variant, 'classic9'),
     status: row.status,
     roomId: row.room_id,
     createdAt: row.created_at,
