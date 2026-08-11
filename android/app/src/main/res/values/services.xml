@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Production AdMob application ID for Sudoku Duel Android. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-8422988604275177~6950938184</string>
+
+    <!-- Meta App Events stays disabled until real values are supplied. -->
+    <string name="facebook_app_id" translatable="false">000000000000000</string>
+    <string name="facebook_client_token" translatable="false">REPLACE_WITH_META_CLIENT_TOKEN</string>
+    <string name="fb_login_protocol_scheme" translatable="false">fb000000000000000</string>
+
+    <!-- Play Games application ID and game-server OAuth client. -->
+    <string name="game_services_project_id" translatable="false">917838292556</string>
+    <string name="game_services_web_client_id" translatable="false">917838292556-bbq7a36t2kulodpqfd9p3aqkkcs58jhj.apps.googleusercontent.com</string>
+
+    <!-- Google Play Games leaderboards. -->
+    <string name="leaderboard_global_rating" translatable="false">CgkIzMyzm9saEAIQZQ</string>
+    <string name="leaderboard_beginner_rating" translatable="false">CgkIzMyzm9saEAIQZg</string>
+    <string name="leaderboard_easy_rating" translatable="false">CgkIzMyzm9saEAIQZw</string>
+    <string name="leaderboard_medium_rating" translatable="false">CgkIzMyzm9saEAIQaA</string>
+    <string name="leaderboard_hard_rating" translatable="false">CgkIzMyzm9saEAIQaQ</string>
+    <string name="leaderboard_expert_rating" translatable="false">CgkIzMyzm9saEAIQag</string>
+
+    <!-- Default achievement used by the platform bridge. -->
+    <string name="achievement_first_win" translatable="false">CgkIzMyzm9saEAIQSg</string>
+</resources>

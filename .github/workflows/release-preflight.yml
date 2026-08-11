@@ -1,0 +1,159 @@
+name: Release Preflight
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-preflight-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SOCIAL_BACKEND_URL: ${{ vars.PRODUCTION_SOCIAL_BACKEND_URL }}
+  BUILD_COMMIT: ${{ github.sha }}
+  APP_ENVIRONMENT: production
+
+jobs:
+  metadata-and-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      FCM_CLIENT_EMAIL: ${{ secrets.FCM_CLIENT_EMAIL }}
+      FCM_PRIVATE_KEY: ${{ secrets.FCM_PRIVATE_KEY }}
+      GOOGLE_PLAY_CLIENT_EMAIL: ${{ secrets.GOOGLE_PLAY_CLIENT_EMAIL }}
+      GOOGLE_PLAY_PRIVATE_KEY: ${{ secrets.GOOGLE_PLAY_PRIVATE_KEY }}
+      APPLE_IAP_ISSUER_ID: ${{ secrets.APPLE_IAP_ISSUER_ID }}
+      APPLE_IAP_KEY_ID: ${{ secrets.APPLE_IAP_KEY_ID }}
+      APPLE_IAP_PRIVATE_KEY: ${{ secrets.APPLE_IAP_PRIVATE_KEY }}
+      APPLE_ROOT_CERTIFICATES_PEM: ${{ secrets.APPLE_ROOT_CERTIFICATES_PEM }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Materialize production Worker config
+        shell: bash
+        run: |
+          cp backend/social_worker/wrangler.production.example.toml backend/social_worker/wrangler.production.toml
+          sed -i "s/REPLACE_WITH_FIREBASE_PROJECT_ID/${{ vars.FIREBASE_PROJECT_ID }}/g" backend/social_worker/wrangler.production.toml
+          sed -i "s/REPLACE_WITH_FIREBASE_PROJECT_NUMBER/${{ vars.FIREBASE_PROJECT_NUMBER }}/g" backend/social_worker/wrangler.production.toml
+          sed -i "s/REPLACE_WITH_ANDROID_APP_ID,REPLACE_WITH_IOS_APP_ID/${{ vars.ALLOWED_APP_CHECK_APP_IDS }}/g" backend/social_worker/wrangler.production.toml
+          sed -i "s|REPLACE_WITH_GOOGLE_PUBSUB_PUSH_AUDIENCE|${{ vars.GOOGLE_PUBSUB_AUDIENCE }}|g" backend/social_worker/wrangler.production.toml
+          sed -i "s/REPLACE_WITH_GOOGLE_PUBSUB_PUSH_SERVICE_ACCOUNT/${{ vars.GOOGLE_PUBSUB_SERVICE_ACCOUNT }}/g" backend/social_worker/wrangler.production.toml
+          sed -i "s/REPLACE_WITH_GIT_COMMIT_SHA/${GITHUB_SHA}/g" backend/social_worker/wrangler.production.toml
+          sed -i "s/REPLACE_WITH_D1_DATABASE_ID/${{ vars.PRODUCTION_D1_DATABASE_ID }}/g" backend/social_worker/wrangler.production.toml
+
+      - name: Production invariant gate
+        shell: pwsh
+        run: ./scripts/check_production_invariants.ps1 -ConfigPath backend/social_worker/wrangler.production.toml
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/social_worker/package-lock.json
+
+      - name: Worker validation
+        working-directory: backend/social_worker
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run puzzles:verify
+
+  android-aab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: metadata-and-worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Restore Android upload key
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storeFile=upload-keystore.jks
+          storePassword=$ANDROID_STORE_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          keyPassword=$ANDROID_KEY_PASSWORD
+          EOF
+
+      - run: flutter pub get
+
+      - name: Build signed release AAB
+        run: >-
+          flutter build appbundle --release
+          --dart-define=APP_ENVIRONMENT=production
+          --dart-define=SOCIAL_BACKEND_URL=${SOCIAL_BACKEND_URL}
+          --dart-define=BUILD_COMMIT=${BUILD_COMMIT}
+          --dart-define=META_SDK_ENABLED=false
+          --dart-define=META_ADVERTISER_TRACKING_ENABLED=false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sudoku-duel-android-aab-${{ github.sha }}
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 14
+
+  ios-build-check:
+    runs-on: macos-latest
+    timeout-minutes: 50
+    needs: metadata-and-worker
+    env:
+      IOS_GAME_CENTER_LEADERBOARD_ID: ${{ vars.IOS_GAME_CENTER_LEADERBOARD_ID }}
+      IOS_GAME_CENTER_ACHIEVEMENT_FIRST_WIN_ID: ${{ vars.IOS_GAME_CENTER_ACHIEVEMENT_FIRST_WIN_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Inject Game Center identifiers
+        run: bash scripts/configure_ios_release.sh
+
+      - run: flutter pub get
+
+      - name: Build iOS release without signing
+        run: >-
+          flutter build ios --release --no-codesign
+          --dart-define=APP_ENVIRONMENT=production
+          --dart-define=SOCIAL_BACKEND_URL=${SOCIAL_BACKEND_URL}
+          --dart-define=BUILD_COMMIT=${BUILD_COMMIT}
+          --dart-define=META_SDK_ENABLED=false
+          --dart-define=META_ADVERTISER_TRACKING_ENABLED=false
+
+      - name: Archive build metadata
+        shell: bash
+        run: |
+          mkdir -p build/release-metadata
+          printf '%s\n' "$GITHUB_SHA" > build/release-metadata/commit.txt
+          printf '%s\n' "$SOCIAL_BACKEND_URL" > build/release-metadata/backend.txt
+          cp ios/Flutter/Release.xcconfig build/release-metadata/Release.xcconfig
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sudoku-duel-ios-build-metadata-${{ github.sha }}
+          path: build/release-metadata
+          retention-days: 14

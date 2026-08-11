@@ -1,0 +1,10 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"
+#include "Generated.xcconfig"
+PRODUCT_BUNDLE_IDENTIFIER = com.devovia.sudokuduel
+IPHONEOS_DEPLOYMENT_TARGET = 15.0
+APS_ENVIRONMENT = production
+CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements
+INFOPLIST_KEY_NSGKFriendListUsageDescription = Sudoku Duel uses your Game Center friends to help you find familiar players and send challenges.
+INFOPLIST_KEY_SudokuLeaderboardGlobalRating = com.devovia.sudokuduel.leaderboard.global_peak_elo
+INFOPLIST_KEY_SudokuAchievementFirstWin = com.devovia.sudokuduel.achievement.first_win
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = i386

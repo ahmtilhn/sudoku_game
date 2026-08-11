@@ -1,0 +1,95 @@
+name: Apply remaining UX safety patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tool/main_ux_patch_parts/**'
+      - '.github/workflows/apply-main-ux-patch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-main-ux-patch
+  cancel-in-progress: false
+
+jobs:
+  validate-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Reconstruct and verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat tool/main_ux_patch_parts/* | base64 --decode | gzip --decompress > /tmp/main-ux.patch
+          echo '028a80c56e41114b9033862a67635872725884c3c59164a7b04cead1c546982e  /tmp/main-ux.patch' | sha256sum --check
+          git apply --check /tmp/main-ux.patch
+          git apply /tmp/main-ux.patch
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/features/duel/matchmaking_screen.dart')
+          text = path.read_text()
+          text = text.replace(
+              "import '../../widgets/responsive_layout.dart';",
+              "import '../../widgets/responsive_layout.dart' hide showAdaptiveBottomSheet;",
+          )
+          path.write_text(text)
+          PY
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Apply safe Dart fixes and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart fix --apply
+          mapfile -t files < <(git diff --name-only -- '*.dart')
+          if (( ${#files[@]} )); then dart format "${files[@]}"; fi
+          git diff --check
+
+      - name: Validate localization catalog
+        run: python3 tool/validate_localizations.py
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
+
+      - name: Commit verified changes directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib test
+          if git diff --cached --quiet; then
+            echo 'No source changes were required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Hide technical service errors across user-facing flows'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main

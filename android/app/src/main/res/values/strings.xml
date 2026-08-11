@@ -1,0 +1,353 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name" translatable="false">Sudoku Duel</string>
+    <string name="settings">Settings</string>
+    <string name="career">Career</string>
+    <string name="career_subtitle">Progress from beginner to expert</string>
+    <string name="career_random_subtitle">Choose a difficulty and get a new puzzle</string>
+    <string name="career_random_intro">Choose a difficulty. A fresh, unique Sudoku will be generated for every game.</string>
+    <string name="samurai_sudoku">Samurai Sudoku</string>
+    <string name="duel_variant_classic">Classic Sudoku</string>
+    <string name="choose_duel_variant">Choose game type</string>
+    <string name="same_variant_match">You will only be matched with the same game type.</string>
+    <string name="samurai_subtitle">Five overlapping 9×9 boards in one challenge</string>
+    <string name="samurai_choose_difficulty">Choose Samurai difficulty</string>
+    <string name="samurai_zoom_hint">Pinch to zoom and drag to move across the five linked boards.</string>
+    <string name="samurai_pause_body">Your five linked boards are paused. Continue when ready.</string>
+    <string name="samurai_completed_title">Samurai completed!</string>
+    <string name="samurai_completed_body">You solved all five linked Sudoku boards.</string>
+    <string name="three_mistake_rule">Career rule: the round ends after 3 wrong moves.</string>
+    <string name="coins_count" formatted="false">%1$d coins</string>
+    <string name="random_clue_count" formatted="false">About %1$d starting clues</string>
+    <string name="local_duel">Local Duel</string>
+    <string name="local_duel_subtitle">Take 10-second turns on the same device</string>
+    <string name="online_duel">Online Duel</string>
+    <string name="online_duel_subtitle">Choose a difficulty and match with the same queue</string>
+    <string name="choose_duel_difficulty">Choose your duel difficulty</string>
+    <string name="same_difficulty_match">You will only be matched with players who selected the same difficulty.</string>
+    <string name="difficulty_queue" formatted="false">%1$s difficulty queue</string>
+    <string name="searching_opponent">Searching for an opponent…</string>
+    <string name="queue_key" formatted="false">Queue: %1$s</string>
+    <string name="matchmaking_backend_pending">The online connection will use this queue when the matchmaking backend is enabled.</string>
+    <string name="cancel_search">Cancel search</string>
+    <string name="find_opponent">Find opponent</string>
+    <string name="local_practice">Play local practice</string>
+    <string name="daily_sudoku">Daily Sudoku</string>
+    <string name="daily_subtitle">One fresh puzzle every day</string>
+    <string name="how_to_play">How to play</string>
+    <string name="tutorial_repeat">Open the tutorial again</string>
+    <string name="tutorial_new">Learn in minutes with a 4×4 board</string>
+    <string name="welcome_returning_title">Ready for a Sudoku?</string>
+    <string name="welcome_new_title">You don\'t need to know Sudoku.</string>
+    <string name="welcome_returning_body">Continue your career or challenge another player.</string>
+    <string name="welcome_new_body">Learn the rules with a quick tutorial, then start your career.</string>
+    <string name="career_intro">Start with the easiest puzzles and progress step by step.</string>
+    <string name="difficulty_beginner">Beginner</string>
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_medium">Medium</string>
+    <string name="difficulty_hard">Hard</string>
+    <string name="difficulty_expert">Expert</string>
+    <string name="complete_previous_level">Complete the previous level</string>
+    <string name="new_level">New level</string>
+    <string name="best_time" formatted="false">Best: %1$s</string>
+    <string name="level_title" formatted="false">%1$s %2$d</string>
+    <string name="daily_puzzle_title">Daily Sudoku</string>
+    <string name="duel_puzzle_title">Duel</string>
+    <string name="mini_sudoku_title">Mini Sudoku</string>
+    <string name="congratulations">Congratulations!</string>
+    <string name="time">Time</string>
+    <string name="mistakes">Mistakes</string>
+    <string name="hints">Hints</string>
+    <string name="continue_action">Continue</string>
+    <string name="mistakes_count" formatted="false">Mistakes: %1$d</string>
+    <string name="mistakes_limit_count" formatted="false">Mistakes: %1$d/%2$d</string>
+    <string name="hints_count" formatted="false">Hints: %1$d</string>
+    <string name="round_lost">Round lost</string>
+    <string name="mistake_limit_reached" formatted="false">You made %1$d wrong moves. Choose how you want to continue.</string>
+    <string name="continue_with_coins" formatted="false">Continue for %1$d coins</string>
+    <string name="watch_rewarded_ad">Watch rewarded ad</string>
+    <string name="restart_puzzle">Restart from the beginning</string>
+    <string name="not_enough_coins">You do not have enough coins.</string>
+    <string name="rewarded_ad_unavailable">The rewarded ad is not available right now.</string>
+    <string name="rewarded_ad_prototype_body">The rewarded ad provider will be connected in the monetization phase. Continue now to test the recovery flow.</string>
+    <string name="time_up_turn_passed">Time is up. The turn passed to the other player.</string>
+    <string name="draw">Draw!</string>
+    <string name="player_won" formatted="false">Player %1$d won!</string>
+    <string name="turns_played" formatted="false">%1$d turns played.</string>
+    <string name="main_menu">Main menu</string>
+    <string name="turn" formatted="false">Turn %1$d</string>
+    <string name="seconds" formatted="false">%1$d seconds</string>
+    <string name="player_instruction" formatted="false">Player %1$d: Select a cell and make one move.</string>
+    <string name="player" formatted="false">Player %1$d</string>
+    <string name="today_puzzle_completed">Today\'s puzzle is complete!</string>
+    <string name="tutorial_title">How to play Sudoku</string>
+    <string name="rule_rows_title">Complete each row</string>
+    <string name="rule_rows_description">Each number can appear only once in every row.</string>
+    <string name="rule_columns_title">Check each column</string>
+    <string name="rule_columns_description">The same number cannot appear twice in a column.</string>
+    <string name="rule_boxes_title">Remember the boxes</string>
+    <string name="rule_boxes_description">Each bold box must also contain every number once.</string>
+    <string name="tutorial_ready">Ready? Try a 4×4 mini Sudoku.</string>
+    <string name="tutorial_completed">You understand Sudoku!</string>
+    <string name="start_mini_tutorial">Start mini tutorial</string>
+    <string name="appearance">Appearance</string>
+    <string name="system">System</string>
+    <string name="light">Light</string>
+    <string name="dark">Dark</string>
+    <string name="high_contrast">High contrast</string>
+    <string name="high_contrast_subtitle">Makes the board and text easier to distinguish.</string>
+    <string name="data">Data</string>
+    <string name="clear_career_progress">Clear career progress</string>
+    <string name="completed_levels" formatted="false">%1$d completed levels</string>
+    <string name="clear_progress_title">Clear progress?</string>
+    <string name="clear_progress_body">Completed career levels and records will be removed.</string>
+    <string name="cancel">Cancel</string>
+    <string name="clear">Clear</string>
+    <string name="erase">Erase</string>
+    <string name="notes_on">Notes on</string>
+    <string name="notes">Notes</string>
+    <string name="undo">Undo</string>
+    <string name="hint">Hint</string>
+    <string name="board_label" formatted="false">%1$d by %1$d Sudoku board</string>
+    <string name="cell_label" formatted="false">Row %1$d, column %2$d, %3$s</string>
+    <string name="empty">Empty</string>
+    <string name="notifications">Notifications</string>
+    <string name="daily_sudoku_challenges">Daily Sudoku challenges</string>
+    <string name="daily_sudoku_challenges_subtitle">Three optional reminders each day at 09:00, 15:00, and 20:30. You can turn them off at any time.</string>
+    <string name="daily_reminder_permission_denied">Notification permission was not granted. Daily reminders remain off.</string>
+    <string name="online_challenge_notifications">Online challenge notifications</string>
+    <string name="online_challenge_notifications_subtitle">Shows friend and challenge invitations on this device. You can turn this off at any time.</string>
+    <string name="online_challenge_notifications_unavailable">Challenge notifications require Firebase and the social backend to be configured.</string>
+    <string name="challenge_notification_permission_denied">Notification permission was not granted. Online challenge notifications remain off.</string>
+    <string name="privacy">Privacy</string>
+    <string name="analytics_sharing">Analytics sharing</string>
+    <string name="analytics_sharing_subtitle">Allows anonymous usage analytics to help improve Sudoku Duel.</string>
+    <string name="crash_reports_sharing">Crash reports sharing</string>
+    <string name="crash_reports_sharing_subtitle">Sends crash diagnostics when something fails.</string>
+    <string name="ad_privacy">Ad privacy</string>
+    <string name="ad_privacy_choices">Ad privacy choices</string>
+    <string name="ad_privacy_choices_subtitle">Review or change the privacy choices used for advertising.</string>
+    <string name="connected">Connected</string>
+    <string name="forfeit_and_leave">Forfeit and leave</string>
+    <string name="global">Global</string>
+    <string name="leaderboard_empty">No leaderboard entries yet.</string>
+    <string name="leaderboard_row">%1d games · %2d%% win rate</string>
+    <string name="leaderboards">Leaderboards</string>
+    <string name="online_connection_failed">Online duel connection failed: %1s</string>
+    <string name="online_final_score">Final score: %1d - %2d</string>
+    <string name="online_forfeit_body">Leaving an active online duel forfeits the match to your opponent.</string>
+    <string name="online_forfeit_title">Forfeit match?</string>
+    <string name="online_turn_number">Turn %1d</string>
+    <string name="online_waiting_snapshot">Waiting for the server snapshot…</string>
+    <string name="rating_delta">Global rating: %1d to %2d (%3d)</string>
+    <string name="ready">Ready</string>
+    <string name="reconnecting">Reconnecting</string>
+    <string name="refresh">Refresh</string>
+    <string name="stay">Stay</string>
+    <string name="waiting_for_ranked_opponent">You are in the ranked queue. The app checks for a match every few seconds.</string>
+    <string name="you_lost">You lost</string>
+    <string name="you_won">You won!</string>
+    <string name="your_turn">Your turn</string>
+    <string name="opponents_turn">Opponent\'s turn</string>
+    <!-- Synchronized from AppStrings.english for Play listing translation sources. -->
+    <string name="home">Home</string>
+    <string name="play">Play</string>
+    <string name="compete">Compete</string>
+    <string name="profile">Profile</string>
+    <string name="online_duel_fee_summary" formatted="false">Online entry starts at %1d Coin</string>
+    <string name="finding_opponent_title">Finding Opponent</string>
+    <string name="searching_similar_opponents">Searching for opponents near your level...</string>
+    <string name="searching_opponent_short">Searching</string>
+    <string name="ready_question">Are You Ready?</string>
+    <string name="ready_when_opponent_ready">The game starts when both players are ready.</string>
+    <string name="waiting_opponent_ready">Waiting for your opponent...</string>
+    <string name="match_ready_prompt">Tap ready when you are set.</string>
+    <string name="you_ready_waiting_opponent">You are ready. Waiting for your opponent.</string>
+    <string name="opponent_ready_waiting_you">Opponent is ready. Waiting for you.</string>
+    <string name="everyone_ready_starting">Everyone is ready. Starting the game...</string>
+    <string name="elo_hint">Your ELO rises when you win and falls when you lose.</string>
+    <string name="world">World</string>
+    <string name="elo_unknown">ELO</string>
+    <string name="opponent">Opponent</string>
+    <string name="friend_requests">Friend requests</string>
+    <string name="friends_challenges">Friends &amp; challenges</string>
+    <string name="quick_modes">Quick modes</string>
+    <string name="quick_duel">Quick Duel</string>
+    <string name="quick_duel_body">Find a ranked opponent at your selected difficulty.</string>
+    <string name="home_progress_summary" formatted="false">%1d career levels · %2d Coin</string>
+    <string name="home_rating_label">ELO</string>
+    <string name="home_daily_reward_title">Daily bonus</string>
+    <string name="home_daily_reward_body">Open the Coin Store to claim available rewards.</string>
+    <string name="home_play_online_cta">Play</string>
+    <string name="home_online_badge">Same difficulty matchmaking</string>
+    <string name="home_career_card_body">Keep building your Sudoku fundamentals.</string>
+    <string name="home_wallet_label">Wallet</string>
+    <string name="home_progress_label">Progress</string>
+    <string name="ranked">Ranked</string>
+    <string name="practice">Practice</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="coin_required_title">100 Coin required</string>
+    <string name="coin_required_body">Each player contributes 100 Coin. The winner receives the 200 Coin pot.</string>
+    <string name="coin_required_title_dynamic" formatted="false">%1d Coin required</string>
+    <string name="coin_required_body_dynamic" formatted="false">Each player contributes %1d Coin. The winner receives the %2d Coin pot.</string>
+    <string name="claim_daily_coin" formatted="false">Claim +%1d daily Coin</string>
+    <string name="watch_ad_for_coin" formatted="false">Watch ad for +%1d Coin</string>
+    <string name="matchmaking_unexpected_response">The matchmaking server returned an unexpected response.</string>
+    <string name="matchmaking_start_failed">Unable to start opponent search. Please try again.</string>
+    <string name="connection_interrupted_retrying">The connection was interrupted. Retrying...</string>
+    <string name="global_elo">Global ELO</string>
+    <string name="friends">Friends</string>
+    <string name="country">Country</string>
+    <string name="current_season">Current season</string>
+    <string name="daily_tournament">Daily tournament</string>
+    <string name="weekend_tournament">Weekend tournament</string>
+    <string name="countries">Countries</string>
+    <string name="i_am_ready">I am ready</string>
+    <string name="you">You</string>
+    <string name="turn_timer_seconds" formatted="false">%1d s</string>
+    <string name="match_timer_seconds" formatted="false">%1d s</string>
+    <string name="match_header_semantics">Online duel match header</string>
+    <string name="player_avatar_semantics" formatted="false">%1s player avatar</string>
+    <string name="winner_avatar_semantics" formatted="false">%1s winner avatar</string>
+    <string name="winner_name" formatted="false">Winner: %1s</string>
+    <string name="elo_value" formatted="false">ELO %1d</string>
+    <string name="turn_badge">Turn</string>
+    <string name="match_type">Match</string>
+    <string name="online_turns_label">Turns</string>
+    <string name="correct_moves">Correct moves</string>
+    <string name="last_move">Last move</string>
+    <string name="timeouts">Timeouts</string>
+    <string name="not_available_short">N/A</string>
+    <string name="current_elo">Current ELO</string>
+    <string name="rank">Rank</string>
+    <string name="season_peak">Season peak</string>
+    <string name="country_not_set">No country</string>
+    <string name="wins_losses_draws">W/L/D</string>
+    <string name="win_rate">Win rate</string>
+    <string name="win_streak">Win streak</string>
+    <string name="tournament_entries">Tournament entries</string>
+    <string name="tournament_podiums">Tournament podiums</string>
+    <string name="country_contributions">Country contributions</string>
+    <string name="achievement_showcase">Achievement showcase</string>
+    <string name="achievement_showcase_empty">Choose up to three unlocked achievements.</string>
+    <string name="get_ready">Get ready</string>
+    <string name="connecting_players">Connecting players</string>
+    <string name="move_time_seconds" formatted="false">Move time: %1d s</string>
+    <string name="automatic_start_seconds" formatted="false">Automatic start: %1d s</string>
+    <string name="opponent_connecting">Opponent is connecting</string>
+    <string name="opponent_opening_game">Opponent is opening the game</string>
+    <string name="opponent_ready">Opponent is ready</string>
+    <string name="sending_move">Sending move…</string>
+    <string name="select_empty_cell_enter_number">Select an empty cell and enter a number</string>
+    <string name="waiting_opponent_move">Waiting for the opponent’s move</string>
+    <string name="result_win_subtitle">Great play!</string>
+    <string name="result_loss_subtitle">Good effort. Try the rematch.</string>
+    <string name="result_draw_subtitle">Even match.</string>
+    <string name="versus_short">VS</string>
+    <string name="result_elo_change">ELO change</string>
+    <string name="rating_value" formatted="false">%1$d ELO</string>
+    <string name="coin_result">Coin result</string>
+    <string name="final_score_label">Final score</string>
+    <string name="entry_fee">Entry fee</string>
+    <string name="winner_pot">Winner pot</string>
+    <string name="duel_fee_summary" formatted="false">%1d entry · %2d winner pot</string>
+    <string name="balance_loading">Balance: ...</string>
+    <string name="balance_coin" formatted="false">Balance: %1d Coin</string>
+    <string name="refund">Refund</string>
+    <string name="match_result">Match result</string>
+    <string name="current_balance">Current balance</string>
+    <string name="rating">Rating</string>
+    <string name="finish_reason">Finish reason</string>
+    <string name="coin_amount" formatted="false">%1d Coin</string>
+    <string name="vs_opponent" formatted="false">vs %1s</string>
+    <string name="waiting_for_player_seconds" formatted="false">Waiting for %1s · %2d s</string>
+    <string name="wants_rematch_seconds" formatted="false">%1s wants a rematch · %2d s</string>
+    <string name="decline">Decline</string>
+    <string name="accept">Accept</string>
+    <string name="challenge_again">Challenge again</string>
+    <string name="find_new_match">Find new match</string>
+    <string name="add_friend">Add friend</string>
+    <string name="open_coin_store">Open Coin Store</string>
+    <string name="not_enough_coins_online" formatted="false">You need at least %1d Coin to play another online match.</string>
+    <string name="rematch_invitation_sent">Rematch invitation sent.</string>
+    <string name="rematch_declined">Rematch declined.</string>
+    <string name="rematch_invitation_title">Rematch invitation</string>
+    <string name="wants_to_play_again" formatted="false">%1s wants to play again.</string>
+    <string name="challenge_declined">Challenge declined.</string>
+    <string name="challenge_timed_out">Challenge timed out.</string>
+    <string name="friend_request_sent">Friend request sent.</string>
+    <string name="player_not_enough_coin">A player no longer has enough Coin.</string>
+    <string name="skip">Skip</string>
+    <string name="earn_career_ad_coin" formatted="false">Earn %1d Coin</string>
+    <string name="career_ad_reward_body">Watch an optional rewarded ad after this completed puzzle.</string>
+    <string name="watch_and_earn_coin" formatted="false">Watch and earn +%1d Coin</string>
+    <string name="coin_added_wallet" formatted="false">%1d Coin added to your wallet.</string>
+    <string name="seconds_short">s</string>
+    <string name="player_account">Player account</string>
+    <string name="player_account_protected">Player account protected</string>
+    <string name="protect_player_account">Protect player account</string>
+    <string name="protect_your_player_account">Protect your player account</string>
+    <string name="account_protection_banner_body">Link an email before buying Coins so your wallet, Friend ID and rating can be recovered after reinstall or device change.</string>
+    <string name="protect">Protect</string>
+    <string name="coin_store">Coin Store</string>
+    <string name="your_balance">Your balance</string>
+    <string name="popular">Popular</string>
+    <string name="no_ads_title">Remove ads</string>
+    <string name="no_ads_body">Hide rewarded ad offers on this player account.</string>
+    <string name="no_ads_owned">Ads are removed on this player account.</string>
+    <string name="restore_purchases">Restore purchases</string>
+    <string name="coin_history">Coin history</string>
+    <string name="protect_account_before_buying">Protect your account before buying</string>
+    <string name="paid_coins_protection_body">Paid Coins must be linked to a recoverable email account. Your current guest wallet and Friend ID are preserved when you protect this account.</string>
+    <string name="create_player_profile">Create your player profile</string>
+    <string name="create_player_profile_body">Your display name is shown in matches. Your unique username can be searched, while your permanent Friend ID never changes.</string>
+    <string name="use_platform_name">Use your Google Play Games or Game Center name</string>
+    <string name="use_custom_profile">Use a custom profile</string>
+    <string name="display_name">Display name</string>
+    <string name="unique_username">Unique username</string>
+    <string name="username_helper">3–20 lowercase letters, numbers or underscore</string>
+    <string name="friend_id_value" formatted="false">Friend ID: %1s</string>
+    <string name="player_profile">Player profile</string>
+    <string name="shown_to_other_players">Shown to other players</string>
+    <string name="save">Save</string>
+    <string name="friend_id_copied">Friend ID copied.</string>
+    <string name="online_account_unavailable">Online account unavailable</string>
+    <string name="try_again_when_connected">Try again when connected.</string>
+    <string name="retry">Retry</string>
+    <string name="edit_player_profile">Edit player profile</string>
+    <string name="friend_id">Friend ID</string>
+    <string name="copy_friend_id">Copy Friend ID</string>
+    <string name="discoverable_by_players">Discoverable by other players</string>
+    <string name="discoverable_by_players_body">Allow username, display-name and exact Friend ID search. Existing friends remain connected when disabled.</string>
+    <string name="server_wallet_history">Server wallet and purchase history</string>
+    <string name="rematch_could_not_start">Rematch could not be started.</string>
+    <string name="rematch_invitation_load_failed">The rematch invitation could not be loaded.</string>
+    <string name="rematch_requires_coin" formatted="false">A new match requires %1d Coin from each player.</string>
+    <!-- Synchronized from AppStrings.english for Play listing translation sources. -->
+    <string name="coin_history_empty">No Coin activity yet.</string>
+    <string name="coin_history_balance_after" formatted="false">%1s · Balance %2s</string>
+    <string name="ledger_starter_grant">Starter Coins</string>
+    <string name="ledger_match_entry">Online match entry</string>
+    <string name="ledger_match_payout">Match prize</string>
+    <string name="ledger_match_refund">Match refund</string>
+    <string name="ledger_daily_login">Daily login reward</string>
+    <string name="ledger_daily_rewarded_ad">Daily ad reward</string>
+    <string name="ledger_career_rewarded_ad">Career ad reward</string>
+    <string name="ledger_achievement_reward">Achievement reward</string>
+    <string name="ledger_career_continue">Career continue</string>
+    <string name="ledger_hint_purchase">Hint purchase</string>
+    <string name="ledger_store_purchase">Coin Store purchase</string>
+    <string name="ledger_purchase_refund">Purchase refund</string>
+    <string name="friend_requests_setup_required">Deploy the social backend and configure Firebase before using friend requests.</string>
+    <string name="friend_requests_empty">You have no pending friend requests.</string>
+    <string name="friend_request_accepted" formatted="false">%1s is now your friend.</string>
+    <string name="friend_request_declined">Friend request declined.</string>
+    <string name="player_rating_summary" formatted="false">@%1s · %2d rating</string>
+    <string name="player_rating_wins_summary" formatted="false">@%1s · %2d rating · %3d/%4d wins</string>
+    <string name="challenge">Challenge</string>
+    <string name="platform_friends">Platform friends</string>
+    <string name="platform_friends_empty_title">No platform friends available</string>
+    <string name="platform_friends_empty_body">Friend access may not be granted, or no matching Play Games/Game Center friends were returned.</string>
+    <string name="open_native_platform_profile">Open native platform profile</string>
+    <string name="try_again">Try again</string>
+</resources>

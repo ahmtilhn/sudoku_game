@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "31445697560",
+    "project_id": "focus-sweep-503417-d7",
+    "storage_bucket": "focus-sweep-503417-d7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:31445697560:android:ed951eabf51d75800b2f6d",
+        "android_client_info": {
+          "package_name": "com.devoviastudio.sudoku"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "31445697560-srkgbb34irg821mamsq0tnd6hvr4j8li.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDB5B9tqMae8LVB9Ct-x9_HhPrZAZnBXFY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "31445697560-srkgbb34irg821mamsq0tnd6hvr4j8li.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "31445697560-cc144fncsuise033sulqkt92o635ncd9.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.devoviastudio.sudoku"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

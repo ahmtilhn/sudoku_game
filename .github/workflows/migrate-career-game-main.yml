@@ -1,0 +1,92 @@
+name: Route career gameplay through enhanced UX
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/migrate-career-game-main.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: migrate-career-game-main
+  cancel-in-progress: false
+
+jobs:
+  update-validate-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Migrate career routes
+        shell: python
+        env:
+          LEVEL_NAV_B64: YXdhaXQgTmF2aWdhdG9yLm9mKGNvbnRleHQpLnB1c2g8RW5oYW5jZWRHYW1lRXhpdD4oCiAgTWF0ZXJpYWxQYWdlUm91dGUoCiAgICBidWlsZGVyOiAoXykgPT4gRW5oYW5jZWRHYW1lU2NyZWVuKAogICAgICBwdXp6bGU6IHB1enpsZSwKICAgICAgc3RvcmU6IHdpZGdldC5zdG9yZSwKICAgICAgbWlzdGFrZUxpbWl0OiAzLAogICAgICBvbkNvbXBsZXRlZDoKICAgICAgICAgICh7cmVxdWlyZWQgc2Vjb25kcywgcmVxdWlyZWQgbWlzdGFrZXMsIHJlcXVpcmVkIGhpbnRzfSkgYXN5bmMgewogICAgICAgICAgICBhd2FpdCB3aWRnZXQuc3RvcmUucmVjb3JkUmVzdWx0KAogICAgICAgICAgICAgIHB1enpsZUlkOiBsZXZlbC5pZCwKICAgICAgICAgICAgICBzZWNvbmRzOiBzZWNvbmRzLAogICAgICAgICAgICAgIG1pc3Rha2VzOiBtaXN0YWtlcywKICAgICAgICAgICAgICBoaW50czogaGludHMsCiAgICAgICAgICAgICk7CiAgICAgICAgICAgIGlmICghd2FzQ29tcGxldGVkICYmIGxldmVsLmhpbnRSZXdhcmQgPiAwKSB7CiAgICAgICAgICAgICAgYXdhaXQgd2lkZ2V0LnN0b3JlLmFkZEhpbnRzKGxldmVsLmhpbnRSZXdhcmQpOwogICAgICAgICAgICB9CiAgICAgICAgICAgIGF3YWl0IF9jbGFpbUVsaWdpYmxlQWNoaWV2ZW1lbnRzKCk7CiAgICAgICAgICB9LAogICAgKSwKICApLAopOwppZiAoIW1vdW50ZWQpIHJldHVybjsKZmluYWwgbm93Q29tcGxldGVkID0gd2lkZ2V0LnN0b3JlLmlzQ29tcGxldGVkKGxldmVsLmlkKTsKaWYgKCF3YXNDb21wbGV0ZWQgJiYgbm93Q29tcGxldGVkKSB7CiAgYXdhaXQgX3Nob3dDYXJlZXJSZXdhcmRPZmZlcigpOwp9CmlmIChtb3VudGVkKSBzZXRTdGF0ZSgoKSB7fSk7Cg==
+          RANDOM_NAV_B64: dmFyIGRpZENvbXBsZXRlID0gZmFsc2U7CmF3YWl0IE5hdmlnYXRvci5vZihjb250ZXh0KS5wdXNoPEVuaGFuY2VkR2FtZUV4aXQ+KAogIE1hdGVyaWFsUGFnZVJvdXRlKAogICAgYnVpbGRlcjogKF8pID0+IEVuaGFuY2VkR2FtZVNjcmVlbigKICAgICAgcHV6emxlOiBwdXp6bGUsCiAgICAgIHN0b3JlOiB3aWRnZXQuc3RvcmUsCiAgICAgIG1pc3Rha2VMaW1pdDogMywKICAgICAgb25Db21wbGV0ZWQ6CiAgICAgICAgICAoe3JlcXVpcmVkIHNlY29uZHMsIHJlcXVpcmVkIG1pc3Rha2VzLCByZXF1aXJlZCBoaW50c30pIGFzeW5jIHsKICAgICAgICAgICAgZGlkQ29tcGxldGUgPSB0cnVlOwogICAgICAgICAgICBhd2FpdCB3aWRnZXQuc3RvcmUucmVjb3JkUmVzdWx0KAogICAgICAgICAgICAgIHB1enpsZUlkOiAnY2FyZWVyLSR7ZGlmZmljdWx0eS5uYW1lfScsCiAgICAgICAgICAgICAgc2Vjb25kczogc2Vjb25kcywKICAgICAgICAgICAgICBtaXN0YWtlczogbWlzdGFrZXMsCiAgICAgICAgICAgICAgaGludHM6IGhpbnRzLAogICAgICAgICAgICApOwogICAgICAgICAgICBhd2FpdCBfY2xhaW1FbGlnaWJsZUFjaGlldmVtZW50cygpOwogICAgICAgICAgfSwKICAgICksCiAgKSwKKTsKaWYgKCFtb3VudGVkKSByZXR1cm47CmlmIChkaWRDb21wbGV0ZSkgewogIGF3YWl0IF9zaG93Q2FyZWVyUmV3YXJkT2ZmZXIoKTsKfQppZiAobW91bnRlZCkgc2V0U3RhdGUoKCkge30pOwo=
+        run: |
+          import base64
+          import os
+          from pathlib import Path
+
+          path = Path('lib/features/career/career_screen.dart')
+          source = path.read_text()
+          source = source.replace("import '../../services/ads_service.dart';\n", '')
+          source = source.replace("import '../game/game_screen.dart';\n", "import '../game/enhanced_game_screen.dart';\n")
+          source = source.replace("import '../game/hint_economy.dart';\n", '')
+
+          def replace_method_body(source, method_name, start_marker, replacement):
+              method_start = source.index(method_name)
+              block_start = source.index(start_marker, method_start)
+              block_end_marker = '    if (mounted) setState(() {});'
+              block_end = source.index(block_end_marker, block_start) + len(block_end_marker)
+              return source[:block_start] + replacement.rstrip() + source[block_end:]
+
+          source = replace_method_body(
+              source,
+              'Future<void> _startCareerLevel',
+              '    final completed = await Navigator.of(context).push<bool>(',
+              base64.b64decode(os.environ['LEVEL_NAV_B64']).decode(),
+          )
+          source = replace_method_body(
+              source,
+              'Future<void> _startRandomPuzzle',
+              '    final completed = await Navigator.of(context).push<bool>(',
+              base64.b64decode(os.environ['RANDOM_NAV_B64']).decode(),
+          )
+          path.write_text(source)
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format lib/features/career/career_screen.dart lib/features/daily/daily_screen.dart
+      - run: python3 tool/validate_localizations.py
+      - run: python3 tool/verify_user_facing_messages.py
+      - run: python3 tool/verify_ux_contracts.py
+      - run: flutter analyze --fatal-infos
+      - name: Test
+        shell: bash
+        run: timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
+      - name: Commit directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib/features/career/career_screen.dart lib/features/daily/daily_screen.dart
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Use enhanced gameplay UX for career and daily modes'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
