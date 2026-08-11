@@ -457,15 +457,22 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       if (mounted) setState(() {});
       _startPolling();
     } on FirebaseSessionException catch (error) {
+      debugPrint('Sudoku matchmaking Firebase session failed: $error');
       await _stopWithError(UserSafeError.message(context, error));
     } on SocialApiException catch (error) {
+      debugPrint(
+        'Sudoku matchmaking social request failed: '
+        '${error.statusCode} ${error.message}',
+      );
       if (error.statusCode == 409) {
         await _economy.refresh(showLoading: false);
       }
       if (mounted) {
         await _stopWithError(UserSafeError.message(context, error));
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Sudoku matchmaking unexpected failure: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (mounted) {
         await _stopWithError(context.tr('matchmaking_start_failed'));
       }

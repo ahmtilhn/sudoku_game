@@ -12,7 +12,10 @@ void main() {
       expect(variant.boxRows, 3);
       expect(variant.boxColumns, 3);
       expect(variant.cellCount, 81);
-      expect(variant.availableValues, List<int>.generate(9, (index) => index + 1));
+      expect(
+        variant.availableValues,
+        List<int>.generate(9, (index) => index + 1),
+      );
       expect(variant.careerSupport, isTrue);
       expect(variant.onlineSupport, isTrue);
       expect(variant.persistenceKey, 'classic9');
@@ -62,6 +65,12 @@ void main() {
 
       expect(puzzle.variant, same(SudokuVariant.classic16));
       expect(SudokuVariant.fromKey('classic9'), same(SudokuVariant.classic9));
+      expect(SudokuVariant.fromKey('classic'), same(SudokuVariant.classic9));
+      expect(SudokuVariant.fromKey('9x9'), same(SudokuVariant.classic9));
+      expect(
+        SudokuVariant.fromKey('classic_16'),
+        same(SudokuVariant.classic16),
+      );
       expect(SudokuVariant.fromBoardSize(16), same(SudokuVariant.classic16));
     });
   });

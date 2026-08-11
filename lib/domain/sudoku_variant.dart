@@ -109,8 +109,18 @@ class SudokuVariant {
   };
 
   static SudokuVariant fromKey(String key) {
+    final normalized = key.trim().toLowerCase();
+    if (normalized == 'classic' ||
+        normalized == 'classic_9' ||
+        normalized == '9x9') {
+      return classic9;
+    }
+    if (normalized == 'classic_16' || normalized == '16x16') {
+      return classic16;
+    }
     for (final variant in values) {
-      if (variant.key == key || variant.persistenceKey == key) {
+      if (variant.key.toLowerCase() == normalized ||
+          variant.persistenceKey.toLowerCase() == normalized) {
         return variant;
       }
     }

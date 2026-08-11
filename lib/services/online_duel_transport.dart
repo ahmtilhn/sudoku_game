@@ -6,6 +6,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:web_socket_channel/io.dart';
 
+import 'firebase_session_service.dart';
 import 'online_duel_models.dart';
 import 'social_api_client.dart';
 
@@ -40,8 +41,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
       StreamController<OnlineDuelEvent>.broadcast();
   final StreamController<OnlineDuelConnectionState> _connectionStates =
       StreamController<OnlineDuelConnectionState>.broadcast();
-  final List<Map<String, Object?>> _outboundQueue =
-      <Map<String, Object?>>[];
+  final List<Map<String, Object?>> _outboundQueue = <Map<String, Object?>>[];
 
   IOWebSocketChannel? _channel;
   StreamSubscription<dynamic>? _subscription;
@@ -164,9 +164,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
       if (decoded is! Map) {
         throw const FormatException('Online duel event must be a JSON object.');
       }
-      final event = OnlineDuelEvent.fromJson(
-        decoded.cast<String, dynamic>(),
-      );
+      final event = OnlineDuelEvent.fromJson(decoded.cast<String, dynamic>());
       if (event.type == 'connected' ||
           event.type == 'snapshot' ||
           event.type == 'match_started' ||
@@ -237,10 +235,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
         'The social backend URL is not configured.',
       );
     }
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw const SocialApiException(401, 'A Firebase session is required.');
-    }
+    final user = await FirebaseSessionService.ensureAnonymousSession();
 
     final String? token;
     try {
