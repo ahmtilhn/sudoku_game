@@ -11,6 +11,8 @@ import '../../domain/sudoku.dart';
 import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
+import '../../services/economy_v3_api_client.dart';
+import '../../services/economy_v3_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/player_profile_service.dart';
@@ -34,12 +36,12 @@ class ProfessionalHomeScreen extends StatefulWidget {
   final LocalProgressStore store;
 
   @override
-  State<ProfessionalHomeScreen> createState() =>
-      _ProfessionalHomeScreenState();
+  State<ProfessionalHomeScreen> createState() => _ProfessionalHomeScreenState();
 }
 
 class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   final EconomyService _economy = EconomyService.instance;
+  final EconomyV3Service _economyV3 = EconomyV3Service.instance;
   final UxGameSessionStore _sessions = UxGameSessionStore.instance;
 
   PlayerProfilePreferences? _profile;
@@ -52,8 +54,10 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   void initState() {
     super.initState();
     _economy.addListener(_refresh);
+    _economyV3.addListener(_refresh);
     _sessions.activeSession.addListener(_sessionChanged);
     unawaited(_economy.initialize());
+    unawaited(_economyV3.initialize());
     unawaited(_sessions.initialize());
     unawaited(_loadProfile());
     unawaited(_loadSocialBadge());
@@ -62,6 +66,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   @override
   void dispose() {
     _economy.removeListener(_refresh);
+    _economyV3.removeListener(_refresh);
     _sessions.activeSession.removeListener(_sessionChanged);
     super.dispose();
   }
@@ -114,6 +119,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   Future<void> _refreshAfterRoute() async {
     await Future.wait<void>([
       _economy.refresh(showLoading: false),
+      _economyV3.refresh(),
       _sessions.latest().then((_) {}),
       _loadProfile(),
       _loadSocialBadge(),
@@ -176,9 +182,9 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   );
 
   Future<void> _open(Widget screen) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => screen),
-    );
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => screen));
     if (mounted) await _refreshAfterRoute();
   }
 
@@ -203,11 +209,10 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   }
 
   Future<void> _showQuickPlay() async {
-    final selection = await showDialog<
-        ({SudokuVariant variant, SudokuDifficulty difficulty})>(
-      context: context,
-      builder: (_) => const _QuickPlayDialog(),
-    );
+    final selection =
+        await showDialog<
+          ({SudokuVariant variant, SudokuDifficulty difficulty})
+        >(context: context, builder: (_) => const _QuickPlayDialog());
     if (selection == null || !mounted) return;
     await _startPractice(selection.variant, selection.difficulty);
   }
@@ -284,42 +289,26 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   }
 
   Future<void> _claimReward() async {
-    final wallet = _economy.wallet;
-    bool claimed = false;
-    if (wallet?.dailyLoginAvailable == true) {
-      claimed = await _economy.claimDailyLogin();
-    } else if (wallet?.dailyAdAvailable == true && !_economy.noAds) {
-      claimed = await _economy.claimDailyRewardedAd();
-    }
+    await _economyV3.refresh();
     if (!mounted) return;
-
-    if (claimed) {
-      await GameModal.success(
-        context,
-        title: context.tr('home_daily_reward_title'),
-        message: context.tr('coin_added_wallet', <Object>[
-          wallet?.dailyLoginAvailable == true
-              ? wallet?.dailyLoginAmount ?? 50
-              : wallet?.dailyAdAmount ?? 50,
-        ]),
-        actionLabel: context.tr('continue_action'),
-      );
-    } else if (_economy.error != null) {
-      await GameModal.error(
-        context,
-        title: context.tr('home_daily_reward_title'),
-        message: _economy.error!,
-        retryLabel: context.tr('retry'),
-        cancelLabel: context.tr('cancel'),
-      );
-    }
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: .62),
+      builder: (_) =>
+          _DailyRewardDialog(economy: _economy, economyV3: _economyV3),
+    );
+    if (!mounted) return;
+    await Future.wait<void>([
+      _economy.refresh(showLoading: false),
+      _economyV3.refresh(),
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     final rewardReady =
-        _economy.wallet?.dailyLoginAvailable == true ||
-        (_economy.wallet?.dailyAdAvailable == true && !_economy.noAds);
+        _economyV3.state?.dailyAvailable == true ||
+        (_economyV3.state?.canDoubleLastCoinReward == true && !_economy.noAds);
 
     final primaryItems = <_HomeModeData>[
       _HomeModeData(
@@ -407,9 +396,8 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
                           onSocial: _openSocial,
                           onLeaderboards: _openLeaderboards,
                           onReward: _claimReward,
-                          onSettings: () => _open(
-                            UxSettingsScreen(store: widget.store),
-                          ),
+                          onSettings: () =>
+                              _open(UxSettingsScreen(store: widget.store)),
                         ),
                         Expanded(
                           child: Center(
@@ -577,7 +565,7 @@ class _HomeHeader extends StatelessWidget {
             child: Opacity(
               opacity: rewardReady ? 1 : .52,
               child: const DuelAssetIcon(
-                DuelAsset.gift,
+                DuelAsset.dailyRewardPro,
                 size: 30,
                 fit: BoxFit.contain,
               ),
@@ -642,6 +630,309 @@ class _HomeHeader extends StatelessWidget {
             child: const Icon(Icons.settings_rounded, size: 20),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DailyRewardDialog extends StatefulWidget {
+  const _DailyRewardDialog({required this.economy, required this.economyV3});
+
+  final EconomyService economy;
+  final EconomyV3Service economyV3;
+
+  @override
+  State<_DailyRewardDialog> createState() => _DailyRewardDialogState();
+}
+
+class _DailyRewardDialogState extends State<_DailyRewardDialog> {
+  bool _busy = false;
+  String? _message;
+
+  Future<void> _claim() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    final result = await widget.economyV3.claimDailyIfAvailable();
+    await widget.economy.refresh(showLoading: false);
+    if (!mounted) return;
+    final reward = result?.reward;
+    setState(() {
+      _busy = false;
+      _message = result?.granted == true
+          ? reward == null
+                ? context.tr('coin_added_wallet', const <Object>[0])
+                : reward.isCoin
+                ? context.tr('coin_added_wallet', <Object>[reward.amount])
+                : context.tr('daily_hint_refill_reward')
+          : widget.economyV3.error ?? context.tr('try_again');
+    });
+  }
+
+  Future<void> _double() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    final result = await widget.economyV3.doubleLastDailyReward();
+    await widget.economy.refresh(showLoading: false);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _message = result?.granted == true
+          ? context.tr('daily_reward_doubled')
+          : widget.economyV3.error ?? context.tr('rewarded_ad_unavailable');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.economyV3.state;
+    final calendar = state?.calendar ?? const <EconomyV3Reward>[];
+    final cycleDay = state?.dailyCycleDay ?? 1;
+    final completed = state == null
+        ? 0
+        : state.dailyAvailable
+        ? cycleDay - 1
+        : cycleDay;
+    final canDouble =
+        state?.canDoubleLastCoinReward == true && !widget.economy.noAds;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 540),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xFF081522),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: const Color(0xFFFFC73D).withValues(alpha: .34),
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black54,
+                blurRadius: 32,
+                offset: Offset(0, 18),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const DuelAssetIcon(DuelAsset.dailyRewardPro, size: 54),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.tr('home_daily_reward_title'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            state?.nextDailyResetAt == null
+                                ? context.tr('daily_reward_track_body')
+                                : '${context.tr('time')}: ${DateFormat.Hm().format(state!.nextDailyResetAt!.toLocal())}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .66),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: context.tr('close'),
+                      onPressed: _busy
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+                if (calendar.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  _RewardCalendar(
+                    calendar: calendar,
+                    cycleDay: cycleDay,
+                    completedInCycle: completed,
+                  ),
+                ],
+                if (_message != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _message!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF29D398),
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: state?.dailyAvailable == true && !_busy
+                          ? _claim
+                          : null,
+                      icon: _busy
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.card_giftcard_rounded),
+                      label: Text(
+                        state?.nextReward.isHintRefill == true
+                            ? context.tr('claim_hint_refill')
+                            : context.tr('claim_daily_coin', <Object>[
+                                state?.nextReward.amount ?? 0,
+                              ]),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: canDouble && !_busy ? _double : null,
+                      icon: const Icon(Icons.ondemand_video_rounded),
+                      label: Text(
+                        context.tr('watch_ad_reward_value', <Object>[
+                          state?.dailyLastClaimAmount ?? 0,
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RewardCalendar extends StatelessWidget {
+  const _RewardCalendar({
+    required this.calendar,
+    required this.cycleDay,
+    required this.completedInCycle,
+  });
+
+  final List<EconomyV3Reward> calendar;
+  final int cycleDay;
+  final int completedInCycle;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 420 ? 6 : 5;
+        final width = (constraints.maxWidth - ((columns - 1) * 7)) / columns;
+        return Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          children: [
+            for (var index = 0; index < calendar.length; index++)
+              SizedBox(
+                width: width,
+                child: _RewardTile(
+                  day: index + 1,
+                  reward: calendar[index],
+                  claimed: index + 1 <= completedInCycle,
+                  current: index + 1 == cycleDay,
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RewardTile extends StatelessWidget {
+  const _RewardTile({
+    required this.day,
+    required this.reward,
+    required this.claimed,
+    required this.current,
+  });
+
+  final int day;
+  final EconomyV3Reward reward;
+  final bool claimed;
+  final bool current;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = current
+        ? const Color(0xFFFFC73D)
+        : claimed
+        ? const Color(0xFF29D398)
+        : const Color(0xFF66C7FF);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: current ? .30 : .18),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: .38)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              context.tr('daily_day_short', <Object>[day]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: accent,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Icon(
+              claimed
+                  ? Icons.check_circle_rounded
+                  : reward.isHintRefill
+                  ? Icons.refresh_rounded
+                  : Icons.monetization_on_rounded,
+              color: accent,
+              size: 17,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              reward.isCoin
+                  ? '${reward.amount}'
+                  : context.tr('hint_refill_short'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -794,9 +1085,13 @@ class _PrimaryModes extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(child: _HomeModeTile(data: items[0], compact: compact)),
+            Expanded(
+              child: _HomeModeTile(data: items[0], compact: compact),
+            ),
             const SizedBox(width: 10),
-            Expanded(child: _HomeModeTile(data: items[1], compact: compact)),
+            Expanded(
+              child: _HomeModeTile(data: items[1], compact: compact),
+            ),
           ],
         ),
       );
@@ -848,10 +1143,8 @@ class _SecondaryModes extends StatelessWidget {
           mainAxisSpacing: 8,
           mainAxisExtent: itemHeight,
         ),
-        itemBuilder: (context, index) => _HomeModeTile(
-          data: items[index],
-          compact: compact,
-        ),
+        itemBuilder: (context, index) =>
+            _HomeModeTile(data: items[index], compact: compact),
       ),
     );
   }
@@ -904,7 +1197,9 @@ class _HomeModeTile extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: data.accent.withValues(alpha: data.primary ? .10 : .05),
+                  color: data.accent.withValues(
+                    alpha: data.primary ? .10 : .05,
+                  ),
                   blurRadius: data.primary ? 18 : 10,
                   offset: const Offset(0, 6),
                 ),
@@ -916,11 +1211,14 @@ class _HomeModeTile extends StatelessWidget {
                 SizedBox(
                   width: artSize,
                   height: artSize,
-                  child: Center(
-                    child: DuelAssetIcon(
-                      data.asset,
-                      size: artSize,
-                      fit: BoxFit.contain,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(data.primary ? 18 : 14),
+                    child: Center(
+                      child: DuelAssetIcon(
+                        data.asset,
+                        size: artSize,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ),
@@ -1031,10 +1329,7 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                       width: 46,
                       height: 46,
                       child: Center(
-                        child: DuelAssetIcon(
-                          DuelAsset.homePlayScene,
-                          size: 42,
-                        ),
+                        child: DuelAssetIcon(DuelAsset.homePlayScene, size: 42),
                       ),
                     ),
                     const SizedBox(width: 9),
@@ -1096,7 +1391,9 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                                 width: chipWidth,
                                 height: 42,
                                 child: _DialogDifficultyCard(
-                                  label: context.strings.difficultyLabel(difficulty),
+                                  label: context.strings.difficultyLabel(
+                                    difficulty,
+                                  ),
                                   selected: _difficulty == difficulty,
                                   onTap: () =>
                                       setState(() => _difficulty = difficulty),
@@ -1112,10 +1409,9 @@ class _QuickPlayDialogState extends State<_QuickPlayDialog> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop((
-                      variant: _variant,
-                      difficulty: _difficulty,
-                    )),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pop((variant: _variant, difficulty: _difficulty)),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                       backgroundColor: const Color(0xFF29D398),
@@ -1266,9 +1562,7 @@ class _DialogDifficultyCard extends StatelessWidget {
             color: selected ? accent : const Color(0xFF132438),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected
-                  ? accent
-                  : Colors.white.withValues(alpha: .10),
+              color: selected ? accent : Colors.white.withValues(alpha: .10),
             ),
           ),
           child: Center(

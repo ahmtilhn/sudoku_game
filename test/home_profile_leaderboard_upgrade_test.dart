@@ -15,7 +15,7 @@ void main() {
       'DuelAsset.homeFriendsScene',
       'DuelAsset.homeStoreScene',
       'DuelAsset.homeProfileScene',
-      'DuelAsset.gift',
+      'DuelAsset.dailyRewardPro',
       'DuelAsset.coin',
       'DuelAsset.leaderboardCrownPro',
     ]) {

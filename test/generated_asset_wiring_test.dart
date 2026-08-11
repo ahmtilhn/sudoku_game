@@ -17,6 +17,14 @@ void main() {
     'assets/images/ui/victory_trophy.png',
     'assets/images/ui/defeat_trophy.png',
     'assets/images/ui/leaderboard.png',
+    'assets/images/ui/store_coins_100.png',
+    'assets/images/ui/store_coins_500.png',
+    'assets/images/ui/store_coins_1000.png',
+    'assets/images/ui/store_coins_5000.png',
+    'assets/images/ui/store_coins_10000.png',
+    'assets/images/ui/store_coins_50000.png',
+    'assets/images/ui/store_coins_100000.png',
+    'assets/images/ui/store_no_ads.png',
   ];
 
   test('all generated production artwork exists', () {
@@ -53,7 +61,7 @@ void main() {
     expect(home, contains('DuelAsset.homeFriendsScene'));
     expect(home, contains('DuelAsset.homeStoreScene'));
     expect(home, contains('DuelAsset.homeProfileScene'));
-    expect(home, contains('DuelAsset.gift'));
+    expect(home, contains('DuelAsset.dailyRewardPro'));
     expect(home, contains('DuelAsset.coin'));
     expect(home, contains('constraints: const BoxConstraints(maxWidth: 760)'));
     expect(home, contains('child: Center('));
@@ -65,8 +73,14 @@ void main() {
     ).readAsStringSync();
 
     expect(store, contains('DuelAsset.coinStoreBalancePro'));
-    expect(store, contains('DuelAsset.dailyRewardPro'));
-    expect(store, contains('DuelAsset.shield'));
+    expect(store, contains('DuelAsset.storeCoins100'));
+    expect(store, contains('DuelAsset.storeCoins500'));
+    expect(store, contains('DuelAsset.storeCoins1000'));
+    expect(store, contains('DuelAsset.storeCoins5000'));
+    expect(store, contains('DuelAsset.storeCoins10000'));
+    expect(store, contains('DuelAsset.storeCoins50000'));
+    expect(store, contains('DuelAsset.storeCoins100000'));
+    expect(store, contains('DuelAsset.storeNoAds'));
     expect(store, contains('DuelAsset.diamond'));
     expect(store, contains('_CoinPackageCard'));
     expect(store, isNot(contains('width: 360')));

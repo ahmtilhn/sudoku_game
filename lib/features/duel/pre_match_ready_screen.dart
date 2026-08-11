@@ -46,6 +46,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   bool _leaving = false;
   bool _matchHapticSent = false;
   Timer? _retryTimer;
+  Timer? _autoReadyTimer;
   int _connectAttempt = 0;
 
   @override
@@ -59,6 +60,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   @override
   void dispose() {
     _retryTimer?.cancel();
+    _autoReadyTimer?.cancel();
     unawaited(_snapshotSubscription?.cancel());
     unawaited(_connectionSubscription?.cancel());
     if (!_handedOff) unawaited(_controller?.dispose());
@@ -126,6 +128,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     _controller = null;
     _screenLoadedSent = false;
     _autoReadySent = false;
+    _autoReadyTimer?.cancel();
+    _autoReadyTimer = null;
 
     try {
       final transport = await WebSocketOnlineDuelTransport.connect(
@@ -155,7 +159,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           unawaited(HapticFeedback.mediumImpact());
         }
         _sendScreenLoaded();
-        _sendAutoReady();
+        _scheduleAutoReady();
         if (snapshot.status == OnlineDuelStatus.active) {
           unawaited(_openMatch(controller));
         }
@@ -223,18 +227,33 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     });
   }
 
-  void _sendAutoReady() {
-    if (_autoReadySent || _controller == null || !_readyStage) return;
-    _autoReadySent = true;
-    if (!_readyPressed && mounted) {
-      setState(() => _readyPressed = true);
+  void _scheduleAutoReady() {
+    if (_autoReadySent ||
+        _autoReadyTimer != null ||
+        _controller == null ||
+        !_readyStage ||
+        _youReady) {
+      return;
     }
-    _controller!.ready();
+    _autoReadyTimer = Timer(const Duration(seconds: 10), () {
+      _autoReadyTimer = null;
+      if (!mounted ||
+          _autoReadySent ||
+          _controller == null ||
+          !_readyStage ||
+          _youReady) {
+        return;
+      }
+      _autoReadySent = true;
+      setState(() => _readyPressed = true);
+      _controller!.ready();
+    });
   }
 
   Future<void> _cancelAndLeave() async {
     if (_leaving || _handedOff || !mounted) return;
     _retryTimer?.cancel();
+    _autoReadyTimer?.cancel();
     setState(() => _leaving = true);
     final controller = _controller;
     controller?.forfeit();
@@ -256,6 +275,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
 
   void _ready() {
     if (_readyPressed || _controller == null || !_readyStage) return;
+    _autoReadyTimer?.cancel();
+    _autoReadyTimer = null;
     setState(() => _readyPressed = true);
     _controller!.ready();
   }
@@ -264,15 +285,14 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     if (_handedOff || !mounted) return;
     _handedOff = true;
     _retryTimer?.cancel();
+    _autoReadyTimer?.cancel();
     await _snapshotSubscription?.cancel();
     await _connectionSubscription?.cancel();
     if (!mounted) return;
     await Navigator.of(context).pushReplacement<String?, void>(
       MaterialPageRoute(
-        builder: (_) => OnlineDuelScreen(
-          roomId: widget.roomId,
-          controller: controller,
-        ),
+        builder: (_) =>
+            OnlineDuelScreen(roomId: widget.roomId, controller: controller),
       ),
     );
   }
@@ -344,7 +364,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final failed = _connectionState == OnlineDuelConnectionState.failed ||
+    final failed =
+        _connectionState == OnlineDuelConnectionState.failed ||
         _connectionState == OnlineDuelConnectionState.closed ||
         _error != null;
     final opponent = _opponentVisualPlayer();
@@ -416,8 +437,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     return switch (_connectionState) {
       OnlineDuelConnectionState.connected => context.tr('connected'),
       OnlineDuelConnectionState.reconnecting => context.tr('reconnecting'),
-      OnlineDuelConnectionState.resyncing =>
-        context.tr('connection_interrupted_retrying'),
+      OnlineDuelConnectionState.resyncing => context.tr(
+        'connection_interrupted_retrying',
+      ),
       OnlineDuelConnectionState.failed || OnlineDuelConnectionState.closed =>
         context.tr('online_account_unavailable'),
       OnlineDuelConnectionState.connecting => context.tr('connecting_players'),

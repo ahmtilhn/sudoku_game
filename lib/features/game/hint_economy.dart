@@ -24,20 +24,24 @@ class HintEconomy {
 
     final economy = EconomyService.instance;
     final economyV3 = EconomyV3Service.instance;
-    await economy.refresh(showLoading: false);
+    await Future.wait<void>([
+      economy.refresh(showLoading: false),
+      economyV3.refresh(),
+    ]);
     if (!context.mounted) return false;
 
-    final refillSize = await economyV3.consumeHintRefill();
-    if (refillSize > 0) {
-      await store.addHints(refillSize);
-      return store.consumeHint();
-    }
-    if (!context.mounted) return false;
+    final state = economyV3.state;
+    final refillCount = state?.hintRefills ?? 0;
+    final refillSize = state?.hintRefillSize ?? 3;
 
     final action = await showModalBottomSheet<_HintAction>(
       context: context,
       showDragHandle: true,
       useSafeArea: true,
+      backgroundColor: const Color(0xFF111A1E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+      ),
       builder: (sheetContext) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
         child: Column(
@@ -57,6 +61,22 @@ class HintEconomy {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
+            if (refillCount > 0) ...[
+              FilledButton.icon(
+                onPressed: () =>
+                    Navigator.of(sheetContext).pop(_HintAction.refill),
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(
+                  context.tr('use_hint_refill', <Object>[
+                    refillCount,
+                    refillSize,
+                  ]),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             FilledButton.icon(
               onPressed: economy.balance >= coinCost
                   ? () => Navigator.of(sheetContext).pop(_HintAction.coin)
@@ -90,6 +110,20 @@ class HintEconomy {
     );
 
     if (!context.mounted || action == null) return false;
+
+    if (action == _HintAction.refill) {
+      final consumedRefillSize = await economyV3.consumeHintRefill();
+      if (consumedRefillSize > 0) {
+        await store.addHints(consumedRefillSize);
+        return store.consumeHint();
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('hint_refill_unavailable'))),
+        );
+      }
+      return false;
+    }
 
     if (action == _HintAction.coin) {
       final purchased = await economyV3.purchaseHint(
@@ -138,4 +172,4 @@ class HintEconomy {
   }
 }
 
-enum _HintAction { coin, rewardedAd }
+enum _HintAction { refill, coin, rewardedAd }

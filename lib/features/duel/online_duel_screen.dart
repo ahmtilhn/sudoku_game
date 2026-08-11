@@ -846,6 +846,14 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       setState(() => _invitation = updated);
       if (accept && updated.roomId?.isNotEmpty == true) {
         await _openAcceptedRoom(updated.roomId!);
+      } else if (accept) {
+        setState(() => _statusMessage = context.tr('rematch_waiting_room'));
+        final opened = await _waitForAcceptedRematch(invitation.id);
+        if (!opened && mounted) {
+          setState(
+            () => _statusMessage = context.tr('rematch_could_not_start'),
+          );
+        }
       } else {
         setState(() => _statusMessage = context.tr('rematch_declined'));
       }
@@ -855,6 +863,31 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<bool> _waitForAcceptedRematch(String invitationId) async {
+    for (var attempt = 0; attempt < 8; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 450));
+      if (!mounted) return false;
+      try {
+        final invitations = await _economy.loadRematches();
+        if (!mounted) return false;
+        for (final item in invitations) {
+          if (item.id != invitationId) continue;
+          setState(() => _invitation = item);
+          if (item.status == 'accepted' && item.roomId?.isNotEmpty == true) {
+            await _openAcceptedRoom(item.roomId!);
+            return true;
+          }
+          if (item.status == 'declined' || item.status == 'expired') {
+            return false;
+          }
+        }
+      } catch (_) {
+        // Keep the accept path alive while the backend settles the rematch room.
+      }
+    }
+    return false;
   }
 
   Future<void> _pollRematches() async {

@@ -65,6 +65,14 @@ class DuelAsset {
   static const walletCoinStackPro = coin;
   static const coinStoreBalancePro = coin;
   static const removeAdsPro = shield;
+  static const storeCoins100 = 'assets/images/ui/store_coins_100.png';
+  static const storeCoins500 = 'assets/images/ui/store_coins_500.png';
+  static const storeCoins1000 = 'assets/images/ui/store_coins_1000.png';
+  static const storeCoins5000 = 'assets/images/ui/store_coins_5000.png';
+  static const storeCoins10000 = 'assets/images/ui/store_coins_10000.png';
+  static const storeCoins50000 = 'assets/images/ui/store_coins_50000.png';
+  static const storeCoins100000 = 'assets/images/ui/store_coins_100000.png';
+  static const storeNoAds = 'assets/images/ui/store_no_ads.png';
 
   static const resultVictoryTrophyPro = 'assets/images/ui/victory_trophy.png';
   static const resultDefeatTrophyPro = 'assets/images/ui/defeat_trophy.png';
@@ -88,6 +96,14 @@ class DuelAsset {
     resultVictoryTrophyPro,
     resultDefeatTrophyPro,
     leaderboardCrownPro,
+    storeCoins100,
+    storeCoins500,
+    storeCoins1000,
+    storeCoins5000,
+    storeCoins10000,
+    storeCoins50000,
+    storeCoins100000,
+    storeNoAds,
   };
 }
 
@@ -134,7 +150,7 @@ class DuelAssetIcon extends StatelessWidget {
       alignment: alignment,
       color: preserveOriginalColor ? null : color,
       semanticLabel: semanticLabel,
-      filterQuality: FilterQuality.high,
+      filterQuality: FilterQuality.medium,
       gaplessPlayback: true,
     );
   }

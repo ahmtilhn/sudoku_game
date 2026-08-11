@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import '../../localization/app_strings.dart';
 import '../../services/coin_store_service.dart';
 import '../../services/economy_service.dart';
-import '../../services/economy_v3_api_client.dart';
 import '../../services/economy_v3_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
@@ -57,43 +56,6 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
     ]);
   }
 
-  Future<void> _claimDaily() async {
-    final result = await _economyV3.claimDailyIfAvailable();
-    final claimed = result?.granted == true;
-    await _economy.refresh(showLoading: false);
-    if (!mounted) return;
-    final reward = result?.reward;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          claimed
-              ? reward == null
-                    ? context.tr('coin_added_wallet', const <Object>[0])
-                    : reward.isCoin
-                    ? context.tr('coin_added_wallet', <Object>[reward.amount])
-                    : context.tr('daily_hint_refill_reward')
-              : _economy.error ?? context.tr('try_again'),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _claimAd() async {
-    final result = await _economyV3.doubleLastDailyReward();
-    final claimed = result?.granted == true;
-    await _economy.refresh(showLoading: false);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          claimed
-              ? context.tr('coin_added_wallet', <Object>[result?.amount ?? 0])
-              : _economy.error ?? context.tr('rewarded_ad_unavailable'),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,11 +67,7 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final maxWidth = constraints.maxWidth >= 1000 ? 960.0 : 720.0;
-                final columns = constraints.maxWidth >= 820
-                    ? 3
-                    : constraints.maxWidth >= 520
-                    ? 2
-                    : 1;
+                final columns = constraints.maxWidth >= 340 ? 2 : 1;
                 return CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
@@ -145,27 +103,6 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                   loading: _economy.loading,
                                 ),
                               ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: maxWidth),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: _DailyRewardsCard(
-                              wallet: _economy.wallet,
-                              state: _economyV3.state,
-                              noAds: _economy.noAds,
-                              loginBusy:
-                                  _economy.claimingDaily || _economyV3.loading,
-                              adBusy:
-                                  _economy.showingDailyAd || _economyV3.loading,
-                              onClaimLogin: _claimDaily,
-                              onClaimAd: _claimAd,
                             ),
                           ),
                         ),
@@ -260,7 +197,7 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
                                 crossAxisCount: columns,
                                 mainAxisSpacing: 12,
                                 crossAxisSpacing: 12,
-                                childAspectRatio: columns == 1 ? 2.35 : 1.02,
+                                childAspectRatio: columns == 1 ? 1.2 : .72,
                               ),
                           itemCount: _store.coinProducts.length,
                           itemBuilder: (context, index) {
@@ -361,264 +298,6 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-class _DailyRewardsCard extends StatelessWidget {
-  const _DailyRewardsCard({
-    required this.wallet,
-    required this.state,
-    required this.noAds,
-    required this.loginBusy,
-    required this.adBusy,
-    required this.onClaimLogin,
-    required this.onClaimAd,
-  });
-
-  final dynamic wallet;
-  final EconomyV3State? state;
-  final bool noAds;
-  final bool loginBusy;
-  final bool adBusy;
-  final VoidCallback onClaimLogin;
-  final VoidCallback onClaimAd;
-
-  @override
-  Widget build(BuildContext context) {
-    final loginAvailable =
-        state?.dailyAvailable ?? wallet?.dailyLoginAvailable == true;
-    final adAvailable =
-        (state?.canDoubleLastCoinReward ?? wallet?.dailyAdAvailable == true) &&
-        !noAds;
-    final reset =
-        state?.nextDailyResetAt ?? wallet?.nextDailyResetAt as DateTime?;
-    final nextReward = state?.nextReward;
-    final calendar = state?.calendar ?? const <EconomyV3Reward>[];
-    final cycleDay = state?.dailyCycleDay ?? 1;
-    final completedInCycle = state == null
-        ? 0
-        : state!.dailyAvailable
-        ? cycleDay - 1
-        : cycleDay;
-    return _StorePanel(
-      accent: const Color(0xFF29D398),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const DuelAssetIcon(
-                DuelAsset.dailyRewardPro,
-                size: 34,
-                color: Color(0xFF29D398),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  context.tr('home_daily_reward_title'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (reset != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${context.tr('time')}: ${DateFormat.Hm().format(reset.toLocal())}',
-              style: TextStyle(color: Colors.white.withValues(alpha: .62)),
-            ),
-          ],
-          if (calendar.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            _DailyCalendarGrid(
-              calendar: calendar,
-              cycleDay: cycleDay,
-              completedInCycle: completedInCycle,
-            ),
-          ],
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final stacked = constraints.maxWidth < 460;
-              final buttonWidth = stacked
-                  ? constraints.maxWidth
-                  : (constraints.maxWidth - 8) / (noAds ? 1 : 2);
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  SizedBox(
-                    width: buttonWidth,
-                    child: FilledButton.icon(
-                      onPressed: loginAvailable && !loginBusy
-                          ? onClaimLogin
-                          : null,
-                      icon: loginBusy
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.card_giftcard_rounded),
-                      label: Text(
-                        nextReward == null
-                            ? context.tr('home_daily_reward_title')
-                            : nextReward.isCoin
-                            ? context.tr('claim_daily_coin', <Object>[
-                                nextReward.amount,
-                              ])
-                            : context.tr('claim_hint_refill'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  if (!noAds)
-                    SizedBox(
-                      width: buttonWidth,
-                      child: OutlinedButton.icon(
-                        onPressed: adAvailable && !adBusy ? onClaimAd : null,
-                        icon: adBusy
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.ondemand_video_outlined),
-                        label: Text(
-                          context.tr('watch_ad_for_coin', <Object>[
-                            state?.dailyLastClaimAmount ??
-                                wallet?.dailyAdAmount ??
-                                50,
-                          ]),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DailyCalendarGrid extends StatelessWidget {
-  const _DailyCalendarGrid({
-    required this.calendar,
-    required this.cycleDay,
-    required this.completedInCycle,
-  });
-
-  final List<EconomyV3Reward> calendar;
-  final int cycleDay;
-  final int completedInCycle;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 520 ? 6 : 5;
-        final tileWidth =
-            (constraints.maxWidth - ((columns - 1) * 6)) / columns;
-        return Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (var index = 0; index < calendar.length; index++)
-              SizedBox(
-                width: tileWidth,
-                child: _DailyCalendarTile(
-                  day: index + 1,
-                  reward: calendar[index],
-                  claimed: index + 1 <= completedInCycle,
-                  current: index + 1 == cycleDay,
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _DailyCalendarTile extends StatelessWidget {
-  const _DailyCalendarTile({
-    required this.day,
-    required this.reward,
-    required this.claimed,
-    required this.current,
-  });
-
-  final int day;
-  final EconomyV3Reward reward;
-  final bool claimed;
-  final bool current;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = current
-        ? const Color(0xFF3AA9FF)
-        : claimed
-        ? const Color(0xFF29D398)
-        : Colors.white;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: current ? .28 : .18),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: accent.withValues(alpha: current ? .55 : .22),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              context.tr('daily_day_short', <Object>[day]),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: accent.withValues(alpha: .95),
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Icon(
-              claimed
-                  ? Icons.check_circle_rounded
-                  : reward.isHintRefill
-                  ? Icons.refresh_rounded
-                  : Icons.monetization_on_rounded,
-              size: 16,
-              color: accent.withValues(alpha: .9),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              reward.isCoin
-                  ? '${reward.amount}'
-                  : context.tr('hint_refill_short'),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .78),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _NoAdsCard extends StatelessWidget {
   const _NoAdsCard({
     required this.product,
@@ -640,76 +319,99 @@ class _NoAdsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _StorePanel(
       accent: const Color(0xFF3AA9FF),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        runSpacing: 10,
+      padding: const EdgeInsets.all(12),
+      child: Row(
         children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
-            child: Row(
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: const DuelAssetIcon(
+              DuelAsset.storeNoAds,
+              size: 86,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const DuelAssetIcon(
-                  DuelAsset.shield,
-                  size: 34,
-                  color: Color(0xFF3AA9FF),
+                Text(
+                  context.tr('no_ads_title'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Text(
+                  owned
+                      ? context.tr('no_ads_owned')
+                      : context.tr('no_ads_body'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .68),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (owned)
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF29D398),
+                  )
+                else
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
-                      Text(
-                        context.tr('no_ads_title'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      FilledButton.tonal(
+                        onPressed: enabled && !pending ? onBuy : null,
+                        child: pending
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                product?.price ??
+                                    context.tr('not_available_short'),
+                              ),
                       ),
-                      Text(
-                        owned
-                            ? context.tr('no_ads_owned')
-                            : context.tr('no_ads_body'),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .68),
-                        ),
+                      TextButton(
+                        onPressed: enabled ? onRestore : null,
+                        child: Text(context.tr('restore_purchases')),
                       ),
                     ],
                   ),
-                ),
               ],
             ),
           ),
-          if (owned)
-            const Icon(Icons.check_circle_rounded, color: Color(0xFF29D398))
-          else
-            Wrap(
-              spacing: 6,
-              children: [
-                FilledButton.tonal(
-                  onPressed: enabled && !pending ? onBuy : null,
-                  child: pending
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          product?.price ?? context.tr('not_available_short'),
-                        ),
-                ),
-                TextButton(
-                  onPressed: enabled ? onRestore : null,
-                  child: Text(context.tr('restore_purchases')),
-                ),
-              ],
-            ),
         ],
       ),
     );
   }
+}
+
+String _coinArtForAmount(int coins) {
+  return switch (coins) {
+    100 => DuelAsset.storeCoins100,
+    500 => DuelAsset.storeCoins500,
+    1000 => DuelAsset.storeCoins1000,
+    5000 => DuelAsset.storeCoins5000,
+    10000 => DuelAsset.storeCoins10000,
+    50000 => DuelAsset.storeCoins50000,
+    100000 => DuelAsset.storeCoins100000,
+    _ => DuelAsset.coin,
+  };
+}
+
+String _coinPackLabel(BuildContext context, int coins) {
+  final formatted = NumberFormat.decimalPattern().format(coins);
+  return context.tr('coin_pack_title', <Object>[formatted]);
 }
 
 class _CoinPackageCard extends StatelessWidget {
@@ -733,56 +435,72 @@ class _CoinPackageCard extends StatelessWidget {
     final accent = popular ? const Color(0xFFFFC94D) : const Color(0xFF29D398);
     return _StorePanel(
       accent: accent,
+      padding: const EdgeInsets.all(10),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  product.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    _coinArtForAmount(coins),
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    filterQuality: FilterQuality.medium,
+                    gaplessPlayback: true,
                   ),
-                ),
-              ),
-              if (popular) ...[
-                const SizedBox(width: 8),
-                _StoreChip(
-                  label: context.tr('popular'),
-                  asset: DuelAsset.diamond,
-                  color: accent,
-                ),
-              ],
-            ],
-          ),
-          Row(
-            children: [
-              const DuelAssetIcon(
-                DuelAsset.coin,
-                size: 26,
-                color: Color(0xFFFFC94D),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  NumberFormat.decimalPattern().format(coins),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: .42),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  if (popular)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: _StoreChip(
+                        label: context.tr('popular'),
+                        asset: DuelAsset.diamond,
+                        color: accent,
+                      ),
+                    ),
+                ],
               ),
-            ],
+            ),
           ),
+          const SizedBox(height: 10),
+          Text(
+            _coinPackLabel(context, coins),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            context.tr('coin_pack_body'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .62),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 9),
           SizedBox(
             width: double.infinity,
             child: FilledButton(

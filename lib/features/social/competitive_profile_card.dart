@@ -23,6 +23,8 @@ class CompetitiveProfileCard extends StatelessWidget {
         : profile.displayName;
     final gamesPlayed = profile.wins + profile.losses + profile.draws;
     final winRate = '${(profile.winRate * 100).round()}%';
+    final hasAchievements =
+        profile.achievementCount > 0 || profile.achievementShowcase.isNotEmpty;
 
     return _ProfileSectionCard(
       child: Column(
@@ -47,8 +49,10 @@ class CompetitiveProfileCard extends StatelessWidget {
             gamesPlayed: gamesPlayed,
             winRate: winRate,
           ),
-          const SizedBox(height: 12),
-          _AchievementSummary(profile: profile),
+          if (hasAchievements) ...[
+            const SizedBox(height: 12),
+            _AchievementSummary(profile: profile),
+          ],
         ],
       ),
     );
@@ -87,7 +91,13 @@ class _ProfileSectionCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(padding: const EdgeInsets.all(10), child: child),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: child,
+        ),
+      ),
     );
   }
 }
@@ -168,18 +178,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 5),
-              Text(
-                '@$username',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: .58),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 10),
-              _FriendIdPill(publicId: publicId),
+              _IdentityLine(username: username, publicId: publicId),
             ],
           ),
         );
@@ -264,27 +263,29 @@ class _ProfileHeader extends StatelessWidget {
           ),
         );
 
-        final detailRail = Wrap(
-          spacing: 7,
-          runSpacing: 7,
-          children: [
-            _EloMicroMetric(
-              label: context.tr('season_peak'),
-              value: '${profile.seasonPeak}',
-              color: const Color(0xFFB7A9FF),
-            ),
-            _EloMicroMetric(
-              label: context.tr('win_rate'),
-              value: winRate,
-              color: const Color(0xFF29D398),
-            ),
-            _EloMicroMetric(
-              label: context.tr('record'),
-              value: context.tr('games_count', <Object>[gamesPlayed]),
-              color: const Color(0xFF3AA9FF),
-            ),
-          ],
-        );
+        final detailRail = privateProfile
+            ? const SizedBox.shrink()
+            : Wrap(
+                spacing: 7,
+                runSpacing: 7,
+                children: [
+                  _EloMicroMetric(
+                    label: context.tr('season_peak'),
+                    value: '${profile.seasonPeak}',
+                    color: const Color(0xFFB7A9FF),
+                  ),
+                  _EloMicroMetric(
+                    label: context.tr('win_rate'),
+                    value: winRate,
+                    color: const Color(0xFF29D398),
+                  ),
+                  _EloMicroMetric(
+                    label: context.tr('record'),
+                    value: context.tr('games_count', <Object>[gamesPlayed]),
+                    color: const Color(0xFF3AA9FF),
+                  ),
+                ],
+              );
 
         return Container(
           width: double.infinity,
@@ -334,16 +335,21 @@ class _ProfileHeader extends StatelessWidget {
                     ),
                   ],
                 ),
-              const SizedBox(height: 14),
-              Divider(height: 1, color: Colors.white.withValues(alpha: .07)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const DuelAssetIcon(DuelAsset.leaderboardCrownPro, size: 32),
-                  const SizedBox(width: 10),
-                  Expanded(child: detailRail),
-                ],
-              ),
+              if (!privateProfile) ...[
+                const SizedBox(height: 14),
+                Divider(height: 1, color: Colors.white.withValues(alpha: .07)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const DuelAssetIcon(
+                      DuelAsset.leaderboardCrownPro,
+                      size: 32,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: detailRail),
+                  ],
+                ),
+              ],
             ],
           ),
         );
@@ -367,13 +373,15 @@ class _RankBadge extends StatelessWidget {
   }
 }
 
-class _FriendIdPill extends StatelessWidget {
-  const _FriendIdPill({required this.publicId});
+class _IdentityLine extends StatelessWidget {
+  const _IdentityLine({required this.username, required this.publicId});
 
+  final String username;
   final String publicId;
 
   @override
   Widget build(BuildContext context) {
+    final label = publicId.isEmpty ? '@$username' : '@$username · $publicId';
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -399,10 +407,10 @@ class _FriendIdPill extends StatelessWidget {
             children: [
               ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: MediaQuery.sizeOf(context).width - 126,
+                  maxWidth: MediaQuery.sizeOf(context).width - 130,
                 ),
                 child: Text(
-                  publicId.isEmpty ? context.tr('friend_id') : publicId,
+                  label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -469,8 +477,7 @@ class _ProfilePerformanceStrip extends StatelessWidget {
     ];
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 440;
-        final columns = compact ? 2 : 4;
+        const columns = 2;
         final width = (constraints.maxWidth - ((columns - 1) * 7)) / columns;
         return DecoratedBox(
           decoration: BoxDecoration(

@@ -132,7 +132,15 @@ class _GameModalDialog extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 440),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: const Color(0xFF0A1728),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF102237),
+                  const Color(0xFF07111E),
+                  presentation.accent.withValues(alpha: .08),
+                ],
+              ),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
                 color: presentation.accent.withValues(alpha: .72),
@@ -151,7 +159,19 @@ class _GameModalDialog extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  DuelAssetIcon(presentation.asset, size: 104),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: presentation.accent.withValues(alpha: .12),
+                      border: Border.all(
+                        color: presentation.accent.withValues(alpha: .22),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: DuelAssetIcon(presentation.asset, size: 78),
+                    ),
+                  ),
                   const SizedBox(height: 14),
                   Text(
                     title,
