@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -9,10 +7,6 @@ import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/player_profile_service.dart';
 import '../../widgets/in_page_header.dart';
-
-String _accountText(BuildContext _, {required String en, required String tr}) {
-  return PlatformDispatcher.instance.locale.languageCode == 'tr' ? tr : en;
-}
 
 class AccountProtectionScreen extends StatefulWidget {
   const AccountProtectionScreen({super.key});
@@ -69,13 +63,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   32 + MediaQuery.viewInsetsOf(context).bottom,
                 ),
                 children: [
-                  InPageHeader(
-                    title: _accountText(
-                      context,
-                      en: 'Player account',
-                      tr: 'Oyuncu hesabı',
-                    ),
-                  ),
+                  const InPageHeader(title: 'Player account'),
                   _StatusCard(user: _user),
                   const SizedBox(height: 16),
                   if (_protected)
@@ -102,11 +90,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   ],
                   const SizedBox(height: 24),
                   Text(
-                    _accountText(
-                      context,
-                      en: 'Account data',
-                      tr: 'Hesap verileri',
-                    ),
+                    'Account data',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
@@ -118,19 +102,11 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                         color: scheme.error,
                       ),
                       title: Text(
-                        _accountText(
-                          context,
-                          en: 'Delete player account',
-                          tr: 'Oyuncu hesabını sil',
-                        ),
+                        'Delete player account',
                         style: TextStyle(color: scheme.error),
                       ),
                       subtitle: Text(
-                        _accountText(
-                          context,
-                          en: 'Permanently removes the wallet, purchases, Friend ID, friends, ratings and match history.',
-                          tr: 'Cüzdanı, satın alımları, Arkadaş Kimliğini, arkadaşları, puanları ve maç geçmişini kalıcı olarak siler.',
-                        ),
+                        'Removes wallet, purchases, Friend ID, friends, rating and match history.',
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: _busy ? null : _deleteAccount,
@@ -171,16 +147,8 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
           children: [
             Text(
               _signInMode
-                  ? _accountText(
-                      context,
-                      en: 'Sign in to a protected account',
-                      tr: 'Korumalı hesaba giriş yap',
-                    )
-                  : _accountText(
-                      context,
-                      en: 'Protect the current guest',
-                      tr: 'Mevcut misafir hesabını koru',
-                    ),
+                  ? 'Sign in to a protected account'
+                  : 'Protect the current guest',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
@@ -188,16 +156,8 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
             const SizedBox(height: 6),
             Text(
               _signInMode
-                  ? _accountText(
-                      context,
-                      en: 'Open the same wallet, Friend ID and rating on this device.',
-                      tr: 'Aynı cüzdanı, Arkadaş Kimliğini ve puanı bu cihazda aç.',
-                    )
-                  : _accountText(
-                      context,
-                      en: 'Link email and password without changing the current Player ID, wallet, Friend ID, friends or rating.',
-                      tr: 'Mevcut Oyuncu Kimliğini, cüzdanı, Arkadaş Kimliğini, arkadaşları veya puanı değiştirmeden e-posta ve parola bağla.',
-                    ),
+                  ? 'Use the same wallet, Friend ID and rating here.'
+                  : 'Link email and password without changing this player.',
             ),
             const SizedBox(height: 16),
             _AccountModeSelector(
@@ -214,11 +174,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               textInputAction: TextInputAction.next,
               autocorrect: false,
               decoration: InputDecoration(
-                labelText: _accountText(
-                  context,
-                  en: 'Email address',
-                  tr: 'E-posta adresi',
-                ),
+                labelText: 'Email address',
                 prefixIcon: Icon(Icons.email_outlined),
                 border: OutlineInputBorder(),
               ),
@@ -236,26 +192,12 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   ? TextInputAction.done
                   : TextInputAction.next,
               decoration: InputDecoration(
-                labelText: _accountText(context, en: 'Password', tr: 'Parola'),
-                helperText: _accountText(
-                  context,
-                  en: 'At least 8 characters',
-                  tr: 'En az 8 karakter',
-                ),
+                labelText: 'Password',
+                helperText: 'At least 8 characters',
                 prefixIcon: const Icon(Icons.lock_outline),
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
-                  tooltip: _hidePassword
-                      ? _accountText(
-                          context,
-                          en: 'Show password',
-                          tr: 'Parolayı göster',
-                        )
-                      : _accountText(
-                          context,
-                          en: 'Hide password',
-                          tr: 'Parolayı gizle',
-                        ),
+                  tooltip: _hidePassword ? 'Show password' : 'Hide password',
                   onPressed: () =>
                       setState(() => _hidePassword = !_hidePassword),
                   icon: Icon(
@@ -277,19 +219,11 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                 autofillHints: const [AutofillHints.newPassword],
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
-                  labelText: _accountText(
-                    context,
-                    en: 'Confirm password',
-                    tr: 'Parolayı doğrula',
-                  ),
+                  labelText: 'Confirm password',
                   prefixIcon: const Icon(Icons.lock_reset_outlined),
                   border: const OutlineInputBorder(),
                   errorText: _confirm.text.isNotEmpty && !matches
-                      ? _accountText(
-                          context,
-                          en: 'Passwords do not match.',
-                          tr: 'Parolalar eşleşmiyor.',
-                        )
+                      ? 'Passwords do not match.'
                       : null,
                 ),
                 onChanged: (_) => setState(() {}),
@@ -307,18 +241,10 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   : Icon(_signInMode ? Icons.login : Icons.shield),
               label: Text(
                 _busy
-                    ? _accountText(
-                        context,
-                        en: 'Please wait…',
-                        tr: 'Lütfen bekleyin…',
-                      )
+                    ? 'Please wait...'
                     : _signInMode
-                    ? _accountText(context, en: 'Sign in', tr: 'Giriş yap')
-                    : _accountText(
-                        context,
-                        en: 'Protect this player account',
-                        tr: 'Bu oyuncu hesabını koru',
-                      ),
+                    ? 'Sign in'
+                    : 'Protect account',
                 maxLines: 2,
                 textAlign: TextAlign.center,
               ),
@@ -327,20 +253,10 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               const SizedBox(height: 6),
               TextButton(
                 onPressed: _busy || !validEmail ? null : _sendPasswordReset,
-                child: Text(
-                  _accountText(
-                    context,
-                    en: 'Forgot password?',
-                    tr: 'Parolanı mı unuttun?',
-                  ),
-                ),
+                child: Text('Forgot password?'),
               ),
               Text(
-                _accountText(
-                  context,
-                  en: 'Signing in switches away from the current guest. Guest and protected wallets are never merged.',
-                  tr: 'Giriş yapmak mevcut misafir hesabından çıkış yapar. Misafir ve korumalı cüzdanlar birleştirilmez.',
-                ),
+                'Signing in switches away from this guest. Wallets are not merged.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -361,24 +277,13 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              _accountText(
-                context,
-                en: 'Account protected',
-                tr: 'Hesap korumalı',
-              ),
+              'Account protected',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
-            Text(
-              user.email ??
-                  _accountText(
-                    context,
-                    en: 'Protected account',
-                    tr: 'Korumalı hesap',
-                  ),
-            ),
+            Text(user.email ?? 'Protected account'),
             const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -389,78 +294,38 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               ),
               title: Text(
                 user.emailVerified
-                    ? _accountText(
-                        context,
-                        en: 'Email verified',
-                        tr: 'E-posta doğrulandı',
-                      )
-                    : _accountText(
-                        context,
-                        en: 'Email verification required',
-                        tr: 'E-posta doğrulaması gerekli',
-                      ),
+                    ? 'Email verified'
+                    : 'Email verification required',
               ),
               subtitle: Text(
                 user.emailVerified
-                    ? _accountText(
-                        context,
-                        en: 'Paid Coin purchases can be recovered on another device.',
-                        tr: 'Ücretli Coin satın alımları başka bir cihazda geri yüklenebilir.',
-                      )
-                    : _accountText(
-                        context,
-                        en: 'Verify the email before buying Coins.',
-                        tr: 'Coin satın almadan önce e-postayı doğrula.',
-                      ),
+                    ? 'Paid Coin purchases can be recovered on another device.'
+                    : 'Verify email before buying Coins.',
               ),
             ),
             if (!user.emailVerified) ...[
               OutlinedButton.icon(
                 onPressed: _busy ? null : _sendVerification,
                 icon: const Icon(Icons.forward_to_inbox_outlined),
-                label: Text(
-                  _accountText(
-                    context,
-                    en: 'Resend verification email',
-                    tr: 'Doğrulama e-postasını yeniden gönder',
-                  ),
-                ),
+                label: Text('Resend verification email'),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _busy ? null : _refreshVerification,
                 icon: const Icon(Icons.refresh),
-                label: Text(
-                  _accountText(
-                    context,
-                    en: 'I verified it — refresh',
-                    tr: 'Doğruladım — yenile',
-                  ),
-                ),
+                label: Text('I verified it - refresh'),
               ),
             ],
             const SizedBox(height: 6),
             TextButton.icon(
               onPressed: _busy ? null : _sendPasswordReset,
               icon: const Icon(Icons.password_outlined),
-              label: Text(
-                _accountText(
-                  context,
-                  en: 'Send password reset email',
-                  tr: 'Parola sıfırlama e-postası gönder',
-                ),
-              ),
+              label: Text('Send password reset email'),
             ),
             TextButton.icon(
               onPressed: _busy ? null : _signOutToGuest,
               icon: const Icon(Icons.logout_outlined),
-              label: Text(
-                _accountText(
-                  context,
-                  en: 'Sign out on this device',
-                  tr: 'Bu cihazda çıkış yap',
-                ),
-              ),
+              label: Text('Sign out on this device'),
             ),
           ],
         ),
@@ -479,11 +344,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
         );
         await _refreshServices();
         if (!mounted) return;
-        _notice = _accountText(
-          context,
-          en: 'Protected player account opened.',
-          tr: 'Korumalı oyuncu hesabı açıldı.',
-        );
+        _notice = 'Protected player account opened.';
       } else {
         await FirebaseSessionService.protectCurrentAccount(
           email: _email.text,
@@ -491,11 +352,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
         );
         await _refreshServices();
         if (!mounted) return;
-        _notice = _accountText(
-          context,
-          en: 'Account protected. Check your inbox to verify the email.',
-          tr: 'Hesap korundu. E-postayı doğrulamak için gelen kutunu kontrol et.',
-        );
+        _notice = 'Account protected. Check your inbox to verify the email.';
       }
       _password.clear();
       _confirm.clear();
@@ -509,11 +366,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
 
   Future<void> _sendVerification() => _run(
     FirebaseSessionService.sendVerificationEmail,
-    _accountText(
-      context,
-      en: 'Verification email sent.',
-      tr: 'Doğrulama e-postası gönderildi.',
-    ),
+    'Verification email sent.',
   );
 
   Future<void> _refreshVerification() => _run(
@@ -522,75 +375,44 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
       await _refreshServices();
     },
     FirebaseSessionService.currentUser?.emailVerified == true
-        ? _accountText(
-            context,
-            en: 'Email verified.',
-            tr: 'E-posta doğrulandı.',
-          )
-        : _accountText(
-            context,
-            en: 'Account refreshed.',
-            tr: 'Hesap yenilendi.',
-          ),
+        ? 'Email verified.'
+        : 'Account refreshed.',
   );
 
   Future<void> _sendPasswordReset() => _run(
     () => FirebaseSessionService.sendPasswordReset(_email.text),
-    _accountText(
-      context,
-      en: 'Password reset email sent.',
-      tr: 'Parola sıfırlama e-postası gönderildi.',
-    ),
+    'Password reset email sent.',
   );
 
   Future<void> _signOutToGuest() async {
     final approved = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(
-          _accountText(
-            dialogContext,
-            en: 'Sign out?',
-            tr: 'Çıkış yapılsın mı?',
-          ),
-        ),
+        title: Text('Sign out?'),
         content: Text(
-          _accountText(
-            dialogContext,
-            en: 'The protected wallet remains on the account. This device will use a separate guest until you sign in again.',
-            tr: 'Korumalı cüzdan hesapta kalır. Tekrar giriş yapana kadar bu cihaz ayrı bir misafir hesabı kullanır.',
-          ),
+          'The protected wallet stays on the account. This device will use a guest until you sign in again.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(_accountText(dialogContext, en: 'Cancel', tr: 'İptal')),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              _accountText(dialogContext, en: 'Sign out', tr: 'Çıkış yap'),
-            ),
+            child: Text('Sign out'),
           ),
         ],
       ),
     );
     if (approved != true) return;
     if (!mounted) return;
-    await _run(
-      () async {
-        await FirebaseSessionService.signOutToGuest();
-        await _refreshServices();
-        _email.clear();
-        _password.clear();
-        _confirm.clear();
-      },
-      _accountText(
-        context,
-        en: 'Guest player created.',
-        tr: 'Misafir oyuncu oluşturuldu.',
-      ),
-    );
+    await _run(() async {
+      await FirebaseSessionService.signOutToGuest();
+      await _refreshServices();
+      _email.clear();
+      _password.clear();
+      _confirm.clear();
+    }, 'Guest player created.');
   }
 
   Future<void> _deleteAccount() async {
@@ -606,13 +428,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               confirmation.text.trim().toUpperCase() == 'DELETE' &&
               (!_protected || password.text.length >= 8);
           return AlertDialog(
-            title: Text(
-              _accountText(
-                dialogContext,
-                en: 'Delete player account permanently?',
-                tr: 'Oyuncu hesabı kalıcı olarak silinsin mi?',
-              ),
-            ),
+            title: Text('Delete player account permanently?'),
             content: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: SingleChildScrollView(
@@ -621,11 +437,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      _accountText(
-                        dialogContext,
-                        en: 'This cannot be undone. Coin balance, purchases, Friend ID, friends, ratings, challenges and match history will be removed. Finish or forfeit any active online match first.',
-                        tr: 'Bu işlem geri alınamaz. Coin bakiyesi, satın alımlar, Arkadaş Kimliği, arkadaşlar, puanlar, meydan okumalar ve maç geçmişi silinir. Önce aktif çevrimiçi maçı bitir veya hükmen kaybet.',
-                      ),
+                      'This cannot be undone. Wallet, purchases, friends, rating and match history will be removed. Finish active online matches first.',
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -633,11 +445,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                       autofocus: true,
                       autocorrect: false,
                       decoration: InputDecoration(
-                        labelText: _accountText(
-                          dialogContext,
-                          en: 'Type DELETE',
-                          tr: 'DELETE yazın',
-                        ),
+                        labelText: 'Type DELETE',
                         border: OutlineInputBorder(),
                       ),
                       onChanged: (_) => setDialogState(() {}),
@@ -648,11 +456,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                         controller: password,
                         obscureText: hidden,
                         decoration: InputDecoration(
-                          labelText: _accountText(
-                            dialogContext,
-                            en: 'Current password',
-                            tr: 'Mevcut parola',
-                          ),
+                          labelText: 'Current password',
                           border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
                             onPressed: () =>
@@ -674,9 +478,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: Text(
-                  _accountText(dialogContext, en: 'Cancel', tr: 'İptal'),
-                ),
+                child: Text('Cancel'),
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
@@ -688,13 +490,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                         password: password.text,
                       ))
                     : null,
-                child: Text(
-                  _accountText(
-                    dialogContext,
-                    en: 'Delete permanently',
-                    tr: 'Kalıcı olarak sil',
-                  ),
-                ),
+                child: Text('Delete permanently'),
               ),
             ],
           );
@@ -714,15 +510,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _accountText(
-              context,
-              en: 'Player account and online data deleted.',
-              tr: 'Oyuncu hesabı ve çevrimiçi veriler silindi.',
-            ),
-          ),
-        ),
+        SnackBar(content: Text('Player account and online data deleted.')),
       );
     } on AccountDeletionException catch (error) {
       if (!mounted) return;
@@ -791,20 +579,12 @@ class _AccountModeSelector extends StatelessWidget {
               ButtonSegment(
                 value: false,
                 icon: Icon(Icons.shield_outlined),
-                label: Text(
-                  _accountText(
-                    context,
-                    en: 'Protect current',
-                    tr: 'Mevcut hesabı koru',
-                  ),
-                ),
+                label: Text('Protect current'),
               ),
               ButtonSegment(
                 value: true,
                 icon: Icon(Icons.login_outlined),
-                label: Text(
-                  _accountText(context, en: 'Sign in', tr: 'Giriş yap'),
-                ),
+                label: Text('Sign in'),
               ),
             ],
             selected: <bool>{signInMode},
@@ -820,11 +600,7 @@ class _AccountModeSelector extends StatelessWidget {
               selected: !signInMode,
               enabled: enabled,
               icon: Icons.shield_outlined,
-              label: _accountText(
-                context,
-                en: 'Protect current',
-                tr: 'Mevcut hesabı koru',
-              ),
+              label: 'Protect current',
               onTap: () => onChanged(false),
             ),
             const SizedBox(height: 8),
@@ -832,7 +608,7 @@ class _AccountModeSelector extends StatelessWidget {
               selected: signInMode,
               enabled: enabled,
               icon: Icons.login_outlined,
-              label: _accountText(context, en: 'Sign in', tr: 'Giriş yap'),
+              label: 'Sign in',
               onTap: () => onChanged(true),
             ),
           ],
@@ -916,17 +692,7 @@ class _StatusCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    protected
-                        ? _accountText(
-                            context,
-                            en: 'Recoverable account',
-                            tr: 'Geri yüklenebilir hesap',
-                          )
-                        : _accountText(
-                            context,
-                            en: 'Guest account',
-                            tr: 'Misafir hesabı',
-                          ),
+                    protected ? 'Recoverable account' : 'Guest account',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -934,16 +700,8 @@ class _StatusCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     protected
-                        ? _accountText(
-                            context,
-                            en: 'Online identity linked to ${user?.email ?? 'an email account'}.',
-                            tr: 'Çevrimiçi kimlik ${user?.email ?? 'bir e-posta hesabına'} bağlandı.',
-                          )
-                        : _accountText(
-                            context,
-                            en: 'Deleting the app or changing devices can make this guest inaccessible. Protect it before buying Coins.',
-                            tr: 'Uygulamayı silmek veya cihaz değiştirmek bu misafir hesabını erişilemez yapabilir. Coin satın almadan önce hesabı koru.',
-                          ),
+                        ? 'Online identity linked to ${user?.email ?? 'an email account'}.'
+                        : 'Deleting the app or changing devices can make this guest inaccessible. Protect it before buying Coins.',
                   ),
                 ],
               ),

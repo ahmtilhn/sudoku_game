@@ -177,6 +177,38 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();
   });
+
+  testWidgets('classic 16 board restores pinch zoom support', (tester) async {
+    final puzzle = _classic16Puzzle();
+    await tester.pumpWidget(
+      AppStringsScope(
+        strings: AppStrings.forTesting(),
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox.square(
+                dimension: 360,
+                child: SudokuBoard(
+                  puzzle: puzzle,
+                  board: puzzle.puzzle,
+                  selectedIndex: null,
+                  onCellTap: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+    final viewer = tester.widget<InteractiveViewer>(
+      find.byType(InteractiveViewer),
+    );
+    expect(viewer.scaleEnabled, isTrue);
+    expect(viewer.panEnabled, isTrue);
+    expect(viewer.maxScale, greaterThan(2));
+  });
 }
 
 SudokuPuzzle _miniPuzzle() {
@@ -204,5 +236,19 @@ SudokuPuzzle _lossPuzzle() {
     size: 4,
     boxRows: 2,
     boxColumns: 2,
+  );
+}
+
+SudokuPuzzle _classic16Puzzle() {
+  final values = List<int>.generate(256, (index) => (index % 16) + 1);
+  return SudokuPuzzle(
+    id: 'ux-test-classic16',
+    title: 'Classic 16',
+    difficulty: SudokuDifficulty.easy,
+    puzzle: List<int>.filled(256, 0),
+    solution: values,
+    size: 16,
+    boxRows: 4,
+    boxColumns: 4,
   );
 }

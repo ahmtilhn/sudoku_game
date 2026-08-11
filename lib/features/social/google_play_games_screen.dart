@@ -244,13 +244,13 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
                   const SizedBox(height: 14),
                   _SectionHeading(
                     title: '$title ${context.tr('leaderboards')}',
-                    subtitle: 'Global ELO ve zorluk tabloları',
+                    subtitle: context.tr('platform_leaderboards_body'),
                   ),
                   const SizedBox(height: 10),
                   _LeaderboardTile(
                     asset: DuelAsset.leaderboardCrownPro,
                     title: context.tr('global_elo'),
-                    subtitle: 'Ana platform sıralaman',
+                    subtitle: context.tr('platform_global_rank_body'),
                     highlighted: true,
                     onTap: _busy
                         ? null
@@ -282,14 +282,14 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
                     _LeaderboardTile(
                       asset: DuelAsset.trophy,
                       title: item.$1,
-                      subtitle: 'Bu zorluk için platform tablosu',
+                      subtitle: context.tr('platform_difficulty_rank_body'),
                       onTap: _busy ? null : () => _openLeaderboard(item.$2),
                     ),
                   const SizedBox(height: 6),
                   _LeaderboardTile(
                     asset: DuelAsset.profilePro,
                     title: context.tr('achievement_showcase'),
-                    subtitle: 'Başarımları ve ilerlemeyi aç',
+                    subtitle: context.tr('platform_achievements_body'),
                     onTap: _busy ? null : _openAchievements,
                   ),
                 ],

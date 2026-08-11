@@ -1,96 +1,66 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+
+import 'app_strings.dart';
 
 class UxCopy {
   const UxCopy._();
 
-  static bool _isTurkish(BuildContext _) =>
-      PlatformDispatcher.instance.locale.languageCode == 'tr';
+  static String pause(BuildContext context) => context.tr('pause_game');
 
-  static String pause(BuildContext context) =>
-      _isTurkish(context) ? 'Oyunu duraklat' : 'Pause game';
+  static String pausedTitle(BuildContext context) => context.tr('game_paused');
 
-  static String pausedTitle(BuildContext context) =>
-      _isTurkish(context) ? 'Oyun duraklatıldı' : 'Game paused';
-
-  static String pausedBody(BuildContext context) => _isTurkish(context)
-      ? 'Süre durdu ve tahta gizlendi. Hazır olduğunda devam et.'
-      : 'The timer is stopped and the board is hidden. Continue when ready.';
+  static String pausedBody(BuildContext context) => context.tr('pause_body');
 
   static String restartTitle(BuildContext context) =>
-      _isTurkish(context) ? 'Bulmacayı yeniden başlat?' : 'Restart puzzle?';
+      context.tr('restart_puzzle_title');
 
-  static String restartBody(BuildContext context) => _isTurkish(context)
-      ? 'Bu oyundaki tüm hamlelerin ve süren silinecek.'
-      : 'All moves and elapsed time for this game will be cleared.';
+  static String restartBody(BuildContext context) =>
+      context.tr('restart_puzzle_body');
 
   static String fantasyTitle(BuildContext context) =>
-      _isTurkish(context) ? 'Fantazi Modu · 16×16' : 'Fantasy Mode · 16×16';
+      context.tr('fantasy_mode_title');
 
-  static String fantasySubtitle(BuildContext context) => _isTurkish(context)
-      ? '4×4 bölgeler, 1–9 ve A–G sembolleriyle uzun oyun.'
-      : 'A long game with 4×4 boxes and symbols 1–9 and A–G.';
+  static String fantasySubtitle(BuildContext context) =>
+      'A long 16×16 board with symbols 1–9 and A–G.';
 
   static String fantasyBadge(BuildContext context) =>
-      _isTurkish(context) ? 'Çevrimdışı özel mod' : 'Offline special mode';
+      context.tr('offline_special_mode');
 
-  static String genericError(BuildContext context) => _isTurkish(context)
-      ? 'İşlem şu anda tamamlanamadı. Lütfen tekrar dene.'
-      : 'The action could not be completed right now. Please try again.';
+  static String genericError(BuildContext context) => 'Try again in a moment.';
 
-  static String connectionError(BuildContext context) => _isTurkish(context)
-      ? 'Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.'
-      : 'Could not connect. Check your internet connection and try again.';
+  static String connectionError(BuildContext context) =>
+      'Check your connection and try again.';
 
-  static String accountError(BuildContext context) => _isTurkish(context)
-      ? 'Oyuncu hesabına şu anda ulaşılamıyor. Biraz sonra tekrar dene.'
-      : 'Your player account is unavailable right now. Try again shortly.';
+  static String accountError(BuildContext context) =>
+      'Player account unavailable. Try again.';
 
-  static String serverBusy(BuildContext context) => _isTurkish(context)
-      ? 'Sunucu şu anda yoğun. Kısa süre sonra tekrar dene.'
-      : 'The service is busy right now. Try again shortly.';
+  static String serverBusy(BuildContext context) =>
+      'Service busy. Try again shortly.';
 
-  static String emptyProfile(BuildContext context) => _isTurkish(context)
-      ? 'Profil bilgileri henüz hazır değil.'
-      : 'Profile information is not ready yet.';
+  static String emptyProfile(BuildContext context) => 'Profile not ready yet.';
 
-  static String connectedPlatform(BuildContext context) => _isTurkish(context)
-      ? 'Platform profili bağlı'
-      : 'Platform profile connected';
+  static String connectedPlatform(BuildContext context) => 'Platform connected';
 
   static String platformNotConnected(BuildContext context) =>
-      _isTurkish(context)
-      ? 'Platform profili bağlı değil'
-      : 'Platform profile not connected';
+      'Platform not connected';
 
-  static String overview(BuildContext context) =>
-      _isTurkish(context) ? 'Genel bakış' : 'Overview';
+  static String overview(BuildContext context) => 'Overview';
 
-  static String performance(BuildContext context) =>
-      _isTurkish(context) ? 'Performans' : 'Performance';
+  static String performance(BuildContext context) => 'Performance';
 
-  static String accountAndSocial(BuildContext context) =>
-      _isTurkish(context) ? 'Hesap ve sosyal' : 'Account & social';
+  static String accountAndSocial(BuildContext context) => 'Account & social';
 
-  static String totalMatches(BuildContext context) =>
-      _isTurkish(context) ? 'Toplam maç' : 'Total matches';
+  static String totalMatches(BuildContext context) => 'Matches';
 
-  static String losses(BuildContext context) =>
-      _isTurkish(context) ? 'Mağlubiyet' : 'Losses';
+  static String losses(BuildContext context) => 'Losses';
 
-  static String draws(BuildContext context) =>
-      _isTurkish(context) ? 'Beraberlik' : 'Draws';
+  static String draws(BuildContext context) => 'Draws';
 
-  static String countryRank(BuildContext context) =>
-      _isTurkish(context) ? 'Ülke sırası' : 'Country rank';
+  static String countryRank(BuildContext context) => 'Country rank';
 
-  static String achievements(BuildContext context) =>
-      _isTurkish(context) ? 'Başarımlar' : 'Achievements';
+  static String achievements(BuildContext context) => 'Achievements';
 
-  static String loading(BuildContext context) =>
-      _isTurkish(context) ? 'Yükleniyor…' : 'Loading…';
+  static String loading(BuildContext context) => 'Loading...';
 
-  static String noData(BuildContext context) =>
-      _isTurkish(context) ? 'Gösterilecek veri yok.' : 'No data to show.';
+  static String noData(BuildContext context) => 'No data yet.';
 }

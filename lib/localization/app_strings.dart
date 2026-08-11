@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -190,6 +189,10 @@ class AppStrings {
     'country_contributions': 'Country contributions',
     'achievement_showcase': 'Achievement showcase',
     'achievement_showcase_empty': 'Choose up to three unlocked achievements.',
+    'platform_leaderboards_body': 'Global ELO and difficulty boards',
+    'platform_global_rank_body': 'Your main platform ranking',
+    'platform_difficulty_rank_body': 'Ranking for this difficulty',
+    'platform_achievements_body': 'Open achievements and progress',
     'get_ready': 'Get ready',
     'connecting_players': 'Connecting players',
     'move_time_seconds': 'Move time: %1d s',
@@ -272,7 +275,13 @@ class AppStrings {
     'hints': 'Hints',
     'continue_action': 'Continue',
     'pause': 'Pause',
+    'pause_game': 'Pause game',
     'game_paused': 'Game paused',
+    'pause_body': 'Paused. Continue when ready.',
+    'restart_puzzle_title': 'Restart puzzle?',
+    'restart_puzzle_body': 'Moves and time will be cleared.',
+    'fantasy_mode_title': 'Fantasy Mode · 16×16',
+    'offline_special_mode': 'Offline special mode',
     'mistakes_count': 'Mistakes: %1d',
     'mistakes_limit_count': 'Mistakes: %1d/%2d',
     'hints_count': 'Hints: %1d',
@@ -500,14 +509,11 @@ class AppStrings {
       final catalogStrings = catalog['strings'];
       if (catalogStrings is! Map) return;
 
-      final locale = PlatformDispatcher.instance.locale;
-      final candidates = <String>[
-        locale.toLanguageTag(),
-        if (locale.scriptCode != null)
-          '${locale.languageCode}-${locale.scriptCode}',
-        locale.languageCode,
-        'en',
-      ];
+      // Sudoku Duel currently ships with English as the product language.
+      // The catalog still stores platform translations, but in-app copy must
+      // not switch to a device language unless a real language selector is
+      // added and persisted.
+      const candidates = <String>['en'];
 
       for (final entry in catalogStrings.entries) {
         final key = entry.key.toString();

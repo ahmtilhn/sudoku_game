@@ -679,11 +679,11 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final width = constraints.maxWidth > 620
-                ? 560.0
+            final width = constraints.maxWidth > 760
+                ? 700.0
                 : constraints.maxWidth;
             return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 24),
               child: Center(
                 child: SizedBox(
                   width: width,

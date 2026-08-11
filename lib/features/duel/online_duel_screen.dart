@@ -1695,8 +1695,8 @@ class _ArenaMatchLayout extends StatelessWidget {
                       ? constraints.maxHeight
                       : constraints.maxWidth - horizontalChrome;
                   final boardSize = wide
-                      ? boardMax.clamp(300.0, 680.0)
-                      : boardMax.clamp(280.0, 640.0);
+                      ? boardMax.clamp(320.0, 760.0)
+                      : boardMax.clamp(300.0, 720.0);
                   final boardWidget = Center(
                     child: SizedBox.square(
                       dimension: boardSize,

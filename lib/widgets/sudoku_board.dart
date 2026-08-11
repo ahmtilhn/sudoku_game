@@ -44,6 +44,7 @@ class SudokuBoard extends StatelessWidget {
     this.localMoveIndexes = const <int>{},
     this.opponentMoveIndexes = const <int>{},
     this.enabled = true,
+    this.zoomEnabled,
   });
 
   final SudokuPuzzle puzzle;
@@ -56,10 +57,12 @@ class SudokuBoard extends StatelessWidget {
   final Set<int> localMoveIndexes;
   final Set<int> opponentMoveIndexes;
   final bool enabled;
+  final bool? zoomEnabled;
 
   @override
   Widget build(BuildContext context) {
     const scheme = _sharedGameBoardScheme;
+    final enableZoom = zoomEnabled ?? puzzle.size >= 16;
     final selectedValue = selectedIndex == null ? 0 : board[selectedIndex!];
     final matchingValueBackground = Color.alphaBlend(
       scheme.secondary.withAlpha(55),
@@ -69,10 +72,9 @@ class SudokuBoard extends StatelessWidget {
       scheme.onSurface.withAlpha(17),
       scheme.surface,
     );
-    final visualTextScale = MediaQuery.textScalerOf(context)
-        .scale(1)
-        .clamp(1.0, 1.2)
-        .toDouble();
+    final visualTextScale = MediaQuery.textScalerOf(
+      context,
+    ).scale(1).clamp(1.0, 1.2).toDouble();
 
     return Semantics(
       label: context.tr('board_label', <Object>[puzzle.size]),
@@ -84,18 +86,16 @@ class SudokuBoard extends StatelessWidget {
             final numberFontSize = (cellSize * (puzzle.size == 16 ? .58 : .52))
                 .clamp(10.0, 28.0)
                 .toDouble();
-            final noteFontSize = (cellSize * .25)
-                .clamp(5.5, 12.0)
-                .toDouble();
-            final markerSize = (cellSize * .25)
-                .clamp(8.0, 16.0)
-                .toDouble();
+            final noteFontSize = (cellSize * .25).clamp(5.5, 12.0).toDouble();
+            final markerSize = (cellSize * .25).clamp(8.0, 16.0).toDouble();
 
-            return DecoratedBox(
+            final boardWidget = DecoratedBox(
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerLow,
                 border: Border.all(color: scheme.outline, width: 1.4),
-                borderRadius: BorderRadius.circular(puzzle.size == 16 ? 10 : 16),
+                borderRadius: BorderRadius.circular(
+                  puzzle.size == 16 ? 10 : 16,
+                ),
                 boxShadow: const <BoxShadow>[
                   BoxShadow(
                     color: Color(0x33000000),
@@ -123,43 +123,48 @@ class SudokuBoard extends StatelessWidget {
                     final opponentMove = opponentMoveIndexes.contains(index);
                     final fixed = puzzle.isFixed(index);
                     final locked = fixed || hinted;
-                    final related = selectedIndex != null &&
+                    final related =
+                        selectedIndex != null &&
                         (selectedIndex! ~/ puzzle.size == row ||
                             selectedIndex! % puzzle.size == column ||
-                            SudokuEngine.relatedBoxIndex(puzzle, selectedIndex!) ==
+                            SudokuEngine.relatedBoxIndex(
+                                  puzzle,
+                                  selectedIndex!,
+                                ) ==
                                 SudokuEngine.relatedBoxIndex(puzzle, index));
-                    final sameValue = selectedValue != 0 && value == selectedValue;
+                    final sameValue =
+                        selectedValue != 0 && value == selectedValue;
                     final hasError = errorIndex == index;
                     final background = hasError
                         ? scheme.errorContainer
                         : selected
-                            ? scheme.primaryContainer
-                            : localMove
-                                ? Color.alphaBlend(
-                                    scheme.primary.withAlpha(45),
-                                    scheme.surface,
-                                  )
-                                : opponentMove
-                                    ? Color.alphaBlend(
-                                        scheme.tertiary.withAlpha(45),
-                                        scheme.surface,
-                                      )
-                                    : hinted
-                                        ? scheme.tertiaryContainer
-                                        : sameValue
-                                            ? matchingValueBackground
-                                            : related
-                                                ? relatedBackground
-                                                : scheme.surface;
+                        ? scheme.primaryContainer
+                        : localMove
+                        ? Color.alphaBlend(
+                            scheme.primary.withAlpha(45),
+                            scheme.surface,
+                          )
+                        : opponentMove
+                        ? Color.alphaBlend(
+                            scheme.tertiary.withAlpha(45),
+                            scheme.surface,
+                          )
+                        : hinted
+                        ? scheme.tertiaryContainer
+                        : sameValue
+                        ? matchingValueBackground
+                        : related
+                        ? relatedBackground
+                        : scheme.surface;
                     final numberColor = hasError
                         ? scheme.onErrorContainer
                         : selected
-                            ? scheme.onPrimaryContainer
-                            : hinted
-                                ? scheme.onTertiaryContainer
-                                : fixed
-                                    ? scheme.onSurface
-                                    : scheme.primary;
+                        ? scheme.onPrimaryContainer
+                        : hinted
+                        ? scheme.onTertiaryContainer
+                        : fixed
+                        ? scheme.onSurface
+                        : scheme.primary;
 
                     return Semantics(
                       button: !locked,
@@ -199,14 +204,16 @@ class SudokuBoard extends StatelessWidget {
                                       : BorderSide.none,
                                   right: BorderSide(
                                     color: scheme.outline,
-                                    width: (column + 1) % puzzle.boxColumns == 0 &&
+                                    width:
+                                        (column + 1) % puzzle.boxColumns == 0 &&
                                             column != puzzle.size - 1
                                         ? 2
                                         : .35,
                                   ),
                                   bottom: BorderSide(
                                     color: scheme.outline,
-                                    width: (row + 1) % puzzle.boxRows == 0 &&
+                                    width:
+                                        (row + 1) % puzzle.boxRows == 0 &&
                                             row != puzzle.size - 1
                                         ? 2
                                         : .35,
@@ -281,6 +288,18 @@ class SudokuBoard extends StatelessWidget {
                 ),
               ),
             );
+            if (!enableZoom) return boardWidget;
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(puzzle.size == 16 ? 8 : 14),
+              child: InteractiveViewer(
+                minScale: 1,
+                maxScale: 2.8,
+                boundaryMargin: const EdgeInsets.all(96),
+                panEnabled: true,
+                scaleEnabled: true,
+                child: boardWidget,
+              ),
+            );
           },
         ),
       ),
@@ -306,7 +325,11 @@ class _NotesCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (values.isEmpty) return const SizedBox.shrink();
-    final columns = size == 4 ? 2 : size == 16 ? 4 : 3;
+    final columns = size == 4
+        ? 2
+        : size == 16
+        ? 4
+        : 3;
     return Padding(
       padding: EdgeInsets.all(size == 16 ? .5 : 2),
       child: GridView.count(

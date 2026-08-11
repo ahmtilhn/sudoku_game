@@ -4,36 +4,40 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test(
-    'legacy bilingual copy follows the same platform locale as AppStrings',
-    () {
-      final appStrings = File(
-        'lib/localization/app_strings.dart',
-      ).readAsStringSync();
-      final uxCopy = File('lib/localization/ux_copy.dart').readAsStringSync();
-      final account = File(
-        'lib/features/settings/account_protection_screen.dart',
-      ).readAsStringSync();
+  test('runtime copy keeps English as the product language', () {
+    final appStrings = File(
+      'lib/localization/app_strings.dart',
+    ).readAsStringSync();
+    final uxCopy = File('lib/localization/ux_copy.dart').readAsStringSync();
+    final app = File('lib/app.dart').readAsStringSync();
+    final account = File(
+      'lib/features/settings/account_protection_screen.dart',
+    ).readAsStringSync();
 
-      expect(appStrings, contains('PlatformDispatcher.instance.locale'));
+    expect(appStrings, contains("const candidates = <String>['en']"));
+    expect(app, contains("locale: const Locale('en')"));
+    expect(app, isNot(contains('localeResolutionCallback')));
+    expect(uxCopy, isNot(contains('PlatformDispatcher.instance.locale')));
+    expect(account, isNot(contains('PlatformDispatcher.instance.locale')));
+    expect(account, isNot(contains('_accountText')));
+  });
+
+  test('runtime source files do not contain Turkish UI copy', () {
+    final turkishCharacters = RegExp(r'[çğıöşüÇĞİÖŞÜ]');
+    final libFiles = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'));
+
+    for (final file in libFiles) {
+      final source = file.readAsStringSync();
       expect(
-        uxCopy,
-        contains('PlatformDispatcher.instance.locale.languageCode'),
+        turkishCharacters.hasMatch(source),
+        isFalse,
+        reason: '${file.path} contains Turkish runtime copy',
       );
-      expect(
-        account,
-        contains('PlatformDispatcher.instance.locale.languageCode'),
-      );
-      expect(
-        uxCopy,
-        isNot(contains('Localizations.localeOf(context).languageCode')),
-      );
-      expect(
-        account,
-        isNot(contains('Localizations.localeOf(context).languageCode')),
-      );
-    },
-  );
+    }
+  });
 
   test('English localization catalog does not contain Turkish UI copy', () {
     final raw = File(
@@ -105,11 +109,21 @@ void main() {
       'profile_discovery_title',
       'profile_discovery_on',
       'profile_discovery_off',
+      'pause_game',
+      'pause_body',
+      'restart_puzzle_title',
+      'restart_puzzle_body',
+      'fantasy_mode_title',
+      'offline_special_mode',
+      'platform_leaderboards_body',
+      'platform_global_rank_body',
+      'platform_difficulty_rank_body',
+      'platform_achievements_body',
     ]) {
       final definition = strings[key];
       expect(definition, isA<Map>(), reason: '$key is missing');
-      final localizations =
-          ((definition as Map)['localizations'] as Map).cast<String, dynamic>();
+      final localizations = ((definition as Map)['localizations'] as Map)
+          .cast<String, dynamic>();
       expect(localizations.keys.toSet(), expectedLocales, reason: key);
       for (final locale in expectedLocales) {
         final unit = localizations[locale]['stringUnit'] as Map;
