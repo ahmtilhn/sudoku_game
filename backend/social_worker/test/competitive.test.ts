@@ -10,6 +10,7 @@ import {
   rankName,
   winRate,
 } from '../src/competitive';
+import { competitiveLeaderboardScopeFromPath } from '../src/profile_wrapper';
 
 describe('competitive profile model', () => {
   it('uses deterministic multi-field leaderboard ordering', () => {
@@ -113,5 +114,14 @@ describe('competitive profile model', () => {
     expect(source).toContain('bestRating: Number(row.best_rating ?? row.rating ?? 1000)');
     expect(source).toContain('provisionalGames: Number(row.provisional_games ?? 0)');
     expect(source).toContain('currentRankOverride');
+  });
+
+  it('extracts active ELO leaderboard scope from the request path', () => {
+    expect(
+      competitiveLeaderboardScopeFromPath('/v1/competitive/leaderboards/global'),
+    ).toBe('global');
+    expect(
+      competitiveLeaderboardScopeFromPath('/v1/competitive/leaderboards/expert'),
+    ).toBe('expert');
   });
 });

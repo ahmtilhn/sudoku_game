@@ -150,7 +150,7 @@ async function handleCompetitive(
       });
     }
     if (/^\/v1\/competitive\/leaderboards\/[^/]+$/.test(url.pathname) && request.method === 'GET') {
-      const scope = decodeURIComponent(url.pathname.split('/')[3]);
+      const scope = competitiveLeaderboardScopeFromPath(url.pathname);
       if (!validLeaderboardScope(scope)) {
         return json(env, 400, { error: 'Invalid leaderboard scope.', code: 'invalid_scope' });
       }
@@ -173,6 +173,10 @@ async function handleCompetitive(
   } catch (error) {
     return routeError(env, error);
   }
+}
+
+export function competitiveLeaderboardScopeFromPath(pathname: string): string {
+  return decodeURIComponent(pathname.split('/')[4] ?? '');
 }
 
 async function handleAchievements(

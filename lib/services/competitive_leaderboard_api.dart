@@ -307,6 +307,17 @@ class CompetitiveLeaderboardApi {
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (mode == 'top' && cursor == null) {
+        final fallback = await _loadLegacyFallback(
+          social: social,
+          idToken: idToken,
+          appCheckToken: appCheckToken,
+          scope: scope,
+          variant: variant,
+          original: null,
+        );
+        if (fallback != null) return fallback;
+      }
       throw SocialApiException(
         response.statusCode,
         decoded['error']?.toString() ?? 'Leaderboard request failed.',
@@ -316,23 +327,24 @@ class CompetitiveLeaderboardApi {
     if (page.entries.isNotEmpty || mode != 'top' || cursor != null) {
       return page;
     }
-    return _loadLegacyFallback(
-      social: social,
-      idToken: idToken,
-      appCheckToken: appCheckToken,
-      scope: scope,
-      variant: variant,
-      original: page,
-    );
+    return await _loadLegacyFallback(
+          social: social,
+          idToken: idToken,
+          appCheckToken: appCheckToken,
+          scope: scope,
+          variant: variant,
+          original: page,
+        ) ??
+        page;
   }
 
-  Future<CompetitiveLeaderboardPage> _loadLegacyFallback({
+  Future<CompetitiveLeaderboardPage?> _loadLegacyFallback({
     required SocialApiClient social,
     required String idToken,
     required String? appCheckToken,
     required String scope,
     required String variant,
-    required CompetitiveLeaderboardPage original,
+    required CompetitiveLeaderboardPage? original,
   }) async {
     final uri =
         Uri.parse(
@@ -362,21 +374,23 @@ class CompetitiveLeaderboardApi {
       if (entries is! List || entries.isEmpty) return original;
       return CompetitiveLeaderboardPage.fromJson(<String, dynamic>{
         ...decoded,
-        'scope': decoded['scope'] ?? original.scope,
-        'variant': decoded['variant'] ?? original.variant,
+        'scope': decoded['scope'] ?? original?.scope ?? scope,
+        'variant': decoded['variant'] ?? original?.variant ?? variant,
         'mode': 'top',
         'currentPlayer': <String, dynamic>{
-          'rating': original.currentPlayer.rating,
-          'gamesPlayed': original.currentPlayer.gamesPlayed,
-          'wins': original.currentPlayer.wins,
-          'losses': original.currentPlayer.losses,
-          'draws': original.currentPlayer.draws,
-          'winRate': original.currentPlayer.winRate,
-          'winStreak': original.currentPlayer.winStreak,
-          'bestRating': original.currentPlayer.bestRating,
-          'provisionalGames': original.currentPlayer.provisionalGames,
-          if (original.currentPlayer.rank != null)
-            'rank': original.currentPlayer.rank,
+          if (original != null) ...{
+            'rating': original.currentPlayer.rating,
+            'gamesPlayed': original.currentPlayer.gamesPlayed,
+            'wins': original.currentPlayer.wins,
+            'losses': original.currentPlayer.losses,
+            'draws': original.currentPlayer.draws,
+            'winRate': original.currentPlayer.winRate,
+            'winStreak': original.currentPlayer.winStreak,
+            'bestRating': original.currentPlayer.bestRating,
+            'provisionalGames': original.currentPlayer.provisionalGames,
+            if (original.currentPlayer.rank != null)
+              'rank': original.currentPlayer.rank,
+          },
           if (decoded['currentPlayer'] is Map)
             ...Map<String, dynamic>.from(decoded['currentPlayer'] as Map),
         },
