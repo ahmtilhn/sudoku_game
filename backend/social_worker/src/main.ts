@@ -300,9 +300,14 @@ async function handleEconomyRoute(
       if (action !== 'accept' && action !== 'decline') {
         throw new EconomyError(400, 'Rematch action must be accept or decline.');
       }
-      const invitation = await rematchForResponse(env, invitationId, playerId);
+      const invitation = await rematchForResponse(env, invitationId, playerId, {
+        allowAccepted: action === 'accept',
+      });
       if (action === 'decline') {
         await markRematchStatus(env, invitation.id, 'declined', null);
+        return json(env, 200, await rematchJson(env, invitation.id, playerId));
+      }
+      if (invitation.status === 'accepted' && invitation.room_id) {
         return json(env, 200, await rematchJson(env, invitation.id, playerId));
       }
 
@@ -313,7 +318,7 @@ async function handleEconomyRoute(
         matchId,
         roomId,
         challengeId: null,
-        mode: 'friendly',
+        mode: invitation.mode === 'ranked' ? 'ranked' : 'friendly',
         difficulty: invitation.difficulty,
         variant,
         playerAId: invitation.sender_id,

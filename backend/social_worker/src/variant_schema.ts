@@ -51,6 +51,12 @@ async function installVariantSchema(env: VariantSchemaEnv): Promise<void> {
     'variant',
     "TEXT NOT NULL DEFAULT 'classic9' CHECK(variant IN ('classic9', 'classic16'))",
   );
+  await ensureColumn(
+    env,
+    'rematch_invitations',
+    'mode',
+    "TEXT NOT NULL DEFAULT 'friendly' CHECK(mode IN ('friendly', 'ranked'))",
+  );
 
   await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS player_variant_ratings (

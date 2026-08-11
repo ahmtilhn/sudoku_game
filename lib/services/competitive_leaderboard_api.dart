@@ -312,7 +312,78 @@ class CompetitiveLeaderboardApi {
         decoded['error']?.toString() ?? 'Leaderboard request failed.',
       );
     }
-    return CompetitiveLeaderboardPage.fromJson(decoded);
+    final page = CompetitiveLeaderboardPage.fromJson(decoded);
+    if (page.entries.isNotEmpty || mode != 'top' || cursor != null) {
+      return page;
+    }
+    return _loadLegacyFallback(
+      social: social,
+      idToken: idToken,
+      appCheckToken: appCheckToken,
+      scope: scope,
+      variant: variant,
+      original: page,
+    );
+  }
+
+  Future<CompetitiveLeaderboardPage> _loadLegacyFallback({
+    required SocialApiClient social,
+    required String idToken,
+    required String? appCheckToken,
+    required String scope,
+    required String variant,
+    required CompetitiveLeaderboardPage original,
+  }) async {
+    final uri =
+        Uri.parse(
+          '${social.baseUrl}/v1/leaderboards/${Uri.encodeComponent(scope)}',
+        ).replace(
+          queryParameters: <String, String>{'variant': variant, 'limit': '50'},
+        );
+    try {
+      final response = await http
+          .get(
+            uri,
+            headers: <String, String>{
+              'authorization': 'Bearer $idToken',
+              'accept': 'application/json',
+              if (appCheckToken != null && appCheckToken.isNotEmpty)
+                'x-firebase-appcheck': appCheckToken,
+            },
+          )
+          .timeout(_timeout);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return original;
+      }
+      final value = jsonDecode(response.body);
+      if (value is! Map) return original;
+      final decoded = Map<String, dynamic>.from(value);
+      final entries = decoded['entries'];
+      if (entries is! List || entries.isEmpty) return original;
+      return CompetitiveLeaderboardPage.fromJson(<String, dynamic>{
+        ...decoded,
+        'scope': decoded['scope'] ?? original.scope,
+        'variant': decoded['variant'] ?? original.variant,
+        'mode': 'top',
+        'currentPlayer': <String, dynamic>{
+          'rating': original.currentPlayer.rating,
+          'gamesPlayed': original.currentPlayer.gamesPlayed,
+          'wins': original.currentPlayer.wins,
+          'losses': original.currentPlayer.losses,
+          'draws': original.currentPlayer.draws,
+          'winRate': original.currentPlayer.winRate,
+          'winStreak': original.currentPlayer.winStreak,
+          'bestRating': original.currentPlayer.bestRating,
+          'provisionalGames': original.currentPlayer.provisionalGames,
+          if (original.currentPlayer.rank != null)
+            'rank': original.currentPlayer.rank,
+          if (decoded['currentPlayer'] is Map)
+            ...Map<String, dynamic>.from(decoded['currentPlayer'] as Map),
+        },
+      });
+    } catch (_) {
+      return original;
+    }
   }
 
   bool _validScope(String scope) => const <String>{

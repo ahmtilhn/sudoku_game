@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../localization/app_strings.dart';
 import '../../services/platform_game_services.dart';
@@ -79,6 +80,9 @@ class CompetitiveProfileCard extends StatelessWidget {
 
   String _platformLabel(PlatformPlayer? player) {
     if (player == null) return 'Account';
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      return 'Game Center';
+    }
     if (player.platform.toLowerCase().contains('ios')) return 'Game Center';
     if (player.platform.toLowerCase().contains('gamecenter')) {
       return 'Game Center';

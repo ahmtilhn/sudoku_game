@@ -21,6 +21,8 @@ export const DEBUG_UNLIMITED_COINS_BALANCE = 999999999;
 export const NO_ADS_PRODUCT_ID = 'no_ads';
 export const IOS_NO_ADS_PRODUCT_ID = 'sudoku_duel_no_ads';
 
+let rematchSchemaPromise: Promise<void> | null = null;
+
 export type DuelDifficultyKey = 'beginner' | 'easy' | 'medium' | 'hard' | 'expert';
 
 export const COIN_PRODUCTS: Readonly<Record<string, number>> = Object.freeze({
@@ -87,6 +89,7 @@ export type RematchRow = {
   recipient_id: string;
   difficulty: string;
   variant?: string | null;
+  mode?: string | null;
   status: string;
   room_id: string | null;
   created_at: string;
@@ -543,8 +546,9 @@ export async function createRematchInvitation(
   senderId: string,
   previousMatchId: string,
 ): Promise<Record<string, unknown>> {
+  await ensureRematchInvitationSchema(env);
   const match = await env.DB.prepare(
-    `SELECT id, difficulty, status, player_a_id, player_b_id, variant
+    `SELECT id, difficulty, status, player_a_id, player_b_id, variant, mode
      FROM matches WHERE id = ? LIMIT 1`,
   )
     .bind(previousMatchId)
@@ -555,6 +559,7 @@ export async function createRematchInvitation(
       player_a_id: string;
       player_b_id: string;
       variant?: string | null;
+      mode?: string | null;
     }>();
   if (!match) throw new EconomyError(404, 'Completed match not found.');
   if (!['completed', 'forfeited', 'cancelled', 'abandoned'].includes(match.status)) {
@@ -569,6 +574,7 @@ export async function createRematchInvitation(
   const balance = await ensureStarterGrant(env, senderId);
   const entryFee = entryFeeForDifficulty(match.difficulty);
   const variant = normalizeDuelVariant(match.variant, 'classic9');
+  const mode = match.mode === 'ranked' ? 'ranked' : 'friendly';
   if (balance < entryFee) {
     throw new EconomyError(
       409,
@@ -588,9 +594,9 @@ export async function createRematchInvitation(
   const id = crypto.randomUUID();
   await env.DB.prepare(
     `INSERT INTO rematch_invitations (
-       id, previous_match_id, sender_id, recipient_id, difficulty, variant,
+       id, previous_match_id, sender_id, recipient_id, difficulty, variant, mode,
        status, created_at, updated_at, expires_at
-     ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
   )
     .bind(
       id,
@@ -599,6 +605,7 @@ export async function createRematchInvitation(
       recipientId,
       match.difficulty,
       variant,
+      mode,
       now.toISOString(),
       now.toISOString(),
       expires.toISOString(),
@@ -606,6 +613,25 @@ export async function createRematchInvitation(
     .run();
   await sendRematchPush(env, recipientId, id, previousMatchId);
   return rematchJson(env, id, senderId);
+}
+
+function ensureRematchInvitationSchema(env: EconomyEnv): Promise<void> {
+  rematchSchemaPromise ??= installRematchInvitationSchema(env).catch((error) => {
+    rematchSchemaPromise = null;
+    throw error;
+  });
+  return rematchSchemaPromise;
+}
+
+async function installRematchInvitationSchema(env: EconomyEnv): Promise<void> {
+  const rows = await env.DB.prepare('PRAGMA table_info(rematch_invitations)')
+    .all<{ name: string }>();
+  const columns = new Set(rows.results.map((row) => row.name));
+  if (!columns.has('mode')) {
+    await env.DB.prepare(
+      "ALTER TABLE rematch_invitations ADD COLUMN mode TEXT NOT NULL DEFAULT 'friendly' CHECK(mode IN ('friendly', 'ranked'))",
+    ).run();
+  }
 }
 
 export async function pendingRematches(
@@ -636,6 +662,7 @@ export async function rematchForResponse(
   env: EconomyEnv,
   invitationId: string,
   playerId: string,
+  options?: { allowAccepted?: boolean },
 ): Promise<RematchRow> {
   const row = await env.DB.prepare(
     'SELECT * FROM rematch_invitations WHERE id = ? LIMIT 1',
@@ -645,6 +672,13 @@ export async function rematchForResponse(
   if (!row) throw new EconomyError(404, 'Rematch invitation not found.');
   if (row.recipient_id !== playerId) {
     throw new EconomyError(403, 'Only the recipient can respond.');
+  }
+  if (
+    row.status === 'accepted' &&
+    options?.allowAccepted === true &&
+    row.room_id
+  ) {
+    return row;
   }
   if (row.status !== 'pending') {
     throw new EconomyError(409, 'Rematch invitation is no longer pending.', 'rematch_closed');
@@ -975,6 +1009,7 @@ async function rematchJsonFromRow(
     previousMatchId: row.previous_match_id,
     difficulty: row.difficulty,
     variant: normalizeDuelVariant(row.variant, 'classic9'),
+    mode: row.mode === 'ranked' ? 'ranked' : 'friendly',
     status: row.status,
     roomId: row.room_id,
     createdAt: row.created_at,

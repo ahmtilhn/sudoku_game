@@ -236,18 +236,22 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
                     ),
                   ],
                   const SizedBox(height: 18),
-                  Text(
-                    context.tr('leaderboards'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  _PlatformOverviewPanel(
+                    title: title,
+                    authenticated: _authenticated,
+                    player: _player,
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionHeading(
+                    title: '$title ${context.tr('leaderboards')}',
+                    subtitle: 'Global ELO ve zorluk tabloları',
                   ),
                   const SizedBox(height: 10),
                   _LeaderboardTile(
                     asset: DuelAsset.leaderboardCrownPro,
                     title: context.tr('global_elo'),
+                    subtitle: 'Ana platform sıralaman',
+                    highlighted: true,
                     onTap: _busy
                         ? null
                         : () =>
@@ -278,12 +282,14 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
                     _LeaderboardTile(
                       asset: DuelAsset.trophy,
                       title: item.$1,
+                      subtitle: 'Bu zorluk için platform tablosu',
                       onTap: _busy ? null : () => _openLeaderboard(item.$2),
                     ),
                   const SizedBox(height: 6),
                   _LeaderboardTile(
                     asset: DuelAsset.profilePro,
                     title: context.tr('achievement_showcase'),
+                    subtitle: 'Başarımları ve ilerlemeyi aç',
                     onTap: _busy ? null : _openAchievements,
                   ),
                 ],
@@ -292,6 +298,194 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PlatformOverviewPanel extends StatelessWidget {
+  const _PlatformOverviewPanel({
+    required this.title,
+    required this.authenticated,
+    required this.player,
+  });
+
+  final String title;
+  final bool authenticated;
+  final PlatformPlayer? player;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = player?.effectiveDisplayName ?? title;
+    final accent = authenticated
+        ? const Color(0xFF29D398)
+        : const Color(0xFF8EB8FF);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .24),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: .24)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              PlayerAvatar(
+                displayName: displayName,
+                avatarKey: 'native-leaderboard-overview',
+                localAvatarBytes: player?.avatarBytes,
+                remoteApprovedImageUrl: player?.avatarUrl,
+                radius: 30,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      authenticated
+                          ? '$title ${context.tr('connected')}'
+                          : context.tr('online_account_unavailable'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const DuelAssetIcon(DuelAsset.leaderboardCrownPro, size: 34),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _OverviewMetric(
+                  label: context.tr('global_elo'),
+                  value: 'ELO',
+                  color: const Color(0xFF8EB8FF),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _OverviewMetric(
+                  label: context.tr('rank'),
+                  value: 'Top',
+                  color: const Color(0xFFBFA7FF),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _OverviewMetric(
+                  label: context.tr('achievement_showcase'),
+                  value: 'XP',
+                  color: const Color(0xFF29D398),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OverviewMetric extends StatelessWidget {
+  const _OverviewMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .55),
+              fontWeight: FontWeight.w700,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .56),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -424,12 +618,16 @@ class _LeaderboardTile extends StatelessWidget {
   const _LeaderboardTile({
     required this.asset,
     required this.title,
+    required this.subtitle,
     required this.onTap,
+    this.highlighted = false,
   });
 
   final String asset;
   final String title;
+  final String subtitle;
   final VoidCallback? onTap;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -443,23 +641,53 @@ class _LeaderboardTile extends StatelessWidget {
           child: Ink(
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF0A1728).withValues(alpha: .82),
+              color: highlighted
+                  ? const Color(0xFF13253D).withValues(alpha: .88)
+                  : Colors.black.withValues(alpha: .22),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: .08)),
+              border: Border.all(
+                color: (highlighted ? const Color(0xFF8EB8FF) : Colors.white)
+                    .withValues(alpha: highlighted ? .28 : .08),
+              ),
             ),
             child: Row(
               children: [
-                DuelAssetIcon(asset, size: 28),
+                Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .06),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: DuelAssetIcon(asset, size: 27),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .52),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Icon(
