@@ -239,7 +239,9 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
     }
   }
 
-  Future<PlatformLeaderboardMirrorResult> syncAuthoritativeRatings() async {
+  Future<PlatformLeaderboardMirrorResult> syncAuthoritativeRatings({
+    bool allowInteractiveAuthentication = true,
+  }) async {
     final platform = _resolvedPlatform;
     if (platform == null ||
         (platform != TargetPlatform.android &&
@@ -254,7 +256,9 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
       );
     }
     var authenticated = await _refreshAuthentication();
-    if (!authenticated) authenticated = await _authenticate();
+    if (!authenticated && allowInteractiveAuthentication) {
+      authenticated = await _authenticate();
+    }
     if (!authenticated) {
       return const PlatformLeaderboardMirrorResult(
         status: PlatformLeaderboardMirrorStatus.notAuthenticated,

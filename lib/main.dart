@@ -59,7 +59,9 @@ Future<void> main() async {
             await push.requestPermissionAndRegister();
           }
         }
-        await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
+        await PlatformLeaderboardService.instance.syncAuthoritativeRatings(
+          allowInteractiveAuthentication: false,
+        );
       }, timeout: const Duration(seconds: 60)),
     );
     unawaited(
@@ -70,15 +72,11 @@ Future<void> main() async {
       ),
     );
     unawaited(
-      _initializeOptionalService(
-        'online Coin economy',
-        () async {
-          await EconomyService.instance.initialize();
-          await EconomyV3Service.instance.initialize();
-          await CareerRewardSyncService.instance.syncNow();
-        },
-        timeout: const Duration(seconds: 30),
-      ),
+      _initializeOptionalService('online Coin economy', () async {
+        await EconomyService.instance.initialize();
+        await EconomyV3Service.instance.initialize();
+        await CareerRewardSyncService.instance.syncNow();
+      }, timeout: const Duration(seconds: 30)),
     );
     unawaited(
       _initializeOptionalService(
@@ -109,7 +107,9 @@ Future<void> _initializeGooglePlayGames() async {
   await accountBridge.restoreSilently();
 
   await PlatformGameStatsService.instance.initialize();
-  await PlatformLeaderboardService.instance.syncAuthoritativeRatings();
+  await PlatformLeaderboardService.instance.syncAuthoritativeRatings(
+    allowInteractiveAuthentication: false,
+  );
 }
 
 Future<void> _initializeOptionalService(

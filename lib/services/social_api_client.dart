@@ -238,7 +238,7 @@ class SocialApiClient {
   static const String _configuredBaseUrl = String.fromEnvironment(
     'SOCIAL_BACKEND_URL',
   );
-  static const String _debugFallbackBaseUrl =
+  static const String defaultSocialBackendUrl =
       'https://sudoku-duel-social-staging.ilhanahmet246.workers.dev';
   static const Duration _requestTimeout = Duration(seconds: 15);
   static const Duration _appCheckTimeout = Duration(seconds: 5);
@@ -249,9 +249,7 @@ class SocialApiClient {
     final configured = _configuredBaseUrl.trim();
     final selected = configured.isNotEmpty
         ? configured
-        : kDebugMode
-        ? _debugFallbackBaseUrl
-        : '';
+        : defaultSocialBackendUrl;
     return _withoutTrailingSlashes(selected);
   }
 
@@ -272,6 +270,8 @@ class SocialApiClient {
 
   bool get usingDebugFallback =>
       kDebugMode && _configuredBaseUrl.trim().isEmpty;
+
+  bool get usingBundledDefault => _configuredBaseUrl.trim().isEmpty;
 
   Uri websocketUri(String path) {
     if (!configured) {
@@ -427,10 +427,7 @@ class SocialApiClient {
     final response = await _request(
       'POST',
       '/v1/matchmaking/queue',
-      body: <String, Object>{
-        'variant': variant,
-        'difficulty': difficulty,
-      },
+      body: <String, Object>{'variant': variant, 'difficulty': difficulty},
     );
     return MatchmakingResult.fromJson(response);
   }

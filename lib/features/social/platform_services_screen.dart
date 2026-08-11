@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/platform_leaderboard_service.dart';
@@ -52,9 +53,19 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
         );
       }
     } on PlatformGameServicesException catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(
+          () => _error = UserSafeError.message(
+            context,
+            error,
+            fallback: error.message,
+          ),
+        );
+      }
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

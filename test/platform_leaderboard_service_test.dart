@@ -103,6 +103,33 @@ void main() {
     },
   );
 
+  test('passive authoritative sync does not start interactive auth', () async {
+    var authenticateCalls = 0;
+    var loadCalls = 0;
+    final service = PlatformLeaderboardService(
+      ids: ids,
+      platform: TargetPlatform.iOS,
+      isConfigured: () async => true,
+      refreshAuthentication: () async => false,
+      authenticate: () async {
+        authenticateCalls++;
+        return true;
+      },
+      loadRatings: () async {
+        loadCalls++;
+        return const <String, dynamic>{'ratings': <Map<String, Object>>[]};
+      },
+    );
+
+    final result = await service.syncAuthoritativeRatings(
+      allowInteractiveAuthentication: false,
+    );
+
+    expect(result.status, PlatformLeaderboardMirrorStatus.notAuthenticated);
+    expect(authenticateCalls, 0);
+    expect(loadCalls, 0);
+  });
+
   test('loads Android leaderboard IDs from the platform resources', () async {
     final submissions = <({String id, int score})>[];
     final service = PlatformLeaderboardService(

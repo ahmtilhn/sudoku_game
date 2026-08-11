@@ -230,8 +230,7 @@ class PlayerProfileService {
 
     try {
       if (!await games.isConfigured()) return null;
-      var authenticated = await games.refreshAuthentication();
-      if (!authenticated) authenticated = await games.authenticate();
+      final authenticated = await games.refreshAuthentication();
       return authenticated ? games.localPlayer.value : null;
     } on PlatformGameServicesException {
       return null;

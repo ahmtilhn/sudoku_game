@@ -1,7 +1,12 @@
+import 'dart:async';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/services/platform_game_services.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('platform player uses Game Center alias when displayName is empty', () {
     final player = PlatformPlayer.fromMap(<Object?, Object?>{
       'platform': 'game_center',
@@ -95,5 +100,90 @@ void main() {
     expect(exception.toString(), contains('platform=game_center'));
     expect(exception.toString(), contains('bundle=com.devovia.sudokuduel'));
     expect(exception.toString(), contains('gameCenterEntitlement=false'));
+  });
+
+  group('PlatformGameServices authentication', () {
+    const channel = MethodChannel('com.devoviastudio.sudoku/game_services');
+
+    setUp(() {
+      PlatformGameServices.instance.authenticated.value = false;
+      PlatformGameServices.instance.localPlayer.value = null;
+      PlatformGameServices.instance.lastError.value = null;
+    });
+
+    tearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    test('shares concurrent native authentication requests', () async {
+      final nativeAuthentication = Completer<bool>();
+      var authenticateCalls = 0;
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            return switch (call.method) {
+              'authenticate' => () {
+                authenticateCalls += 1;
+                return nativeAuthentication.future;
+              }(),
+              'getLocalPlayer' => <String, Object?>{
+                'platform': 'game_center',
+                'playerId': 'player-1',
+                'displayName': 'Mac Pilot',
+              },
+              _ => null,
+            };
+          });
+
+      final first = PlatformGameServices.instance.authenticate();
+      final second = PlatformGameServices.instance.authenticate();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(authenticateCalls, 1);
+
+      nativeAuthentication.complete(true);
+      await expectLater(Future.wait(<Future<bool>>[first, second]), completes);
+      expect(await first, isTrue);
+      expect(await second, isTrue);
+      expect(
+        PlatformGameServices.instance.localPlayer.value?.playerId,
+        'player-1',
+      );
+    });
+
+    test('waits for native in-progress authentication to finish', () async {
+      var authenticateCalls = 0;
+
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            return switch (call.method) {
+              'authenticate' => () {
+                authenticateCalls += 1;
+                throw PlatformException(
+                  code: 'authentication_in_progress',
+                  message: 'Game Center authentication is already in progress.',
+                );
+              }(),
+              'isAuthenticated' => true,
+              'getLocalPlayer' => <String, Object?>{
+                'platform': 'game_center',
+                'playerId': 'player-2',
+                'displayName': 'Settled Pilot',
+              },
+              _ => null,
+            };
+          });
+
+      final authenticated = await PlatformGameServices.instance.authenticate();
+
+      expect(authenticated, isTrue);
+      expect(authenticateCalls, 1);
+      expect(PlatformGameServices.instance.lastError.value, isNull);
+      expect(
+        PlatformGameServices.instance.localPlayer.value?.playerId,
+        'player-2',
+      );
+    });
   });
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -226,6 +227,7 @@ class PlatformGameServices {
   final ValueNotifier<String?> lastError = ValueNotifier<String?>(null);
 
   Future<void> Function()? _afterInteractiveAuthentication;
+  Future<bool>? _authenticationInFlight;
 
   void registerAfterInteractiveAuthentication(
     Future<void> Function()? callback,
@@ -252,7 +254,28 @@ class PlatformGameServices {
   }
 
   Future<bool> authenticate({bool notifyAccountBridge = true}) async {
-    final value = await _invokeBool('authenticate');
+    final pending = _authenticationInFlight;
+    if (pending != null) return pending;
+
+    final operation = _authenticateOnce(
+      notifyAccountBridge: notifyAccountBridge,
+    ).whenComplete(() => _authenticationInFlight = null);
+    _authenticationInFlight = operation;
+    return operation;
+  }
+
+  Future<bool> _authenticateOnce({required bool notifyAccountBridge}) async {
+    final bool value;
+    try {
+      value = await _invokeBool('authenticate');
+    } on PlatformGameServicesException catch (error) {
+      if (error.code != 'authentication_in_progress') rethrow;
+      final recovered = await _waitForAuthenticationInProgress();
+      if (!recovered) rethrow;
+      lastError.value = null;
+      return true;
+    }
+
     authenticated.value = value;
     localPlayer.value = value ? await getLocalPlayer() : null;
     if (!value) {
@@ -286,6 +309,20 @@ class PlatformGameServices {
 
     lastError.value = null;
     return true;
+  }
+
+  Future<bool> _waitForAuthenticationInProgress() async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      try {
+        if (await refreshAuthentication()) return true;
+      } on PlatformGameServicesException {
+        // The native Game Center handler may still be settling; keep polling
+        // briefly so a successful OS-level sign-in is reflected in Flutter.
+      }
+    }
+    return false;
   }
 
   Future<PlatformPlayer?> getLocalPlayer() async {

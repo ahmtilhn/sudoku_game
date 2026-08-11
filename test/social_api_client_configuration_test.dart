@@ -2,12 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/services/social_api_client.dart';
 
 void main() {
-  test('debug builds resolve a valid social backend URL', () {
+  test('builds resolve a valid social backend URL by default', () {
     final client = SocialApiClient.instance;
 
     expect(client.configured, isTrue);
-    expect(client.baseUrl, startsWith('https://'));
+    expect(client.baseUrl, SocialApiClient.defaultSocialBackendUrl);
     expect(client.baseUrl, isNot(endsWith('/')));
+    expect(client.usingBundledDefault, isTrue);
   });
 
   test('websocket URL uses the same backend host over wss', () {
