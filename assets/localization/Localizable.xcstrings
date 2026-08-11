@@ -1715,6 +1715,22 @@
         }
       }
     },
+    "leaderboard_empty_hint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sudoku Duel ELO fills after ranked online matches are completed."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sudoku Duel ELO, dereceli çevrim içi maçlar tamamlandıkça dolar."
+          }
+        }
+      }
+    },
     "leaderboard_row": {
       "localizations": {
         "en": {

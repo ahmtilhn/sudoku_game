@@ -5,6 +5,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
+import 'firebase_session_service.dart';
 import 'social_api_client.dart';
 
 class CompetitiveLeaderboardEntry {
@@ -195,7 +196,8 @@ class CompetitiveLeaderboardPage {
 class CompetitiveLeaderboardApi {
   CompetitiveLeaderboardApi._();
 
-  static final CompetitiveLeaderboardApi instance = CompetitiveLeaderboardApi._();
+  static final CompetitiveLeaderboardApi instance =
+      CompetitiveLeaderboardApi._();
   static const Duration _timeout = Duration(seconds: 15);
 
   Future<CompetitiveLeaderboardPage> load({
@@ -213,19 +215,24 @@ class CompetitiveLeaderboardApi {
       );
     }
     if (!_validScope(scope)) {
-      throw ArgumentError.value(scope, 'scope', 'Unsupported leaderboard scope.');
+      throw ArgumentError.value(
+        scope,
+        'scope',
+        'Unsupported leaderboard scope.',
+      );
     }
     if (variant != 'classic9' && variant != 'classic16') {
-      throw ArgumentError.value(variant, 'variant', 'Unsupported Sudoku variant.');
+      throw ArgumentError.value(
+        variant,
+        'variant',
+        'Unsupported Sudoku variant.',
+      );
     }
     if (mode != 'top' && mode != 'friends' && mode != 'around_me') {
       throw ArgumentError.value(mode, 'mode', 'Unsupported leaderboard mode.');
     }
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw const SocialApiException(401, 'A Firebase session is required.');
-    }
+    final user = await FirebaseSessionService.ensureAnonymousSession();
 
     final String? idToken;
     try {
@@ -257,9 +264,9 @@ class CompetitiveLeaderboardApi {
 
     String? appCheckToken;
     try {
-      appCheckToken = await FirebaseAppCheck.instance.getToken(false).timeout(
-        const Duration(seconds: 5),
-      );
+      appCheckToken = await FirebaseAppCheck.instance
+          .getToken(false)
+          .timeout(const Duration(seconds: 5));
     } catch (_) {
       appCheckToken = null;
     }
@@ -318,15 +325,13 @@ class CompetitiveLeaderboardApi {
   }.contains(scope);
 }
 
-int _int(Object? value, {int fallback = 0}) =>
-    value is num
-        ? value.toInt()
-        : int.tryParse(value?.toString() ?? '') ?? fallback;
+int _int(Object? value, {int fallback = 0}) => value is num
+    ? value.toInt()
+    : int.tryParse(value?.toString() ?? '') ?? fallback;
 
-double _double(Object? value) =>
-    value is num
-        ? value.toDouble()
-        : double.tryParse(value?.toString() ?? '') ?? 0;
+double _double(Object? value) => value is num
+    ? value.toDouble()
+    : double.tryParse(value?.toString() ?? '') ?? 0;
 
 String? _country(Object? value) {
   final text = value?.toString().trim().toUpperCase();

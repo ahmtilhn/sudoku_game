@@ -123,6 +123,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
       });
     } catch (error) {
       if (!mounted || requestId != _requestSerial) return;
+      debugPrint('Sudoku ELO leaderboard load failed: $error');
       setState(() => _error = UserSafeError.message(context, error));
     } finally {
       if (mounted && requestId == _requestSerial) {
@@ -363,7 +364,8 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     if (_entries.isEmpty) {
       return _InlineState(
         icon: Icons.leaderboard_outlined,
-        message: context.tr('leaderboard_empty'),
+        message:
+            '${context.tr('leaderboard_empty')}\n${context.tr('leaderboard_empty_hint')}',
         actionLabel: context.tr('refresh'),
         onAction: () => _load(),
       );

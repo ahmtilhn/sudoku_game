@@ -7,6 +7,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'firebase_session_service.dart';
+
 class SocialPlayer {
   const SocialPlayer({
     required this.publicId,
@@ -478,10 +480,7 @@ class SocialApiClient {
       );
     }
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw const SocialApiException(401, 'A Firebase session is required.');
-    }
+    final user = await FirebaseSessionService.ensureAnonymousSession();
 
     final String? idToken;
     try {

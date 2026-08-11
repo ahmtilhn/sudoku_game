@@ -145,6 +145,8 @@ class AppStrings {
     'countries': 'Countries',
     'global': 'Global',
     'leaderboard_empty': 'No leaderboard entries yet.',
+    'leaderboard_empty_hint':
+        'Sudoku Duel ELO fills after ranked online matches are completed.',
     'leaderboard_row': '%1d games · %2d%% win rate',
     'refresh': 'Refresh',
     'ready': 'Ready',

@@ -136,7 +136,13 @@ void main() {
       expect(source, contains('_platformLeaderboards.show(_selectedScope)'));
       expect(source, contains('Sudoku Duel ELO'));
       expect(source, contains('native_leaderboard_short'));
+      expect(source, contains('leaderboard_empty_hint'));
       expect(source, isNot(contains('entry.copyWith(rank:')));
+
+      final api = File(
+        'lib/services/competitive_leaderboard_api.dart',
+      ).readAsStringSync();
+      expect(api, contains('FirebaseSessionService.ensureAnonymousSession()'));
     },
   );
 }

@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import '../domain/sudoku_variant.dart';
+import 'firebase_session_service.dart';
 import 'social_api_client.dart';
 
 class VariantMatchmakingResult {
@@ -93,10 +93,7 @@ class VariantMatchmakingClient {
     required String difficulty,
     required SudokuVariant variant,
   }) {
-    return <String, Object>{
-      'difficulty': difficulty,
-      ...variant.toJson(),
-    };
+    return <String, Object>{'difficulty': difficulty, ...variant.toJson()};
   }
 
   Future<VariantMatchmakingResult> joinRankedQueue({
@@ -119,10 +116,7 @@ class VariantMatchmakingClient {
     Map<String, Object?>? body,
   }) async {
     if (!configured) {
-      throw const SocialApiException(
-        0,
-        'The social service is unavailable.',
-      );
+      throw const SocialApiException(0, 'The social service is unavailable.');
     }
 
     final token = await _tokenProvider().timeout(_timeout);
@@ -186,10 +180,7 @@ class VariantMatchmakingClient {
   }
 
   static Future<String> _firebaseToken() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      throw const SocialApiException(401, 'A player session is required.');
-    }
+    final user = await FirebaseSessionService.ensureAnonymousSession();
     final token = await user.getIdToken();
     if (token == null || token.isEmpty) {
       throw const SocialApiException(401, 'The player session is unavailable.');
