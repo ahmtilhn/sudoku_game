@@ -160,39 +160,52 @@ class _ProfileQuickStats extends StatelessWidget {
     final games = profile.wins + profile.losses + profile.draws;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - 16) / 3;
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            SizedBox(
-              width: itemWidth,
-              child: _MetricTile(
-                label: context.tr('season_peak'),
-                value: '${profile.seasonPeak}',
-                asset: DuelAsset.leaderboardCrownPro,
-                color: const Color(0xFF66C7FF),
-              ),
+        final compact = constraints.maxWidth < 460;
+        final itemWidth = compact
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 16) / 3;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .16),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: .06)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                SizedBox(
+                  width: itemWidth,
+                  child: _MetricTile(
+                    label: context.tr('season_peak'),
+                    value: '${profile.seasonPeak}',
+                    asset: DuelAsset.leaderboardCrownPro,
+                    color: const Color(0xFF66C7FF),
+                  ),
+                ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _MetricTile(
+                    label: context.tr('win_rate'),
+                    value: '${(profile.winRate * 100).round()}%',
+                    asset: DuelAsset.trophy,
+                    color: const Color(0xFF29D398),
+                  ),
+                ),
+                SizedBox(
+                  width: itemWidth,
+                  child: _MetricTile(
+                    label: platformPlayer == null ? 'Account' : 'Platform',
+                    value: platformPlayer == null ? '$games games' : 'Linked',
+                    asset: DuelAsset.profilePro,
+                    color: const Color(0xFFB7A9FF),
+                  ),
+                ),
+              ],
             ),
-            SizedBox(
-              width: itemWidth,
-              child: _MetricTile(
-                label: context.tr('win_rate'),
-                value: '${(profile.winRate * 100).round()}%',
-                asset: DuelAsset.trophy,
-                color: const Color(0xFF29D398),
-              ),
-            ),
-            SizedBox(
-              width: itemWidth,
-              child: _MetricTile(
-                label: platformPlayer == null ? 'Account' : 'Platform',
-                value: platformPlayer == null ? '$games games' : 'Linked',
-                asset: DuelAsset.profilePro,
-                color: const Color(0xFFB7A9FF),
-              ),
-            ),
-          ],
+          ),
         );
       },
     );
@@ -216,18 +229,17 @@ class _MetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .18),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: .18)),
+        color: color.withValues(alpha: .07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: .15)),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 11),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+        child: Row(
           children: [
             Container(
-              width: 32,
-              height: 32,
+              width: 34,
+              height: 34,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: .12),
@@ -235,26 +247,34 @@ class _MetricTile extends StatelessWidget {
               ),
               child: DuelAssetIcon(asset, size: 20, color: color),
             ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .58),
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .58),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -343,22 +363,32 @@ class _ProfileActionGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 560 ? 2 : 1;
-        final width = (constraints.maxWidth - ((columns - 1) * 10)) / columns;
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            for (final tab in tabs)
-              SizedBox(
-                width: width,
-                child: _ProfileActionCard(
-                  tab: tab,
-                  selected: selected == tab.tab,
-                  onSelected: () => onSelected(tab.tab),
-                ),
-              ),
-          ],
+        final columns = constraints.maxWidth >= 600 ? 2 : 1;
+        final width = (constraints.maxWidth - ((columns - 1) * 9)) / columns;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .13),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: .055)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Wrap(
+              spacing: 9,
+              runSpacing: 9,
+              children: [
+                for (final tab in tabs)
+                  SizedBox(
+                    width: width,
+                    child: _ProfileActionCard(
+                      tab: tab,
+                      selected: selected == tab.tab,
+                      onSelected: () => onSelected(tab.tab),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -385,71 +415,79 @@ class _ProfileActionCard extends StatelessWidget {
           onSelected();
           tab.onOpen();
         },
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: Ink(
-          padding: const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(13),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: selected ? .065 : .04),
-            borderRadius: BorderRadius.circular(18),
+            color: tab.accent.withValues(alpha: selected ? .10 : .06),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: tab.accent.withValues(alpha: selected ? .46 : .22),
+              color: tab.accent.withValues(alpha: selected ? .36 : .16),
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: tab.accent.withValues(alpha: .14),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: DuelAssetIcon(tab.asset, size: 36),
-                  ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tab.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          tab.subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .62),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right_rounded, color: tab.accent),
-                ],
+              Container(
+                width: 46,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: tab.accent.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: tab.accent.withValues(alpha: .14)),
+                ),
+                child: DuelAssetIcon(tab.asset, size: 31),
               ),
-              const SizedBox(height: 12),
-              Text(
-                tab.metric,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: tab.accent,
-                  fontWeight: FontWeight.w900,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tab.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      tab.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .58),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: tab.accent.withValues(alpha: .18)),
+                ),
+                child: Text(
+                  tab.metric,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: tab.accent,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right_rounded, color: tab.accent, size: 22),
             ],
           ),
         ),

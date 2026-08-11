@@ -407,6 +407,13 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 6),
         children: [
+          _LeaderboardSummaryStrip(
+            entries: _entries,
+            current: _currentPlayer,
+            currentRank: _effectiveCurrentRank(),
+            audience: _audience,
+          ),
+          const SizedBox(height: 9),
           if (showPodium) ...[
             _Podium(entries: _entries.take(3).toList(growable: false)),
             const SizedBox(height: 9),
@@ -907,6 +914,158 @@ class _CurrentOnlyCard extends StatelessWidget {
   }
 }
 
+class _LeaderboardSummaryStrip extends StatelessWidget {
+  const _LeaderboardSummaryStrip({
+    required this.entries,
+    required this.current,
+    required this.currentRank,
+    required this.audience,
+  });
+
+  final List<CompetitiveLeaderboardEntry> entries;
+  final CompetitiveLeaderboardCurrentPlayer? current;
+  final int? currentRank;
+  final _LeaderboardAudience audience;
+
+  @override
+  Widget build(BuildContext context) {
+    final top = entries.isEmpty ? null : entries.first;
+    final audienceLabel = switch (audience) {
+      _LeaderboardAudience.world => context.tr('world'),
+      _LeaderboardAudience.friends => context.tr('friends'),
+      _LeaderboardAudience.aroundMe => context.tr('you'),
+    };
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .17),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .06)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 560;
+            final columns = compact ? 1 : 3;
+            final width =
+                (constraints.maxWidth - ((columns - 1) * 8)) / columns;
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                SizedBox(
+                  width: width,
+                  child: _SummaryCell(
+                    label: 'Top player',
+                    value: top == null ? '-' : top.displayName,
+                    detail: top == null ? 'No score' : '${top.rating} ELO',
+                    asset: DuelAsset.leaderboardCrownPro,
+                    color: const Color(0xFF66C7FF),
+                  ),
+                ),
+                SizedBox(
+                  width: width,
+                  child: _SummaryCell(
+                    label: context.tr('rank'),
+                    value: currentRank == null ? '-' : '#$currentRank',
+                    detail: current == null
+                        ? 'No ELO'
+                        : '${current!.rating} ELO',
+                    asset: DuelAsset.profilePro,
+                    color: const Color(0xFFB7A9FF),
+                  ),
+                ),
+                SizedBox(
+                  width: width,
+                  child: _SummaryCell(
+                    label: 'Board',
+                    value: audienceLabel,
+                    detail: '${entries.length} shown',
+                    asset: DuelAsset.people,
+                    color: const Color(0xFF29D398),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryCell extends StatelessWidget {
+  const _SummaryCell({
+    required this.label,
+    required this.value,
+    required this.detail,
+    required this.asset,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final String detail;
+  final String asset;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: .15)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: DuelAssetIcon(asset, size: 21, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$label · $detail',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .56),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Podium extends StatelessWidget {
   const _Podium({required this.entries});
 
@@ -1013,16 +1172,17 @@ class _LeaderboardEntryTile extends StatelessWidget {
     final accent = entry.rank <= 3 && !entry.isProvisional
         ? const Color(0xFF66C7FF)
         : const Color(0xFFB7A9FF);
+    final winRate = '${(entry.winRate * 100).round()}%';
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(17),
         onTap: onTap,
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: .20),
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.black.withValues(alpha: .22),
+            borderRadius: BorderRadius.circular(17),
             border: Border.all(color: accent.withValues(alpha: .18)),
           ),
           child: Row(
@@ -1091,7 +1251,7 @@ class _LeaderboardEntryTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${context.tr('wins_losses_draws')} ${entry.wins}/${entry.losses}/${entry.draws}'
-                      '${entry.winStreak > 0 ? ' · 🔥${entry.winStreak}' : ''}',
+                      '${entry.winStreak > 0 ? ' · Streak ${entry.winStreak}' : ''}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -1121,6 +1281,28 @@ class _LeaderboardEntryTile extends StatelessWidget {
                       color: Colors.white.withValues(alpha: .42),
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF29D398).withValues(alpha: .10),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: const Color(0xFF29D398).withValues(alpha: .16),
+                      ),
+                    ),
+                    child: Text(
+                      winRate,
+                      style: const TextStyle(
+                        color: Color(0xFF29D398),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                 ],

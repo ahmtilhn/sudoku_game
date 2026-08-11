@@ -40,35 +40,16 @@ class CompetitiveProfileCard extends StatelessWidget {
             rankName: profile.rankName,
           ),
           const SizedBox(height: 14),
-          _RatingPanel(profile: profile),
+          _RatingPanel(
+            profile: profile,
+            gamesPlayed: gamesPlayed,
+            winRate: winRate,
+          ),
           const SizedBox(height: 12),
-          _ProfileStatGrid(
-            stats: [
-              _ProfileStatData(
-                asset: DuelAsset.trophy,
-                value: '${profile.wins}',
-                label: 'Wins',
-                accent: const Color(0xFF66C7FF),
-              ),
-              _ProfileStatData(
-                asset: DuelAsset.grid,
-                value: '${profile.losses}',
-                label: 'Losses',
-                accent: const Color(0xFFB7A9FF),
-              ),
-              _ProfileStatData(
-                asset: DuelAsset.grid,
-                value: '$gamesPlayed',
-                label: 'Games',
-                accent: const Color(0xFF3AA9FF),
-              ),
-              _ProfileStatData(
-                asset: DuelAsset.people,
-                value: winRate,
-                label: context.tr('win_rate'),
-                accent: const Color(0xFF29D398),
-              ),
-            ],
+          _ProfilePerformanceStrip(
+            profile: profile,
+            gamesPlayed: gamesPlayed,
+            winRate: winRate,
           ),
           const SizedBox(height: 12),
           _AchievementSummary(profile: profile),
@@ -334,31 +315,78 @@ class _FriendIdPill extends StatelessWidget {
   }
 }
 
-class _ProfileStatGrid extends StatelessWidget {
-  const _ProfileStatGrid({required this.stats});
+class _ProfilePerformanceStrip extends StatelessWidget {
+  const _ProfilePerformanceStrip({
+    required this.profile,
+    required this.gamesPlayed,
+    required this.winRate,
+  });
 
-  final List<_ProfileStatData> stats;
+  final CompetitiveProfile profile;
+  final int gamesPlayed;
+  final String winRate;
 
   @override
   Widget build(BuildContext context) {
+    final cells = [
+      _PerformanceCellData(
+        label: 'Wins',
+        value: '${profile.wins}',
+        asset: DuelAsset.trophy,
+        accent: const Color(0xFF66C7FF),
+      ),
+      _PerformanceCellData(
+        label: 'Losses',
+        value: '${profile.losses}',
+        asset: DuelAsset.grid,
+        accent: const Color(0xFFB7A9FF),
+      ),
+      _PerformanceCellData(
+        label: 'Games',
+        value: '$gamesPlayed',
+        asset: DuelAsset.grid,
+        accent: const Color(0xFF3AA9FF),
+      ),
+      _PerformanceCellData(
+        label: context.tr('win_rate'),
+        value: winRate,
+        asset: DuelAsset.people,
+        accent: const Color(0xFF29D398),
+      ),
+    ];
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth < 460 ? 2 : 4;
-        final width = (constraints.maxWidth - ((columns - 1) * 8)) / columns;
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final stat in stats) SizedBox(width: width, child: stat),
-          ],
+        final compact = constraints.maxWidth < 440;
+        final columns = compact ? 2 : 4;
+        final width = (constraints.maxWidth - ((columns - 1) * 7)) / columns;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .15),
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: Colors.white.withValues(alpha: .06)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(7),
+            child: Wrap(
+              spacing: 7,
+              runSpacing: 7,
+              children: [
+                for (final cell in cells)
+                  SizedBox(
+                    width: width,
+                    child: _PerformanceCell(data: cell),
+                  ),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 }
 
-class _ProfileStatData extends StatelessWidget {
-  const _ProfileStatData({
+class _PerformanceCellData {
+  const _PerformanceCellData({
     required this.asset,
     required this.value,
     required this.label,
@@ -369,41 +397,54 @@ class _ProfileStatData extends StatelessWidget {
   final String value;
   final String label;
   final Color accent;
+}
+
+class _PerformanceCell extends StatelessWidget {
+  const _PerformanceCell({required this.data});
+
+  final _PerformanceCellData data;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .045),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accent.withValues(alpha: .18)),
+        color: data.accent.withValues(alpha: .075),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: data.accent.withValues(alpha: .16)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(11),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        child: Row(
           children: [
-            DuelAssetIcon(asset, size: 20, color: accent),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 21,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .58),
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+            DuelAssetIcon(data.asset, size: 18, color: data.accent),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data.value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    data.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .58),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -414,9 +455,15 @@ class _ProfileStatData extends StatelessWidget {
 }
 
 class _RatingPanel extends StatelessWidget {
-  const _RatingPanel({required this.profile});
+  const _RatingPanel({
+    required this.profile,
+    required this.gamesPlayed,
+    required this.winRate,
+  });
 
   final CompetitiveProfile profile;
+  final int gamesPlayed;
+  final String winRate;
 
   @override
   Widget build(BuildContext context) {
@@ -426,14 +473,14 @@ class _RatingPanel extends StatelessWidget {
     final remaining = (nextMilestone - profile.currentElo).clamp(0, 9999);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .22),
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.black.withValues(alpha: .26),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: const Color(0xFF66C7FF).withValues(alpha: .24),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -443,12 +490,12 @@ class _RatingPanel extends StatelessWidget {
                 final identity = Row(
                   children: [
                     Container(
-                      width: 54,
-                      height: 54,
+                      width: 58,
+                      height: 58,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: const Color(0xFF66C7FF).withValues(alpha: .12),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: const Color(0xFF66C7FF).withValues(alpha: .22),
                         ),
@@ -469,7 +516,7 @@ class _RatingPanel extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 18,
+                              fontSize: 19,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -498,7 +545,7 @@ class _RatingPanel extends StatelessWidget {
                       '${profile.currentElo}',
                       style: const TextStyle(
                         color: Color(0xFF66C7FF),
-                        fontSize: 34,
+                        fontSize: 42,
                         height: .95,
                         fontWeight: FontWeight.w900,
                       ),
@@ -529,6 +576,28 @@ class _RatingPanel extends StatelessWidget {
               },
             ),
             const SizedBox(height: 14),
+            Wrap(
+              spacing: 7,
+              runSpacing: 7,
+              children: [
+                _EloMicroMetric(
+                  label: context.tr('season_peak'),
+                  value: '${profile.seasonPeak}',
+                  color: const Color(0xFFB7A9FF),
+                ),
+                _EloMicroMetric(
+                  label: context.tr('win_rate'),
+                  value: winRate,
+                  color: const Color(0xFF29D398),
+                ),
+                _EloMicroMetric(
+                  label: 'Record',
+                  value: '$gamesPlayed games',
+                  color: const Color(0xFF3AA9FF),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
@@ -551,7 +620,9 @@ class _RatingPanel extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '$remaining ELO to $nextMilestone',
+                    remaining == 0
+                        ? 'Milestone reached'
+                        : '$remaining ELO to $nextMilestone',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -573,6 +644,58 @@ class _RatingPanel extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EloMicroMetric extends StatelessWidget {
+  const _EloMicroMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 7),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .55),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
