@@ -18,6 +18,10 @@ jobs:
   validate-build-record:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      APP_ENVIRONMENT: production
+      BUILD_COMMIT: ${{ github.sha }}
+      SOCIAL_BACKEND_URL: ${{ vars.PRODUCTION_SOCIAL_BACKEND_URL }}
 
     steps:
       - name: Check out main
@@ -44,6 +48,13 @@ jobs:
           channel: stable
           cache: true
           pub-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/social_worker/package-lock.json
 
       - name: Resolve packages
         run: flutter pub get
@@ -96,12 +107,26 @@ jobs:
           print(f'Validated Flutter tests: {count}')
           PY
 
+      - name: Worker validation
+        working-directory: backend/social_worker
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run puzzles:verify
+
       - name: Build debug APK
         run: flutter build apk --debug
 
       - name: Verify Android release configuration
         shell: pwsh
         run: ./tool/verify_android_release_config.ps1
+
+      - name: Require production backend URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SOCIAL_BACKEND_URL"
 
       - name: Create ephemeral CI upload key
         shell: bash
@@ -122,8 +147,12 @@ jobs:
           keyPassword=changeit
           EOF
 
-      - name: Build standard release AAB
-        run: flutter build appbundle --release
+      - name: Build production release AAB
+        run: >-
+          flutter build appbundle --release
+          --dart-define=APP_ENVIRONMENT=${APP_ENVIRONMENT}
+          --dart-define=SOCIAL_BACKEND_URL=${SOCIAL_BACKEND_URL}
+          --dart-define=BUILD_COMMIT=${BUILD_COMMIT}
 
       - name: Inspect release AAB
         shell: pwsh
@@ -167,7 +196,8 @@ jobs:
           - Flutter analyzer with fatal infos: **passed**
           - Flutter tests: **$TEST_COUNT passed**
           - Debug APK build: **passed**
-          - Standard \`flutter build appbundle --release\`: **passed**
+          - Backend typecheck/tests/puzzle verification: **passed**
+          - Production \`flutter build appbundle --release\` with explicit dart-defines: **passed**
           - Android release configuration inspection: **passed**
           - Release AAB content/signature inspection: **passed**
           - Debug artifact: \`sudoku-duel-0.1.9-22-debug-apk-final\`

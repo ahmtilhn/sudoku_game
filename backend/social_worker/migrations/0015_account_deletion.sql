@@ -11,11 +11,4 @@ CREATE TABLE deleted_accounts (
 CREATE INDEX deleted_accounts_requested_idx
   ON deleted_accounts(requested_at DESC);
 
-CREATE TRIGGER prevent_deleted_account_recreation
-BEFORE INSERT ON players
-WHEN EXISTS (
-  SELECT 1 FROM deleted_accounts d WHERE d.firebase_uid = NEW.firebase_uid
-)
-BEGIN
-  SELECT RAISE(ABORT, 'account_deleted');
-END;
+CREATE TRIGGER prevent_deleted_account_recreation BEFORE INSERT ON players WHEN EXISTS ( SELECT 1 FROM deleted_accounts d WHERE d.firebase_uid = NEW.firebase_uid ) BEGIN SELECT RAISE(ABORT, 'account_deleted'); END;

@@ -27,6 +27,10 @@ jobs:
   verify-and-build:
     runs-on: ubuntu-latest
     timeout-minutes: 55
+    env:
+      APP_ENVIRONMENT: production
+      BUILD_COMMIT: ${{ github.sha }}
+      SOCIAL_BACKEND_URL: ${{ vars.PRODUCTION_SOCIAL_BACKEND_URL }}
 
     steps:
       - name: Check out main
@@ -77,6 +81,12 @@ jobs:
         shell: pwsh
         run: ./tool/verify_android_release_config.ps1
 
+      - name: Require production backend URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SOCIAL_BACKEND_URL"
+
       - name: Create ephemeral CI upload key
         shell: bash
         run: |
@@ -99,6 +109,9 @@ jobs:
       - name: Build release app bundle
         run: >-
           flutter build appbundle --release
+          --dart-define=APP_ENVIRONMENT=${APP_ENVIRONMENT}
+          --dart-define=SOCIAL_BACKEND_URL=${SOCIAL_BACKEND_URL}
+          --dart-define=BUILD_COMMIT=${BUILD_COMMIT}
           --dart-define=ADMOB_ANDROID_INTERSTITIAL_ID=${{ vars.ADMOB_ANDROID_INTERSTITIAL_ID }}
 
       - name: Inspect release app bundle

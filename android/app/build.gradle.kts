@@ -13,11 +13,6 @@ plugins {
     id("com.google.firebase.crashlytics")
 }
 
-val defaultSocialBackendUrl =
-    "https://sudoku-duel-social-staging.ilhanahmet246.workers.dev"
-val defaultSocialBackendDefine = Base64.getEncoder().encodeToString(
-    "SOCIAL_BACKEND_URL=$defaultSocialBackendUrl".toByteArray(Charsets.UTF_8),
-)
 val expectedPlayGamesProjectId = "917838292556"
 val expectedPlayGamesServerClientId =
     "917838292556-bbq7a36t2kulodpqfd9p3aqkkcs58jhj.apps.googleusercontent.com"
@@ -41,19 +36,6 @@ fun decodeDartDefines(rawValue: String): Map<String, String> {
             }
             decoded.substring(0, separator) to decoded.substring(separator + 1)
         }
-}
-
-fun withDefaultSocialBackend(rawValue: String?): String {
-    val entries = rawValue
-        ?.split(',')
-        ?.map(String::trim)
-        ?.filter(String::isNotEmpty)
-        .orEmpty()
-    val decoded = decodeDartDefines(entries.joinToString(","))
-    if (decoded["SOCIAL_BACKEND_URL"]?.isNotBlank() == true) {
-        return entries.joinToString(",")
-    }
-    return (entries + defaultSocialBackendDefine).joinToString(",")
 }
 
 val keystoreProperties = Properties()
@@ -150,29 +132,57 @@ flutter {
     source = "../.."
 }
 
-// Flutter supplies -Pdart-defines after project configuration. Mutating the
-// task only while Gradle is configuring it can therefore be overwritten by the
-// Flutter plugin/CLI. Merge the public staging endpoint in a doFirst action so
-// the exact value consumed by the release FlutterTask is guaranteed to contain
-// SOCIAL_BACKEND_URL. An explicit --dart-define still takes precedence.
+fun assertProductionReleaseDefines(defines: Map<String, String>) {
+    val appEnvironment = defines["APP_ENVIRONMENT"]?.trim().orEmpty()
+    if (appEnvironment != "production") {
+        throw GradleException(
+            "APP_ENVIRONMENT=production is required for release builds.",
+        )
+    }
+
+    val buildCommit = defines["BUILD_COMMIT"]?.trim().orEmpty()
+    if (!Regex("^[0-9a-fA-F]{7,40}$").matches(buildCommit)) {
+        throw GradleException(
+            "BUILD_COMMIT must be a 7-40 character Git commit SHA for release builds.",
+        )
+    }
+
+    val socialBackendUrl = defines["SOCIAL_BACKEND_URL"]?.trim().orEmpty()
+    val socialUri = runCatching { URI(socialBackendUrl) }.getOrNull()
+    val blockedBackend = listOf(
+        "localhost",
+        "127.0.0.1",
+        "replace_with",
+        "example",
+        "staging",
+        "test",
+    ).any { socialBackendUrl.lowercase().contains(it) }
+    if (socialUri == null ||
+        socialUri.scheme != "https" ||
+        socialUri.host.isNullOrBlank() ||
+        socialUri.userInfo != null ||
+        socialUri.query != null ||
+        socialUri.fragment != null ||
+        blockedBackend
+    ) {
+        throw GradleException(
+            "Release builds require an explicit production SOCIAL_BACKEND_URL HTTPS endpoint.",
+        )
+    }
+}
+
+// Flutter supplies -Pdart-defines after project configuration. Validate the
+// exact values consumed by the release FlutterTask so release builds cannot
+// silently fall back to staging.
 tasks.withType<FlutterTask>().configureEach {
     if (name.contains("Release", ignoreCase = true)) {
         doFirst {
-            val mergedDartDefines = withDefaultSocialBackend(dartDefines)
-            dartDefines = mergedDartDefines
-            val effectiveDefines = decodeDartDefines(mergedDartDefines)
-            val effectiveBackend = effectiveDefines["SOCIAL_BACKEND_URL"]
-                ?.trim()
-                .orEmpty()
-            if (effectiveBackend.isEmpty()) {
-                throw GradleException(
-                    "Release FlutterTask is missing SOCIAL_BACKEND_URL after final task configuration.",
-                )
-            }
+            val effectiveDefines = decodeDartDefines(dartDefines.orEmpty())
+            assertProductionReleaseDefines(effectiveDefines)
             logger.lifecycle(
-                "Release FlutterTask {} uses SOCIAL_BACKEND_URL={}",
+                "Release FlutterTask {} uses production SOCIAL_BACKEND_URL={}",
                 name,
-                effectiveBackend,
+                effectiveDefines["SOCIAL_BACKEND_URL"],
             )
         }
     }
@@ -220,6 +230,8 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
 
         val blockedReleaseValues = mapOf(
             "Google test AdMob App ID" to "ca-app-pub-3940256099942544~",
+            "Meta App ID placeholder" to "000000000000000",
+            "Meta client token placeholder" to "REPLACE_WITH_META_CLIENT_TOKEN",
             "Play Games project placeholder" to "REPLACE_WITH_PLAY_GAMES_PROJECT_ID",
             "Play Games OAuth placeholder" to "REPLACE_WITH_PLAY_GAMES_WEB_CLIENT_ID",
         )
@@ -294,31 +306,13 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
         // and Firebase Authentication's Play Games provider. Never commit its
         // client secret to source control.
 
-        val effectiveDartDefines = try {
-            withDefaultSocialBackend(
-                project.findProperty("dart-defines")?.toString(),
-            )
+        val dartDefines = try {
+            decodeDartDefines(project.findProperty("dart-defines")?.toString().orEmpty())
         } catch (error: IllegalArgumentException) {
             throw GradleException("Unable to decode dart-defines for release validation.", error)
         }
-        val dartDefines = decodeDartDefines(effectiveDartDefines)
-        val socialBackendUrl = dartDefines["SOCIAL_BACKEND_URL"]?.trim().orEmpty()
-        val socialUri = runCatching { URI(socialBackendUrl) }.getOrNull()
-        val blockedBackend = listOf("localhost", "127.0.0.1", "replace_with", "example")
-            .any { socialBackendUrl.lowercase().contains(it) }
-        if (socialUri == null ||
-            socialUri.scheme != "https" ||
-            socialUri.host.isNullOrBlank() ||
-            socialUri.userInfo != null ||
-            socialUri.query != null ||
-            socialUri.fragment != null ||
-            blockedBackend
-        ) {
-            throw GradleException(
-                "SOCIAL_BACKEND_URL must be a real HTTPS endpoint. " +
-                    "The normal 'flutter build appbundle --release' command injects the configured staging default when no override is supplied.",
-            )
-        }
+        assertProductionReleaseDefines(dartDefines)
+        val socialUri = URI(dartDefines["SOCIAL_BACKEND_URL"])
 
         logger.lifecycle(
             "Verified release services: Firebase={}, PlayGames={}, serverOAuth={}, backend={}",

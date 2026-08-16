@@ -14,16 +14,20 @@ Sudoku Duel uses Google Mobile Ads as the only client ad request layer.
 - Meta Audience Network is configured as bidding-only.
 - Meta App Events is a separate measurement SDK. It remains disabled in the checked-in configuration until real Meta credentials and an explicit production build flag are supplied.
 
-## Checked-in development safety
+## Checked-in AdMob release identifiers
 
-The repository intentionally contains Google test IDs:
+The checked-in platform files and release defaults use production AdMob identifiers:
 
-- Android AdMob application ID: `ca-app-pub-3940256099942544~3347511713`
-- iOS AdMob application ID: `ca-app-pub-3940256099942544~1458002511`
-- Android rewarded unit: `ca-app-pub-3940256099942544/5224354917`
-- iOS rewarded unit: `ca-app-pub-3940256099942544/1712485313`
+- Android AdMob application ID: `ca-app-pub-8422988604275177~6950938184`
+- iOS AdMob application ID: `ca-app-pub-8422988604275177~3293784266`
+- Android rewarded unit: `ca-app-pub-8422988604275177/3474727600`
+- Android rewarded interstitial unit: `ca-app-pub-8422988604275177/4787809275`
+- iOS rewarded unit: `ca-app-pub-8422988604275177/3366916396`
+- iOS rewarded interstitial unit: `ca-app-pub-8422988604275177/4982984468`
 
-Never publish a store build while these test application IDs remain in the platform files.
+Debug builds still fall back to Google's official test units in `AdsService`; release
+builds use the production defaults above unless overridden with dart defines.
+Never publish a store build that contains Google's test App ID or test unit IDs.
 
 Meta placeholders are deliberately invalid and all automatic Meta collection flags are false. This prevents accidental event transmission from development builds.
 
@@ -135,7 +139,7 @@ Do not log virtual currency purchases or competitive results solely from untrust
 
 `Info.plist` contains:
 
-- the Google test application ID;
+- the production Google Mobile Ads application ID;
 - `NSUserTrackingUsageDescription`;
 - the current Google-published SKAdNetwork list;
 - disabled Meta automatic collection flags.

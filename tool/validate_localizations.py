@@ -43,10 +43,13 @@ def dart_keys() -> set[str]:
     return set(re.findall(r"^\s*'([a-z0-9_]+)'\s*:", block, re.MULTILINE))
 
 
-def android_keys() -> set[str]:
+PLACEHOLDER_PATTERN = re.compile(r"%(\d+\$?)?[sd]")
+
+
+def android_values() -> dict[str, str]:
     root = ET.parse(ANDROID_PATH).getroot()
     return {
-        node.attrib["name"]
+        node.attrib["name"]: "".join(node.itertext())
         for node in root.findall("string")
         if "name" in node.attrib
     }
@@ -58,6 +61,47 @@ def ios_catalog_keys() -> set[str]:
     if not isinstance(strings, dict):
         fail("The iOS String Catalog does not contain a strings object")
     return set(strings)
+
+
+def android_placeholder_errors(
+    dart_values: dict[str, str],
+    native_values: dict[str, str],
+) -> list[str]:
+    errors: list[str] = []
+    for key in sorted(set(dart_values) & set(native_values)):
+        dart_placeholders = sorted(
+            value.rstrip("$")
+            for value in PLACEHOLDER_PATTERN.findall(dart_values[key])
+        )
+        android_placeholders = sorted(
+            value.rstrip("$")
+            for value in PLACEHOLDER_PATTERN.findall(native_values[key])
+        )
+        if dart_placeholders != android_placeholders:
+            errors.append(
+                f"Android placeholder mismatch for {key}: "
+                f"Dart={dart_placeholders}, Android={android_placeholders}"
+            )
+    return errors
+
+
+def dart_values() -> dict[str, str]:
+    source = DART_PATH.read_text(encoding="utf-8")
+    start = source.find("static const Map<String, String> english")
+    if start < 0:
+        fail("Could not find the English localization map in app_strings.dart")
+    end = source.find("\n  };", start)
+    if end < 0:
+        fail("Could not find the end of the English localization map")
+    block = source[start:end]
+    values: dict[str, str] = {}
+    for match in re.finditer(
+        r"^\s*'([a-z0-9_]+)'\s*:\s*'((?:\\'|[^'])*)'",
+        block,
+        re.MULTILINE,
+    ):
+        values[match.group(1)] = match.group(2)
+    return values
 
 
 def describe_difference(
@@ -89,13 +133,24 @@ def main() -> None:
         fail("Missing localization files: " + ", ".join(missing_files))
 
     dart = dart_keys()
-    android = android_keys()
+    dart_text = dart_values()
+    android_text = android_values()
+    android = set(android_text)
     ios = ios_catalog_keys()
 
     errors = [
-        *describe_difference("Dart", dart, "Android", android),
         *describe_difference("Dart", dart, "iOS catalog", ios),
     ]
+
+    android_extra = sorted(android - dart)
+    if android_extra:
+        errors.append(
+            "Android has user-facing keys not present in Dart: "
+            + ", ".join(android_extra)
+        )
+    errors.extend(
+        android_placeholder_errors(dart_text, android_text)
+    )
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
@@ -106,7 +161,8 @@ def main() -> None:
 
     print(
         "Localization sources are synchronized: "
-        f"{len(dart)} English keys across Dart, Android, and iOS."
+        f"{len(dart)} Dart/iOS English keys; "
+        f"{len(android)} Android native keys validated as a Dart-backed subset."
     )
 
 

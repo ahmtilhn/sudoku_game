@@ -251,7 +251,7 @@ class SocialApiClient {
     final configured = _configuredBaseUrl.trim();
     final selected = configured.isNotEmpty
         ? configured
-        : defaultSocialBackendUrl;
+        : (kDebugMode ? defaultSocialBackendUrl : '');
     return _withoutTrailingSlashes(selected);
   }
 

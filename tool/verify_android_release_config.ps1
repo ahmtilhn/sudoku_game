@@ -11,12 +11,18 @@ $expectedFirebaseAppId = "1:31445697560:android:ed951eabf51d75800b2f6d"
 $expectedPlayGamesProjectId = "917838292556"
 $expectedPlayGamesServerClientId = "917838292556-bbq7a36t2kulodpqfd9p3aqkkcs58jhj.apps.googleusercontent.com"
 $expectedPlaySigningSha1 = "C0:4C:3A:AB:7D:76:6C:2E:87:C9:53:98:EB:4B:59:97:52:CD:25:A1"
+$expectedAndroidAdMobAppId = "ca-app-pub-8422988604275177~6950938184"
+$expectedIosAdMobAppId = "ca-app-pub-8422988604275177~3293784266"
+$expectedIosRewardedId = "ca-app-pub-8422988604275177/3366916396"
+$expectedIosRewardedInterstitialId = "ca-app-pub-8422988604275177/4982984468"
 
 $googleServicesPath = Join-Path $ProjectRoot "android\app\google-services.json"
 $servicesXmlPath = Join-Path $ProjectRoot "android\app\src\main\res\values\services.xml"
 $buildGradlePath = Join-Path $ProjectRoot "android\app\build.gradle.kts"
+$iosInfoPlistPath = Join-Path $ProjectRoot "ios\Runner\Info.plist"
+$adsServicePath = Join-Path $ProjectRoot "lib\services\ads_service.dart"
 
-foreach ($path in @($googleServicesPath, $servicesXmlPath, $buildGradlePath)) {
+foreach ($path in @($googleServicesPath, $servicesXmlPath, $buildGradlePath, $iosInfoPlistPath, $adsServicePath)) {
   if (!(Test-Path -LiteralPath $path)) {
     throw "Required release configuration file is missing: $path"
   }
@@ -65,39 +71,76 @@ if ($playGamesServerClientId -ne $expectedPlayGamesServerClientId) {
 # stored in this repository.
 
 $buildGradleText = Get-Content -LiteralPath $buildGradlePath -Raw
-$backendMatch = [regex]::Match(
-  $buildGradleText,
-  '(?s)val\s+defaultSocialBackendUrl\s*=\s*"([^"]+)"'
-)
-if (!$backendMatch.Success) {
-  throw "build.gradle.kts does not define the default Android social backend."
+if ($buildGradleText -match 'defaultSocialBackendUrl' -or
+    $buildGradleText -match 'withDefaultSocialBackend' -or
+    $buildGradleText -match 'sudoku-duel-social-staging') {
+  throw "Release build.gradle.kts must not define or inject a staging social backend fallback."
 }
 if ($buildGradleText -notmatch 'tasks\.withType<FlutterTask>\(\)' -or
-    $buildGradleText -notmatch 'withDefaultSocialBackend\(dartDefines\)') {
-  throw "The release Flutter task does not merge the default SOCIAL_BACKEND_URL."
+    $buildGradleText -notmatch 'assertProductionReleaseDefines\(effectiveDefines\)') {
+  throw "The release Flutter task does not validate explicit production dart-defines."
+}
+foreach ($requiredDefine in @('APP_ENVIRONMENT=production', 'BUILD_COMMIT', 'SOCIAL_BACKEND_URL')) {
+  if ($buildGradleText -notmatch [regex]::Escape($requiredDefine)) {
+    throw "build.gradle.kts does not require $requiredDefine for release builds."
+  }
+}
+if ($servicesText -match 'REPLACE_WITH_META_CLIENT_TOKEN|000000000000000|fb000000000000000') {
+  throw "Android release services.xml still contains Meta placeholder values."
 }
 if ($buildGradleText -notmatch [regex]::Escape($expectedPlayGamesServerClientId)) {
   throw "build.gradle.kts does not pin the expected Play Games game-server OAuth client."
 }
 
-$backendUrl = $backendMatch.Groups[1].Value
-$backendUri = $null
-if (![Uri]::TryCreate($backendUrl, [UriKind]::Absolute, [ref]$backendUri) -or
-    $backendUri.Scheme -ne "https" -or
-    [string]::IsNullOrWhiteSpace($backendUri.Host) -or
-    $backendUri.UserInfo -or
-    $backendUri.Query -or
-    $backendUri.Fragment -or
-    $backendUrl -match "localhost|127\.0\.0\.1|replace_with|example") {
-  throw "The default SOCIAL_BACKEND_URL must be a real HTTPS endpoint without credentials or query data."
+$androidAdMobAppId = Read-XmlString "admob_app_id"
+if ($androidAdMobAppId -ne $expectedAndroidAdMobAppId) {
+  throw "Android AdMob App ID must be $expectedAndroidAdMobAppId."
+}
+
+$iosInfoPlistText = Get-Content -LiteralPath $iosInfoPlistPath -Raw
+if ($iosInfoPlistText -notmatch [regex]::Escape("<key>GADApplicationIdentifier</key>") -or
+    $iosInfoPlistText -notmatch [regex]::Escape("<string>$expectedIosAdMobAppId</string>")) {
+  throw "iOS Info.plist must contain production GADApplicationIdentifier $expectedIosAdMobAppId."
+}
+if ($iosInfoPlistText -match "ca-app-pub-3940256099942544") {
+  throw "iOS Info.plist still contains a Google test AdMob ID."
+}
+
+$adsServiceText = Get-Content -LiteralPath $adsServicePath -Raw
+foreach ($expectedAdUnit in @($expectedIosRewardedId, $expectedIosRewardedInterstitialId)) {
+  if ($adsServiceText -notmatch [regex]::Escape($expectedAdUnit)) {
+    throw "AdsService does not contain expected iOS production AdMob unit $expectedAdUnit."
+  }
+}
+
+$backendUrl = $env:SOCIAL_BACKEND_URL
+if (![string]::IsNullOrWhiteSpace($backendUrl)) {
+  $backendUri = $null
+  if (![Uri]::TryCreate($backendUrl, [UriKind]::Absolute, [ref]$backendUri) -or
+      $backendUri.Scheme -ne "https" -or
+      [string]::IsNullOrWhiteSpace($backendUri.Host) -or
+      $backendUri.UserInfo -or
+      $backendUri.Query -or
+      $backendUri.Fragment -or
+      $backendUrl -match "localhost|127\.0\.0\.1|replace_with|example|staging|test") {
+    throw "SOCIAL_BACKEND_URL must be an explicit production HTTPS endpoint without credentials or query data."
+  }
 }
 
 Write-Host "Android release configuration verified."
 Write-Host "Firebase project : $expectedFirebaseProjectId ($expectedFirebaseProjectNumber)"
 Write-Host "Firebase app     : $expectedFirebaseAppId"
 Write-Host "Package          : $expectedPackage"
+Write-Host "Android AdMob    : $expectedAndroidAdMobAppId"
+Write-Host "iOS AdMob        : $expectedIosAdMobAppId"
+Write-Host "iOS rewarded     : $expectedIosRewardedId"
+Write-Host "iOS rewarded int : $expectedIosRewardedInterstitialId"
 Write-Host "Play Games ID    : $playGamesProjectId"
 Write-Host "Server OAuth     : $playGamesServerClientId"
-Write-Host "Social backend   : $($backendUri.GetLeftPart([UriPartial]::Authority))"
+if (![string]::IsNullOrWhiteSpace($backendUrl)) {
+  Write-Host "Social backend   : $($backendUri.GetLeftPart([UriPartial]::Authority))"
+} else {
+  Write-Host "Social backend   : explicit production dart-define required at build time"
+}
 Write-Host "Play signing SHA1: $expectedPlaySigningSha1"
 Write-Host "Console-only checks still required: Firebase Auth Play Games provider uses this client and current secret; Play Games Android credential/test access; Firebase App Check SHA-256."

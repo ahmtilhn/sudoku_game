@@ -3,6 +3,7 @@
 *.dart text eol=lf
 *.kts text eol=lf
 *.py text eol=lf
+*.sql text eol=lf
 *.swift text eol=lf
 
 docs/FULL_UX_AUDIT_2026-08.md whitespace=-trailing-space

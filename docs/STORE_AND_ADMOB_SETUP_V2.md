@@ -54,23 +54,24 @@ Current release blocker: the Worker decodes Apple `signedTransactionInfo` return
 - The client completes a store purchase only after the backend grant succeeds.
 - Purchase grants, source, environment, order/original transaction ID and Android consumption state are auditable in D1.
 
-## AdMob test units
+## AdMob release units
 
-The app defaults to Google's official test ad unit IDs unless release values are supplied with `--dart-define`:
+Release builds default to the production AdMob IDs checked into `AdsService`:
 
-- Android rewarded: `ca-app-pub-3940256099942544/5224354917`
-- iOS rewarded: `ca-app-pub-3940256099942544/1712485313`
-- Android rewarded interstitial: `ca-app-pub-3940256099942544/5354046379`
-- iOS rewarded interstitial: `ca-app-pub-3940256099942544/6978759866`
+- Android rewarded: `ca-app-pub-8422988604275177/3474727600`
+- Android rewarded interstitial: `ca-app-pub-8422988604275177/4787809275`
+- iOS rewarded: `ca-app-pub-8422988604275177/3366916396`
+- iOS rewarded interstitial: `ca-app-pub-8422988604275177/4982984468`
 
-Release overrides:
+Optional release overrides:
 
 - `ADMOB_ANDROID_REWARDED_ID`
 - `ADMOB_IOS_REWARDED_ID`
 - `ADMOB_ANDROID_REWARDED_INTERSTITIAL_ID`
 - `ADMOB_IOS_REWARDED_INTERSTITIAL_ID`
 
-Never ship Google's test App ID or test unit IDs in a production store build.
+Debug builds still use Google's official test ad unit IDs. Never ship Google's
+test App ID or test unit IDs in a production store build.
 
 ## AdMob Server-Side Verification
 
@@ -99,7 +100,7 @@ Non-secret variables:
 - `REQUIRE_APP_CHECK = "true"`
 - `GOOGLE_PLAY_PACKAGE_NAME = "com.devoviastudio.sudoku"`
 - `APPLE_BUNDLE_ID = "com.devoviastudio.sudoku"`
-- `ADMOB_REWARDED_AD_UNITS = "comma,separated,real,unit,ids"`
+- `ADMOB_REWARDED_AD_UNITS = "ca-app-pub-8422988604275177/3474727600,ca-app-pub-8422988604275177/4787809275,ca-app-pub-8422988604275177/3366916396,ca-app-pub-8422988604275177/4982984468"`
 
 Secrets:
 

@@ -1,0 +1,64 @@
+name = "sudoku-duel-social-production"
+main = "src/entry_v2.ts"
+compatibility_date = "2026-07-24"
+
+[vars]
+FIREBASE_PROJECT_ID = "focus-sweep-503417-d7"
+FIREBASE_PROJECT_NUMBER = "31445697560"
+FCM_PROJECT_ID = "focus-sweep-503417-d7"
+ALLOWED_ORIGIN = "*"
+ALLOWED_APP_CHECK_APP_IDS = "1:31445697560:android:ed951eabf51d75800b2f6d,1:31445697560:ios:1f72f9fe671c75340b2f6d,1:31445697560:ios:44db104825e7d34e0b2f6d"
+REQUIRE_APP_CHECK = "true"
+BUILD_COMMIT = "89ca04117742977f92566d48f6ea75d68d8bf3d7"
+ENVIRONMENT = "production"
+ALLOW_TEST_PURCHASE_GRANTS = "false"
+DEBUG_UNLIMITED_COINS = "false"
+GOOGLE_PLAY_PACKAGE_NAME = "com.devoviastudio.sudoku"
+GOOGLE_PUBSUB_AUDIENCE = "https://sudoku-duel-social-production.ilhanahmet246.workers.dev/v1/store/google/rtdn"
+APPLE_BUNDLE_ID = "com.devovia.sudokuduel"
+ADMOB_REWARDED_AD_UNITS = "ca-app-pub-8422988604275177/3474727600,ca-app-pub-8422988604275177/4787809275,ca-app-pub-8422988604275177/3366916396,ca-app-pub-8422988604275177/4982984468"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "sudoku-duel-social-production"
+database_id = "c4d343a7-fddf-444e-b492-a00fcde905e6"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["17 3 * * *"]
+
+[[durable_objects.bindings]]
+name = "GAME_ROOMS"
+class_name = "GameRoom"
+
+[[durable_objects.bindings]]
+name = "MATCHMAKING_QUEUE"
+class_name = "MatchmakingQueue"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["MatchmakingQueue"]
+
+# Configure secrets with Wrangler; never commit secret values:
+# wrangler secret put FCM_CLIENT_EMAIL --config wrangler.production.toml
+# wrangler secret put FCM_PRIVATE_KEY --config wrangler.production.toml
+# wrangler secret put GOOGLE_PLAY_CLIENT_EMAIL --config wrangler.production.toml
+# wrangler secret put GOOGLE_PLAY_PRIVATE_KEY --config wrangler.production.toml
+# wrangler secret put APPLE_IAP_ISSUER_ID --config wrangler.production.toml
+# wrangler secret put APPLE_IAP_KEY_ID --config wrangler.production.toml
+# wrangler secret put APPLE_IAP_PRIVATE_KEY --config wrangler.production.toml
+# APPLE_ROOT_CERTIFICATES_PEM must contain one or more trusted Apple root
+# certificates downloaded from Apple PKI, including BEGIN/END CERTIFICATE lines.
+# wrangler secret put APPLE_ROOT_CERTIFICATES_PEM --config wrangler.production.toml
+#
+# Google Play Pub/Sub push URL:
+#   https://sudoku-duel-social-production.ilhanahmet246.workers.dev/v1/store/google/rtdn
+# GOOGLE_PUBSUB_SERVICE_ACCOUNT must be set after the exact authenticated push
+# service account email is configured in Google Cloud Pub/Sub.
+#
+# App Store Server Notifications V2 URL:
+#   https://sudoku-duel-social-production.ilhanahmet246.workers.dev/v1/store/apple/notifications
