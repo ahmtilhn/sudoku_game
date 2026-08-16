@@ -242,16 +242,31 @@ class SocialApiClient {
   );
   static const String defaultSocialBackendUrl =
       'https://sudoku-duel-social-staging.ilhanahmet246.workers.dev';
+
+  static const String productionSocialBackendUrl =
+      'https://sudoku-duel-social-production.ilhanahmet246.workers.dev';
+
   static const Duration _requestTimeout = Duration(seconds: 15);
   static const Duration _appCheckTimeout = Duration(seconds: 5);
 
   final http.Client _client = http.Client();
 
-  static String get _baseUrl {
-    final configured = _configuredBaseUrl.trim();
+  static String get _baseUrl => resolveBaseUrlForTest(
+    configuredBaseUrl: _configuredBaseUrl,
+    debugMode: kDebugMode,
+  );
+
+  @visibleForTesting
+  static String resolveBaseUrlForTest({
+    required String configuredBaseUrl,
+    required bool debugMode,
+  }) {
+    final configured = configuredBaseUrl.trim();
+
     final selected = configured.isNotEmpty
         ? configured
-        : (kDebugMode ? defaultSocialBackendUrl : '');
+        : (debugMode ? defaultSocialBackendUrl : productionSocialBackendUrl);
+
     return _withoutTrailingSlashes(selected);
   }
 
