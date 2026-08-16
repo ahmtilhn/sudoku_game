@@ -4,19 +4,42 @@ This document separates the settings verified in source code from settings that 
 
 ## Supported release command
 
-The Android release Flutter task injects the public staging social-backend endpoint when no explicit `SOCIAL_BACKEND_URL` override is supplied. The standard Flutter command is therefore supported:
+Android release builds must be explicit production builds. The standard command without release `dart-define` values is intentionally blocked:
 
 ```powershell
-flutter clean
-flutter pub get
 flutter build appbundle --release
 ```
 
-Flutter supplies its own Gradle `dart-defines` project property on every build. The project merges the staging endpoint into the release task itself instead of relying on `android/gradle.properties`, which can be overridden by the Flutter CLI.
+Expected guard failure:
 
-The Gradle `preReleaseBuild` validation stops the build when the Firebase project, Android package, Firebase App ID, Play Games project, Play Games game-server OAuth client, or effective `SOCIAL_BACKEND_URL` is missing or inconsistent.
+```text
+Execution failed for task ':app:preReleaseBuild'.
+> APP_ENVIRONMENT=production is required for release builds.
+```
 
-The backend URL is a public service endpoint, not a secret. Production builds can override it with `--dart-define=SOCIAL_BACKEND_URL=https://...` when a production worker is available.
+Use this production AAB command:
+
+```powershell
+flutter build appbundle --release `
+  --dart-define=APP_ENVIRONMENT=production `
+  --dart-define=SOCIAL_BACKEND_URL=https://sudoku-duel-social-production.ilhanahmet246.workers.dev `
+  --dart-define=BUILD_COMMIT=<current-git-sha>
+```
+
+For the current release candidate:
+
+```powershell
+flutter build appbundle --release `
+  --dart-define=APP_ENVIRONMENT=production `
+  --dart-define=SOCIAL_BACKEND_URL=https://sudoku-duel-social-production.ilhanahmet246.workers.dev `
+  --dart-define=BUILD_COMMIT=89ca04117742977f92566d48f6ea75d68d8bf3d7
+```
+
+Flutter supplies its own Gradle `dart-defines` project property on every build. The release task validates the effective values supplied by Flutter instead of relying on `android/gradle.properties`, which can be overridden by the Flutter CLI.
+
+The Gradle `preReleaseBuild` validation stops the build when `APP_ENVIRONMENT=production`, `BUILD_COMMIT`, the Firebase project, Android package, Firebase App ID, Play Games project, Play Games game-server OAuth client, or effective production `SOCIAL_BACKEND_URL` is missing or inconsistent.
+
+The backend URL is a public service endpoint, not a secret. It must still be explicitly supplied so a production AAB cannot accidentally use staging, localhost, or an unconfigured social backend.
 
 ## Project ownership map
 
@@ -112,10 +135,13 @@ Validate source configuration before building:
 .\tool\verify_android_release_config.ps1
 ```
 
-Build normally:
+Build the production AAB:
 
 ```powershell
-flutter build appbundle --release
+flutter build appbundle --release `
+  --dart-define=APP_ENVIRONMENT=production `
+  --dart-define=SOCIAL_BACKEND_URL=https://sudoku-duel-social-production.ilhanahmet246.workers.dev `
+  --dart-define=BUILD_COMMIT=<current-git-sha>
 ```
 
 Inspect the produced artifact:
