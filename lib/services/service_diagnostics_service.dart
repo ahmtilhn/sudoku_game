@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
 
 import 'firebase_runtime_config.dart';
+import 'firebase_services.dart';
 import 'firebase_session_service.dart';
 import 'platform_game_services.dart';
 import 'social_api_client.dart';
@@ -147,18 +147,18 @@ class ServiceDiagnosticsService {
       );
 
       try {
-        final appCheck = await FirebaseAppCheck.instance
-            .getToken(false)
-            .timeout(const Duration(seconds: 5));
+        final appCheck = await FirebaseServices.instance.requireAppCheckToken(
+          timeout: _timeout,
+        );
         entries.add(
           _entry(
             'Firebase App Check',
-            appCheck == null || appCheck.isEmpty ? 'WARN' : 'PASS',
-            'tokenAvailable=${appCheck != null && appCheck.isNotEmpty}',
+            'PASS',
+            'tokenAvailable=${appCheck.isNotEmpty}',
           ),
         );
       } catch (error) {
-        entries.add(_entry('Firebase App Check', 'WARN', _safeError(error)));
+        entries.add(_entry('Firebase App Check', 'FAIL', _safeError(error)));
       }
     } catch (error) {
       entries.add(_entry('Firebase session', 'FAIL', _safeError(error)));

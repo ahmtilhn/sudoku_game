@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import 'firebase_session_service.dart';
+import 'firebase_services.dart';
 import 'social_api_client.dart';
 
 class AccountDeletionException implements Exception {
@@ -80,13 +80,21 @@ class AccountDeletionService {
       );
     }
 
-    String? appCheck;
+    final String appCheck;
     try {
-      appCheck = await FirebaseAppCheck.instance.getToken().timeout(
-        const Duration(seconds: 5),
+      appCheck = await FirebaseServices.instance.requireAppCheckToken(
+        timeout: _timeout,
+      );
+    } on TimeoutException {
+      throw const AccountDeletionException(
+        'App Check verification timed out.',
+        code: 'app_check_timeout',
       );
     } catch (_) {
-      appCheck = null;
+      throw const AccountDeletionException(
+        'App Check could not verify this installation.',
+        code: 'app_check_failed',
+      );
     }
 
     final response = await _client
@@ -95,8 +103,7 @@ class AccountDeletionService {
           headers: <String, String>{
             'authorization': 'Bearer $idToken',
             'content-type': 'application/json',
-            if (appCheck != null && appCheck.isNotEmpty)
-              'x-firebase-appcheck': appCheck,
+            'x-firebase-appcheck': appCheck,
           },
           body: '{}',
         )

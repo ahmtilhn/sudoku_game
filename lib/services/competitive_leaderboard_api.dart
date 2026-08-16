@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import 'firebase_session_service.dart';
+import 'firebase_services.dart';
 import 'social_api_client.dart';
 
 class CompetitiveLeaderboardEntry {
@@ -262,13 +262,21 @@ class CompetitiveLeaderboardApi {
       '${social.baseUrl}/v1/competitive/leaderboards/${Uri.encodeComponent(scope)}',
     ).replace(queryParameters: query);
 
-    String? appCheckToken;
+    final String appCheckToken;
     try {
-      appCheckToken = await FirebaseAppCheck.instance
-          .getToken(false)
-          .timeout(const Duration(seconds: 5));
+      appCheckToken = await FirebaseServices.instance.requireAppCheckToken(
+        timeout: _timeout,
+      );
+    } on TimeoutException {
+      throw const SocialApiException(
+        403,
+        'App Check verification timed out. Please try again.',
+      );
     } catch (_) {
-      appCheckToken = null;
+      throw const SocialApiException(
+        403,
+        'App Check could not verify this installation.',
+      );
     }
 
     final http.Response response;
@@ -279,8 +287,7 @@ class CompetitiveLeaderboardApi {
             headers: <String, String>{
               'authorization': 'Bearer $idToken',
               'accept': 'application/json',
-              if (appCheckToken != null && appCheckToken.isNotEmpty)
-                'x-firebase-appcheck': appCheckToken,
+              'x-firebase-appcheck': appCheckToken,
             },
           )
           .timeout(_timeout);
@@ -341,7 +348,7 @@ class CompetitiveLeaderboardApi {
   Future<CompetitiveLeaderboardPage?> _loadLegacyFallback({
     required SocialApiClient social,
     required String idToken,
-    required String? appCheckToken,
+    required String appCheckToken,
     required String scope,
     required String variant,
     required CompetitiveLeaderboardPage? original,
@@ -359,8 +366,7 @@ class CompetitiveLeaderboardApi {
             headers: <String, String>{
               'authorization': 'Bearer $idToken',
               'accept': 'application/json',
-              if (appCheckToken != null && appCheckToken.isNotEmpty)
-                'x-firebase-appcheck': appCheckToken,
+              'x-firebase-appcheck': appCheckToken,
             },
           )
           .timeout(_timeout);

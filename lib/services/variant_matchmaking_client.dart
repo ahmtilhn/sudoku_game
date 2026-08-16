@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:http/http.dart' as http;
 
 import '../domain/sudoku_variant.dart';
 import 'firebase_session_service.dart';
+import 'firebase_services.dart';
 import 'social_api_client.dart';
 
 class VariantMatchmakingResult {
@@ -60,7 +60,7 @@ class VariantMatchmakingResult {
 }
 
 typedef MatchmakingTokenProvider = Future<String> Function();
-typedef MatchmakingAppCheckProvider = Future<String?> Function();
+typedef MatchmakingAppCheckProvider = Future<String> Function();
 
 class VariantMatchmakingClient {
   VariantMatchmakingClient({
@@ -120,13 +120,12 @@ class VariantMatchmakingClient {
     }
 
     final token = await _tokenProvider().timeout(_timeout);
-    final appCheckToken = await _appCheckProvider();
+    final appCheckToken = await _appCheckProvider().timeout(_timeout);
     final headers = <String, String>{
       'authorization': 'Bearer $token',
       'accept': 'application/json',
       if (body != null) 'content-type': 'application/json',
-      if (appCheckToken != null && appCheckToken.isNotEmpty)
-        'x-firebase-appcheck': appCheckToken,
+      'x-firebase-appcheck': appCheckToken,
     };
     final uri = Uri.parse('$_baseUrl/v1/matchmaking/queue');
     final Future<http.Response> pending = switch (method) {
@@ -188,14 +187,23 @@ class VariantMatchmakingClient {
     return token;
   }
 
-  static Future<String?> _appCheckToken() async {
+  static Future<String> _appCheckToken() async {
     try {
-      final token = await FirebaseAppCheck.instance
-          .getToken(false)
-          .timeout(const Duration(seconds: 5));
-      return token == null || token.isEmpty ? null : token;
+      return await FirebaseServices.instance.requireAppCheckToken(
+        timeout: _timeout,
+      );
+    } on TimeoutException {
+      throw const SocialApiException(
+        403,
+        'App Check verification timed out. Please try again.',
+      );
+    } on SocialApiException {
+      rethrow;
     } catch (_) {
-      return null;
+      throw const SocialApiException(
+        403,
+        'App Check could not verify this installation.',
+      );
     }
   }
 }

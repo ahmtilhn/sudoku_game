@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
 import 'economy_api_client.dart';
 import 'firebase_session_service.dart';
+import 'firebase_services.dart';
 import 'social_api_client.dart';
 
 class EconomyV3Reward {
@@ -206,7 +206,6 @@ class EconomyV3ApiClient {
 
   static final EconomyV3ApiClient instance = EconomyV3ApiClient._();
   static const Duration _timeout = Duration(seconds: 20);
-  static const Duration _appCheckTimeout = Duration(seconds: 5);
 
   final http.Client _client = http.Client();
 
@@ -340,13 +339,18 @@ class EconomyV3ApiClient {
       throw const EconomyApiException(401, 'Unable to obtain a player token.');
     }
 
-    String? appCheckToken;
+    final String appCheckToken;
     try {
-      appCheckToken = await FirebaseAppCheck.instance
-          .getToken(false)
-          .timeout(_appCheckTimeout);
+      appCheckToken = await FirebaseServices.instance.requireAppCheckToken(
+        timeout: _timeout,
+      );
+    } on TimeoutException {
+      throw const EconomyApiException(403, 'App Check verification timed out.');
     } catch (_) {
-      appCheckToken = null;
+      throw const EconomyApiException(
+        403,
+        'App Check could not verify this installation.',
+      );
     }
 
     final uri = Uri.parse('${social.baseUrl}$path');
@@ -354,8 +358,7 @@ class EconomyV3ApiClient {
       'authorization': 'Bearer $idToken',
       'accept': 'application/json',
       if (body != null) 'content-type': 'application/json',
-      if (appCheckToken != null && appCheckToken.isNotEmpty)
-        'x-firebase-appcheck': appCheckToken,
+      'x-firebase-appcheck': appCheckToken,
     };
 
     final Future<http.Response> pending = switch (method) {

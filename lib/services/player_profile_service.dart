@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'firebase_services.dart';
 import 'firebase_session_service.dart';
 import 'platform_game_services.dart';
 import 'platform_profile_policy.dart';
@@ -303,13 +303,23 @@ class PlayerProfileService {
       );
     }
 
-    String? appCheckToken;
+    final String appCheckToken;
     try {
-      appCheckToken = await FirebaseAppCheck.instance
-          .getToken(false)
-          .timeout(const Duration(seconds: 5));
+      appCheckToken = await FirebaseServices.instance.requireAppCheckToken(
+        timeout: _timeout,
+      );
+    } on TimeoutException {
+      throw const PlayerProfileException(
+        403,
+        'App Check verification timed out. Please try again.',
+        code: 'app_check_timeout',
+      );
     } catch (_) {
-      appCheckToken = null;
+      throw const PlayerProfileException(
+        403,
+        'App Check could not verify this installation.',
+        code: 'app_check_failed',
+      );
     }
 
     final uri = Uri.parse('${social.baseUrl}$path');
@@ -317,8 +327,7 @@ class PlayerProfileService {
       'authorization': 'Bearer $idToken',
       'accept': 'application/json',
       if (body != null) 'content-type': 'application/json',
-      if (appCheckToken != null && appCheckToken.isNotEmpty)
-        'x-firebase-appcheck': appCheckToken,
+      'x-firebase-appcheck': appCheckToken,
     };
     final pending = method == 'GET'
         ? _client.get(uri, headers: headers)

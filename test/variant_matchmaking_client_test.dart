@@ -100,4 +100,32 @@ void main() {
     expect(result.variant, same(SudokuVariant.classic16));
     expect(result.roomId, 'classic16:room-2');
   });
+  test(
+    'does not send queue request when App Check acquisition fails',
+    () async {
+      var requestSent = false;
+
+      final client = VariantMatchmakingClient(
+        baseUrl: 'https://example.test',
+        tokenProvider: () async => 'firebase-token',
+        appCheckProvider: () async {
+          throw StateError('app-check-unavailable');
+        },
+        client: MockClient((request) async {
+          requestSent = true;
+          return http.Response('{}', 200);
+        }),
+      );
+
+      await expectLater(
+        client.joinRankedQueue(
+          difficulty: 'easy',
+          variant: SudokuVariant.classic9,
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      expect(requestSent, isFalse);
+    },
+  );
 }
