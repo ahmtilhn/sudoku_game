@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'firebase_services.dart';
 import 'firebase_session_service.dart';
 
 class SocialPlayer {
@@ -247,7 +248,7 @@ class SocialApiClient {
       'https://sudoku-duel-social-production.ilhanahmet246.workers.dev';
 
   static const Duration _requestTimeout = Duration(seconds: 15);
-  static const Duration _appCheckTimeout = Duration(seconds: 5);
+  static const Duration _appCheckTimeout = Duration(seconds: 15);
 
   final http.Client _client = http.Client();
 
@@ -523,9 +524,7 @@ class SocialApiClient {
     final headers = <String, String>{
       'authorization': 'Bearer $idToken',
       'accept': 'application/json',
-      ...?appCheckToken == null
-          ? null
-          : <String, String>{'x-firebase-appcheck': appCheckToken},
+      'x-firebase-appcheck': appCheckToken,
       if (body != null) 'content-type': 'application/json',
     };
 
@@ -600,14 +599,38 @@ class SocialApiClient {
         .toList(growable: false);
   }
 
-  Future<String?> _appCheckToken() async {
+  Future<String> _appCheckToken() async {
     try {
+      await FirebaseServices.instance.ensureAppCheckReady().timeout(
+        _appCheckTimeout,
+      );
+
       final token = await FirebaseAppCheck.instance
           .getToken(false)
           .timeout(_appCheckTimeout);
-      return token == null || token.isEmpty ? null : token;
-    } catch (_) {
-      return null;
+
+      if (token == null || token.isEmpty) {
+        throw const SocialApiException(
+          403,
+          'App Check could not verify this installation.',
+        );
+      }
+
+      return token;
+    } on TimeoutException {
+      throw const SocialApiException(
+        403,
+        'App Check verification timed out. Please try again.',
+      );
+    } on SocialApiException {
+      rethrow;
+    } catch (error) {
+      debugPrint('Social API App Check unavailable: ${error.runtimeType}');
+
+      throw const SocialApiException(
+        403,
+        'App Check could not verify this installation.',
+      );
     }
   }
 }

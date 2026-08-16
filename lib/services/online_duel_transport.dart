@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/io.dart';
 
+import 'firebase_services.dart';
 import 'firebase_session_service.dart';
 import 'online_duel_models.dart';
 import 'social_api_client.dart';
@@ -33,7 +34,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
   WebSocketOnlineDuelTransport._(this._roomId);
 
   static const Duration _connectTimeout = Duration(seconds: 15);
-  static const Duration _appCheckTimeout = Duration(seconds: 5);
+  static const Duration _appCheckTimeout = Duration(seconds: 15);
   static const int _maxQueuedMessages = 24;
   static const int _maxReconnectAttemptsBeforeFailedState = 8;
 
@@ -228,7 +229,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
     }
   }
 
-  Future<({String firebaseIdToken, String? appCheckToken})>
+  Future<({String firebaseIdToken, String appCheckToken})>
   _credentials() async {
     if (!SocialApiClient.instance.configured) {
       throw const SocialApiException(
@@ -258,10 +259,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
         'Unable to obtain a Firebase ID token.',
       );
     }
-    return (
-      firebaseIdToken: token,
-      appCheckToken: await _appCheckToken(),
-    );
+    return (firebaseIdToken: token, appCheckToken: await _appCheckToken());
   }
 
   void _setConnectionState(OnlineDuelConnectionState state) {
@@ -314,15 +312,38 @@ Map<String, String> onlineDuelHeadersForTest({
   };
 }
 
-Future<String?> _appCheckToken({bool forceRefresh = false}) async {
+Future<String> _appCheckToken({bool forceRefresh = false}) async {
   try {
+    await FirebaseServices.instance.ensureAppCheckReady().timeout(
+      WebSocketOnlineDuelTransport._appCheckTimeout,
+    );
+
     final token = await FirebaseAppCheck.instance
         .getToken(forceRefresh)
         .timeout(WebSocketOnlineDuelTransport._appCheckTimeout);
-    return token == null || token.isEmpty ? null : token;
+
+    if (token == null || token.isEmpty) {
+      throw const SocialApiException(
+        403,
+        'App Check could not verify this installation.',
+      );
+    }
+
+    return token;
+  } on TimeoutException {
+    throw const SocialApiException(
+      403,
+      'App Check verification timed out. Please try again.',
+    );
+  } on SocialApiException {
+    rethrow;
   } catch (error) {
-    debugPrint('Online duel App Check token unavailable: $error');
-    return null;
+    debugPrint('Online duel App Check unavailable: ${error.runtimeType}');
+
+    throw const SocialApiException(
+      403,
+      'App Check could not verify this installation.',
+    );
   }
 }
 

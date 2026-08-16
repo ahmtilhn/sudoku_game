@@ -21,9 +21,39 @@ class FirebaseServices {
   final ValueNotifier<bool> crashReportingEnabled = ValueNotifier<bool>(false);
 
   Future<void>? _initialization;
+  Future<void>? _appCheckInitialization;
   bool _initialized = false;
+  bool _appCheckActivated = false;
 
   bool get initialized => _initialized;
+  bool get appCheckActivated => _appCheckActivated;
+
+  Future<void> ensureAppCheckReady() {
+    if (_appCheckActivated) return Future<void>.value();
+
+    final pending = _appCheckInitialization;
+    if (pending != null) return pending;
+
+    final operation = _ensureAppCheckReadyOnce().whenComplete(() {
+      _appCheckInitialization = null;
+    });
+
+    _appCheckInitialization = operation;
+    return operation;
+  }
+
+  Future<void> _ensureAppCheckReadyOnce() async {
+    final initialized = await FirebaseRuntimeConfig.initializeIfConfigured();
+
+    if (!initialized) {
+      throw StateError(
+        'Firebase must be configured before App Check can be activated.',
+      );
+    }
+
+    await _activateAppCheck();
+    _appCheckActivated = true;
+  }
 
   Future<void> initialize() {
     if (_initialized) return Future<void>.value();
@@ -36,16 +66,16 @@ class FirebaseServices {
     final initialized = await FirebaseRuntimeConfig.initializeIfConfigured();
     if (!initialized) return;
 
-    await _loadPrivacyPreferences();
-    await _configureCrashlytics();
-    await _configureAnalytics();
-
     try {
-      await _activateAppCheck();
+      await ensureAppCheckReady();
     } catch (error, stackTrace) {
       debugPrint('Firebase App Check activation failed: $error');
       debugPrintStack(stackTrace: stackTrace);
     }
+
+    await _loadPrivacyPreferences();
+    await _configureCrashlytics();
+    await _configureAnalytics();
 
     _initialized = true;
   }
