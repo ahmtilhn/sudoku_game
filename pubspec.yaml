@@ -43,4 +43,5 @@ flutter:
     - assets/puzzles/
     - assets/images/app_backdrop.png
     - assets/images/ui/
+    - assets/images/ui/pro/
     - assets/localization/Localizable.xcstrings
