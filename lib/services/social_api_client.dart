@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,219 @@ import 'package:http/http.dart' as http;
 
 import 'firebase_services.dart';
 import 'firebase_session_service.dart';
+
+class SocialPlayer {
+  const SocialPlayer({
+    required this.publicId,
+    required this.username,
+    required this.displayName,
+    required this.rating,
+    required this.gamesPlayed,
+    required this.wins,
+    required this.achievementCount,
+    this.friendshipStatus,
+    this.lastPlayedAt,
+  });
+
+  final String publicId;
+  final String username;
+  final String displayName;
+  final int rating;
+  final int gamesPlayed;
+  final int wins;
+  final int achievementCount;
+  final String? friendshipStatus;
+  final DateTime? lastPlayedAt;
+
+  double get winRate => gamesPlayed == 0 ? 0 : wins / gamesPlayed;
+
+  factory SocialPlayer.fromJson(Map<String, dynamic> json) {
+    return SocialPlayer(
+      publicId: json['publicId']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
+      displayName: json['displayName']?.toString() ?? 'Player',
+      rating: (json['rating'] as num?)?.toInt() ?? 1000,
+      gamesPlayed: (json['gamesPlayed'] as num?)?.toInt() ?? 0,
+      wins: (json['wins'] as num?)?.toInt() ?? 0,
+      achievementCount: (json['achievementCount'] as num?)?.toInt() ?? 0,
+      friendshipStatus: json['friendshipStatus']?.toString(),
+      lastPlayedAt: DateTime.tryParse(json['lastPlayedAt']?.toString() ?? ''),
+    );
+  }
+}
+
+class SocialAchievement {
+  const SocialAchievement({
+    required this.id,
+    required this.category,
+    required this.title,
+    required this.tier,
+    required this.unlocked,
+  });
+
+  final String id;
+  final String category;
+  final String title;
+  final String tier;
+  final bool unlocked;
+
+  factory SocialAchievement.fromJson(Map<String, dynamic> json) {
+    return SocialAchievement(
+      id: json['id']?.toString() ?? '',
+      category: json['category']?.toString() ?? 'ranked',
+      title: json['title']?.toString() ?? '',
+      tier: json['tier']?.toString() ?? 'bronze',
+      unlocked: json['unlocked'] == true,
+    );
+  }
+}
+
+class CompetitiveProfile {
+  const CompetitiveProfile({
+    required this.publicId,
+    required this.username,
+    required this.displayName,
+    required this.avatarKey,
+    required this.currentElo,
+    required this.rankName,
+    required this.seasonPeak,
+    required this.wins,
+    required this.losses,
+    required this.draws,
+    required this.winRate,
+    required this.winStreak,
+    required this.tournamentEntries,
+    required this.tournamentPodiums,
+    required this.countryContributions,
+    required this.achievementCount,
+    required this.achievementShowcase,
+    required this.privateProfile,
+    this.country,
+    this.rank,
+  });
+
+  final String publicId;
+  final String username;
+  final String displayName;
+  final String avatarKey;
+  final String? country;
+  final int currentElo;
+  final int? rank;
+  final String rankName;
+  final int seasonPeak;
+  final int wins;
+  final int losses;
+  final int draws;
+  final double winRate;
+  final int winStreak;
+  final int tournamentEntries;
+  final int tournamentPodiums;
+  final int countryContributions;
+  final int achievementCount;
+  final List<SocialAchievement> achievementShowcase;
+  final bool privateProfile;
+
+  factory CompetitiveProfile.fromJson(Map<String, dynamic> json) {
+    final showcase = json['achievementShowcase'];
+    return CompetitiveProfile(
+      publicId: json['publicId']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
+      displayName: json['displayName']?.toString() ?? 'Player',
+      avatarKey: json['avatarKey']?.toString() ?? 'default',
+      country: json['country']?.toString(),
+      currentElo: (json['currentElo'] as num?)?.toInt() ?? 1000,
+      rank: (json['rank'] as num?)?.toInt(),
+      rankName: json['rankName']?.toString() ?? 'Bronze',
+      seasonPeak: (json['seasonPeak'] as num?)?.toInt() ?? 1000,
+      wins: (json['wins'] as num?)?.toInt() ?? 0,
+      losses: (json['losses'] as num?)?.toInt() ?? 0,
+      draws: (json['draws'] as num?)?.toInt() ?? 0,
+      winRate: (json['winRate'] as num?)?.toDouble() ?? 0,
+      winStreak: (json['winStreak'] as num?)?.toInt() ?? 0,
+      tournamentEntries: (json['tournamentEntries'] as num?)?.toInt() ?? 0,
+      tournamentPodiums: (json['tournamentPodiums'] as num?)?.toInt() ?? 0,
+      countryContributions:
+          (json['countryContributions'] as num?)?.toInt() ?? 0,
+      achievementCount: (json['achievementCount'] as num?)?.toInt() ?? 0,
+      achievementShowcase: showcase is List
+          ? showcase
+                .whereType<Map>()
+                .map(
+                  (value) =>
+                      SocialAchievement.fromJson(value.cast<String, dynamic>()),
+                )
+                .toList(growable: false)
+          : const <SocialAchievement>[],
+      privateProfile: json['privateProfile'] == true,
+    );
+  }
+}
+
+class SocialChallenge {
+  const SocialChallenge({
+    required this.id,
+    this.variant = 'classic',
+    required this.difficulty,
+    required this.status,
+    required this.challenger,
+    required this.recipient,
+    required this.expiresAt,
+    this.roomId,
+  });
+
+  final String id;
+  final String variant;
+  final String difficulty;
+  final String status;
+  final SocialPlayer challenger;
+  final SocialPlayer recipient;
+  final DateTime expiresAt;
+  final String? roomId;
+
+  factory SocialChallenge.fromJson(Map<String, dynamic> json) {
+    return SocialChallenge(
+      id: json['id']?.toString() ?? '',
+      variant: json['variant']?.toString() ?? 'classic',
+      difficulty: json['difficulty']?.toString() ?? 'easy',
+      status: json['status']?.toString() ?? 'pending',
+      challenger: SocialPlayer.fromJson(
+        (json['challenger'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{},
+      ),
+      recipient: SocialPlayer.fromJson(
+        (json['recipient'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{},
+      ),
+      expiresAt:
+          DateTime.tryParse(json['expiresAt']?.toString() ?? '') ??
+          DateTime.now(),
+      roomId: json['roomId']?.toString(),
+    );
+  }
+}
+
+class MatchmakingResult {
+  const MatchmakingResult({
+    required this.status,
+    this.variant = 'classic',
+    required this.difficulty,
+    this.roomId,
+  });
+
+  final String status;
+  final String variant;
+  final String difficulty;
+  final String? roomId;
+
+  factory MatchmakingResult.fromJson(Map<String, dynamic> json) {
+    return MatchmakingResult(
+      status: json['status']?.toString() ?? 'queued',
+      variant: json['variant']?.toString() ?? 'classic',
+      difficulty: json['difficulty']?.toString() ?? 'easy',
+      roomId: json['roomId']?.toString(),
+    );
+  }
+}
 
 class SocialApiException implements Exception {
   const SocialApiException(this.statusCode, this.message);
@@ -17,188 +231,6 @@ class SocialApiException implements Exception {
 
   @override
   String toString() => '$statusCode: $message';
-}
-
-class SocialPlayer {
-  const SocialPlayer({
-    required this.publicId,
-    required this.username,
-    required this.displayName,
-    required this.avatarKey,
-    required this.rating,
-    required this.gamesPlayed,
-    required this.wins,
-    required this.losses,
-    required this.achievementCount,
-    this.friendshipStatus,
-  });
-
-  final String publicId;
-  final String username;
-  final String displayName;
-  final String avatarKey;
-  final int rating;
-  final int gamesPlayed;
-  final int wins;
-  final int losses;
-  final int achievementCount;
-  final String? friendshipStatus;
-
-  factory SocialPlayer.fromJson(Map<String, dynamic> json) {
-    return SocialPlayer(
-      publicId: json['publicId']?.toString() ?? '',
-      username: json['username']?.toString() ?? '',
-      displayName: json['displayName']?.toString() ?? 'Sudoku Player',
-      avatarKey: json['avatarKey']?.toString() ?? 'grid_green',
-      rating: _intFromJson(json['rating'], defaultValue: 1000),
-      gamesPlayed: _intFromJson(json['gamesPlayed']),
-      wins: _intFromJson(json['wins']),
-      losses: _intFromJson(json['losses']),
-      achievementCount: _intFromJson(json['achievementCount']),
-      friendshipStatus: json['friendshipStatus']?.toString(),
-    );
-  }
-}
-
-class SocialChallenge {
-  const SocialChallenge({
-    required this.id,
-    required this.status,
-    required this.variant,
-    required this.difficulty,
-    required this.challenger,
-    required this.recipient,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.expiresAt,
-    this.roomId,
-  });
-
-  final String id;
-  final String status;
-  final String variant;
-  final String difficulty;
-  final SocialPlayer challenger;
-  final SocialPlayer recipient;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final DateTime expiresAt;
-  final String? roomId;
-
-  bool get isPending => status == 'pending';
-  bool get isAccepted => status == 'accepted';
-
-  factory SocialChallenge.fromJson(Map<String, dynamic> json) {
-    return SocialChallenge(
-      id: json['id']?.toString() ?? '',
-      status: json['status']?.toString() ?? 'pending',
-      variant: json['variant']?.toString() ?? 'classic',
-      difficulty: json['difficulty']?.toString() ?? 'medium',
-      challenger: SocialPlayer.fromJson(
-        (json['challenger'] as Map?)?.cast<String, dynamic>() ??
-            const <String, dynamic>{},
-      ),
-      recipient: SocialPlayer.fromJson(
-        (json['recipient'] as Map?)?.cast<String, dynamic>() ??
-            const <String, dynamic>{},
-      ),
-      createdAt: _dateFromJson(json['createdAt']),
-      updatedAt: _dateFromJson(json['updatedAt']),
-      expiresAt: _dateFromJson(json['expiresAt']),
-      roomId: json['roomId']?.toString(),
-    );
-  }
-}
-
-class MatchmakingResult {
-  const MatchmakingResult({
-    required this.status,
-    required this.difficulty,
-    required this.playerId,
-    this.roomId,
-    this.rating,
-    this.onlineCoins,
-  });
-
-  final String status;
-  final String difficulty;
-  final String playerId;
-  final String? roomId;
-  final int? rating;
-  final int? onlineCoins;
-
-  bool get matched => status == 'matched' && roomId != null;
-
-  factory MatchmakingResult.fromJson(Map<String, dynamic> json) {
-    return MatchmakingResult(
-      status: json['status']?.toString() ?? 'queued',
-      difficulty: json['difficulty']?.toString() ?? 'medium',
-      playerId: json['playerId']?.toString() ?? '',
-      roomId: json['roomId']?.toString(),
-      rating: json['rating'] == null ? null : _intFromJson(json['rating']),
-      onlineCoins: json['onlineCoins'] == null
-          ? null
-          : _intFromJson(json['onlineCoins']),
-    );
-  }
-}
-
-class CompetitiveProfile {
-  const CompetitiveProfile({
-    required this.rating,
-    required this.gamesPlayed,
-    required this.wins,
-    required this.losses,
-    required this.achievementCount,
-    required this.rank,
-    required this.rankProgress,
-    required this.nextRankRating,
-    required this.featuredAchievementIds,
-  });
-
-  final int rating;
-  final int gamesPlayed;
-  final int wins;
-  final int losses;
-  final int achievementCount;
-  final String rank;
-  final double rankProgress;
-  final int nextRankRating;
-  final List<String> featuredAchievementIds;
-
-  factory CompetitiveProfile.fromJson(Map<String, dynamic> json) {
-    final rawFeatured = json['featuredAchievementIds'];
-    return CompetitiveProfile(
-      rating: _intFromJson(json['rating'], defaultValue: 1000),
-      gamesPlayed: _intFromJson(json['gamesPlayed']),
-      wins: _intFromJson(json['wins']),
-      losses: _intFromJson(json['losses']),
-      achievementCount: _intFromJson(json['achievementCount']),
-      rank: json['rank']?.toString() ?? 'bronze',
-      rankProgress: _doubleFromJson(json['rankProgress']),
-      nextRankRating: _intFromJson(json['nextRankRating']),
-      featuredAchievementIds: rawFeatured is List
-          ? rawFeatured.map((value) => value.toString()).toList(growable: false)
-          : const <String>[],
-    );
-  }
-}
-
-int _intFromJson(Object? value, {int defaultValue = 0}) {
-  if (value is int) return value;
-  if (value is num) return value.toInt();
-  return int.tryParse(value?.toString() ?? '') ?? defaultValue;
-}
-
-double _doubleFromJson(Object? value, {double defaultValue = 0}) {
-  if (value is double) return value;
-  if (value is num) return value.toDouble();
-  return double.tryParse(value?.toString() ?? '') ?? defaultValue;
-}
-
-DateTime _dateFromJson(Object? value) {
-  return DateTime.tryParse(value?.toString() ?? '') ??
-      DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 }
 
 class SocialApiClient {
@@ -569,9 +601,22 @@ class SocialApiClient {
 
   Future<String> _appCheckToken() async {
     try {
-      return await FirebaseServices.instance.requireAppCheckToken(
-        timeout: _appCheckTimeout,
+      await FirebaseServices.instance.ensureAppCheckReady().timeout(
+        _appCheckTimeout,
       );
+
+      final token = await FirebaseAppCheck.instance
+          .getToken(false)
+          .timeout(_appCheckTimeout);
+
+      if (token == null || token.isEmpty) {
+        throw const SocialApiException(
+          403,
+          'App Check could not verify this installation.',
+        );
+      }
+
+      return token;
     } on TimeoutException {
       throw const SocialApiException(
         403,
