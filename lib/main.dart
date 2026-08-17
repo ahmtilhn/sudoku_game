@@ -29,6 +29,15 @@ Future<void> main() async {
   final strings = await AppStrings.load();
   CareerRewardSyncService.instance.bind(store);
 
+  // Firebase and App Check are prerequisites for every authenticated online
+  // service. Activate them before the widget tree can start profile, economy,
+  // matchmaking, leaderboard, or push requests.
+  await _initializeOptionalService(
+    'Firebase and App Check bootstrap',
+    FirebaseServices.instance.initialize,
+    timeout: const Duration(seconds: 30),
+  );
+
   runApp(SudokuApp(store: store, strings: strings));
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -39,9 +48,7 @@ Future<void> main() async {
       ),
     );
     unawaited(
-      _initializeOptionalService('Firebase, Play Games, and push', () async {
-        await FirebaseServices.instance.initialize();
-
+      _initializeOptionalService('Play Games and push', () async {
         // Resolve the permanent Play Games-linked Firebase account before push
         // initialization is allowed to create a guest Firebase session.
         await _initializeOptionalService(

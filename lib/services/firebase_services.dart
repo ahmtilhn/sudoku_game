@@ -48,9 +48,16 @@ class FirebaseServices {
   }) async {
     await ensureAppCheckReady().timeout(timeout);
 
-    final token = await FirebaseAppCheck.instance
+    var token = await FirebaseAppCheck.instance
         .getToken(forceRefresh)
         .timeout(timeout);
+
+    // A newly activated native provider can briefly have no cached token.
+    // Retry exactly once with a forced refresh instead of failing every
+    // authenticated client at the same startup boundary.
+    if ((token == null || token.isEmpty) && !forceRefresh) {
+      token = await FirebaseAppCheck.instance.getToken(true).timeout(timeout);
+    }
 
     if (token == null || token.isEmpty) {
       throw StateError('Firebase App Check token is unavailable.');
@@ -83,12 +90,10 @@ class FirebaseServices {
     final initialized = await FirebaseRuntimeConfig.initializeIfConfigured();
     if (!initialized) return;
 
-    try {
-      await ensureAppCheckReady();
-    } catch (error, stackTrace) {
-      debugPrint('Firebase App Check activation failed: $error');
-      debugPrintStack(stackTrace: stackTrace);
-    }
+    // App Check is a required prerequisite for authenticated production
+    // backend traffic. If activation fails, initialization must remain
+    // retryable instead of being marked successful.
+    await ensureAppCheckReady();
 
     await _loadPrivacyPreferences();
     await _configureCrashlytics();
