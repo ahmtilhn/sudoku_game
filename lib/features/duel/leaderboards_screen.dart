@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/user_safe_error.dart';
+import '../../models/country_catalog.dart';
 import '../../models/rank_identity_fallback.dart';
 import '../../models/rank_identity_models.dart';
 import '../../services/rank_identity_service.dart';
@@ -25,6 +26,7 @@ class LeaderboardsScreen extends StatefulWidget {
 class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   late RankIdentityProfile _profile;
   RankLeaderboardSnapshot? _board;
+  Map<String, String> _countryFlags = const <String, String>{};
   bool _loading = false;
   String? _error;
 
@@ -46,6 +48,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     Object? firstError;
     RankIdentityProfile? loadedProfile;
     RankLeaderboardSnapshot? loadedBoard;
+    Map<String, String>? loadedCountryFlags;
 
     await Future.wait<void>([
       () async {
@@ -65,12 +68,23 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
           firstError ??= error;
         }
       }(),
+      () async {
+        try {
+          // Country is a voluntary profile decoration. It must never block the
+          // competitive ladder when the preference endpoint is unavailable.
+          loadedCountryFlags = await RankIdentityService.instance
+              .loadRankCountryFlags(limit: 100);
+        } catch (_) {
+          // Leave flags empty and keep the RP ladder fully usable.
+        }
+      }(),
     ]);
 
     if (!mounted) return;
     setState(() {
       if (loadedProfile != null) _profile = loadedProfile!;
       if (loadedBoard != null) _board = loadedBoard;
+      if (loadedCountryFlags != null) _countryFlags = loadedCountryFlags!;
       _loading = false;
       if (firstError != null) {
         _error = UserSafeError.message(context, firstError!);
@@ -138,6 +152,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                       _LeaderboardList(
                         snapshot: _board!,
                         currentPublicId: _profile.publicId,
+                        countryFlags: _countryFlags,
                       ),
                   ],
                 ),
@@ -338,10 +353,12 @@ class _LeaderboardList extends StatelessWidget {
   const _LeaderboardList({
     required this.snapshot,
     required this.currentPublicId,
+    required this.countryFlags,
   });
 
   final RankLeaderboardSnapshot snapshot;
   final String currentPublicId;
+  final Map<String, String> countryFlags;
 
   @override
   Widget build(BuildContext context) {
@@ -357,6 +374,7 @@ class _LeaderboardList extends StatelessWidget {
             _LeaderboardRow(
               entry: snapshot.entries[index],
               current: snapshot.entries[index].publicId == currentPublicId,
+              countryCode: countryFlags[snapshot.entries[index].publicId],
             ),
             if (index != snapshot.entries.length - 1)
               Divider(
@@ -372,13 +390,19 @@ class _LeaderboardList extends StatelessWidget {
 }
 
 class _LeaderboardRow extends StatelessWidget {
-  const _LeaderboardRow({required this.entry, required this.current});
+  const _LeaderboardRow({
+    required this.entry,
+    required this.current,
+    this.countryCode,
+  });
 
   final RankLeaderboardEntry entry;
   final bool current;
+  final String? countryCode;
 
   @override
   Widget build(BuildContext context) {
+    final flag = countryFlagEmoji(countryCode);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       color: current
@@ -408,14 +432,28 @@ class _LeaderboardRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  entry.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+                Row(
+                  children: [
+                    if (flag.isNotEmpty) ...[
+                      Text(
+                        flag,
+                        style: const TextStyle(fontSize: 16, height: 1),
+                        semanticsLabel: 'Country flag',
+                      ),
+                      const SizedBox(width: 5),
+                    ],
+                    Expanded(
+                      child: Text(
+                        entry.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
                   '${entry.rankName} · ${(entry.winRate * 100).round()}% wins',
