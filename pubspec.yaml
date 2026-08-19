@@ -40,6 +40,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/avatar/
     - assets/puzzles/
     - assets/images/app_backdrop.png
     - assets/images/ui/
