@@ -113,11 +113,27 @@ export async function handleRankMatchResultRequest(
           (tier) => tier.minPoints > before && tier.minPoints <= after,
         )
       : [];
+
+    // A profile refresh can reconcile/grant the same lifetime rank reward a
+    // moment before the result sheet asks for this endpoint. The grant table is
+    // already idempotent, so first ensure the crossed rewards exist and then
+    // report grants whose timestamp belongs to this match's promotion window.
+    // This keeps the UI reward celebration reliable without ever touching the
+    // authoritative match, escrow or Elo/MMR settlement paths.
     const newlyGranted = await grantCrossedRankRewardsOnce(
       env,
       player.id,
       crossed,
     );
+    const finishedAt = String(settlement.finished_at ?? '').trim();
+    const displayRewards = finishedAt
+      ? await rankRewardsGrantedSince(
+          env,
+          player.id,
+          crossed,
+          finishedAt,
+        )
+      : newlyGranted;
 
     return json(env, 200, {
       matchId,
@@ -133,11 +149,11 @@ export async function handleRankMatchResultRequest(
       rankAfterKey: String(settlement.rank_after ?? afterTier.key),
       rankAfterName: afterTier.label,
       rankUp: afterTier.minPoints > beforeTier.minPoints,
-      rewardCoins: newlyGranted.reduce(
+      rewardCoins: displayRewards.reduce(
         (sum, tier) => sum + tier.rewardCoins,
         0,
       ),
-      rewards: newlyGranted.map((tier) => ({
+      rewards: displayRewards.map((tier) => ({
         rankKey: tier.key,
         rankName: tier.label,
         amount: tier.rewardCoins,
@@ -185,6 +201,29 @@ async function grantCrossedRankRewardsOnce(
   return candidates.filter(
     (_, index) => Number(results[index]?.meta?.changes ?? 0) > 0,
   );
+}
+
+async function rankRewardsGrantedSince(
+  env: RankProgressionEnv,
+  playerId: string,
+  crossed: readonly RankTier[],
+  since: string,
+): Promise<RankTier[]> {
+  const candidates = crossed.filter((tier) => tier.rewardCoins > 0);
+  if (candidates.length === 0) return [];
+
+  const placeholders = candidates.map(() => '?').join(', ');
+  const rows = await env.DB.prepare(
+    `SELECT rank_key
+     FROM rank_reward_grants
+     WHERE player_id = ?
+       AND rank_key IN (${placeholders})
+       AND granted_at >= ?`,
+  )
+    .bind(playerId, ...candidates.map((tier) => tier.key), since)
+    .all<{ rank_key: string }>();
+  const granted = new Set(rows.results.map((row) => row.rank_key));
+  return candidates.filter((tier) => granted.has(tier.key));
 }
 
 async function authenticateFirebase(
