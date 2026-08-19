@@ -184,13 +184,15 @@ void main() {
       expect(source, contains('loadRankCountryFlags(limit: 100)'));
       expect(source, contains('countryFlagEmoji(countryCode)'));
       expect(source, contains('rankPoints'));
-      expect(source, contains("'Global RP leaderboard'"));
+      expect(source, contains("context.tr('ranked_ladder')"));
+      expect(source, contains("titleKey: 'global_rp_leaderboard'"));
       expect(source, isNot(contains("'Rank progression'")));
       expect(source, isNot(contains('_RankRoadmap')));
       expect(source, isNot(contains('rankTierCatalog')));
       expect(source, isNot(contains('CompetitiveLeaderboardApi.instance')));
       expect(source, isNot(contains('PlatformLeaderboardService.instance')));
       expect(source, isNot(contains('Sudoku Duel ELO')));
+      expect(source, isNot(contains('<<<<<<<')));
       expect(source, isNot(contains('entry.copyWith(rank:')));
 
       final service = File(
