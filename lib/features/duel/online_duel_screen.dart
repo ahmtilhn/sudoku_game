@@ -4,13 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/app_theme.dart';
+import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../models/rank_identity_models.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
+import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
@@ -461,7 +464,9 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                     const DuelAssetIcon(DuelAsset.cloud, size: 44),
                     const SizedBox(height: 12),
                     Text(
-                      context.tr('online_connection_failed', <Object>[_error!]),
+                      context.tr('online_connection_failed', <Object>[
+                        UserSafeError.message(context, _error!),
+                      ]),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 14),
@@ -614,6 +619,8 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
   Timer? _pollTimer;
   Timer? _clockTimer;
   RematchInvitation? _invitation;
+  RankMatchResult? _rankResult;
+  bool _rankLoading = true;
   bool _busy = false;
   bool _openingAcceptedRoom = false;
   String? _statusMessage;
@@ -646,6 +653,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     });
     unawaited(_pollRematches());
     unawaited(_loadFriendshipStatus());
+    unawaited(_loadRankResult());
   }
 
   @override
@@ -660,11 +668,38 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _loadRankResult() async {
+    if (snapshot.mode != 'ranked') {
+      if (mounted) setState(() => _rankLoading = false);
+      return;
+    }
+    try {
+      final result = await RankIdentityService.instance.loadMatchResult(
+        snapshot.matchId,
+      );
+      if (!mounted) return;
+      setState(() => _rankResult = result);
+      if (result.settled) {
+        try {
+          await RankIdentityService.instance.refresh();
+          await _economy.refresh(showLoading: false);
+        } catch (error) {
+          debugPrint('Rank profile refresh unavailable: $error');
+        }
+      }
+    } catch (error) {
+      // RP is derived after the authoritative online settlement. Never block
+      // the existing duel result/rematch flow if this additive read fails.
+      debugPrint('Rank result unavailable: $error');
+    } finally {
+      if (mounted) setState(() => _rankLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localScore = snapshot.scores[snapshot.youSeat] ?? 0;
     final opponentScore = snapshot.scores[opponentSeat] ?? 0;
-    final rating = snapshot.rating?[snapshot.youSeat];
     final won = snapshot.winnerSeat == snapshot.youSeat;
     final entryFee = _economy.entryFeeForDifficulty(snapshot.difficulty);
     final resultTitle = snapshot.winnerSeat == null
@@ -678,9 +713,6 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
         ? context.tr('result_win_subtitle')
         : context.tr('result_loss_subtitle');
     final you = snapshot.players[snapshot.youSeat]!;
-    final localRating = rating?.afterGlobal ?? 1000;
-    final opponentRating =
-        snapshot.rating?[opponentSeat]?.afterGlobal ?? (localRating + 0);
     final canPlay = _economy.balance >= entryFee;
     final invite = _invitation;
     final seconds = invite == null
@@ -700,7 +732,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       children: [
         if (snapshot.mode == 'friendly') ...[
           Text(
-            '${context.tr('challenge')} · ${context.tr('result_elo_change')}: 0',
+            '${context.tr('challenge')} · RP: 0',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withValues(alpha: .68),
@@ -782,9 +814,9 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
             opponent: opponent,
             localScore: localScore,
             opponentScore: opponentScore,
-            localRating: localRating,
-            opponentRating: opponentRating,
-            rating: rating,
+            rankResult: _rankResult,
+            rankLoading: _rankLoading && snapshot.mode == 'ranked',
+            showRankResult: snapshot.mode == 'ranked',
             footer: footer,
             rows: [
               _ResultMetric(
@@ -1019,9 +1051,9 @@ class _ResultShowcaseCard extends StatelessWidget {
     required this.opponent,
     required this.localScore,
     required this.opponentScore,
-    required this.localRating,
-    required this.opponentRating,
-    required this.rating,
+    required this.rankResult,
+    required this.rankLoading,
+    required this.showRankResult,
     required this.rows,
     required this.footer,
   });
@@ -1034,9 +1066,9 @@ class _ResultShowcaseCard extends StatelessWidget {
   final OnlineDuelPlayer opponent;
   final int localScore;
   final int opponentScore;
-  final int localRating;
-  final int opponentRating;
-  final OnlineDuelRatingChange? rating;
+  final RankMatchResult? rankResult;
+  final bool rankLoading;
+  final bool showRankResult;
   final List<_ResultMetric> rows;
   final Widget footer;
 
@@ -1096,8 +1128,6 @@ class _ResultShowcaseCard extends StatelessWidget {
                     opponent: opponent,
                     localScore: localScore,
                     opponentScore: opponentScore,
-                    localRating: localRating,
-                    opponentRating: opponentRating,
                     accent: accent,
                   ),
                   const SizedBox(height: 12),
@@ -1121,9 +1151,13 @@ class _ResultShowcaseCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (rating != null) ...[
+                  if (showRankResult) ...[
                     const SizedBox(height: 12),
-                    _ResultEloBar(rating: rating!, color: accent),
+                    _ResultRankBar(
+                      result: rankResult,
+                      loading: rankLoading,
+                      color: accent,
+                    ),
                   ],
                   footer,
                 ],
@@ -1224,8 +1258,6 @@ class _ResultPlayersRow extends StatelessWidget {
     required this.opponent,
     required this.localScore,
     required this.opponentScore,
-    required this.localRating,
-    required this.opponentRating,
     required this.accent,
   });
 
@@ -1233,8 +1265,6 @@ class _ResultPlayersRow extends StatelessWidget {
   final OnlineDuelPlayer opponent;
   final int localScore;
   final int opponentScore;
-  final int localRating;
-  final int opponentRating;
   final Color accent;
 
   @override
@@ -1253,7 +1283,6 @@ class _ResultPlayersRow extends StatelessWidget {
               child: _ResultPlayerSummary(
                 player: localPlayer,
                 score: localScore,
-                rating: localRating,
                 color: const Color(0xFF1E9B63),
               ),
             ),
@@ -1272,7 +1301,6 @@ class _ResultPlayersRow extends StatelessWidget {
               child: _ResultPlayerSummary(
                 player: opponent,
                 score: opponentScore,
-                rating: opponentRating,
                 color: accent,
                 alignEnd: true,
               ),
@@ -1288,14 +1316,12 @@ class _ResultPlayerSummary extends StatelessWidget {
   const _ResultPlayerSummary({
     required this.player,
     required this.score,
-    required this.rating,
     required this.color,
     this.alignEnd = false,
   });
 
   final OnlineDuelPlayer player;
   final int score;
-  final int rating;
   final Color color;
   final bool alignEnd;
 
@@ -1342,7 +1368,7 @@ class _ResultPlayerSummary extends StatelessWidget {
               ),
             ),
             Text(
-              context.tr('rating_value', <Object>[rating]),
+              player.username.isEmpty ? '' : '@${player.username}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -1429,61 +1455,260 @@ class _ResultCompareRow extends StatelessWidget {
   }
 }
 
-class _ResultEloBar extends StatelessWidget {
-  const _ResultEloBar({required this.rating, required this.color});
+class _ResultRankBar extends StatelessWidget {
+  const _ResultRankBar({
+    required this.result,
+    required this.loading,
+    required this.color,
+  });
 
-  final OnlineDuelRatingChange rating;
+  final RankMatchResult? result;
+  final bool loading;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final before = rating.beforeGlobal;
-    final after = rating.afterGlobal;
-    final delta = rating.deltaGlobal;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          context.tr('result_elo_change'),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: .72),
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-          ),
+    final value = result;
+    if (loading) {
+      return Container(
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .055),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: .08)),
         ),
-        const SizedBox(height: 7),
-        Row(
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 9),
             Text(
-              '$before',
-              style: const TextStyle(
+              'Updating Rank Points…',
+              style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: SizedBox(
-                  height: 9,
-                  child: LinearProgressIndicator(
-                    value: (after / 2500).clamp(.05, 1.0),
-                    backgroundColor: Colors.white.withValues(alpha: .12),
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
+          ],
+        ),
+      );
+    }
+
+    if (value == null || !value.rated || !value.settled) {
+      return Container(
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .055),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: .08)),
+        ),
+        child: Text(
+          'Rank Points are safe and will update automatically.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .70),
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
+    }
+
+    final afterTier = rankTierForPoints(value.rpAfter);
+    final nextIndex = rankTierCatalog.indexWhere(
+      (tier) => tier.key == afterTier.key,
+    );
+    final hasNext = nextIndex >= 0 && nextIndex < rankTierCatalog.length - 1;
+    final next = hasNext ? rankTierCatalog[nextIndex + 1] : null;
+    final progress = next == null
+        ? 1.0
+        : ((value.rpAfter - afterTier.minPoints) /
+                  (next.minPoints - afterTier.minPoints))
+              .clamp(0.0, 1.0)
+              .toDouble();
+    final deltaColor = value.rpDelta > 0
+        ? const Color(0xFF29D398)
+        : value.rpDelta < 0
+        ? const Color(0xFFFF8C88)
+        : const Color(0xFF8DA2BE);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .055),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: .24)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.workspace_premium_rounded,
+                color: Color(0xFFFFC94D),
+                size: 19,
+              ),
+              const SizedBox(width: 7),
+              const Expanded(
+                child: Text(
+                  'Rank Points',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '$after (${delta >= 0 ? '+' : ''}$delta)',
-              style: TextStyle(color: color, fontWeight: FontWeight.w900),
+              Text(
+                '${value.rpDelta >= 0 ? '+' : ''}${value.rpDelta} RP',
+                style: TextStyle(
+                  color: deltaColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                '${value.rpBefore}',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .58),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 9,
+                    backgroundColor: Colors.white.withValues(alpha: .12),
+                    valueColor: AlwaysStoppedAnimation<Color>(deltaColor),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${value.rpAfter} RP',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  value.rankAfterName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF8ED8FF),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (next != null)
+                Text(
+                  '${next.minPoints - value.rpAfter} RP to ${next.label}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .54),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                )
+              else
+                const Text(
+                  'Top rank',
+                  style: TextStyle(
+                    color: Color(0xFFFFD66B),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+            ],
+          ),
+          if (value.rankUp) ...[
+            const SizedBox(height: 9),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF66C7FF).withValues(alpha: .10),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFF66C7FF).withValues(alpha: .20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.arrow_upward_rounded,
+                    color: Color(0xFF8ED8FF),
+                    size: 17,
+                  ),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      'Promoted to ${value.rankAfterName}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  if (value.rewardCoins > 0)
+                    Text(
+                      '+${value.rewardCoins} Coin',
+                      style: const TextStyle(
+                        color: Color(0xFFFFD66B),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ],
-        ),
-      ],
+          if (value.abandonmentPenalty > 0) ...[
+            const SizedBox(height: 7),
+            Text(
+              'Includes -${value.abandonmentPenalty} RP leave penalty.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .54),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ] else if (value.repeatPercent < 100 && value.rpDelta > 0) ...[
+            const SizedBox(height: 7),
+            Text(
+              value.repeatPercent == 0
+                  ? 'Repeat-opponent protection: no farmable RP this match.'
+                  : 'Repeat-opponent protection reduced positive RP.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .54),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -2212,7 +2437,9 @@ class _TimerPillState extends State<_TimerPill> {
           Padding(
             padding: const EdgeInsets.all(5),
             child: CircularProgressIndicator(
-              value: seconds == null ? null : (seconds / 30).clamp(0.0, 1.0),
+              value: seconds == null
+                  ? null
+                  : (seconds / 30).clamp(0.0, 1.0).toDouble(),
               strokeWidth: widget.compact ? 2.4 : 3,
               backgroundColor: Colors.white.withValues(alpha: .18),
               valueColor: AlwaysStoppedAnimation<Color>(color),
