@@ -50,7 +50,7 @@ void main() {
     expect(source, contains('preserveOriginalColor ? null : color'));
   });
 
-  test('home is centered and consumes current coin and gift artwork', () {
+  test('home is centered and consumes current mode, rank, coin and gift artwork', () {
     final home = File(
       'lib/features/home/professional_home_screen.dart',
     ).readAsStringSync();
@@ -60,7 +60,8 @@ void main() {
     expect(home, contains('DuelAsset.homeCareerScene'));
     expect(home, contains('DuelAsset.homeFriendsScene'));
     expect(home, contains('DuelAsset.homeStoreScene'));
-    expect(home, contains('DuelAsset.homeProfileScene'));
+    expect(home, contains('DuelAsset.resultVictoryTrophyPro'));
+    expect(home, isNot(contains('DuelAsset.homeProfileScene')));
     expect(home, contains('DuelAsset.dailyRewardPro'));
     expect(home, contains('DuelAsset.coin'));
     expect(home, contains('constraints: const BoxConstraints(maxWidth: 760)'));
