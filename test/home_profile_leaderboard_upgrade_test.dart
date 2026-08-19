@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('home uses premium scene artwork and exposes leaderboards', () {
+  test('home uses premium scene artwork and exposes distinct profile/rank paths', () {
     final source = File(
       'lib/features/home/professional_home_screen.dart',
     ).readAsStringSync();
@@ -14,7 +14,7 @@ void main() {
       'DuelAsset.homeCareerScene',
       'DuelAsset.homeFriendsScene',
       'DuelAsset.homeStoreScene',
-      'DuelAsset.homeProfileScene',
+      'DuelAsset.resultVictoryTrophyPro',
       'DuelAsset.dailyRewardPro',
       'DuelAsset.coin',
       'DuelAsset.leaderboardCrownPro',
@@ -22,11 +22,28 @@ void main() {
       expect(source, contains(asset));
     }
     expect(source, contains('LeaderboardsScreen'));
+    expect(source, contains('RankedProgressScreen'));
+    expect(source, contains("title: rank?.rankName ?? 'Ranked Progress'"));
+    expect(source, contains('progress: rank?.progress'));
+    expect(source, contains('onTap: _identityBusy ? null : _openRankedProgress'));
+    expect(source, isNot(contains('DuelAsset.homeProfileScene')));
     expect(source, contains('localAvatarBytes: platformPlayer?.avatarBytes'));
     expect(
       source,
       contains('constraints: const BoxConstraints(maxWidth: 760)'),
     );
+  });
+
+  test('ranked progress screen owns RP detail instead of another home profile shortcut', () {
+    final source = File(
+      'lib/features/duel/ranked_progress_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('RankIdentitySummaryCard'));
+    expect(source, contains('RankIdentityService.instance.refresh()'));
+    expect(source, contains('ProfileCustomizationScreen'));
+    expect(source, contains('LeaderboardsScreen'));
+    expect(source, contains("title: 'Ranked Progress'"));
   });
 
   test('profile hub exposes RP identity customization and leaderboard entry', () {
