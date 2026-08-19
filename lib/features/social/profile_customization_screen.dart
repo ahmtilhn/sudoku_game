@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/user_safe_error.dart';
 import '../../models/avatar_preset_catalog.dart';
+import '../../models/country_catalog.dart';
 import '../../models/rank_identity_fallback.dart';
 import '../../models/rank_identity_models.dart';
 import '../../services/platform_game_services.dart';
@@ -31,13 +32,14 @@ class _ProfileCustomizationScreenState
   String _frameKey = 'auto';
   String _titleKey = '';
   List<String> _achievementIds = <String>[];
+  String? _countryCode;
+  bool _countryFlagVisible = true;
 
   @override
   void initState() {
     super.initState();
     final cached = RankIdentityService.instance.current.value;
     _profile = cached ?? buildRankIdentityFallback();
-    _serverReady = cached != null;
     _applyProfile(_profile);
     unawaited(_hydrate());
   }
@@ -60,22 +62,42 @@ class _ProfileCustomizationScreenState
         _error = null;
       });
     }
-    try {
-      final profile = await RankIdentityService.instance.refresh();
-      if (!mounted) return;
-      setState(() {
-        _serverReady = true;
-        _applyProfile(profile);
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _serverReady = false;
-        _error = UserSafeError.message(context, error);
-      });
-    } finally {
-      if (mounted) setState(() => _hydrating = false);
-    }
+
+    Object? firstError;
+    RankIdentityProfile? loadedProfile;
+    RankCountryPreference? loadedCountry;
+
+    await Future.wait<void>([
+      () async {
+        try {
+          loadedProfile = await RankIdentityService.instance.refresh();
+        } catch (error) {
+          firstError ??= error;
+        }
+      }(),
+      () async {
+        try {
+          loadedCountry =
+              await RankIdentityService.instance.loadCountryPreference();
+        } catch (error) {
+          firstError ??= error;
+        }
+      }(),
+    ]);
+
+    if (!mounted) return;
+    setState(() {
+      if (loadedProfile != null) _applyProfile(loadedProfile!);
+      if (loadedCountry != null) {
+        _countryCode = loadedCountry!.countryCode;
+        _countryFlagVisible = loadedCountry!.flagVisible;
+      }
+      _serverReady = loadedProfile != null && loadedCountry != null;
+      if (firstError != null) {
+        _error = UserSafeError.message(context, firstError!);
+      }
+      _hydrating = false;
+    });
   }
 
   Future<void> _save() async {
@@ -84,7 +106,7 @@ class _ProfileCustomizationScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Rank profile server is unavailable. Preview is local until reconnect.',
+            'Profile server is unavailable. Preview is local until reconnect.',
           ),
         ),
       );
@@ -101,13 +123,19 @@ class _ProfileCustomizationScreenState
         titleKey: _titleKey,
         achievementIds: _achievementIds,
       );
+      final country = await RankIdentityService.instance.saveCountryPreference(
+        countryCode: _countryCode,
+        flagVisible: _countryFlagVisible,
+      );
       if (!mounted) return;
       setState(() {
         _serverReady = true;
         _applyProfile(profile);
+        _countryCode = country.countryCode;
+        _countryFlagVisible = country.flagVisible;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile style saved.')),
+        const SnackBar(content: Text('Profile settings saved.')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -130,7 +158,7 @@ class _ProfileCustomizationScreenState
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 860),
               child: DefaultTabController(
-                length: 4,
+                length: 5,
                 child: Column(
                   children: [
                     Padding(
@@ -161,13 +189,15 @@ class _ProfileCustomizationScreenState
                             frameKey: _frameKey,
                             titleKey: _titleKey,
                             achievementIds: _achievementIds,
+                            countryCode: _countryCode,
+                            countryFlagVisible: _countryFlagVisible,
                           ),
                           if (!_serverReady || _error != null) ...[
                             const SizedBox(height: 8),
                             _OfflineNotice(
                               message:
                                   _error ??
-                                  'Online rank profile is reconnecting. All avatars, frames and badges remain previewable.',
+                                  'Online profile is reconnecting. All profile options remain previewable.',
                               busy: _hydrating,
                               onRetry: _hydrate,
                             ),
@@ -201,6 +231,10 @@ class _ProfileCustomizationScreenState
                                   icon: Icon(Icons.title_rounded),
                                   text: 'Titles',
                                 ),
+                                Tab(
+                                  icon: Icon(Icons.public_rounded),
+                                  text: 'Country',
+                                ),
                               ],
                             ),
                           ),
@@ -233,6 +267,15 @@ class _ProfileCustomizationScreenState
                             selectedKey: _titleKey,
                             onSelected: (key) =>
                                 setState(() => _titleKey = key),
+                          ),
+                          _CountryTab(
+                            countryCode: _countryCode,
+                            flagVisible: _countryFlagVisible,
+                            onCountryChanged: (code) =>
+                                setState(() => _countryCode = code),
+                            onVisibilityChanged: (value) => setState(
+                              () => _countryFlagVisible = value,
+                            ),
                           ),
                         ],
                       ),
@@ -276,6 +319,8 @@ class _PreviewCard extends StatelessWidget {
     required this.frameKey,
     required this.titleKey,
     required this.achievementIds,
+    required this.countryCode,
+    required this.countryFlagVisible,
   });
 
   final RankIdentityProfile profile;
@@ -283,6 +328,8 @@ class _PreviewCard extends StatelessWidget {
   final String frameKey;
   final String titleKey;
   final List<String> achievementIds;
+  final String? countryCode;
+  final bool countryFlagVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -304,6 +351,7 @@ class _PreviewCard extends StatelessWidget {
     final platform = PlatformGameServices.instance.localPlayer.value;
     final usePlatformAvatar = avatarKey.startsWith('home-profile-');
     final title = _titleLabel(profile, titleKey);
+    final flag = countryFlagVisible ? countryFlagEmoji(countryCode) : '';
 
     return Container(
       width: double.infinity,
@@ -328,15 +376,29 @@ class _PreviewCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  profile.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
+                Row(
+                  children: [
+                    if (flag.isNotEmpty) ...[
+                      Text(
+                        flag,
+                        style: const TextStyle(fontSize: 18, height: 1),
+                        semanticsLabel: 'Country flag',
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Expanded(
+                      child: Text(
+                        profile.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -821,6 +883,259 @@ class _TitleTab extends StatelessWidget {
   }
 }
 
+class _CountryTab extends StatelessWidget {
+  const _CountryTab({
+    required this.countryCode,
+    required this.flagVisible,
+    required this.onCountryChanged,
+    required this.onVisibilityChanged,
+  });
+
+  final String? countryCode;
+  final bool flagVisible;
+  final ValueChanged<String?> onCountryChanged;
+  final ValueChanged<bool> onVisibilityChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = countryOptionForCode(countryCode);
+    return ListView(
+      key: const PageStorageKey<String>('profile-country-list'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+      children: [
+        const _InfoCard(
+          icon: Icons.public_rounded,
+          title: 'Country flag',
+          body:
+              'Choose the country you want to represent. It appears before your name in Ranked Ladder and is never inferred from your location.',
+        ),
+        const SizedBox(height: 10),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _chooseCountry(context),
+            borderRadius: BorderRadius.circular(17),
+            child: Ink(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(17),
+                border: Border.all(color: Colors.white.withValues(alpha: .06)),
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 42,
+                    child: Text(
+                      selected?.flag ?? '🌐',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 27),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          selected?.name ?? 'Choose country',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          selected == null
+                              ? 'No country flag will be shown until you choose one.'
+                              : 'Your flag can be shown before your player name.',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .48),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white54,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (selected != null) ...[
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => onCountryChanged(null),
+              icon: const Icon(Icons.close_rounded, size: 18),
+              label: const Text('Clear country'),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        SwitchListTile.adaptive(
+          value: flagVisible,
+          onChanged: selected == null ? null : onVisibilityChanged,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(17),
+            side: BorderSide(color: Colors.white.withValues(alpha: .06)),
+          ),
+          tileColor: Colors.black.withValues(alpha: .14),
+          secondary: Icon(
+            Icons.flag_rounded,
+            color: selected == null
+                ? Colors.white.withValues(alpha: .28)
+                : const Color(0xFF66C7FF),
+          ),
+          title: const Text(
+            'Show flag on Ranked Ladder',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          subtitle: Text(
+            selected == null
+                ? 'Choose a country first.'
+                : flagVisible
+                ? 'Only the flag appears before your name. No country abbreviation is shown.'
+                : 'Your country stays saved, but the flag is hidden from the ladder.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .50),
+              fontSize: 11,
+              height: 1.3,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _chooseCountry(BuildContext context) async {
+    final value = await showModalBottomSheet<CountryOption>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF101A20),
+      showDragHandle: true,
+      builder: (_) => const FractionallySizedBox(
+        heightFactor: .86,
+        child: _CountryPickerSheet(),
+      ),
+    );
+    if (value != null) onCountryChanged(value.code);
+  }
+}
+
+class _CountryPickerSheet extends StatefulWidget {
+  const _CountryPickerSheet();
+
+  @override
+  State<_CountryPickerSheet> createState() => _CountryPickerSheetState();
+}
+
+class _CountryPickerSheetState extends State<_CountryPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final choices = query.isEmpty
+        ? countryOptions
+        : countryOptions
+              .where((country) => country.name.toLowerCase().contains(query))
+              .toList(growable: false);
+
+    return SafeArea(
+      top: false,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Choose country',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  autofocus: true,
+                  onChanged: (value) => setState(() => _query = value),
+                  textInputAction: TextInputAction.search,
+                  decoration: const InputDecoration(
+                    hintText: 'Search country',
+                    prefixIcon: Icon(Icons.search_rounded),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: choices.isEmpty
+                ? Center(
+                    child: Text(
+                      'No country found.',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .55),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 20),
+                    itemCount: choices.length,
+                    separatorBuilder: (_, _) => Divider(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: .045),
+                    ),
+                    itemBuilder: (context, index) {
+                      final country = choices[index];
+                      return ListTile(
+                        onTap: () => Navigator.of(context).pop(country),
+                        leading: SizedBox(
+                          width: 34,
+                          child: Text(
+                            country.flag,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 23),
+                          ),
+                        ),
+                        title: Text(
+                          country.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white38,
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SaveBar extends StatelessWidget {
   const _SaveBar({
     required this.serverReady,
@@ -847,7 +1162,7 @@ class _SaveBar extends StatelessWidget {
           Expanded(
             child: Text(
               serverReady
-                  ? 'Rank frames and achievement badges are earned, not purchased.'
+                  ? 'Rank cosmetics are earned. Country flag is your optional profile choice.'
                   : 'Preview mode · reconnect to save changes.',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: .56),
