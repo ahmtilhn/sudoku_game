@@ -156,10 +156,11 @@ void main() {
 
       expect(source, contains('RankIdentityService.instance'));
       expect(source, contains('loadLeaderboard(limit: 100)'));
-      expect(source, contains('rankTierCatalog'));
       expect(source, contains('rankPoints'));
       expect(source, contains("'Global RP leaderboard'"));
-      expect(source, contains("'Each division is 300 RP."));
+      expect(source, isNot(contains("'Rank progression'")));
+      expect(source, isNot(contains('_RankRoadmap')));
+      expect(source, isNot(contains('rankTierCatalog')));
       expect(source, isNot(contains('CompetitiveLeaderboardApi.instance')));
       expect(source, isNot(contains('PlatformLeaderboardService.instance')));
       expect(source, isNot(contains('Sudoku Duel ELO')));
