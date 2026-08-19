@@ -211,7 +211,7 @@ class _ProgressStrip extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
-            value: profile.progress.clamp(0, 1),
+            value: profile.progress.clamp(0.0, 1.0).toDouble(),
             minHeight: 8,
             backgroundColor: Colors.white.withValues(alpha: .08),
             valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF66C7FF)),
