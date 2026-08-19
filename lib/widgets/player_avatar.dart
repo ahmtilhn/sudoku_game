@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../models/avatar_preset_catalog.dart';
 import '../models/rank_identity_models.dart';
-import '../services/platform_game_services.dart';
 import 'rank_frame_overlay.dart';
 
 class PlayerAvatar extends StatelessWidget {
@@ -63,8 +62,12 @@ class PlayerAvatar extends StatelessWidget {
   }
 
   Widget? _image(BuildContext context, double size, String baseKey) {
-    // Explicit presets must win over native platform bytes/URLs. Legacy/default
-    // identities retain the previous platform-avatar behavior.
+    // Explicit presets must win over native platform bytes/URLs. Native
+    // platform imagery is owner-local data: callers must explicitly provide
+    // the bytes or an approved URL. We intentionally never resolve a
+    // `home-profile-*` key through this device's local player because doing so
+    // for a remote opponent could accidentally display the viewer's own
+    // Game Center / Play Games avatar on somebody else's profile.
     if (!baseKey.startsWith('preset_')) {
       final bytes = localAvatarBytes;
       if (bytes != null && bytes.isNotEmpty) {
@@ -78,8 +81,8 @@ class PlayerAvatar extends StatelessWidget {
         );
       }
 
-      final url = _resolvedRemoteUrl(baseKey);
-      if (url != null && url.startsWith('https://')) {
+      final url = remoteApprovedImageUrl?.trim();
+      if (url != null && url.isNotEmpty && url.startsWith('https://')) {
         return Image.network(
           url,
           fit: BoxFit.cover,
@@ -131,19 +134,6 @@ class PlayerAvatar extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String? _resolvedRemoteUrl(String baseKey) {
-    final configuredUrl = remoteApprovedImageUrl?.trim();
-    if (configuredUrl != null && configuredUrl.isNotEmpty) {
-      return configuredUrl;
-    }
-
-    if (!baseKey.startsWith('home-profile-')) return null;
-    final player = PlatformGameServices.instance.localPlayer.value;
-    final playGamesUrl = player?.avatarUrl?.trim();
-    if (playGamesUrl == null || playGamesUrl.isEmpty) return null;
-    return playGamesUrl;
   }
 
   Widget _frameBuilder(
