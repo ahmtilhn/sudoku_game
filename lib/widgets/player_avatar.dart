@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/avatar_preset_catalog.dart';
 import '../models/rank_identity_models.dart';
+import '../services/rank_identity_service.dart';
 import 'rank_frame_overlay.dart';
 
 class PlayerAvatar extends StatelessWidget {
@@ -46,9 +47,7 @@ class PlayerAvatar extends StatelessWidget {
     final label = semanticLabel ?? displayName;
     final size = radius * 2;
     final identity = RankIdentityKey.parse(avatarKey);
-    final normalizedAvatarKey = AvatarPresetCatalog.normalizeKey(
-      identity.avatarKey,
-    );
+    final normalizedAvatarKey = _resolvedAssetAvatarKey(identity.avatarKey);
     final assetPath = AvatarPresetCatalog.assetPathForKey(normalizedAvatarKey);
 
     final image = Image.asset(
@@ -73,5 +72,21 @@ class PlayerAvatar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _resolvedAssetAvatarKey(String baseKey) {
+    final direct = AvatarPresetCatalog.byKey(baseKey);
+    if (direct != null) return direct.key;
+
+    // The home header historically uses an internal `professional-home-*` key.
+    // Resolve that owner-local placeholder to the selected in-app avatar rather
+    // than to Game Center / Play Games imagery.
+    if (baseKey.startsWith('professional-home-') ||
+        baseKey.startsWith('home-profile-')) {
+      final selected = RankIdentityService.instance.current.value?.selectedAvatarKey;
+      if (selected != null) return AvatarPresetCatalog.normalizeKey(selected);
+    }
+
+    return AvatarPresetCatalog.firstKey;
   }
 }
