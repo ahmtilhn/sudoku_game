@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../models/rank_identity_models.dart';
 import '../../services/platform_game_services.dart';
@@ -72,7 +73,9 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
       final value = await _rankIdentity.refresh();
       if (mounted) setState(() => _profile = value);
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
