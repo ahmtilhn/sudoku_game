@@ -2,17 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../models/rank_identity_models.dart';
 import '../../services/rank_identity_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/in_page_header.dart';
 import '../../widgets/player_avatar.dart';
 
-/// Player-facing competitive board.
+/// Player-facing competitive ladder.
 ///
-/// The 1000-based Elo remains an internal matchmaking/MMR signal on the
-/// backend. This screen intentionally exposes only visible Rank Points (RP) and
-/// the Bronze III -> Master I progression agreed for the competitive UI.
+/// The existing 1000-based Elo remains an internal matchmaking/MMR signal.
+/// This screen intentionally exposes only Rank Points (RP).
 class LeaderboardsScreen extends StatefulWidget {
   const LeaderboardsScreen({super.key});
 
@@ -22,7 +22,7 @@ class LeaderboardsScreen extends StatefulWidget {
 
 class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   RankIdentityProfile? _profile;
-  RankLeaderboardSnapshot? _leaderboard;
+  RankLeaderboardSnapshot? _board;
   bool _loading = true;
   String? _error;
 
@@ -39,17 +39,19 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
       _error = null;
     });
     try {
-      final values = await Future.wait<Object>([
+      final results = await Future.wait<Object>([
         RankIdentityService.instance.refresh(),
         RankIdentityService.instance.loadLeaderboard(limit: 100),
       ]);
       if (!mounted) return;
       setState(() {
-        _profile = values[0] as RankIdentityProfile;
-        _leaderboard = values[1] as RankLeaderboardSnapshot;
+        _profile = results[0] as RankIdentityProfile;
+        _board = results[1] as RankLeaderboardSnapshot;
       });
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -67,8 +69,14 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
               child: RefreshIndicator(
                 onRefresh: _load,
                 child: _loading && _profile == null
-                    ? const _RankLoadingView()
-                    : _buildContent(context),
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          SizedBox(height: 220),
+                          Center(child: CircularProgressIndicator()),
+                        ],
+                      )
+                    : _content(context),
               ),
             ),
           ),
@@ -77,9 +85,9 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _content(BuildContext context) {
     final profile = _profile;
-    final board = _leaderboard;
+    final board = _board;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 34),
@@ -96,7 +104,7 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
         ),
         if (_error != null) ...[
           const SizedBox(height: 8),
-          _RankErrorCard(message: _error!, onRetry: _load),
+          _MessageCard(message: _error!, onRetry: _load),
         ],
         if (profile != null) ...[
           const SizedBox(height: 8),
@@ -104,31 +112,29 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
             profile: profile,
             leaderboardRank: board?.currentRank,
           ),
-          const SizedBox(height: 18),
-          _SectionHeader(
+          const SizedBox(height: 20),
+          const _SectionTitle(
             title: 'Rank progression',
             subtitle:
-                'Every division is 300 RP. Rank frames stay unlocked once earned.',
+                'Each division is 300 RP. Earned rank frames remain permanently available.',
           ),
           const SizedBox(height: 10),
           _RankRoadmap(profile: profile),
         ],
         const SizedBox(height: 20),
-        _SectionHeader(
+        const _SectionTitle(
           title: 'Global RP leaderboard',
           subtitle:
-              'RP is your visible competitive progress. Matchmaking skill remains hidden.',
+              'Visible RP determines your displayed rank. Matchmaking skill stays hidden.',
         ),
         const SizedBox(height: 10),
         if (board == null && _loading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(28),
-              child: CircularProgressIndicator(),
-            ),
+          const Padding(
+            padding: EdgeInsets.all(28),
+            child: Center(child: CircularProgressIndicator()),
           )
         else if (board == null || board.entries.isEmpty)
-          const _EmptyLeaderboard()
+          const _EmptyBoard()
         else
           _LeaderboardList(
             snapshot: board,
@@ -139,24 +145,8 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   }
 }
 
-class _RankLoadingView extends StatelessWidget {
-  const _RankLoadingView();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(24),
-      children: const [
-        SizedBox(height: 180),
-        Center(child: CircularProgressIndicator()),
-      ],
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.subtitle});
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -197,8 +187,6 @@ class _CurrentRankCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final divisionSize = profile.divisionSize;
-    final nextLabel = profile.nextRankName;
     final globalRank = leaderboardRank == null ? '—' : '#$leaderboardRank';
     return Container(
       padding: const EdgeInsets.all(16),
@@ -236,7 +224,6 @@ class _CurrentRankCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
                       '${profile.rankPoints} RP',
                       style: const TextStyle(
@@ -249,44 +236,14 @@ class _CurrentRankCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF66C7FF).withValues(alpha: .10),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: const Color(0xFF66C7FF).withValues(alpha: .20),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      globalRank,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      'GLOBAL',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .45),
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: .7,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _GlobalRankPill(label: globalRank),
             ],
           ),
           const SizedBox(height: 16),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
-              value: profile.progress.clamp(0.0, 1.0),
+              value: profile.progress.clamp(0.0, 1.0).toDouble(),
               minHeight: 9,
               backgroundColor: Colors.white.withValues(alpha: .08),
               valueColor: const AlwaysStoppedAnimation<Color>(
@@ -298,27 +255,66 @@ class _CurrentRankCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                divisionSize == null
+                profile.divisionSize == null
                     ? '${profile.pointsInDivision} RP above Master I'
-                    : '${profile.pointsInDivision}/$divisionSize RP',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: .58),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                ),
+                    : '${profile.pointsInDivision}/${profile.divisionSize} RP',
+                style: _smallMuted(),
               ),
               const Spacer(),
               Text(
-                nextLabel == null
+                profile.nextRankName == null
                     ? 'Top rank'
-                    : '${profile.pointsToNext ?? 0} RP to $nextLabel',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: .58),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                ),
+                    : '${profile.pointsToNext ?? 0} RP to ${profile.nextRankName}',
+                style: _smallMuted(),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  TextStyle _smallMuted() => TextStyle(
+        color: Colors.white.withValues(alpha: .58),
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+      );
+}
+
+class _GlobalRankPill extends StatelessWidget {
+  const _GlobalRankPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF66C7FF).withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF66C7FF).withValues(alpha: .20),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            'GLOBAL',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .45),
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .7,
+            ),
           ),
         ],
       ),
@@ -333,7 +329,7 @@ class _RankRoadmap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rewardByRank = <String, RankRewardState>{
+    final rewards = <String, RankRewardState>{
       for (final reward in profile.rankRewards) reward.rankKey: reward,
     };
     return Container(
@@ -344,17 +340,17 @@ class _RankRoadmap extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (var index = 0; index < rankTierCatalog.length; index++) ...[
-            _RankRoadmapRow(
-              tier: rankTierCatalog[index],
-              reward: rewardByRank[rankTierCatalog[index].key],
-              current: profile.rankKey == rankTierCatalog[index].key,
+          for (var i = 0; i < rankTierCatalog.length; i++) ...[
+            _TierRow(
+              tier: rankTierCatalog[i],
+              reward: rewards[rankTierCatalog[i].key],
+              current: profile.rankKey == rankTierCatalog[i].key,
               unlocked: profile.unlockedFrameKeys.contains(
-                rankTierCatalog[index].key,
+                rankTierCatalog[i].key,
               ),
-              previewIndex: index,
+              previewIndex: i,
             ),
-            if (index != rankTierCatalog.length - 1)
+            if (i != rankTierCatalog.length - 1)
               Divider(
                 height: 1,
                 indent: 74,
@@ -367,8 +363,8 @@ class _RankRoadmap extends StatelessWidget {
   }
 }
 
-class _RankRoadmapRow extends StatelessWidget {
-  const _RankRoadmapRow({
+class _TierRow extends StatelessWidget {
+  const _TierRow({
     required this.tier,
     required this.reward,
     required this.current,
@@ -390,7 +386,6 @@ class _RankRoadmapRow extends StatelessWidget {
       frameKey: tier.key,
     ).encode();
     final rewardCoins = reward?.amount ?? 0;
-    final rewardClaimed = reward?.claimed == true;
     return Container(
       color: current
           ? const Color(0xFF66C7FF).withValues(alpha: .075)
@@ -424,10 +419,10 @@ class _RankRoadmapRow extends StatelessWidget {
                     ),
                     if (current) ...[
                       const SizedBox(width: 7),
-                      const _SmallPill(label: 'CURRENT'),
+                      const _StatusPill(label: 'CURRENT'),
                     ] else if (unlocked) ...[
                       const SizedBox(width: 7),
-                      const _SmallPill(label: 'UNLOCKED'),
+                      const _StatusPill(label: 'UNLOCKED'),
                     ],
                   ],
                 ),
@@ -447,15 +442,11 @@ class _RankRoadmapRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           if (tier.minPoints == 0)
-            _RewardPill(
-              label: 'START',
-              claimed: true,
-              neutral: true,
-            )
+            const _RewardPill(label: 'START', claimed: true, neutral: true)
           else
             _RewardPill(
               label: '+$rewardCoins Coin',
-              claimed: rewardClaimed,
+              claimed: reward?.claimed == true,
             ),
         ],
       ),
@@ -463,8 +454,8 @@ class _RankRoadmapRow extends StatelessWidget {
   }
 }
 
-class _SmallPill extends StatelessWidget {
-  const _SmallPill({required this.label});
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label});
 
   final String label;
 
@@ -559,12 +550,12 @@ class _LeaderboardList extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (var index = 0; index < snapshot.entries.length; index++) ...[
+          for (var i = 0; i < snapshot.entries.length; i++) ...[
             _LeaderboardRow(
-              entry: snapshot.entries[index],
-              isCurrent: snapshot.entries[index].publicId == currentPublicId,
+              entry: snapshot.entries[i],
+              isCurrent: snapshot.entries[i].publicId == currentPublicId,
             ),
-            if (index != snapshot.entries.length - 1)
+            if (i != snapshot.entries.length - 1)
               Divider(
                 height: 1,
                 indent: 62,
@@ -585,7 +576,6 @@ class _LeaderboardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rankLabel = entry.rank <= 3 ? '#${entry.rank}' : '${entry.rank}';
     final winRate = (entry.winRate * 100).round();
     return Container(
       color: isCurrent
@@ -597,7 +587,7 @@ class _LeaderboardRow extends StatelessWidget {
           SizedBox(
             width: 34,
             child: Text(
-              rankLabel,
+              '#${entry.rank}',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: entry.rank <= 3
@@ -635,7 +625,7 @@ class _LeaderboardRow extends StatelessWidget {
                     ),
                     if (isCurrent) ...[
                       const SizedBox(width: 6),
-                      const _SmallPill(label: 'YOU'),
+                      const _StatusPill(label: 'YOU'),
                     ],
                   ],
                 ),
@@ -668,8 +658,8 @@ class _LeaderboardRow extends StatelessWidget {
   }
 }
 
-class _EmptyLeaderboard extends StatelessWidget {
-  const _EmptyLeaderboard();
+class _EmptyBoard extends StatelessWidget {
+  const _EmptyBoard();
 
   @override
   Widget build(BuildContext context) {
@@ -698,7 +688,7 @@ class _EmptyLeaderboard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Complete ranked online matches to start climbing from Bronze III.',
+            'Complete ranked online matches to climb from Bronze III.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withValues(alpha: .54),
@@ -712,8 +702,8 @@ class _EmptyLeaderboard extends StatelessWidget {
   }
 }
 
-class _RankErrorCard extends StatelessWidget {
-  const _RankErrorCard({required this.message, required this.onRetry});
+class _MessageCard extends StatelessWidget {
+  const _MessageCard({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
