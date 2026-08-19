@@ -9,8 +9,10 @@ import '../../domain/classic16_puzzle_factory.dart';
 import '../../domain/sudoku.dart';
 import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
+import '../../models/rank_identity_models.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
+import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
 import '../../services/variant_matchmaking_client.dart';
 import '../../widgets/app_backdrop.dart';
@@ -42,14 +44,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   late SudokuDifficulty _difficulty;
   late SudokuVariant _variant;
-  CompetitiveProfile? _profile;
+  RankIdentityProfile? _profile;
   bool _searching = false;
   bool _polling = false;
   bool _cancelling = false;
   bool _openingRoom = false;
   Timer? _pollTimer;
   int _pollAttempt = 0;
-  int? _queueRating;
   String? _searchStatus;
   Future<VariantMatchmakingResult>? _activeQueueRequest;
 
@@ -63,6 +64,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     _variant = widget.initialVariant;
     _economy.addListener(_refresh);
     unawaited(_economy.initialize());
+    unawaited(_loadCurrentProfile());
   }
 
   @override
@@ -264,16 +266,20 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       return MatchmakingVisualPlayer(
         displayName: context.tr('you'),
         avatarKey: 'matchmaking-you',
-        rating: _queueRating,
       );
     }
+    final stats = profile.stats;
+    final winRate = stats.rankedGames == 0
+        ? 0.0
+        : stats.wins / stats.rankedGames;
     return MatchmakingVisualPlayer(
       displayName: profile.displayName,
       avatarKey: profile.avatarKey,
       rankLabel: profile.rankName,
-      gamesPlayed: profile.wins + profile.losses + profile.draws,
-      winRate: profile.winRate,
-      rating: _queueRating ?? profile.currentElo,
+      gamesPlayed: stats.rankedGames,
+      winRate: winRate,
+      // Legacy presentation slot: visible RP only, never matchmaking MMR.
+      rating: profile.rankPoints,
     );
   }
 
@@ -417,10 +423,10 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   Future<void> _loadCurrentProfile() async {
     try {
-      final profile = await SocialApiClient.instance.loadCompetitiveProfile();
+      final profile = await RankIdentityService.instance.refresh();
       if (mounted) setState(() => _profile = profile);
     } catch (_) {
-      // Matchmaking can continue with the authenticated room identity fallback.
+      // Matchmaking continues with authenticated identity if RP profile is unavailable.
     }
   }
 
@@ -430,7 +436,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       _searching = true;
       _cancelling = false;
       _searchStatus = null;
-      _queueRating = null;
       _pollAttempt = 0;
     });
 
@@ -446,7 +451,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       unawaited(_loadCurrentProfile());
       final result = await _joinSelectedQueue();
       if (!mounted || !_searching) return;
-      _queueRating = result.rating;
       if (result.matched) {
         _openMatchedResult(result);
         return;
@@ -555,7 +559,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     try {
       final result = await _joinSelectedQueue();
       if (!mounted || !_searching) return;
-      _queueRating = result.rating ?? _queueRating;
       if (result.matched) {
         _openMatchedResult(result);
         return;
@@ -638,16 +641,12 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     }
 
     try {
-      // If the first DELETE raced a POST that re-created our queue row,
-      // clean it again after that POST has completed.
       await _matchmaking.cancelRankedQueue();
     } catch (_) {
       // Returning to the selection screen must remain possible while offline.
     }
 
     try {
-      // Another player's coordinator may have claimed our queue entry just
-      // before DELETE. Recover that funded room instead of abandoning it.
       final active = await SocialApiClient.instance.activeMatch();
       final roomId = active?['roomId']?.toString().trim() ?? '';
       if (roomId.isNotEmpty && mounted) {
