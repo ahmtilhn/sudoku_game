@@ -21,9 +21,9 @@ type DerivedProgressionRow = {
 /**
  * Reconciles only data derived from an already-settled visible-RP row.
  *
- * This helper deliberately has no access to GameRoom, WebSockets, matchmaking,
- * puzzle state, escrow, match payouts or the authoritative Elo settlement. It
- * exists so a promotion can immediately unlock its lifetime Coin reward,
+ * This helper deliberately has no access to room state, socket transport,
+ * matchmaking, puzzle state, escrow, match payouts or authoritative rating
+ * settlement. It exists so a promotion can immediately unlock its lifetime Coin reward,
  * achievement decoration and auto-rank frame even when the player never opens
  * the profile screen after the match.
  */

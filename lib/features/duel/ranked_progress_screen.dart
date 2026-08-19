@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/user_safe_error.dart';
+import '../../localization/app_strings.dart';
 import '../../models/rank_identity_fallback.dart';
 import '../../models/rank_identity_models.dart';
 import '../../services/rank_identity_service.dart';
@@ -87,16 +88,16 @@ class _RankedProgressScreenState extends State<RankedProgressScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     InPageHeader(
-                      title: 'Ranked Progress',
+                      title: context.tr('ranked_progress_title'),
                       actions: [
                         IconButton.filledTonal(
-                          tooltip: 'Leaderboards',
+                          tooltip: context.tr('leaderboards'),
                           onPressed: _loading ? null : _openLeaderboards,
                           icon: const Icon(Icons.emoji_events_rounded),
                         ),
                         const SizedBox(width: 6),
                         IconButton.filledTonal(
-                          tooltip: 'Refresh',
+                          tooltip: context.tr('refresh'),
                           onPressed: _loading ? null : _refresh,
                           icon: _loading
                               ? const SizedBox.square(

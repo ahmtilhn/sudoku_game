@@ -145,6 +145,11 @@ class AppStrings {
     'connection_interrupted_retrying':
         'The connection was interrupted. Retrying...',
     'leaderboards': 'Leaderboards',
+    'ranked_ladder': 'Ranked ladder',
+    'ranked_progress_title': 'Ranked Progress',
+    'rank_progression': 'Rank progression',
+    'global_rp_leaderboard': 'Global RP leaderboard',
+    'current_elo_summary': '%1d ELO · %2d games · %3dW %4dL',
     'native_leaderboard_short': 'Native',
     'global_elo': 'Global ELO',
     'friends': 'Friends',

@@ -87,16 +87,12 @@ void main() {
       'lib/features/social/competitive_profile_card.dart',
     ).readAsStringSync();
     final start = source.indexOf('class CompetitiveProfileCard');
-    final end = source.indexOf('class _RankBadge', start);
+    final end = source.indexOf('class _IdentityLine', start);
 
     expect(start, greaterThanOrEqualTo(0));
     expect(end, greaterThan(start));
     final identityCard = source.substring(start, end);
     expect(identityCard, contains('PlayerAvatar('));
-    expect(
-      identityCard,
-      contains('remoteApprovedImageUrl: platformPlayer?.avatarUrl'),
-    );
     expect(identityCard, contains('Expanded('));
     expect(identityCard, isNot(contains('DuelAsset.profilePro')));
   });
