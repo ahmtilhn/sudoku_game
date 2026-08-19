@@ -1,0 +1,118 @@
+name: Finalize RP identity v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/finalize-rank-identity-v2.yml'
+      - 'tool/finalize_rank_identity_integration.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-rank-identity-v2
+  cancel-in-progress: false
+
+jobs:
+  validate-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply additive UI-only integration
+        run: |
+          set -euo pipefail
+          python3 tool/finalize_rank_identity_integration.py
+          git diff --check
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/duel/matchmaking_stage.dart \
+            lib/features/duel/matchmaking_screen.dart \
+            lib/features/duel/pre_match_ready_screen.dart \
+            lib/features/social/social_hub_screen.dart \
+            lib/features/social/friend_requests_screen.dart \
+            lib/features/social/challenge_invitation_screen.dart \
+            lib/features/social/platform_social_screen.dart \
+            lib/features/home/home_screen.dart \
+            lib/features/social/rank_identity_summary_card.dart \
+            lib/features/social/profile_customization_screen.dart \
+            test/rank_identity_public_ui_contract_test.dart
+
+      - name: Validate backend rank layer
+        working-directory: backend/social_worker
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run typecheck
+          npm test
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter packages
+        run: flutter pub get
+
+      - name: Validate localization and UX contracts
+        run: |
+          set -euo pipefail
+          python3 tool/validate_localizations.py
+          python3 tool/verify_user_facing_messages.py
+          python3 tool/verify_ux_contracts.py
+
+      - name: Analyze Flutter app
+        run: flutter analyze --fatal-infos
+
+      - name: Run focused rank identity tests
+        run: |
+          set -euo pipefail
+          flutter test --reporter expanded \
+            test/rank_identity_models_test.dart \
+            test/rank_emblem_test.dart \
+            test/rank_identity_public_ui_contract_test.dart
+
+      - name: Run full Flutter regression suite
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 12m flutter test --reporter expanded --concurrency=1
+
+      - name: Commit validated integration directly to main
+        run: |
+          set -euo pipefail
+          git add \
+            lib/features/duel/matchmaking_stage.dart \
+            lib/features/duel/matchmaking_screen.dart \
+            lib/features/duel/pre_match_ready_screen.dart \
+            lib/features/social/social_hub_screen.dart \
+            lib/features/social/friend_requests_screen.dart \
+            lib/features/social/challenge_invitation_screen.dart \
+            lib/features/social/platform_social_screen.dart \
+            lib/features/home/home_screen.dart \
+            lib/features/social/rank_identity_summary_card.dart \
+            lib/features/social/profile_customization_screen.dart \
+            test/rank_identity_public_ui_contract_test.dart \
+            backend/social_worker/test/rank_reward_migration.test.ts
+          if git diff --cached --quiet; then
+            echo 'No integration changes are pending.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Finalize player-facing RP identity integration'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
