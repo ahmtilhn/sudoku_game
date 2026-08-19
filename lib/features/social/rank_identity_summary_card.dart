@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/rank_identity_models.dart';
 import '../../widgets/player_avatar.dart';
+import '../../widgets/rank_emblem.dart';
 
 class RankIdentitySummaryCard extends StatelessWidget {
   const RankIdentitySummaryCard({
@@ -98,7 +99,7 @@ class RankIdentitySummaryCard extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(child: identity),
                   const SizedBox(width: 12),
-                  SizedBox(width: 220, child: rank),
+                  SizedBox(width: 250, child: rank),
                 ],
               );
             },
@@ -164,31 +165,45 @@ class _RankBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .055),
         borderRadius: BorderRadius.circular(17),
         border: Border.all(color: Colors.white.withValues(alpha: .08)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            profile.rankName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-            ),
+          RankEmblem(
+            rankKey: profile.rankKey,
+            size: 58,
+            semanticLabel: '${profile.rankName} rank',
           ),
-          const SizedBox(height: 2),
-          Text(
-            '${profile.rankPoints} RP',
-            style: const TextStyle(
-              color: Color(0xFF66C7FF),
-              fontSize: 25,
-              height: 1.05,
-              fontWeight: FontWeight.w900,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  profile.rankName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${profile.rankPoints} RP',
+                  style: const TextStyle(
+                    color: Color(0xFF66C7FF),
+                    fontSize: 24,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
