@@ -32,7 +32,7 @@ void main() {
 
     test('identity key round-trips avatar frame and at most three badges', () {
       final encoded = RankIdentityKey(
-        avatarKey: 'preset_042',
+        avatarKey: 'preset_040',
         frameKey: 'gold_1',
         decorationKeys: const <String>[
           'unbeaten_shield_50',
@@ -43,7 +43,7 @@ void main() {
       ).encode();
 
       final parsed = RankIdentityKey.parse(encoded);
-      expect(parsed.avatarKey, 'preset_042');
+      expect(parsed.avatarKey, 'preset_040');
       expect(parsed.frameKey, 'gold_1');
       expect(parsed.decorationKeys, <String>[
         'unbeaten_shield_50',
@@ -52,30 +52,41 @@ void main() {
       ]);
     });
 
-    test('legacy avatar keys remain backwards compatible', () {
+    test('legacy identity parsing remains readable before UI normalization', () {
       final parsed = RankIdentityKey.parse('home-profile-platform');
       expect(parsed.avatarKey, 'home-profile-platform');
       expect(parsed.frameKey, isNull);
       expect(parsed.decorationKeys, isEmpty);
+      expect(
+        AvatarPresetCatalog.normalizeKey(parsed.avatarKey),
+        AvatarPresetCatalog.firstKey,
+      );
     });
   });
 
-  group('built-in avatar catalog', () {
-    test('contains exactly 96 game-relevant presets with stable keys', () {
-      expect(AvatarPresetCatalog.all, hasLength(96));
+  group('bundled avatar catalog', () {
+    test('contains exactly the current 40 assets with stable profile keys', () {
+      expect(AvatarPresetCatalog.all, hasLength(40));
       expect(AvatarPresetCatalog.all.first.key, 'preset_001');
-      expect(AvatarPresetCatalog.all.last.key, 'preset_096');
+      expect(AvatarPresetCatalog.all.last.key, 'preset_040');
       expect(
         AvatarPresetCatalog.all.map((item) => item.key).toSet(),
-        hasLength(96),
+        hasLength(40),
+      );
+      expect(
+        AvatarPresetCatalog.all.every(
+          (item) => item.assetPath.startsWith('assets/avatar/'),
+        ),
+        isTrue,
       );
     });
 
     test('lookup rejects malformed or out-of-range preset keys', () {
       expect(AvatarPresetCatalog.byKey('preset_001'), isNotNull);
-      expect(AvatarPresetCatalog.byKey('preset_096'), isNotNull);
+      expect(AvatarPresetCatalog.byKey('preset_040'), isNotNull);
       expect(AvatarPresetCatalog.byKey('preset_000'), isNull);
-      expect(AvatarPresetCatalog.byKey('preset_097'), isNull);
+      expect(AvatarPresetCatalog.byKey('preset_041'), isNull);
+      expect(AvatarPresetCatalog.byKey('preset_096'), isNull);
       expect(AvatarPresetCatalog.byKey('random-photo'), isNull);
     });
   });
