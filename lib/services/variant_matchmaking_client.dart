@@ -75,6 +75,7 @@ class VariantMatchmakingClient {
 
   static final VariantMatchmakingClient instance = VariantMatchmakingClient();
   static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _appCheckTimeout = Duration(seconds: 3);
 
   final http.Client _client;
   final String _baseUrl;
@@ -189,7 +190,7 @@ class VariantMatchmakingClient {
 
   static Future<String> _appCheckToken() async {
     return await FirebaseServices.instance.tryGetAppCheckToken(
-          timeout: _timeout,
+          timeout: _appCheckTimeout,
         ) ??
         '';
   }

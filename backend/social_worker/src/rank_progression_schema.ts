@@ -91,6 +91,13 @@ async function install(env: RankProgressionEnv): Promise<void> {
       sort_order INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY(achievement_id) REFERENCES achievement_definitions(id) ON DELETE CASCADE
     )`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS player_country_preferences (
+      player_id TEXT PRIMARY KEY,
+      country_flag_visible INTEGER NOT NULL DEFAULT 1
+        CHECK(country_flag_visible IN (0, 1)),
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
+    )`),
   ]);
 
   await env.DB.prepare(`CREATE TRIGGER IF NOT EXISTS rank_reward_grant_apply
