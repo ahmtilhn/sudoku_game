@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
+import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/in_page_header.dart';
 import '../../widgets/player_avatar.dart';
+import '../../widgets/rank_emblem.dart';
 import '../duel/pre_match_ready_screen.dart';
 
 class ChallengeInvitationScreen extends StatefulWidget {
@@ -27,6 +29,7 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
   final EconomyService _economy = EconomyService.instance;
 
   SocialChallenge? _challenge;
+  PublicRankSummary? _challengerRank;
   Timer? _countdown;
   String? _error;
   bool _loading = true;
@@ -71,6 +74,7 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
       setState(() {
         _loading = true;
         _error = null;
+        _challengerRank = null;
       });
     }
 
@@ -92,6 +96,7 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
         return;
       }
       setState(() => _challenge = found);
+      unawaited(_loadChallengerRank(found.challenger.publicId));
       _countdown = Timer.periodic(const Duration(seconds: 1), (_) {
         if (!mounted) return;
         if (_secondsLeft <= 0) _countdown?.cancel();
@@ -105,6 +110,19 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadChallengerRank(String publicId) async {
+    try {
+      final rank = await RankIdentityService.instance.loadPublicRankSummary(
+        publicId,
+      );
+      if (!mounted || _challenge?.challenger.publicId != publicId) return;
+      setState(() => _challengerRank = rank);
+    } catch (_) {
+      // A private or temporarily unavailable profile stays hidden. Never fall
+      // back to the legacy SocialPlayer.rating because that is hidden MMR.
     }
   }
 
@@ -175,6 +193,7 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
                     )
                   : _ChallengeCard(
                       challenge: _challenge!,
+                      challengerRank: _challengerRank,
                       secondsLeft: _secondsLeft,
                       expired: _expired,
                       processing: _processing,
@@ -202,6 +221,7 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
 class _ChallengeCard extends StatelessWidget {
   const _ChallengeCard({
     required this.challenge,
+    required this.challengerRank,
     required this.secondsLeft,
     required this.expired,
     required this.processing,
@@ -216,6 +236,7 @@ class _ChallengeCard extends StatelessWidget {
   });
 
   final SocialChallenge challenge;
+  final PublicRankSummary? challengerRank;
   final int secondsLeft;
   final bool expired;
   final bool processing;
@@ -232,6 +253,8 @@ class _ChallengeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final difficulty = _difficulty(challenge.difficulty);
     final accent = _accent(difficulty);
+    final rank = challengerRank;
+    final avatarKey = rank?.avatarKey ?? 'challenge-${challenge.challenger.publicId}';
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
@@ -266,25 +289,34 @@ class _ChallengeCard extends StatelessWidget {
                 secondsLeft: secondsLeft,
                 accent: accent,
               ),
-              const SizedBox(height: 22),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: accent.withValues(alpha: .10),
-                  border: Border.all(color: accent.withValues(alpha: .32)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withValues(alpha: .14),
-                      blurRadius: 30,
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: accent.withValues(alpha: .10),
+                      border: Border.all(color: accent.withValues(alpha: .32)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accent.withValues(alpha: .14),
+                          blurRadius: 30,
+                        ),
+                      ],
                     ),
+                    child: PlayerAvatar(
+                      displayName: challenge.challenger.displayName,
+                      avatarKey: avatarKey,
+                      radius: 44,
+                    ),
+                  ),
+                  if (rank != null) ...[
+                    const SizedBox(width: 12),
+                    RankEmblem(rankKey: rank.rankKey, size: 74),
                   ],
-                ),
-                child: PlayerAvatar(
-                  displayName: challenge.challenger.displayName,
-                  avatarKey: 'challenge-${challenge.challenger.publicId}',
-                  radius: 48,
-                ),
+                ],
               ),
               const SizedBox(height: 14),
               Text(
@@ -307,6 +339,16 @@ class _ChallengeCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              if (rank != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '${rank.rankName} · ${rank.rankPoints} RP',
+                  style: const TextStyle(
+                    color: Color(0xFF8ED8FF),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               Text(
                 context.tr('wants_to_play_again', <Object>[
@@ -333,8 +375,8 @@ class _ChallengeCard extends StatelessWidget {
                   Expanded(
                     child: _Metric(
                       asset: DuelAsset.trophy,
-                      label: context.tr('rating'),
-                      value: '${challenge.challenger.rating}',
+                      label: 'RP',
+                      value: rank == null ? '—' : '${rank.rankPoints}',
                       color: const Color(0xFFFFC94D),
                     ),
                   ),
