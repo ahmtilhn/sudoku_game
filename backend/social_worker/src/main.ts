@@ -507,7 +507,7 @@ async function connectRoomWithoutResponseWrapping(
       .first<{ id: string }>();
     if (!player) return json(env, 404, { error: 'Player profile not found.' });
 
-    const roomId = url.pathname.split('/')[3];
+    const roomId = decodeURIComponent(url.pathname.split('/')[3] ?? '');
     const match = await env.DB.prepare(
       `SELECT player_a_id, player_b_id, status
        FROM matches

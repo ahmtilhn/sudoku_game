@@ -1817,10 +1817,10 @@ export class GameRoom {
     ) {
       await this.persist();
     }
-    this.broadcast(events);
     if (duel.status === 'completed' || duel.status === 'forfeited' || duel.status === 'cancelled') {
       await this.settleIfNeeded(duel);
     }
+    this.broadcast(events);
   }
 
   async webSocketClose(
