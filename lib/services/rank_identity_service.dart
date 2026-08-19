@@ -21,6 +21,24 @@ class RankIdentityException implements Exception {
   String toString() => message;
 }
 
+class RankCountryPreference {
+  const RankCountryPreference({
+    required this.countryCode,
+    required this.flagVisible,
+  });
+
+  final String? countryCode;
+  final bool flagVisible;
+
+  factory RankCountryPreference.fromJson(Map<String, dynamic> json) {
+    final raw = json['countryCode']?.toString().trim().toUpperCase();
+    return RankCountryPreference(
+      countryCode: raw == null || raw.isEmpty ? null : raw,
+      flagVisible: json['countryFlagVisible'] != false,
+    );
+  }
+}
+
 class PublicRankSummary {
   const PublicRankSummary({
     required this.publicId,
@@ -236,6 +254,48 @@ class RankIdentityService {
     );
     current.value = value;
     return value;
+  }
+
+  Future<RankCountryPreference> loadCountryPreference() async {
+    return RankCountryPreference.fromJson(
+      await _request('GET', '/v1/me/rank-country'),
+    );
+  }
+
+  Future<RankCountryPreference> saveCountryPreference({
+    String? countryCode,
+    required bool flagVisible,
+  }) async {
+    return RankCountryPreference.fromJson(
+      await _request(
+        'PUT',
+        '/v1/me/rank-country',
+        body: <String, Object?>{
+          'countryCode': countryCode ?? '',
+          'countryFlagVisible': flagVisible,
+        },
+      ),
+    );
+  }
+
+  Future<Map<String, String>> loadRankCountryFlags({int limit = 50}) async {
+    final safe = limit.clamp(1, 100);
+    final payload = await _request(
+      'GET',
+      '/v1/competitive/rank-country-flags?limit=$safe',
+    );
+    final values = payload['entries'];
+    if (values is! List) return const <String, String>{};
+    final result = <String, String>{};
+    for (final item in values.whereType<Map>()) {
+      final map = item.cast<String, dynamic>();
+      final publicId = map['publicId']?.toString().trim() ?? '';
+      final code = map['countryCode']?.toString().trim().toUpperCase() ?? '';
+      if (publicId.isNotEmpty && RegExp(r'^[A-Z]{2}$').hasMatch(code)) {
+        result[publicId] = code;
+      }
+    }
+    return result;
   }
 
   Future<RankLeaderboardSnapshot> loadLeaderboard({int limit = 50}) async {
