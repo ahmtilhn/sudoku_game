@@ -65,7 +65,7 @@ void main() {
     ]);
   });
 
-  testWidgets('avatar renders bundled image with rank frame decorations', (
+  testWidgets('avatar renders bundled avatar and ranked frame assets', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -85,6 +85,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(PlayerAvatar), findsOneWidget);
-    expect(find.byType(Image), findsOneWidget);
+    // One bundled PNG is the avatar and the second is the rank frame overlay.
+    expect(find.byType(Image), findsNWidgets(2));
   });
 }
