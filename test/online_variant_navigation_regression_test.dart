@@ -46,12 +46,13 @@ void main() {
     },
   );
 
-  test('profile loading can actively recover the native platform player', () {
+  test('profile loading does not open interactive platform sign-in', () {
     final source = File(
       'lib/services/player_profile_service.dart',
     ).readAsStringSync();
 
-    expect(source, contains('authenticated = await games.authenticate();'));
+    expect(source, contains('var authenticated = await games.refreshAuthentication();'));
+    expect(source, isNot(contains('authenticated = await games.authenticate();')));
     expect(
       source,
       contains('games.localPlayer.value ?? await games.getLocalPlayer()'),
