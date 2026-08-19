@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
 import '../../models/avatar_preset_catalog.dart';
 import '../../models/rank_identity_models.dart';
 import '../../services/platform_game_services.dart';
@@ -51,7 +52,9 @@ class _ProfileCustomizationScreenState
         );
       });
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -84,7 +87,9 @@ class _ProfileCustomizationScreenState
         const SnackBar(content: Text('Profile style saved.')),
       );
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
