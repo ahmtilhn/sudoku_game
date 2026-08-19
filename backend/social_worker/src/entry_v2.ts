@@ -20,6 +20,10 @@ import {
   isRankProgressionRoute,
   type RankProgressionEnv,
 } from './rank_progression';
+import {
+  handleRankMatchResultRequest,
+  isRankMatchResultRoute,
+} from './rank_match_result';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
 
 export { GameRoom, MatchmakingQueue };
@@ -45,7 +49,11 @@ export default {
     // Visible RP/profile identity is an additive wrapper route. The existing
     // matchmaking, Durable Object room protocol, Elo/MMR settlement and Coin
     // escrow paths below remain unchanged.
-    if (request.method !== 'OPTIONS' && isRankProgressionRoute(url.pathname)) {
+    if (
+      request.method !== 'OPTIONS' &&
+      (isRankProgressionRoute(url.pathname) ||
+        isRankMatchResultRoute(url.pathname))
+    ) {
       try {
         await ensureRankProgressionSchema(
           env as unknown as RankProgressionEnv,
@@ -57,6 +65,12 @@ export default {
           503,
           'Rank progression is temporarily unavailable.',
           'rank_progression_schema_unavailable',
+        );
+      }
+      if (isRankMatchResultRoute(url.pathname)) {
+        return handleRankMatchResultRequest(
+          request,
+          env as unknown as RankProgressionEnv,
         );
       }
       return handleRankProgressionRequest(
