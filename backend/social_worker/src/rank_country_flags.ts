@@ -50,7 +50,7 @@ export async function handleRankCountryFlagRequest(
   try {
     await verifyAppCheckRequest(request, env);
     const uid = await authenticateFirebase(request, env);
-    await ensureCountryColumns(env);
+    await ensureCountryPreferenceSchema(env);
     const player = await playerForUid(env, uid);
     if (!player) {
       throw new RankCountryFlagError(
@@ -74,13 +74,19 @@ export async function handleRankCountryFlagRequest(
           ? player.country_flag_visible !== 0
           : body.countryFlagVisible === true;
         const now = new Date().toISOString();
-        await env.DB.prepare(
-          `UPDATE players
-           SET country_code = ?, country_flag_visible = ?, updated_at = ?
-           WHERE id = ?`,
-        )
-          .bind(countryCode, flagVisible ? 1 : 0, now, player.id)
-          .run();
+        await env.DB.batch([
+          env.DB.prepare(
+            `UPDATE players SET country_code = ?, updated_at = ? WHERE id = ?`,
+          ).bind(countryCode, now, player.id),
+          env.DB.prepare(
+            `INSERT INTO player_country_preferences (
+               player_id, country_flag_visible, updated_at
+             ) VALUES (?, ?, ?)
+             ON CONFLICT(player_id) DO UPDATE SET
+               country_flag_visible = excluded.country_flag_visible,
+               updated_at = excluded.updated_at`,
+          ).bind(player.id, flagVisible ? 1 : 0, now),
+        ]);
         const updated = await playerById(env, player.id);
         return json(env, 200, countryPreferenceJson(updated ?? player));
       }
@@ -126,9 +132,11 @@ async function leaderboardCountryFlags(
   limit: number,
 ): Promise<Record<string, unknown>> {
   const rows = await env.DB.prepare(
-    `SELECT p.public_id, p.country_code, p.country_flag_visible
+    `SELECT p.public_id, p.country_code,
+            COALESCE(cp.country_flag_visible, 1) AS country_flag_visible
      FROM player_rank_progression rp
      JOIN players p ON p.id = rp.player_id
+     LEFT JOIN player_country_preferences cp ON cp.player_id = p.id
      WHERE COALESCE(p.discoverable, 1) = 1 OR p.id = ?
      ORDER BY rp.rank_points DESC, rp.ranked_games DESC, rp.updated_at ASC, rp.player_id ASC
      LIMIT ?`,
@@ -174,19 +182,18 @@ function normalizeCountryCode(value: unknown): string | null {
   return ISO_COUNTRY_CODES.has(code) ? code : null;
 }
 
-async function ensureCountryColumns(env: RankCountryFlagEnv): Promise<void> {
-  const info = await env.DB.prepare('PRAGMA table_info(players)')
-    .all<{ name: string }>();
-  const columns = new Set(info.results.map((row) => row.name));
-  if (!columns.has('country_code')) {
-    await env.DB.prepare('ALTER TABLE players ADD COLUMN country_code TEXT').run();
-  }
-  if (!columns.has('country_flag_visible')) {
-    await env.DB.prepare(
-      `ALTER TABLE players ADD COLUMN country_flag_visible INTEGER NOT NULL DEFAULT 1
-       CHECK(country_flag_visible IN (0, 1))`,
-    ).run();
-  }
+async function ensureCountryPreferenceSchema(
+  env: RankCountryFlagEnv,
+): Promise<void> {
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS player_country_preferences (
+       player_id TEXT PRIMARY KEY,
+       country_flag_visible INTEGER NOT NULL DEFAULT 1
+         CHECK(country_flag_visible IN (0, 1)),
+       updated_at TEXT NOT NULL,
+       FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
+     )`,
+  ).run();
 }
 
 async function playerForUid(
@@ -194,8 +201,11 @@ async function playerForUid(
   uid: string,
 ): Promise<PlayerCountryRow | null> {
   return env.DB.prepare(
-    `SELECT id, public_id, country_code, country_flag_visible
-     FROM players WHERE firebase_uid = ? LIMIT 1`,
+    `SELECT p.id, p.public_id, p.country_code,
+            COALESCE(cp.country_flag_visible, 1) AS country_flag_visible
+     FROM players p
+     LEFT JOIN player_country_preferences cp ON cp.player_id = p.id
+     WHERE p.firebase_uid = ? LIMIT 1`,
   )
     .bind(uid)
     .first<PlayerCountryRow>();
@@ -206,8 +216,11 @@ async function playerById(
   playerId: string,
 ): Promise<PlayerCountryRow | null> {
   return env.DB.prepare(
-    `SELECT id, public_id, country_code, country_flag_visible
-     FROM players WHERE id = ? LIMIT 1`,
+    `SELECT p.id, p.public_id, p.country_code,
+            COALESCE(cp.country_flag_visible, 1) AS country_flag_visible
+     FROM players p
+     LEFT JOIN player_country_preferences cp ON cp.player_id = p.id
+     WHERE p.id = ? LIMIT 1`,
   )
     .bind(playerId)
     .first<PlayerCountryRow>();
