@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/player_profile_service.dart';
+import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/in_page_header.dart';
@@ -30,6 +31,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   List<SocialPlayer> _opponents = const [];
   List<SocialChallenge> _challenges = const [];
   List<SocialPlayer> _results = const [];
+  final Map<String, PublicRankSummary> _rankSummaries =
+      <String, PublicRankSummary>{};
+  final Set<String> _rankRequests = <String>{};
   bool _loading = true;
   bool _searching = false;
   String? _error;
@@ -76,19 +80,70 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         _social.loadRecentOpponents(),
       ]);
       if (!mounted) return;
+      final friends = values[1] as List<SocialPlayer>;
+      final requests = values[2] as List<SocialPlayer>;
+      final challenges = values[3] as List<SocialChallenge>;
+      final opponents = values[4] as List<SocialPlayer>;
       setState(() {
         _me = values[0] as PlayerProfilePreferences;
-        _friends = values[1] as List<SocialPlayer>;
-        _requests = values[2] as List<SocialPlayer>;
-        _challenges = values[3] as List<SocialChallenge>;
-        _opponents = values[4] as List<SocialPlayer>;
+        _friends = friends;
+        _requests = requests;
+        _challenges = challenges;
+        _opponents = opponents;
       });
+      final rankPlayers = <SocialPlayer>[
+        ...friends,
+        ...requests,
+        ...opponents,
+        for (final challenge in challenges) challenge.challenger,
+        for (final challenge in challenges) challenge.recipient,
+      ];
+      unawaited(_loadRankSummaries(rankPlayers));
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  Future<void> _loadRankSummaries(Iterable<SocialPlayer> players) async {
+    final pending = <SocialPlayer>[];
+    for (final player in players) {
+      final id = player.publicId.trim();
+      if (id.length < 3 ||
+          _rankSummaries.containsKey(id) ||
+          _rankRequests.contains(id)) {
+        continue;
+      }
+      _rankRequests.add(id);
+      pending.add(player);
+    }
+    if (pending.isEmpty) return;
+
+    final loaded = await Future.wait<MapEntry<String, PublicRankSummary>?>(
+      pending.map((player) async {
+        final id = player.publicId.trim();
+        try {
+          final summary = await RankIdentityService.instance
+              .loadPublicRankSummary(id);
+          return MapEntry<String, PublicRankSummary>(id, summary);
+        } catch (_) {
+          return null;
+        } finally {
+          _rankRequests.remove(id);
+        }
+      }),
+    );
+    if (!mounted) return;
+    setState(() {
+      for (final entry in loaded) {
+        if (entry != null) _rankSummaries[entry.key] = entry.value;
+      }
+    });
+  }
+
+  PublicRankSummary? _rankFor(String publicId) =>
+      _rankSummaries[publicId.trim()];
 
   Future<void> _perform(String id, Future<void> Function() action) async {
     if (_busyId != null) return;
@@ -115,7 +170,10 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     });
     try {
       final results = await _social.searchPlayers(query);
-      if (mounted) setState(() => _results = results);
+      if (mounted) {
+        setState(() => _results = results);
+        unawaited(_loadRankSummaries(results));
+      }
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
     } finally {
@@ -278,6 +336,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                                 for (final player in _results.take(5))
                                   _PlayerRow(
                                     player: player,
+                                    rank: _rankFor(player.publicId),
                                     busy:
                                         _busyId == 'friend-${player.publicId}',
                                     primaryLabel: context.tr('add_friend'),
@@ -335,6 +394,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       for (final player in _requests)
         _PlayerRow(
           player: player,
+          rank: _rankFor(player.publicId),
           busy: _busyId == 'request-${player.publicId}',
           primaryLabel: context.tr('accept'),
           secondaryLabel: context.tr('decline'),
@@ -352,6 +412,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       for (final player in players)
         _PlayerRow(
           player: player,
+          rank: _rankFor(player.publicId),
           busy: _busyId == 'challenge-${player.publicId}',
           primaryLabel: context.tr('challenge'),
           onPrimary: () => _challenge(player),
@@ -365,24 +426,10 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     }
     return _scroll([
       for (final challenge in _incoming)
-        Card(
-          child: ListTile(
-            minTileHeight: 76,
-            leading: PlayerAvatar(
-              displayName: challenge.challenger.displayName,
-              avatarKey: 'social-${challenge.challenger.publicId}',
-              radius: 24,
-            ),
-            title: Text(
-              challenge.challenger.displayName,
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-            subtitle: Text(
-              '${context.strings.difficultyLabel(_difficulty(challenge.difficulty))} · ${context.tr('rating_value', <Object>[challenge.challenger.rating])}',
-            ),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => _openChallenge(challenge),
-          ),
+        _ChallengeRow(
+          challenge: challenge,
+          rank: _rankFor(challenge.challenger.publicId),
+          onTap: () => _openChallenge(challenge),
         ),
     ]);
   }
@@ -400,9 +447,47 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 }
 
+class _ChallengeRow extends StatelessWidget {
+  const _ChallengeRow({
+    required this.challenge,
+    required this.rank,
+    required this.onTap,
+  });
+
+  final SocialChallenge challenge;
+  final PublicRankSummary? rank;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        minTileHeight: 76,
+        leading: PlayerAvatar(
+          displayName: challenge.challenger.displayName,
+          avatarKey:
+              rank?.avatarKey ?? 'social-${challenge.challenger.publicId}',
+          radius: 24,
+        ),
+        title: Text(
+          challenge.challenger.displayName,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(
+          '${context.strings.difficultyLabel(_difficulty(challenge.difficulty))} · '
+          '${rank == null ? context.tr('games_count', <Object>[challenge.challenger.gamesPlayed]) : '${rank!.rankName} · ${rank!.rankPoints} RP'}',
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
 class _PlayerRow extends StatelessWidget {
   const _PlayerRow({
     required this.player,
+    required this.rank,
     required this.busy,
     required this.primaryLabel,
     required this.onPrimary,
@@ -411,6 +496,7 @@ class _PlayerRow extends StatelessWidget {
   });
 
   final SocialPlayer player;
+  final PublicRankSummary? rank;
   final bool busy;
   final String primaryLabel;
   final VoidCallback onPrimary;
@@ -426,7 +512,7 @@ class _PlayerRow extends StatelessWidget {
           children: [
             PlayerAvatar(
               displayName: player.displayName,
-              avatarKey: 'player-${player.publicId}',
+              avatarKey: rank?.avatarKey ?? 'player-${player.publicId}',
               radius: 24,
             ),
             const SizedBox(width: 12),
@@ -441,10 +527,9 @@ class _PlayerRow extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                   Text(
-                    context.tr('player_rating_summary', <Object>[
-                      player.username,
-                      player.rating,
-                    ]),
+                    rank == null
+                        ? '@${player.username} · ${context.tr('games_count', <Object>[player.gamesPlayed])}'
+                        : '${rank!.rankName} · ${rank!.rankPoints} RP',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
