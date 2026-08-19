@@ -60,7 +60,7 @@ class RankEmblem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(size),
                   border: Border.all(
                     color: palette.highlight.withValues(alpha: .92),
-                    width: math.max(1, size * .018),
+                    width: math.max(1, size * .018).toDouble(),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -152,7 +152,7 @@ class _RankEmblemPainter extends CustomPainter {
 
     final border = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1.2, w * .025)
+      ..strokeWidth = math.max(1.2, w * .025).toDouble()
       ..color = palette.text.withValues(alpha: .72);
     canvas.drawPath(shield, border);
 
@@ -181,12 +181,12 @@ class _RankEmblemPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = math.max(2, size.width * .055)
+      ..strokeWidth = math.max(2, size.width * .055).toDouble()
       ..color = palette.accent.withValues(alpha: .92);
     final highlight = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = math.max(1, size.width * .018)
+      ..strokeWidth = math.max(1, size.width * .018).toDouble()
       ..color = palette.highlight.withValues(alpha: .82);
 
     for (var index = 0; index < count; index++) {
@@ -211,7 +211,7 @@ class _RankEmblemPainter extends CustomPainter {
     );
     final outer = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1, extent * .055)
+      ..strokeWidth = math.max(1, extent * .055).toDouble()
       ..color = palette.text.withValues(alpha: .90);
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, Radius.circular(extent * .08)),
@@ -219,7 +219,7 @@ class _RankEmblemPainter extends CustomPainter {
     );
     final thin = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(.7, extent * .025)
+      ..strokeWidth = math.max(.7, extent * .025).toDouble()
       ..color = palette.text.withValues(alpha: .70);
     for (var index = 1; index < 3; index++) {
       final fraction = index / 3;
@@ -241,7 +241,7 @@ class _RankEmblemPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = math.max(1.4, size.width * .025)
+      ..strokeWidth = math.max(1.4, size.width * .025).toDouble()
       ..color = palette.highlight.withValues(alpha: .94);
     for (var index = 0; index < count; index++) {
       final y = size.height * (.61 + index * .045);
