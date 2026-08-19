@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/push_notification_service.dart';
+import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
@@ -38,6 +39,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
 
   Timer? _pollTimer;
   Timer? _clockTimer;
+  PublicRankSummary? _recipientRank;
   bool _checking = false;
   bool _openingRoom = false;
   int _missingPolls = 0;
@@ -57,6 +59,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     WidgetsBinding.instance.addObserver(this);
     _push.openedRoomId.addListener(_handlePushRoom);
     unawaited(_prepareNotifications());
+    unawaited(_loadRecipientRank());
     unawaited(_checkStatus());
     _pollTimer = Timer.periodic(
       const Duration(seconds: 2),
@@ -93,6 +96,19 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     await _push.initialize();
     if (!_push.userDisabled.value) {
       await _push.refreshRegistration();
+    }
+  }
+
+  Future<void> _loadRecipientRank() async {
+    final publicId = widget.challenge.recipient.publicId.trim();
+    if (publicId.length < 3) return;
+    try {
+      final summary = await RankIdentityService.instance.loadPublicRankSummary(
+        publicId,
+      );
+      if (mounted) setState(() => _recipientRank = summary);
+    } catch (_) {
+      // Private/non-discoverable profiles keep rank details hidden.
     }
   }
 
@@ -184,6 +200,9 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     );
     final accent = _accent(difficulty);
     final recipient = widget.challenge.recipient;
+    final rank = _recipientRank?.publicId == recipient.publicId
+        ? _recipientRank
+        : null;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1215),
@@ -228,7 +247,8 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                           const SizedBox(height: 22),
                           PlayerAvatar(
                             displayName: recipient.displayName,
-                            avatarKey: 'challenge-wait-${recipient.publicId}',
+                            avatarKey:
+                                rank?.avatarKey ?? 'challenge-wait-${recipient.publicId}',
                             radius: 45,
                           ),
                           const SizedBox(height: 10),
@@ -267,9 +287,11 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                               ),
                               _InfoChip(
                                 asset: DuelAsset.trophy,
-                                label: context.tr('rating_value', <Object>[
-                                  recipient.rating,
-                                ]),
+                                label: rank == null
+                                    ? context.tr('games_count', <Object>[
+                                        recipient.gamesPlayed,
+                                      ])
+                                    : '${rank.rankName} · ${rank.rankPoints} RP',
                                 accent: const Color(0xFFFFC94D),
                               ),
                               if (!_ended)
