@@ -1,89 +1,230 @@
 # Competitive Architecture
 
-This document locks the competitive boundaries before seasons, tournaments and country competition are implemented. Phase 0 is an audit and design phase only; it does not add tournament runtime behavior.
+This document defines the production safety boundaries for Sudoku Duel competitive systems.
+
+The current release has two intentionally separate competitive layers:
+
+- **authoritative online duel + hidden Elo/MMR**: existing matchmaking, GameRoom, result and rating authority;
+- **visible RP + player identity**: additive progression, Bronze III through Master I, rank rewards, frames, avatars, titles and achievement decorations.
+
+For exact RP numbers and reward tables, see `docs/RANKED_RATING_SYSTEM.md`.
 
 ## Current Capability Matrix
 
-| Area | Status | Evidence | Boundary |
+| Area | Status | Primary storage / route | Boundary |
 |---|---|---|---|
-| Ranked matchmaking | Present | `ranked_queue`, `/v1/matchmaking/queue`, difficulty/rating queue selection | Matchmaking chooses same difficulty and nearest rating; no season partition yet. |
-| Rating settlement | Present | `player_ratings`, `match_players.rating_*`, `GameRoom.settleIfNeeded` | Server computes Elo deltas; client score/rating values are display-only. |
-| Rating history | Partial | `match_players` stores per-match before/after values | No standalone immutable `rating_history` table. Add one in a later migration before seasons. |
-| Seasons | Missing | No `seasons` table or current-season API | Do not overload existing `player_ratings`; add season-scoped tables. |
-| Player avatar source | Partial | `players.avatar_key`, Flutter `avatarKey` | Only preset-style key exists. Source/version/synced URL are not modeled yet. |
-| Platform identity mapping | Partial | `players.google_player_id_hash`, `players.apple_player_id_hash`, platform channel methods | Existing columns are hash placeholders; no verified binding lifecycle/API is implemented. |
-| Friends | Present | `friendships`, friend request/respond routes | Backend friend graph is independent from platform friends. |
-| Leaderboard | Present | `/v1/leaderboards/:scope`, `player_ratings_leaderboard_idx` | Supports `global` and difficulty scopes; no seasonal/country leaderboard. |
-| Achievement rewards | Present | `/v1/achievements/:id/claim`, `reward_claims`, migration `0010` auto grant triggers | Rewards are server-side/idempotent; no tournament achievements yet. |
-| Daily reward | Present | `daily_login`, daily rewarded ad reward claims | UTC-day reward keys; no season/event reward calendar. |
-| Tournament tables | Missing | No tournament tables in migrations `0001`-`0015` | Add in later migrations only. |
-| Scheduled Worker handler | Missing for top-level cron | `GameRoom.alarm()` exists, no exported `scheduled()` handler | Durable Object alarms manage duel deadlines; cron/event jobs need explicit scheduled export later. |
-| Admin/event configuration | Missing | No admin config table/API | Future event configuration must be database-backed and access-controlled. |
-| Anti-cheat/App Check enforcement | Partial | `verifyAppCheckRequest`, `REQUIRE_APP_CHECK` | App Check exists; production enforcement and integrity policy remain external-console gates. |
+| Ranked matchmaking | Present | `ranked_queue`, `/v1/matchmaking/queue` | Existing hidden rating/difficulty pairing remains authoritative. |
+| Hidden Elo/MMR settlement | Present | `player_ratings`, `match_players.rating_*`, `GameRoom` settlement | Server-owned skill estimate. Normal player-facing competitive UI must not treat this as visible rank. |
+| Visible Rank Points | Present | `player_rank_progression`, `rank_progression_settlements` | Derived only from already-authoritative rated match rows. Starts at 0 RP. |
+| Visible rank ladder | Present | Bronze III -> Master I | 15 divisions; normal divisions are 300 RP. |
+| Rank rewards | Present | `rank_reward_grants`, `coin_ledger` | Lifetime first-time only, database-idempotent; total path reward 12,000 Coin. |
+| RP leaderboard | Present | `/v1/competitive/rank-leaderboard` | Main in-app competitive ladder. Hidden MMR is not returned. |
+| Public RP profile | Present | `/v1/competitive/rank-player/:publicId` | Privacy-aware public rank/RP/stats/composite identity; hidden MMR is not returned. |
+| Profile identity | Present | `players.avatar_key`, `player_rank_progression` | Composite avatar + unlocked/equipped frame + up to three achievement decorations. |
+| Avatar presets | Present | Flutter `AvatarPresetCatalog` | 96 game-relevant local presets, no remote stock-image dependency. |
+| Rank frames | Present | 15 RP division frames | Permanently unlocked once reached; equipped frame is cosmetic and does not redefine current rank. |
+| Achievement decorations | Present | `achievement_cosmetics`, `achievement_showcase` | Up to three equipped frame decorations. |
+| Rank titles | Present | rank progression profile | Master / Master I currently supported. |
+| Friends | Present | `friendships`, friend request/respond routes | Friend graph remains independent from platform friends. |
+| Challenges | Present | `challenges`, `rematch_invitations` | Friendly challenge reuse of duel protocol does not automatically grant RP. |
+| Coin economy | Present | `players.online_coins`, `coin_ledger`, match escrow | Existing wallet / escrow / payout authority remains independent from RP computation. |
+| Seasons | Not active | future | Do not retrofit season rules into hidden Elo or lifetime RP without a versioned design. |
+| Tournaments | Not active | future | Must remain feature-gated and server-authoritative. |
+| Country competition | Not active | future | Must use separate server-owned aggregates. |
+
+## Non-Negotiable Online Authority Boundary
+
+The RP/identity work must **not** replace, fork or become a prerequisite for any of these systems:
+
+- GameRoom / Durable Object match authority
+- WebSocket duel protocol
+- move validation
+- Sudoku puzzle state
+- timeout authority
+- disconnect / forfeit authority
+- winner determination
+- matchmaking queue behavior
+- hidden Elo/MMR settlement
+- Coin entry escrow
+- match payout / refund
+- rematch and challenge room creation
+
+The online match must remain capable of finishing correctly even if RP/profile reconciliation is temporarily unavailable.
 
 ## Server Authority Rules
 
-- The Worker owns Coin balances, ledger rows, escrow, refunds, store grants, ad grants and achievement rewards.
-- The Worker owns online duel score, winner, finish reason, rating deltas and match settlement.
-- The Flutter client may request actions and display snapshots only. It must not send authoritative score, Coin, rating, country score, achievement state, reward amount or tournament result values.
-- Durable Object snapshots are transport and recovery state, not a long-term replay archive.
-- `match_audit` may retain bounded security/audit digests. Do not add replay UI or long-term full move replay storage in this phase.
+The Worker owns:
 
-## Existing Competitive Data Ownership
+- Coin balances and ledger rows;
+- match escrow, payout and refund;
+- online duel score, winner and finish reason;
+- hidden Elo/MMR deltas;
+- visible RP settlement;
+- rank reward grants;
+- rank/frame/title unlock eligibility;
+- achievement unlocks;
+- public composite identity key.
 
-| Data | Owner | Current storage | Notes |
+The Flutter client may request actions and render returned state. It must never authoritatively send:
+
+- winner or match result;
+- hidden MMR;
+- RP delta or resulting RP;
+- rank tier;
+- Coin reward amount;
+- unlocked frame/title/achievement state;
+- tournament or country score.
+
+## Competitive Data Ownership
+
+| Data | Owner | Storage | Notes |
 |---|---|---|---|
-| Account identity | Firebase Auth + Worker player row | `players.firebase_uid` | Firebase UID is the primary account key. |
-| Public identity | Worker | `players.public_id`, `username`, `display_name` | `public_id` is permanent Friend ID; username is unique editable game name. |
-| Rating | Worker | `player_ratings`, `match_players` | Per-scope rating is server-settled. |
-| Wallet | Worker | `players.online_coins`, `coin_ledger`, `match_coin_escrow` | Ledger and idempotency keys are required for every mutation. |
-| Match result | Worker Durable Object + D1 | `matches`, `match_players`, `match_settlements` | Client result payloads are not trusted. |
-| Friends/challenges | Worker | `friendships`, `challenges`, `rematch_invitations` | Platform friends are only a discovery/input surface. |
-| Push tokens | Worker + Firebase Messaging | `device_tokens` | Tokens are device-scoped and removed during account deletion. |
+| Account identity | Firebase Auth + Worker | `players.firebase_uid` | Firebase UID remains account key. |
+| Public identity | Worker | `players.public_id`, `username`, `display_name` | Public ID is permanent Friend ID. |
+| Hidden skill | Worker | `player_ratings`, `match_players.rating_*` | Starts at 1000; used for matchmaking and RP opponent-strength snapshots. |
+| Visible progression | Worker | `player_rank_progression` | Starts at 0 RP. |
+| RP audit | Worker | `rank_progression_settlements` | Idempotent per match/player. |
+| Lifetime rank rewards | Worker | `rank_reward_grants` | `(player_id, rank_key)` uniqueness prevents repeat grants. |
+| Wallet | Worker | `players.online_coins`, `coin_ledger` | Every mutation requires idempotency. |
+| Match result | Worker Durable Object + D1 | `matches`, `match_players`, settlement tables | Client payload is not result authority. |
+| Equipped avatar/frame/title | Worker | `player_rank_progression` + composite `players.avatar_key` | Selection is validated server-side. |
+| Equipped achievement badges | Worker | `achievement_showcase` | Maximum three. |
+| Friends/challenges | Worker | `friendships`, `challenges`, `rematch_invitations` | Existing social flow remains independent of rank math. |
+| Push tokens | Worker + Firebase Messaging | `device_tokens` | Device-scoped. |
 
-## Locked Feature Flags
+## RP Reconciliation Boundary
 
-All future competitive features must be gated server-side and mirrored in client config only for UI availability:
+Visible rank settlement is intentionally post-authority:
 
-| Flag | Default | Purpose |
-|---|---:|---|
-| `premiumOnlineUi` | off | Enables enhanced competitive screens without changing settlement logic. |
-| `rankedSeasons` | off | Enables season-scoped rating summaries and season leaderboards. |
-| `globalTournaments` | off | Enables global tournament list, registration and attempts. |
-| `countryTournaments` | off | Enables country team scoring and country leaderboards. |
-| `platformAvatars` | off | Allows display of local platform avatar hints. |
-| `syncedPlatformAvatars` | off | Allows explicit, consented avatar sync to backend storage. |
-| `clans` | off | Reserved; no clan feature in current scope. |
-| `integrityEnforcement` | off | Enables stricter App Check/device-integrity gates after console validation. |
+```text
+GameRoom / match authority
+        |
+        v
+existing match + hidden-MMR settlement
+        |
+        v
+rank progression reconciliation
+        |
+        +--> RP audit row
+        +--> lifetime rank reward grant
+        +--> achievement unlock reconciliation
+        +--> composite frame/avatar refresh
+        |
+        v
+player-facing result/profile/leaderboard UI
+```
 
-## Draft API Contract
+`rank_post_settlement.ts` may update only rank-derived state and public identity. It must not mutate match authority, matchmaking, Elo tables or escrow.
 
-These endpoints are design contracts for later phases. They must reject unconfigured feature flags with a stable error code.
+## Player Identity Contract
 
-| Endpoint | Method | Server-owned result |
-|---|---|---|
-| `/v1/competitive/profile` | GET | Competitive identity, avatar metadata, flags and integrity status. |
-| `/v1/ranked/summary` | GET | Global/difficulty rating summary, season status when enabled. |
-| `/v1/seasons/current` | GET | Current season metadata and eligibility gates. |
-| `/v1/tournaments` | GET | Visible tournaments filtered by feature flag, eligibility and status. |
-| `/v1/tournaments/:id` | GET | Tournament details, registration status and server clock. |
-| `/v1/tournaments/:id/register` | POST | Server-side registration/reservation, no client fee values. |
-| `/v1/tournaments/:id/start-attempt` | POST | Server-reserved attempt and puzzle assignment. |
-| `/v1/tournaments/:id/submit` | POST | Server validation result; client score is advisory at most. |
-| `/v1/tournaments/:id/leaderboard` | GET | Server-ranked tournament results. |
-| `/v1/tournaments/:id/countries` | GET | Server-computed country standings. |
-| `/v1/countries/profile` | GET/PUT | Country selection/lock state and eligibility. |
+The public player identity is composed of:
 
-## Migration Plan
+1. avatar base;
+2. equipped rank frame;
+3. zero to three equipped achievement decoration keys.
 
-Do not edit applied migrations `0001`-`0015`.
+The encoded server key uses versioned composition:
 
-1. `0016_competitive_feature_flags.sql`: feature flag/config table with audit timestamps.
-2. `0017_player_identity_avatar_sources.sql`: avatar source/version/synced URL/consent fields and platform identity binding records.
-3. `0018_ranked_seasons.sql`: seasons, season rating snapshots and immutable rating history.
-4. `0019_tournaments_core.sql`: tournaments, registration and attempt reservations.
-5. `0020_tournament_results_and_country_scores.sql`: validated submissions, country profile locks and country aggregate tables.
+```text
+idv1|<avatar>|<frame>|<decoration1,decoration2,decoration3>
+```
 
-## Phase 0 Decision
+### Avatar privacy rule
 
-The current release candidate remains online-duel focused. Seasons, tournaments, country scoring, clan features and replay UI are explicitly out of scope until the migration plan above is implemented behind feature flags.
+Built-in avatar presets may be shown to other players.
+
+Native Game Center / Google Play Games image bytes/URLs are owner-local presentation data unless a future explicit backend sync/consent system is implemented. A remote player's platform-style key must never resolve using the viewer's own native platform avatar.
+
+### Cosmetic versus competitive truth
+
+A previously unlocked frame can remain equipped after the player drops to a lower current rank.
+
+Therefore UI must keep these concepts separate:
+
+- current rank = derived from current RP;
+- season/lifetime peak = historical competitive data;
+- equipped frame = cosmetic selection from unlocked frames.
+
+A cosmetic frame alone is never evidence of current rank.
+
+## Achievement Decoration Rules
+
+Achievement decorations are optional attachments to the frame.
+
+Current supported ranked examples include:
+
+- undefeated 10 / 25 / 50;
+- win streak 5 / 10 / 25;
+- reach Silver / Gold / Platinum / Master / Master I;
+- Giant Slayer;
+- ranked veteran 100 / 500 / 1000;
+- perfect ranked win / perfect ten.
+
+Only unlocked achievements that have a registered cosmetic decoration can be equipped. The backend enforces the three-slot limit.
+
+## Rank Reward Safety
+
+Rank Coin rewards are lifetime-first-time only.
+
+Database boundary:
+
+```text
+PRIMARY KEY(player_id, rank_key)
+```
+
+Ledger boundary:
+
+```text
+rank_reward:<playerId>:<rankKey>
+```
+
+A profile refresh, result-screen retry, network retry, demotion or later re-promotion must not duplicate a reward.
+
+## Player-Facing Ranking Rule
+
+Normal Sudoku Duel competitive UI should display:
+
+- visible rank tier;
+- visible RP;
+- RP progress to next division;
+- RP result delta;
+- rank-up / reward events.
+
+Hidden Elo/MMR remains available internally for matchmaking and compatibility tooling. It is not the primary in-app competitive rank.
+
+Native/platform leaderboard integrations may remain isolated compatibility surfaces, but they do not define the Sudoku Duel in-app rank.
+
+## Friendly Challenge Rule
+
+Friendly challenges remain unranked by default.
+
+Reusing the online duel room, score or timeout system for a friendly challenge does not make it RP-rated. A future rated-challenge product would require an explicit server-side mode and separate product decision.
+
+## Future Seasons / Tournaments
+
+Future systems must be additive and versioned. They must not silently overload lifetime RP or hidden MMR.
+
+Before enabling seasons or tournaments, define explicitly:
+
+- season start/end and eligibility;
+- placement behavior;
+- season RP reset/soft-reset policy;
+- lifetime peak versus season peak;
+- season-end rewards;
+- tournament eligibility and anti-abuse rules;
+- whether tournament matches are separately rated;
+- migration/backfill behavior.
+
+## Production Change Rule
+
+When modifying competitive code:
+
+1. preserve existing online result authority;
+2. prefer additive derived tables/routes;
+3. make every reward/settlement idempotent;
+4. keep hidden MMR out of normal visible rank UI;
+5. test retries and duplicate requests;
+6. test 9x9 and 16x16 through the same architecture;
+7. do not add Samurai Sudoku as part of competitive work;
+8. do not use client-supplied rank/reward values as authority.
