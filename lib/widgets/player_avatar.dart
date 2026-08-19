@@ -10,7 +10,7 @@ class PlayerAvatar extends StatelessWidget {
   const PlayerAvatar({
     super.key,
     required this.displayName,
-    this.avatarKey = 'default',
+    this.avatarKey = AvatarPresetCatalog.firstKey,
     this.localAvatarBytes,
     this.remoteApprovedImageUrl,
     this.radius = 22,
@@ -19,8 +19,16 @@ class PlayerAvatar extends StatelessWidget {
 
   final String displayName;
   final String avatarKey;
+
+  /// Kept only for source compatibility with older call sites. Platform/native
+  /// avatar bytes are intentionally ignored: `assets/avatar/` is now the sole
+  /// avatar image source.
   final Uint8List? localAvatarBytes;
+
+  /// Kept only for source compatibility. Remote avatar URLs are intentionally
+  /// ignored so a profile can never render an avatar outside `assets/avatar/`.
   final String? remoteApprovedImageUrl;
+
   final double radius;
   final String? semanticLabel;
 
@@ -38,11 +46,19 @@ class PlayerAvatar extends StatelessWidget {
     final label = semanticLabel ?? displayName;
     final size = radius * 2;
     final identity = RankIdentityKey.parse(avatarKey);
-    final baseKey = identity.avatarKey;
-    final image = _image(context, size, baseKey) ??
-        _presetAvatar(baseKey) ??
-        _fallback(context, baseKey);
-    final clipped = ClipOval(child: image);
+    final normalizedAvatarKey = AvatarPresetCatalog.normalizeKey(
+      identity.avatarKey,
+    );
+    final assetPath = AvatarPresetCatalog.assetPathForKey(normalizedAvatarKey);
+
+    final image = Image.asset(
+      assetPath,
+      fit: BoxFit.cover,
+      cacheWidth: size.round(),
+      cacheHeight: size.round(),
+      filterQuality: FilterQuality.medium,
+      errorBuilder: (_, _, _) => const SizedBox.expand(),
+    );
 
     return Semantics(
       image: true,
@@ -51,152 +67,11 @@ class PlayerAvatar extends StatelessWidget {
         dimension: size,
         child: RankFrameOverlay(
           size: size,
-          // Legacy/default identities predate the RP system. They still begin
-          // visually at the same public starting point: Bronze III / 0 RP.
           frameKey: identity.frameKey ?? 'bronze_3',
           decorationKeys: identity.decorationKeys,
-          child: clipped,
+          child: ClipOval(child: image),
         ),
       ),
     );
-  }
-
-  Widget? _image(BuildContext context, double size, String baseKey) {
-    // Explicit presets must win over native platform bytes/URLs. Native
-    // platform imagery is owner-local data: callers must explicitly provide
-    // the bytes or an approved URL. We intentionally never resolve a
-    // `home-profile-*` key through this device's local player because doing so
-    // for a remote opponent could accidentally display the viewer's own
-    // Game Center / Play Games avatar on somebody else's profile.
-    if (!baseKey.startsWith('preset_')) {
-      final bytes = localAvatarBytes;
-      if (bytes != null && bytes.isNotEmpty) {
-        return Image.memory(
-          bytes,
-          fit: BoxFit.cover,
-          cacheWidth: size.round(),
-          cacheHeight: size.round(),
-          errorBuilder: (_, _, _) => _fallback(context, baseKey),
-          frameBuilder: _frameBuilder,
-        );
-      }
-
-      final url = remoteApprovedImageUrl?.trim();
-      if (url != null && url.isNotEmpty && url.startsWith('https://')) {
-        return Image.network(
-          url,
-          fit: BoxFit.cover,
-          cacheWidth: size.round(),
-          cacheHeight: size.round(),
-          errorBuilder: (_, _, _) => _fallback(context, baseKey),
-          frameBuilder: _frameBuilder,
-        );
-      }
-    }
-    return null;
-  }
-
-  Widget? _presetAvatar(String baseKey) {
-    final preset = AvatarPresetCatalog.byKey(baseKey);
-    if (preset == null) return null;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: const Alignment(-.25, -.35),
-          radius: 1.15,
-          colors: [
-            preset.accent.withValues(alpha: .48),
-            preset.background,
-          ],
-        ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Align(
-            alignment: const Alignment(.65, -.68),
-            child: Container(
-              width: radius * .28,
-              height: radius * .28,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: preset.accent.withValues(alpha: .72),
-              ),
-            ),
-          ),
-          Center(
-            child: Icon(
-              preset.icon,
-              size: radius * 1.06,
-              color: preset.foreground,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _frameBuilder(
-    BuildContext context,
-    Widget child,
-    int? frame,
-    bool wasSynchronouslyLoaded,
-  ) {
-    if (wasSynchronouslyLoaded || frame != null) return child;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        _fallback(context, RankIdentityKey.parse(avatarKey).avatarKey),
-        const Center(
-          child: SizedBox.square(
-            dimension: 14,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _fallback(BuildContext context, String baseKey) {
-    final scheme = Theme.of(context).colorScheme;
-    final initials = _initials(displayName);
-    final seed = baseKey.hashCode.abs();
-    final colors = <Color>[
-      scheme.primaryContainer,
-      scheme.secondaryContainer,
-      scheme.tertiaryContainer,
-      scheme.surfaceContainerHighest,
-    ];
-    final color = colors[seed % colors.length];
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: scheme.outlineVariant, width: 1.5),
-      ),
-      child: Center(
-        child: Text(
-          initials,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: scheme.onSurface,
-            fontWeight: FontWeight.w900,
-            fontSize: (radius * 0.62).clamp(11, 22),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _initials(String value) {
-    final parts = value
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .toList(growable: false);
-    if (parts.isEmpty) return '?';
-    final first = String.fromCharCode(parts.first.runes.first).toUpperCase();
-    if (parts.length == 1) return first;
-    return '$first${String.fromCharCode(parts.last.runes.first).toUpperCase()}';
   }
 }
