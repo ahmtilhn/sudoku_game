@@ -188,22 +188,9 @@ class VariantMatchmakingClient {
   }
 
   static Future<String> _appCheckToken() async {
-    try {
-      return await FirebaseServices.instance.requireAppCheckToken(
-        timeout: _timeout,
-      );
-    } on TimeoutException {
-      throw const SocialApiException(
-        403,
-        'App Check verification timed out. Please try again.',
-      );
-    } on SocialApiException {
-      rethrow;
-    } catch (_) {
-      throw const SocialApiException(
-        403,
-        'App Check could not verify this installation.',
-      );
-    }
+    return await FirebaseServices.instance.tryGetAppCheckToken(
+          timeout: _timeout,
+        ) ??
+        '';
   }
 }

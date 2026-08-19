@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -524,7 +523,8 @@ class SocialApiClient {
     final headers = <String, String>{
       'authorization': 'Bearer $idToken',
       'accept': 'application/json',
-      'x-firebase-appcheck': appCheckToken,
+      if (appCheckToken != null && appCheckToken.isNotEmpty)
+        'x-firebase-appcheck': appCheckToken,
       if (body != null) 'content-type': 'application/json',
     };
 
@@ -599,38 +599,9 @@ class SocialApiClient {
         .toList(growable: false);
   }
 
-  Future<String> _appCheckToken() async {
-    try {
-      await FirebaseServices.instance.ensureAppCheckReady().timeout(
-        _appCheckTimeout,
-      );
-
-      final token = await FirebaseAppCheck.instance
-          .getToken(false)
-          .timeout(_appCheckTimeout);
-
-      if (token == null || token.isEmpty) {
-        throw const SocialApiException(
-          403,
-          'App Check could not verify this installation.',
-        );
-      }
-
-      return token;
-    } on TimeoutException {
-      throw const SocialApiException(
-        403,
-        'App Check verification timed out. Please try again.',
-      );
-    } on SocialApiException {
-      rethrow;
-    } catch (error) {
-      debugPrint('Social API App Check unavailable: ${error.runtimeType}');
-
-      throw const SocialApiException(
-        403,
-        'App Check could not verify this installation.',
-      );
-    }
+  Future<String?> _appCheckToken() {
+    return FirebaseServices.instance.tryGetAppCheckToken(
+      timeout: _appCheckTimeout,
+    );
   }
 }

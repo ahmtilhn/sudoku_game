@@ -66,6 +66,17 @@ class FirebaseServices {
     return token;
   }
 
+  Future<String?> tryGetAppCheckToken({
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    try {
+      return await requireAppCheckToken(timeout: timeout);
+    } catch (error) {
+      debugPrint('Firebase App Check token unavailable: ${error.runtimeType}');
+      return null;
+    }
+  }
+
   Future<void> _ensureAppCheckReadyOnce() async {
     final initialized = await FirebaseRuntimeConfig.initializeIfConfigured();
 

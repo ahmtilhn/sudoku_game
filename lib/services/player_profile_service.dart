@@ -303,31 +303,17 @@ class PlayerProfileService {
       );
     }
 
-    final String appCheckToken;
-    try {
-      appCheckToken = await FirebaseServices.instance.requireAppCheckToken(
-        timeout: _timeout,
-      );
-    } on TimeoutException {
-      throw const PlayerProfileException(
-        403,
-        'App Check verification timed out. Please try again.',
-        code: 'app_check_timeout',
-      );
-    } catch (_) {
-      throw const PlayerProfileException(
-        403,
-        'App Check could not verify this installation.',
-        code: 'app_check_failed',
-      );
-    }
+    final appCheckToken = await FirebaseServices.instance.tryGetAppCheckToken(
+      timeout: _timeout,
+    );
 
     final uri = Uri.parse('${social.baseUrl}$path');
     final headers = <String, String>{
       'authorization': 'Bearer $idToken',
       'accept': 'application/json',
       if (body != null) 'content-type': 'application/json',
-      'x-firebase-appcheck': appCheckToken,
+      if (appCheckToken != null && appCheckToken.isNotEmpty)
+        'x-firebase-appcheck': appCheckToken,
     };
     final pending = method == 'GET'
         ? _client.get(uri, headers: headers)
