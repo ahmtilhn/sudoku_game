@@ -23,7 +23,7 @@ class RankFrameOverlay extends StatelessWidget {
     final tier = rankTierForKey(key);
     final visual = _RankFrameVisual.forTier(tier);
     final decorations = decorationKeys.take(3).toList(growable: false);
-    final ringWidth = visual.ringWidth.clamp(1.5, size * .09);
+    final ringWidth = visual.ringWidth.clamp(1.5, size * .09).toDouble();
 
     return SizedBox.square(
       dimension: size,
