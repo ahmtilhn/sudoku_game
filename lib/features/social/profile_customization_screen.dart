@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/user_safe_error.dart';
 import '../../models/avatar_preset_catalog.dart';
+import '../../models/rank_identity_fallback.dart';
 import '../../models/rank_identity_models.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/rank_identity_service.dart';
@@ -19,9 +22,10 @@ class ProfileCustomizationScreen extends StatefulWidget {
 
 class _ProfileCustomizationScreenState
     extends State<ProfileCustomizationScreen> {
-  RankIdentityProfile? _profile;
-  bool _loading = true;
+  late RankIdentityProfile _profile;
+  bool _hydrating = false;
   bool _saving = false;
+  bool _serverReady = false;
   String? _error;
   String _avatarKey = 'default';
   String _frameKey = 'auto';
@@ -31,37 +35,61 @@ class _ProfileCustomizationScreenState
   @override
   void initState() {
     super.initState();
-    _load();
+    final cached = RankIdentityService.instance.current.value;
+    _profile = cached ?? buildRankIdentityFallback();
+    _serverReady = cached != null;
+    _applyProfile(_profile);
+    unawaited(_hydrate());
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  void _applyProfile(RankIdentityProfile profile) {
+    _profile = profile;
+    _avatarKey = profile.selectedAvatarKey;
+    _frameKey = profile.selectedFrameKey;
+    _titleKey = profile.selectedTitleKey;
+    _achievementIds = List<String>.from(
+      profile.selectedDecorationAchievementIds,
+    );
+  }
+
+  Future<void> _hydrate() async {
+    if (_hydrating) return;
+    if (mounted) {
+      setState(() {
+        _hydrating = true;
+        _error = null;
+      });
+    }
     try {
       final profile = await RankIdentityService.instance.refresh();
       if (!mounted) return;
       setState(() {
-        _profile = profile;
-        _avatarKey = profile.selectedAvatarKey;
-        _frameKey = profile.selectedFrameKey;
-        _titleKey = profile.selectedTitleKey;
-        _achievementIds = List<String>.from(
-          profile.selectedDecorationAchievementIds,
-        );
+        _serverReady = true;
+        _applyProfile(profile);
       });
     } catch (error) {
-      if (mounted) {
-        setState(() => _error = UserSafeError.message(context, error));
-      }
+      if (!mounted) return;
+      setState(() {
+        _serverReady = false;
+        _error = UserSafeError.message(context, error);
+      });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _hydrating = false);
     }
   }
 
   Future<void> _save() async {
-    if (_saving || _profile == null) return;
+    if (_saving) return;
+    if (!_serverReady) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Rank profile server is unavailable. Preview is local until reconnect.',
+          ),
+        ),
+      );
+      return;
+    }
     setState(() {
       _saving = true;
       _error = null;
@@ -75,21 +103,18 @@ class _ProfileCustomizationScreenState
       );
       if (!mounted) return;
       setState(() {
-        _profile = profile;
-        _avatarKey = profile.selectedAvatarKey;
-        _frameKey = profile.selectedFrameKey;
-        _titleKey = profile.selectedTitleKey;
-        _achievementIds = List<String>.from(
-          profile.selectedDecorationAchievementIds,
-        );
+        _serverReady = true;
+        _applyProfile(profile);
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile style saved.')),
       );
     } catch (error) {
-      if (mounted) {
-        setState(() => _error = UserSafeError.message(context, error));
-      }
+      if (!mounted) return;
+      setState(() {
+        _serverReady = false;
+        _error = UserSafeError.message(context, error);
+      });
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -103,133 +128,126 @@ class _ProfileCustomizationScreenState
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 820),
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildLoaded(context),
+              constraints: const BoxConstraints(maxWidth: 860),
+              child: DefaultTabController(
+                length: 4,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                      child: Column(
+                        children: [
+                          InPageHeader(
+                            title: 'Profile customization',
+                            actions: [
+                              IconButton(
+                                tooltip: 'Refresh profile',
+                                onPressed: _hydrating ? null : _hydrate,
+                                icon: _hydrating
+                                    ? const SizedBox.square(
+                                        dimension: 19,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.refresh_rounded),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          _PreviewCard(
+                            profile: _profile,
+                            avatarKey: _avatarKey,
+                            frameKey: _frameKey,
+                            titleKey: _titleKey,
+                            achievementIds: _achievementIds,
+                          ),
+                          if (!_serverReady || _error != null) ...[
+                            const SizedBox(height: 8),
+                            _OfflineNotice(
+                              message:
+                                  _error ??
+                                  'Online rank profile is reconnecting. All avatars, frames and badges remain previewable.',
+                              busy: _hydrating,
+                              onRetry: _hydrate,
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: .18),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: .06),
+                              ),
+                            ),
+                            child: const TabBar(
+                              isScrollable: true,
+                              tabAlignment: TabAlignment.start,
+                              tabs: [
+                                Tab(
+                                  icon: Icon(Icons.face_rounded),
+                                  text: 'Avatars',
+                                ),
+                                Tab(
+                                  icon: Icon(Icons.shield_rounded),
+                                  text: 'Frames',
+                                ),
+                                Tab(
+                                  icon: Icon(Icons.workspace_premium_rounded),
+                                  text: 'Badges',
+                                ),
+                                Tab(
+                                  icon: Icon(Icons.title_rounded),
+                                  text: 'Titles',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: TabBarView(
+                        children: [
+                          _AvatarTab(
+                            selectedKey: _avatarKey,
+                            onSelected: (key) =>
+                                setState(() => _avatarKey = key),
+                          ),
+                          _FrameTab(
+                            profile: _profile,
+                            avatarKey: _avatarKey,
+                            selectedKey: _frameKey,
+                            onSelected: (key) =>
+                                setState(() => _frameKey = key),
+                          ),
+                          _DecorationTab(
+                            profile: _profile,
+                            selectedAchievementIds: _achievementIds,
+                            onToggle: _toggleDecoration,
+                          ),
+                          _TitleTab(
+                            profile: _profile,
+                            selectedKey: _titleKey,
+                            onSelected: (key) =>
+                                setState(() => _titleKey = key),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _SaveBar(
+                      serverReady: _serverReady,
+                      saving: _saving,
+                      onSave: _save,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildLoaded(BuildContext context) {
-    final profile = _profile;
-    if (profile == null) {
-      return ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const InPageHeader(title: 'Profile customization'),
-          const SizedBox(height: 24),
-          _ErrorCard(message: _error ?? 'Profile could not be loaded.', onRetry: _load),
-        ],
-      );
-    }
-    return DefaultTabController(
-      length: 4,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-            child: Column(
-              children: [
-                const InPageHeader(title: 'Profile customization'),
-                const SizedBox(height: 10),
-                _PreviewCard(
-                  profile: profile,
-                  avatarKey: _avatarKey,
-                  frameKey: _frameKey,
-                  titleKey: _titleKey,
-                  achievementIds: _achievementIds,
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 8),
-                  _InlineError(message: _error!),
-                ],
-                const SizedBox(height: 10),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: .18),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: .06),
-                    ),
-                  ),
-                  child: const TabBar(
-                    isScrollable: true,
-                    tabs: [
-                      Tab(icon: Icon(Icons.face_rounded), text: 'Avatars'),
-                      Tab(icon: Icon(Icons.shield_rounded), text: 'Frames'),
-                      Tab(icon: Icon(Icons.workspace_premium_rounded), text: 'Badges'),
-                      Tab(icon: Icon(Icons.title_rounded), text: 'Titles'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _AvatarTab(
-                  selectedKey: _avatarKey,
-                  onSelected: (key) => setState(() => _avatarKey = key),
-                ),
-                _FrameTab(
-                  profile: profile,
-                  selectedKey: _frameKey,
-                  onSelected: (key) => setState(() => _frameKey = key),
-                ),
-                _DecorationTab(
-                  profile: profile,
-                  selectedAchievementIds: _achievementIds,
-                  onToggle: _toggleDecoration,
-                ),
-                _TitleTab(
-                  profile: profile,
-                  selectedKey: _titleKey,
-                  onSelected: (key) => setState(() => _titleKey = key),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0B1215).withValues(alpha: .96),
-              border: Border(
-                top: BorderSide(color: Colors.white.withValues(alpha: .06)),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Rank frames and achievement badges are earned, not purchased.',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .56),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                FilledButton.icon(
-                  onPressed: _saving ? null : _save,
-                  icon: _saving
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.check_rounded),
-                  label: Text(_saving ? 'Saving' : 'Save'),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -284,13 +302,11 @@ class _PreviewCard extends StatelessWidget {
       decorationKeys: decorations,
     ).encode();
     final platform = PlatformGameServices.instance.localPlayer.value;
-    final previewBaseKey = RankIdentityKey.parse(identity).avatarKey;
-    final usePlatformAvatar = previewBaseKey.startsWith('home-profile-');
-    final title = profile.unlockedTitles
-        .where((item) => item.key == titleKey)
-        .map((item) => item.label)
-        .firstOrNull;
+    final usePlatformAvatar = avatarKey.startsWith('home-profile-');
+    final title = _titleLabel(profile, titleKey);
+
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: .22),
@@ -322,14 +338,16 @@ class _PreviewCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   '${profile.rankName} · ${profile.rankPoints} RP',
                   style: const TextStyle(
                     color: Color(0xFF66C7FF),
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                if (title != null && title.isNotEmpty)
+                if (title != null) ...[
+                  const SizedBox(height: 3),
                   Text(
                     title,
                     style: TextStyle(
@@ -338,19 +356,35 @@ class _PreviewCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
+                ],
               ],
             ),
           ),
-          Text(
-            '${achievementIds.length}/3',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .48),
-              fontWeight: FontWeight.w900,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFB7A9FF).withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '${achievementIds.length}/3',
+              style: const TextStyle(
+                color: Color(0xFFD7CCFF),
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  String? _titleLabel(RankIdentityProfile profile, String key) {
+    if (key.isEmpty) return null;
+    for (final title in profile.unlockedTitles) {
+      if (title.key == key) return title.label;
+    }
+    return null;
   }
 }
 
@@ -368,20 +402,24 @@ class _AvatarTab extends StatelessWidget {
       if (platform != null) 'home-profile-platform',
       ...AvatarPresetCatalog.all.map((preset) => preset.key),
     ];
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 700
+        final columns = constraints.maxWidth >= 720
             ? 7
-            : constraints.maxWidth >= 500
+            : constraints.maxWidth >= 520
             ? 6
-            : 4;
+            : constraints.maxWidth >= 360
+            ? 4
+            : 3;
         return GridView.builder(
+          key: const PageStorageKey<String>('profile-avatar-grid'),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
-            childAspectRatio: .85,
+            childAspectRatio: .84,
           ),
           itemCount: choices.length,
           itemBuilder: (context, index) {
@@ -416,7 +454,8 @@ class _AvatarTab extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       PlayerAvatar(
-                        displayName: platform?.effectiveDisplayName ?? 'Player',
+                        displayName:
+                            platform?.effectiveDisplayName ?? 'Sudoku Player',
                         avatarKey: key,
                         localAvatarBytes: key == 'home-profile-platform'
                             ? platform?.avatarBytes
@@ -433,7 +472,9 @@ class _AvatarTab extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: selected ? .94 : .64),
+                          color: Colors.white.withValues(
+                            alpha: selected ? .94 : .64,
+                          ),
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
                         ),
@@ -453,40 +494,50 @@ class _AvatarTab extends StatelessWidget {
 class _FrameTab extends StatelessWidget {
   const _FrameTab({
     required this.profile,
+    required this.avatarKey,
     required this.selectedKey,
     required this.onSelected,
   });
 
   final RankIdentityProfile profile;
+  final String avatarKey;
   final String selectedKey;
   final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
     final platform = PlatformGameServices.instance.localPlayer.value;
-    final selectedBaseKey = RankIdentityKey.parse(
-      profile.selectedAvatarKey,
-    ).avatarKey;
-    final usePlatformAvatar = selectedBaseKey.startsWith('home-profile-');
+    final usePlatformAvatar = avatarKey.startsWith('home-profile-');
     final rewards = <String, RankRewardState>{
       for (final reward in profile.rankRewards) reward.rankKey: reward,
     };
     final frames = <String>['auto', ...rankTierCatalog.map((tier) => tier.key)];
+
     return ListView.separated(
+      key: const PageStorageKey<String>('profile-frame-list'),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       itemCount: frames.length + 1,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index == 0) {
-          return _RewardBanner(total: profile.totalLifetimeRankReward);
+          return _InfoCard(
+            icon: Icons.paid_rounded,
+            title: '${profile.totalLifetimeRankReward} lifetime Rank Coins',
+            body:
+                'Every division has its own frame. Rank rewards are first-time-only and cannot be farmed by dropping and climbing again.',
+          );
         }
+
         final key = frames[index - 1];
         final auto = key == 'auto';
-        final tier = auto ? rankTierForKey(profile.rankKey) : rankTierForKey(key);
-        final unlocked = auto || profile.unlockedFrameKeys.contains(key);
+        final tier = auto
+            ? rankTierForKey(profile.rankKey)
+            : rankTierForKey(key);
+        final unlocked = auto || profile.unlockedFrameKeys.contains(tier.key);
         final selected = selectedKey == key;
         final reward = rewards[tier.key];
-        final previewKey = auto ? profile.rankKey : key;
+        final previewFrame = auto ? profile.rankKey : tier.key;
+
         return Material(
           color: Colors.transparent,
           child: InkWell(
@@ -510,8 +561,8 @@ class _FrameTab extends StatelessWidget {
                   PlayerAvatar(
                     displayName: profile.displayName,
                     avatarKey: RankIdentityKey(
-                      avatarKey: profile.selectedAvatarKey,
-                      frameKey: previewKey,
+                      avatarKey: avatarKey,
+                      frameKey: previewFrame,
                     ).encode(),
                     localAvatarBytes:
                         usePlatformAvatar ? platform?.avatarBytes : null,
@@ -550,27 +601,11 @@ class _FrameTab extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (reward != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: reward.claimed
-                            ? const Color(0xFF29D398).withValues(alpha: .10)
-                            : const Color(0xFFFFC94D).withValues(alpha: .10),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '${reward.amount} Coin${reward.claimed ? ' ✓' : ''}',
-                        style: TextStyle(
-                          color: reward.claimed
-                              ? const Color(0xFF69E5BA)
-                              : const Color(0xFFFFD86A),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(width: 7),
+                  if (reward != null && reward.amount > 0) ...[
+                    const SizedBox(width: 8),
+                    _CoinPill(reward: reward),
+                  ],
+                  const SizedBox(width: 8),
                   Icon(
                     unlocked
                         ? selected
@@ -605,21 +640,25 @@ class _DecorationTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
+      key: const PageStorageKey<String>('profile-badge-list'),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       itemCount: profile.decorations.length + 1,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index == 0) {
-          return _InfoCard(
+          return const _InfoCard(
             icon: Icons.workspace_premium_rounded,
-            title: 'Up to 3 achievement badges',
+            title: '3 achievement slots',
             body:
-                'Badges are attached directly to your frame. They are earned by gameplay and remain visible anywhere your in-game avatar is shown.',
+                'Earned badges can be attached directly to your frame. Locked badges stay visible here so you always know what can be earned.',
           );
         }
         final decoration = profile.decorations[index - 1];
-        final selected = selectedAchievementIds.contains(decoration.achievementId);
+        final selected = selectedAchievementIds.contains(
+          decoration.achievementId,
+        );
         final enabled = decoration.unlocked;
+
         return Material(
           color: Colors.transparent,
           child: InkWell(
@@ -645,7 +684,7 @@ class _DecorationTab extends StatelessWidget {
                     avatarKey: RankIdentityKey(
                       avatarKey: 'preset_001',
                       frameKey: profile.rankKey,
-                      decorationKeys: [decoration.decorationKey],
+                      decorationKeys: <String>[decoration.decorationKey],
                     ).encode(),
                     radius: 27,
                   ),
@@ -662,7 +701,7 @@ class _DecorationTab extends StatelessWidget {
                                 style: TextStyle(
                                   color: enabled
                                       ? Colors.white
-                                      : Colors.white.withValues(alpha: .40),
+                                      : Colors.white.withValues(alpha: .46),
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
@@ -676,8 +715,9 @@ class _DecorationTab extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: .48),
+                            color: Colors.white.withValues(alpha: .50),
                             fontSize: 11,
+                            height: 1.25,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -724,7 +764,9 @@ class _TitleTab extends StatelessWidget {
       const RankTitleOption(key: '', label: 'No title'),
       ...profile.unlockedTitles,
     ];
+
     return ListView.separated(
+      key: const PageStorageKey<String>('profile-title-list'),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       itemCount: options.length + 1,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -734,7 +776,7 @@ class _TitleTab extends StatelessWidget {
             icon: Icons.title_rounded,
             title: 'Prestige titles',
             body:
-                'Master titles are permanent account unlocks. Your current competitive rank is always displayed separately, so an old title can never hide your actual rank.',
+                'Master and Master I titles are permanent account unlocks. Your actual current rank is always shown separately.',
           );
         }
         final option = options[index - 1];
@@ -768,7 +810,10 @@ class _TitleTab extends StatelessWidget {
             ),
           ),
           trailing: selected
-              ? const Icon(Icons.check_circle_rounded, color: Color(0xFFD9A5FF))
+              ? const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFFD9A5FF),
+                )
               : null,
         );
       },
@@ -776,18 +821,123 @@ class _TitleTab extends StatelessWidget {
   }
 }
 
-class _RewardBanner extends StatelessWidget {
-  const _RewardBanner({required this.total});
+class _SaveBar extends StatelessWidget {
+  const _SaveBar({
+    required this.serverReady,
+    required this.saving,
+    required this.onSave,
+  });
 
-  final int total;
+  final bool serverReady;
+  final bool saving;
+  final VoidCallback onSave;
 
   @override
   Widget build(BuildContext context) {
-    return _InfoCard(
-      icon: Icons.paid_rounded,
-      title: '$total lifetime Rank Coins',
-      body:
-          'Each division reward is granted automatically only the first time you reach it. Dropping and climbing back cannot farm the reward.',
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1215).withValues(alpha: .96),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: .06)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              serverReady
+                  ? 'Rank frames and achievement badges are earned, not purchased.'
+                  : 'Preview mode · reconnect to save changes.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .56),
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          FilledButton.icon(
+            onPressed: saving ? null : onSave,
+            icon: saving
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    serverReady ? Icons.check_rounded : Icons.cloud_off_rounded,
+                  ),
+            label: Text(
+              saving
+                  ? 'Saving'
+                  : serverReady
+                  ? 'Save'
+                  : 'Preview',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OfflineNotice extends StatelessWidget {
+  const _OfflineNotice({
+    required this.message,
+    required this.busy,
+    required this.onRetry,
+  });
+
+  final String message;
+  final bool busy;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFB454).withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFFFB454).withValues(alpha: .22),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.cloud_off_rounded,
+            color: Color(0xFFFFC66B),
+            size: 20,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .72),
+                fontSize: 11,
+                height: 1.25,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: 'Retry',
+            onPressed: busy ? null : onRetry,
+            icon: busy
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -806,7 +956,9 @@ class _InfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF3AA9FF).withValues(alpha: .075),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF3AA9FF).withValues(alpha: .17)),
+        border: Border.all(
+          color: const Color(0xFF3AA9FF).withValues(alpha: .17),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,6 +995,35 @@ class _InfoCard extends StatelessWidget {
   }
 }
 
+class _CoinPill extends StatelessWidget {
+  const _CoinPill({required this.reward});
+
+  final RankRewardState reward;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: reward.claimed
+            ? const Color(0xFF29D398).withValues(alpha: .10)
+            : const Color(0xFFFFC94D).withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '${reward.amount} Coin${reward.claimed ? ' ✓' : ''}',
+        style: TextStyle(
+          color: reward.claimed
+              ? const Color(0xFF69E5BA)
+              : const Color(0xFFFFD86A),
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
 class _RarityPill extends StatelessWidget {
   const _RarityPill({required this.rarity});
 
@@ -872,62 +1053,5 @@ class _RarityPill extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: .09),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.withValues(alpha: .22)),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(color: Colors.white, fontSize: 11),
-      ),
-    );
-  }
-}
-
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-extension<T> on Iterable<T> {
-  T? get firstOrNull {
-    final iterator = this.iterator;
-    return iterator.moveNext() ? iterator.current : null;
   }
 }
