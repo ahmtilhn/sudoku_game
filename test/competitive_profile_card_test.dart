@@ -7,15 +7,19 @@ import 'package:sudoku_game/widgets/duel_asset_icon.dart';
 
 void main() {
   testWidgets(
-    'competitive profile renders without Firebase or platform account',
+    'competitive profile renders without exposing hidden Elo',
     (tester) async {
       await _pumpProfile(tester, _profile());
 
       expect(find.text('Ada'), findsOneWidget);
       expect(find.text('@ada · FRIEND1'), findsOneWidget);
-      expect(find.textContaining('1200'), findsWidgets);
+      expect(find.textContaining('1200'), findsNothing);
+      expect(find.textContaining('1250'), findsNothing);
       expect(find.textContaining('No country'), findsNothing);
       expect(find.textContaining('Tournament'), findsNothing);
+      expect(find.text('12'), findsOneWidget);
+      expect(find.text('67%'), findsOneWidget);
+      expect(find.text('8'), findsOneWidget);
     },
   );
 
@@ -43,6 +47,7 @@ void main() {
     expect(find.textContaining('TR'), findsNothing);
     expect(find.textContaining('Season'), findsNothing);
     expect(find.textContaining('Tournament'), findsNothing);
+    expect(find.textContaining('1200'), findsNothing);
     expect(find.text('First Duel Win'), findsOneWidget);
   });
 }
