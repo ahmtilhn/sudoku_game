@@ -74,6 +74,31 @@ void main() {
     expect(summary, isNot(contains('currentElo')));
   });
 
+  test('profile customization lets the player choose and hide a country flag', () {
+    final source = File(
+      'lib/features/social/profile_customization_screen.dart',
+    ).readAsStringSync();
+    final service = File(
+      'lib/services/rank_identity_service.dart',
+    ).readAsStringSync();
+    final catalog = File(
+      'lib/models/country_catalog.dart',
+    ).readAsStringSync();
+
+    expect(source, contains("text: 'Country'"));
+    expect(source, contains('countryOptions'));
+    expect(source, contains('countryFlagEmoji'));
+    expect(source, contains('Show flag on Ranked Ladder'));
+    expect(source, contains('No country abbreviation is shown.'));
+    expect(source, contains('loadCountryPreference()'));
+    expect(source, contains('saveCountryPreference('));
+    expect(source, contains('is never inferred from your location'));
+    expect(service, contains("'/v1/me/rank-country'"));
+    expect(service, contains("'/v1/competitive/rank-country-flags?limit="));
+    expect(catalog, contains("CountryOption(code: 'NL', name: 'Netherlands')"));
+    expect(catalog, contains("CountryOption(code: 'TR', name: 'Türkiye')"));
+  });
+
   test('store and page chrome use transparent glass styling', () {
     final theme = File('lib/core/app_theme.dart').readAsStringSync();
     final store = File(
@@ -156,6 +181,8 @@ void main() {
 
       expect(source, contains('RankIdentityService.instance'));
       expect(source, contains('loadLeaderboard(limit: 100)'));
+      expect(source, contains('loadRankCountryFlags(limit: 100)'));
+      expect(source, contains('countryFlagEmoji(countryCode)'));
       expect(source, contains('rankPoints'));
       expect(source, contains("'Global RP leaderboard'"));
       expect(source, isNot(contains("'Rank progression'")));
