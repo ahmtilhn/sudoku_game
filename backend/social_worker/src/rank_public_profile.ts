@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 import { AppCheckError, verifyAppCheckRequest } from './app_check';
+import { refreshRankPostSettlement } from './rank_post_settlement';
 import {
   RankProgressionError,
   reconcileRankProgression,
@@ -86,6 +87,7 @@ export async function handlePublicRankProfileRequest(
     }
 
     await reconcileRankProgression(env, target.id);
+    await refreshRankPostSettlement(env, target.id);
     const progression = await env.DB.prepare(
       `SELECT rank_points, ranked_games, ranked_wins, ranked_losses, ranked_draws
        FROM player_rank_progression
@@ -100,6 +102,11 @@ export async function handlePublicRankProfileRequest(
         ranked_losses: number;
         ranked_draws: number;
       }>();
+    const refreshedIdentity = await env.DB.prepare(
+      'SELECT avatar_key FROM players WHERE id = ? LIMIT 1',
+    )
+      .bind(target.id)
+      .first<{ avatar_key: string }>();
 
     const points = Number(progression?.rank_points ?? 0);
     const games = Number(progression?.ranked_games ?? 0);
@@ -110,7 +117,7 @@ export async function handlePublicRankProfileRequest(
       publicId: target.public_id,
       username: target.username,
       displayName: target.display_name,
-      avatarKey: target.avatar_key,
+      avatarKey: refreshedIdentity?.avatar_key ?? target.avatar_key,
       rankPoints: points,
       rankKey: tier.key,
       rankName: tier.label,
