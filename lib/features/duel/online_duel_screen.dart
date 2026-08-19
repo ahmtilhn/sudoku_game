@@ -260,13 +260,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     }
     if (changed.isEmpty) return;
     final localChanged = _localMoveIndexes.any(changed.contains);
-    setState(() {
-      if (!localChanged) {
-        _opponentMoveIndexes
-          ..clear()
-          ..addAll(changed);
-      }
-    });
+    if (!localChanged) {
+      _opponentMoveIndexes
+        ..clear()
+        ..addAll(changed);
+    }
     _scheduleProgressClear();
   }
 

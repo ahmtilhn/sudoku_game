@@ -59,6 +59,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
   final UxGameSessionStore _sessions = UxGameSessionStore.instance;
   final Stopwatch _stopwatch = Stopwatch();
+  final ValueNotifier<int> _elapsedNotifier = ValueNotifier<int>(0);
   final Map<int, Set<int>> _notes = <int, Set<int>>{};
   final List<UxSessionMove> _history = <UxSessionMove>[];
   final Set<int> _hintedIndexes = <int>{};
@@ -109,6 +110,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     _pauseClock();
     _saveDebounce?.cancel();
     if (_ready && !_completed) unawaited(_saveNow());
+    _elapsedNotifier.dispose();
     super.dispose();
   }
 
@@ -133,6 +135,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _selectedIndex = saved.selectedIndex;
       _elapsedBaseSeconds = saved.elapsedSeconds;
       _elapsedSeconds = saved.elapsedSeconds;
+      _elapsedNotifier.value = _elapsedSeconds;
       _mistakes = saved.mistakes;
       _totalMistakes = saved.totalMistakes;
       _hintsUsed = saved.hintsUsed;
@@ -162,7 +165,8 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       if (!mounted || !_stopwatch.isRunning) return;
       final seconds = _elapsedBaseSeconds + _stopwatch.elapsed.inSeconds;
       if (seconds == _elapsedSeconds) return;
-      setState(() => _elapsedSeconds = seconds);
+      _elapsedSeconds = seconds;
+      _elapsedNotifier.value = seconds;
       if (seconds % 5 == 0) _scheduleSave();
     });
   }
@@ -174,6 +178,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
         ..stop()
         ..reset();
       _elapsedSeconds = _elapsedBaseSeconds;
+      _elapsedNotifier.value = _elapsedSeconds;
     }
     _clockTimer?.cancel();
     _clockTimer = null;
@@ -702,16 +707,19 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
                             onPressed: enabled ? _showPauseSheet : null,
                             icon: const Icon(Icons.pause_rounded),
                           ),
-                          Semantics(
-                            label: context.tr('time'),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: Text(
-                                formatDuration(_elapsedSeconds),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
+                          ValueListenableBuilder<int>(
+                            valueListenable: _elapsedNotifier,
+                            builder: (context, seconds, _) => Semantics(
+                              label: context.tr('time'),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                child: Text(
+                                  formatDuration(seconds),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                  ),
                                 ),
                               ),
                             ),

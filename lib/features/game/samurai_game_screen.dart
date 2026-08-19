@@ -54,6 +54,7 @@ class SamuraiGameScreen extends StatefulWidget {
 class _SamuraiGameScreenState extends State<SamuraiGameScreen>
     with WidgetsBindingObserver {
   final Stopwatch _stopwatch = Stopwatch();
+  final ValueNotifier<int> _elapsedNotifier = ValueNotifier<int>(0);
   final Map<int, Set<int>> _notes = <int, Set<int>>{};
   final List<_SamuraiMove> _history = <_SamuraiMove>[];
   final Set<int> _hintedIndexes = <int>{};
@@ -97,6 +98,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _hintedIndexes.addAll(restored.hintedIndexes);
       _elapsedSeconds = restored.elapsedSeconds;
       _elapsedOffsetSeconds = restored.elapsedSeconds;
+      _elapsedNotifier.value = _elapsedSeconds;
       _mistakes = restored.mistakes;
       _hintsUsed = restored.hintsUsed;
       _notesMode = restored.notesMode;
@@ -123,6 +125,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
     _pauseClock();
     _saveTimer?.cancel();
     unawaited(_persistNow());
+    _elapsedNotifier.dispose();
     super.dispose();
   }
 
@@ -133,7 +136,8 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       if (!mounted || !_stopwatch.isRunning) return;
       final seconds = _elapsedOffsetSeconds + _stopwatch.elapsed.inSeconds;
       if (seconds != _elapsedSeconds) {
-        setState(() => _elapsedSeconds = seconds);
+        _elapsedSeconds = seconds;
+        _elapsedNotifier.value = seconds;
       }
     });
   }
@@ -531,6 +535,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       _selectedIndex = null;
       _errorIndex = null;
       _elapsedSeconds = 0;
+      _elapsedNotifier.value = 0;
       _mistakes = 0;
       _hintsUsed = 0;
       _notesMode = false;
@@ -584,9 +589,12 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
                   title: context.tr('samurai_sudoku'),
                   padding: EdgeInsets.zero,
                   actions: <Widget>[
-                    Text(
-                      formatDuration(_elapsedSeconds),
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ValueListenableBuilder<int>(
+                      valueListenable: _elapsedNotifier,
+                      builder: (context, seconds, _) => Text(
+                        formatDuration(seconds),
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
                     ),
                     IconButton(
                       key: const ValueKey<String>('samurai-action-pause'),
