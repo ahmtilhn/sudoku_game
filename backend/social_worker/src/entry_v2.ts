@@ -24,6 +24,10 @@ import {
   handleRankMatchResultRequest,
   isRankMatchResultRoute,
 } from './rank_match_result';
+import {
+  handlePublicRankProfileRequest,
+  isPublicRankProfileRoute,
+} from './rank_public_profile';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
 
 export { GameRoom, MatchmakingQueue };
@@ -52,7 +56,8 @@ export default {
     if (
       request.method !== 'OPTIONS' &&
       (isRankProgressionRoute(url.pathname) ||
-        isRankMatchResultRoute(url.pathname))
+        isRankMatchResultRoute(url.pathname) ||
+        isPublicRankProfileRoute(url.pathname))
     ) {
       try {
         await ensureRankProgressionSchema(
@@ -69,6 +74,12 @@ export default {
       }
       if (isRankMatchResultRoute(url.pathname)) {
         return handleRankMatchResultRequest(
+          request,
+          env as unknown as RankProgressionEnv,
+        );
+      }
+      if (isPublicRankProfileRoute(url.pathname)) {
+        return handlePublicRankProfileRequest(
           request,
           env as unknown as RankProgressionEnv,
         );
