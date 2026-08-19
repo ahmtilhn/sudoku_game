@@ -125,14 +125,6 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                     ),
                     const SizedBox(height: 20),
                     const _SectionTitle(
-                      title: 'Rank progression',
-                      subtitle:
-                          'Each division is 300 RP. Earned rank frames remain permanently available.',
-                    ),
-                    const SizedBox(height: 10),
-                    _RankRoadmap(profile: _profile),
-                    const SizedBox(height: 20),
-                    const _SectionTitle(
                       title: 'Global RP leaderboard',
                       subtitle:
                           'Visible RP determines your displayed rank. Matchmaking skill stays hidden.',
@@ -342,176 +334,6 @@ class _GlobalRankPill extends StatelessWidget {
   }
 }
 
-class _RankRoadmap extends StatelessWidget {
-  const _RankRoadmap({required this.profile});
-
-  final RankIdentityProfile profile;
-
-  @override
-  Widget build(BuildContext context) {
-    final rewards = <String, RankRewardState>{
-      for (final reward in profile.rankRewards) reward.rankKey: reward,
-    };
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .14),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: .06)),
-      ),
-      child: Column(
-        children: [
-          for (var i = 0; i < rankTierCatalog.length; i++) ...[
-            _TierRow(
-              tier: rankTierCatalog[i],
-              reward: rewards[rankTierCatalog[i].key],
-              current: profile.rankKey == rankTierCatalog[i].key,
-              unlocked: profile.unlockedFrameKeys.contains(
-                rankTierCatalog[i].key,
-              ),
-              previewIndex: i,
-            ),
-            if (i != rankTierCatalog.length - 1)
-              Divider(
-                height: 1,
-                indent: 74,
-                color: Colors.white.withValues(alpha: .055),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _TierRow extends StatelessWidget {
-  const _TierRow({
-    required this.tier,
-    required this.reward,
-    required this.current,
-    required this.unlocked,
-    required this.previewIndex,
-  });
-
-  final RankTierInfo tier;
-  final RankRewardState? reward;
-  final bool current;
-  final bool unlocked;
-  final int previewIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final avatarNumber = ((previewIndex * 7) % 96) + 1;
-    final previewKey = RankIdentityKey(
-      avatarKey: 'preset_${avatarNumber.toString().padLeft(3, '0')}',
-      frameKey: tier.key,
-    ).encode();
-    final rewardCoins = reward?.amount ?? 0;
-
-    return Container(
-      color: current
-          ? const Color(0xFF66C7FF).withValues(alpha: .075)
-          : Colors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
-          PlayerAvatar(
-            displayName: tier.label,
-            avatarKey: previewKey,
-            radius: 25,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        tier.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    if (current) ...[
-                      const SizedBox(width: 7),
-                      const _CurrentPill(),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  tier.key == 'master_1'
-                      ? '${tier.minPoints}+ RP'
-                      : '${tier.minPoints} RP',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .48),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (rewardCoins > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFC94D).withValues(alpha: .09),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                '$rewardCoins Coin',
-                style: const TextStyle(
-                  color: Color(0xFFFFD86A),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          const SizedBox(width: 8),
-          Icon(
-            unlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
-            color: unlocked
-                ? const Color(0xFF69E5BA)
-                : Colors.white.withValues(alpha: .25),
-            size: 19,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CurrentPill extends StatelessWidget {
-  const _CurrentPill();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: const Color(0xFF66C7FF).withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: const Text(
-        'CURRENT',
-        style: TextStyle(
-          color: Color(0xFF8ED5FF),
-          fontSize: 8,
-          fontWeight: FontWeight.w900,
-          letterSpacing: .4,
-        ),
-      ),
-    );
-  }
-}
-
 class _LeaderboardList extends StatelessWidget {
   const _LeaderboardList({
     required this.snapshot,
@@ -691,7 +513,7 @@ class _EmptyBoard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             offline
-                ? 'Your rank roadmap stays available locally. Pull down or tap refresh after the backend reconnects.'
+                ? 'Your current rank remains visible locally. Pull down or tap refresh after the backend reconnects.'
                 : 'Complete a ranked duel to enter the RP leaderboard.',
             textAlign: TextAlign.center,
             style: TextStyle(
