@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/user_safe_error.dart';
+import '../../models/rank_identity_fallback.dart';
 import '../../models/rank_identity_models.dart';
 import '../../services/rank_identity_service.dart';
 import '../../widgets/app_backdrop.dart';
@@ -11,8 +12,9 @@ import '../../widgets/player_avatar.dart';
 
 /// Player-facing competitive ladder.
 ///
-/// The existing 1000-based Elo remains an internal matchmaking/MMR signal.
-/// This screen intentionally exposes only Rank Points (RP).
+/// Hidden 1000-based Elo/MMR remains internal. This page only exposes visible
+/// Rank Points (RP), and it always renders immediately even when the additive
+/// rank backend is temporarily unavailable.
 class LeaderboardsScreen extends StatefulWidget {
   const LeaderboardsScreen({super.key});
 
@@ -21,40 +23,59 @@ class LeaderboardsScreen extends StatefulWidget {
 }
 
 class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
-  RankIdentityProfile? _profile;
+  late RankIdentityProfile _profile;
   RankLeaderboardSnapshot? _board;
-  bool _loading = true;
+  bool _loading = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    _profile =
+        RankIdentityService.instance.current.value ?? buildRankIdentityFallback();
     unawaited(_load());
   }
 
   Future<void> _load() async {
-    if (!mounted) return;
+    if (_loading || !mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
-    try {
-      final results = await Future.wait<Object>([
-        RankIdentityService.instance.refresh(),
-        RankIdentityService.instance.loadLeaderboard(limit: 100),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        _profile = results[0] as RankIdentityProfile;
-        _board = results[1] as RankLeaderboardSnapshot;
-      });
-    } catch (error) {
-      if (mounted) {
-        setState(() => _error = UserSafeError.message(context, error));
+
+    Object? firstError;
+    RankIdentityProfile? loadedProfile;
+    RankLeaderboardSnapshot? loadedBoard;
+
+    await Future.wait<void>([
+      () async {
+        try {
+          loadedProfile = await RankIdentityService.instance.refresh();
+        } catch (error) {
+          firstError ??= error;
+        }
+      }(),
+      () async {
+        try {
+          // Player-facing in-app board. Hidden Elo/MMR is not returned here.
+          loadedBoard = await RankIdentityService.instance.loadLeaderboard(
+            limit: 100,
+          );
+        } catch (error) {
+          firstError ??= error;
+        }
+      }(),
+    ]);
+
+    if (!mounted) return;
+    setState(() {
+      if (loadedProfile != null) _profile = loadedProfile!;
+      if (loadedBoard != null) _board = loadedBoard;
+      _loading = false;
+      if (firstError != null) {
+        _error = UserSafeError.message(context, firstError!);
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    });
   }
 
   @override
@@ -65,82 +86,74 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 840),
+              constraints: const BoxConstraints(maxWidth: 860),
               child: RefreshIndicator(
                 onRefresh: _load,
-                child: _loading && _profile == null
-                    ? ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [
-                          SizedBox(height: 220),
-                          Center(child: CircularProgressIndicator()),
-                        ],
-                      )
-                    : _content(context),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 34),
+                  children: [
+                    InPageHeader(
+                      title: 'Ranked ladder',
+                      actions: [
+                        IconButton(
+                          tooltip: 'Refresh',
+                          onPressed: _loading ? null : _load,
+                          icon: _loading
+                              ? const SizedBox.square(
+                                  dimension: 19,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.refresh_rounded),
+                        ),
+                      ],
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 8),
+                      _ConnectionNotice(
+                        message: _error!,
+                        busy: _loading,
+                        onRetry: _load,
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    _CurrentRankCard(
+                      profile: _profile,
+                      leaderboardRank: _board?.currentRank,
+                    ),
+                    const SizedBox(height: 20),
+                    const _SectionTitle(
+                      title: 'Rank progression',
+                      subtitle:
+                          'Each division is 300 RP. Earned rank frames remain permanently available.',
+                    ),
+                    const SizedBox(height: 10),
+                    _RankRoadmap(profile: _profile),
+                    const SizedBox(height: 20),
+                    const _SectionTitle(
+                      title: 'Global RP leaderboard',
+                      subtitle:
+                          'Visible RP determines your displayed rank. Matchmaking skill stays hidden.',
+                    ),
+                    const SizedBox(height: 10),
+                    if (_board == null && _loading)
+                      const _BoardLoadingCard()
+                    else if (_board == null || _board!.entries.isEmpty)
+                      _EmptyBoard(offline: _error != null)
+                    else
+                      _LeaderboardList(
+                        snapshot: _board!,
+                        currentPublicId: _profile.publicId,
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _content(BuildContext context) {
-    final profile = _profile;
-    final board = _board;
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 34),
-      children: [
-        InPageHeader(
-          title: 'Ranked ladder',
-          actions: [
-            IconButton(
-              tooltip: 'Refresh',
-              onPressed: _loading ? null : _load,
-              icon: const Icon(Icons.refresh_rounded),
-            ),
-          ],
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 8),
-          _MessageCard(message: _error!, onRetry: _load),
-        ],
-        if (profile != null) ...[
-          const SizedBox(height: 8),
-          _CurrentRankCard(
-            profile: profile,
-            leaderboardRank: board?.currentRank,
-          ),
-          const SizedBox(height: 20),
-          const _SectionTitle(
-            title: 'Rank progression',
-            subtitle:
-                'Each division is 300 RP. Earned rank frames remain permanently available.',
-          ),
-          const SizedBox(height: 10),
-          _RankRoadmap(profile: profile),
-        ],
-        const SizedBox(height: 20),
-        const _SectionTitle(
-          title: 'Global RP leaderboard',
-          subtitle:
-              'Visible RP determines your displayed rank. Matchmaking skill stays hidden.',
-        ),
-        const SizedBox(height: 10),
-        if (board == null && _loading)
-          const Padding(
-            padding: EdgeInsets.all(28),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (board == null || board.entries.isEmpty)
-          const _EmptyBoard()
-        else
-          _LeaderboardList(
-            snapshot: board,
-            currentPublicId: profile?.publicId,
-          ),
-      ],
     );
   }
 }
@@ -218,6 +231,8 @@ class _CurrentRankCard extends StatelessWidget {
                   children: [
                     Text(
                       profile.rankName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 23,
@@ -258,14 +273,19 @@ class _CurrentRankCard extends StatelessWidget {
                 profile.divisionSize == null
                     ? '${profile.pointsInDivision} RP above Master I'
                     : '${profile.pointsInDivision}/${profile.divisionSize} RP',
-                style: _smallMuted(),
+                style: _mutedStyle(),
               ),
               const Spacer(),
-              Text(
-                profile.nextRankName == null
-                    ? 'Top rank'
-                    : '${profile.pointsToNext ?? 0} RP to ${profile.nextRankName}',
-                style: _smallMuted(),
+              Flexible(
+                child: Text(
+                  profile.nextRankName == null
+                      ? 'Top rank'
+                      : '${profile.pointsToNext ?? 0} RP to ${profile.nextRankName}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: _mutedStyle(),
+                ),
               ),
             ],
           ),
@@ -274,11 +294,11 @@ class _CurrentRankCard extends StatelessWidget {
     );
   }
 
-  TextStyle _smallMuted() => TextStyle(
-        color: Colors.white.withValues(alpha: .58),
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-      );
+  TextStyle _mutedStyle() => TextStyle(
+    color: Colors.white.withValues(alpha: .58),
+    fontSize: 11,
+    fontWeight: FontWeight.w800,
+  );
 }
 
 class _GlobalRankPill extends StatelessWidget {
@@ -386,6 +406,7 @@ class _TierRow extends StatelessWidget {
       frameKey: tier.key,
     ).encode();
     final rewardCoins = reward?.amount ?? 0;
+
     return Container(
       color: current
           ? const Color(0xFF66C7FF).withValues(alpha: .075)
@@ -419,20 +440,17 @@ class _TierRow extends StatelessWidget {
                     ),
                     if (current) ...[
                       const SizedBox(width: 7),
-                      const _StatusPill(label: 'CURRENT'),
-                    ] else if (unlocked) ...[
-                      const SizedBox(width: 7),
-                      const _StatusPill(label: 'UNLOCKED'),
+                      const _CurrentPill(),
                     ],
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2),
                 Text(
-                  tier.minPoints == 0
-                      ? 'Starts at 0 RP'
-                      : 'Unlocks at ${tier.minPoints} RP',
+                  tier.key == 'master_1'
+                      ? '${tier.minPoints}+ RP'
+                      : '${tier.minPoints} RP',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .50),
+                    color: Colors.white.withValues(alpha: .48),
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
@@ -440,92 +458,55 @@ class _TierRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          if (tier.minPoints == 0)
-            const _RewardPill(label: 'START', claimed: true, neutral: true)
-          else
-            _RewardPill(
-              label: '+$rewardCoins Coin',
-              claimed: reward?.claimed == true,
+          if (rewardCoins > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFC94D).withValues(alpha: .09),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '$rewardCoins Coin',
+                style: const TextStyle(
+                  color: Color(0xFFFFD86A),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
+          const SizedBox(width: 8),
+          Icon(
+            unlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+            color: unlocked
+                ? const Color(0xFF69E5BA)
+                : Colors.white.withValues(alpha: .25),
+            size: 19,
+          ),
         ],
       ),
     );
   }
 }
 
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.label});
-
-  final String label;
+class _CurrentPill extends StatelessWidget {
+  const _CurrentPill();
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFF66C7FF).withValues(alpha: .10),
+        color: const Color(0xFF66C7FF).withValues(alpha: .12),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: const Color(0xFF66C7FF).withValues(alpha: .18),
-        ),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Color(0xFF8ED8FF),
+      child: const Text(
+        'CURRENT',
+        style: TextStyle(
+          color: Color(0xFF8ED5FF),
           fontSize: 8,
           fontWeight: FontWeight.w900,
-          letterSpacing: .35,
+          letterSpacing: .4,
         ),
-      ),
-    );
-  }
-}
-
-class _RewardPill extends StatelessWidget {
-  const _RewardPill({
-    required this.label,
-    required this.claimed,
-    this.neutral = false,
-  });
-
-  final String label;
-  final bool claimed;
-  final bool neutral;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = neutral
-        ? const Color(0xFF8EA2AD)
-        : claimed
-        ? const Color(0xFF29D398)
-        : const Color(0xFFFFC94D);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .09),
-        borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: color.withValues(alpha: .20)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            claimed ? Icons.check_circle_rounded : Icons.monetization_on_rounded,
-            size: 14,
-            color: color,
-          ),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -538,7 +519,7 @@ class _LeaderboardList extends StatelessWidget {
   });
 
   final RankLeaderboardSnapshot snapshot;
-  final String? currentPublicId;
+  final String currentPublicId;
 
   @override
   Widget build(BuildContext context) {
@@ -550,15 +531,15 @@ class _LeaderboardList extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (var i = 0; i < snapshot.entries.length; i++) ...[
+          for (var index = 0; index < snapshot.entries.length; index++) ...[
             _LeaderboardRow(
-              entry: snapshot.entries[i],
-              isCurrent: snapshot.entries[i].publicId == currentPublicId,
+              entry: snapshot.entries[index],
+              current: snapshot.entries[index].publicId == currentPublicId,
             ),
-            if (i != snapshot.entries.length - 1)
+            if (index != snapshot.entries.length - 1)
               Divider(
                 height: 1,
-                indent: 62,
+                indent: 58,
                 color: Colors.white.withValues(alpha: .055),
               ),
           ],
@@ -569,73 +550,57 @@ class _LeaderboardList extends StatelessWidget {
 }
 
 class _LeaderboardRow extends StatelessWidget {
-  const _LeaderboardRow({required this.entry, required this.isCurrent});
+  const _LeaderboardRow({required this.entry, required this.current});
 
   final RankLeaderboardEntry entry;
-  final bool isCurrent;
+  final bool current;
 
   @override
   Widget build(BuildContext context) {
-    final winRate = (entry.winRate * 100).round();
     return Container(
-      color: isCurrent
-          ? const Color(0xFF66C7FF).withValues(alpha: .07)
-          : Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      color: current
+          ? const Color(0xFFB7A9FF).withValues(alpha: .07)
+          : Colors.transparent,
       child: Row(
         children: [
           SizedBox(
             width: 34,
             child: Text(
               '#${entry.rank}',
-              textAlign: TextAlign.center,
               style: TextStyle(
                 color: entry.rank <= 3
-                    ? const Color(0xFFFFC94D)
-                    : Colors.white.withValues(alpha: .62),
-                fontSize: entry.rank <= 3 ? 16 : 13,
+                    ? const Color(0xFFFFD86A)
+                    : Colors.white.withValues(alpha: .60),
                 fontWeight: FontWeight.w900,
               ),
             ),
           ),
-          const SizedBox(width: 8),
           PlayerAvatar(
             displayName: entry.displayName,
             avatarKey: entry.avatarKey,
             radius: 22,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        entry.displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    if (isCurrent) ...[
-                      const SizedBox(width: 6),
-                      const _StatusPill(label: 'YOU'),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
                 Text(
-                  '${entry.rankName} · ${entry.gamesPlayed} games · $winRate% wins',
+                  entry.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  '${entry.rankName} · ${(entry.winRate * 100).round()}% wins',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .48),
+                    color: Colors.white.withValues(alpha: .46),
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -643,13 +608,46 @@ class _LeaderboardRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Text(
             '${entry.rankPoints} RP',
             style: const TextStyle(
               color: Color(0xFF66C7FF),
-              fontSize: 14,
               fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BoardLoadingCard extends StatelessWidget {
+  const _BoardLoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 104,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .06)),
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox.square(
+            dimension: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 10),
+          Text(
+            'Loading player rankings…',
+            style: TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -659,12 +657,14 @@ class _LeaderboardRow extends StatelessWidget {
 }
 
 class _EmptyBoard extends StatelessWidget {
-  const _EmptyBoard();
+  const _EmptyBoard({required this.offline});
+
+  final bool offline;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: .14),
         borderRadius: BorderRadius.circular(18),
@@ -672,27 +672,32 @@ class _EmptyBoard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.leaderboard_rounded,
-            color: Color(0xFF66C7FF),
-            size: 36,
+          Icon(
+            offline ? Icons.cloud_off_rounded : Icons.leaderboard_rounded,
+            color: const Color(0xFF66C7FF),
+            size: 30,
           ),
-          const SizedBox(height: 10),
-          const Text(
-            'No RP leaderboard entries yet.',
+          const SizedBox(height: 8),
+          Text(
+            offline
+                ? 'Leaderboard server is unavailable.'
+                : 'No ranked players yet.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Complete ranked online matches to climb from Bronze III.',
+            offline
+                ? 'Your rank roadmap stays available locally. Pull down or tap refresh after the backend reconnects.'
+                : 'Complete a ranked duel to enter the RP leaderboard.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: .54),
-              fontSize: 12,
+              color: Colors.white.withValues(alpha: .52),
+              fontSize: 11,
+              height: 1.35,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -702,42 +707,53 @@ class _EmptyBoard extends StatelessWidget {
   }
 }
 
-class _MessageCard extends StatelessWidget {
-  const _MessageCard({required this.message, required this.onRetry});
+class _ConnectionNotice extends StatelessWidget {
+  const _ConnectionNotice({
+    required this.message,
+    required this.busy,
+    required this.onRetry,
+  });
 
   final String message;
+  final bool busy;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(13),
+      padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
-        color: const Color(0xFFFF8A3D).withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFFFB454).withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFFFF8A3D).withValues(alpha: .25),
+          color: const Color(0xFFFFB454).withValues(alpha: .22),
         ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.cloud_off_rounded, color: Color(0xFFFFB37A)),
-          const SizedBox(width: 10),
+          const Icon(
+            Icons.cloud_off_rounded,
+            color: Color(0xFFFFC66B),
+            size: 20,
+          ),
+          const SizedBox(width: 9),
           Expanded(
             child: Text(
               message,
-              maxLines: 3,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .72),
+                fontSize: 11,
+                height: 1.25,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
           IconButton(
             tooltip: 'Retry',
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            onPressed: busy ? null : onRetry,
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
