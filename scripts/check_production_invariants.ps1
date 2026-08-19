@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$ConfigPath = 'backend/social_worker/wrangler.toml',
+    [string]$ConfigPath = 'backend/social_worker/wrangler.production.toml',
     [switch]$AllowPlaceholders,
     [string]$BackendUrl = $env:SOCIAL_BACKEND_URL,
     [string]$BuildCommit = $env:BUILD_COMMIT

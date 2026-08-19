@@ -9,6 +9,20 @@ Use this checklist after local validation passes. Do not commit secrets, service
 - Verify: every command exits 0; no skipped tests.
 - Misconfig symptom: analyzer/test failures, localization catalog test failures, or Worker TypeScript errors.
 
+Production promotion must also pass the repository gate below. It refuses a
+production config with App Check disabled and requires a live two-token ranked
+WebSocket smoke test before deployment:
+
+```powershell
+$env:PLAYER_A_ID_TOKEN = '<token-a>'
+$env:PLAYER_B_ID_TOKEN = '<token-b>'
+powershell -ExecutionPolicy Bypass -File .\scripts\promote_production.ps1 `
+	-BackendUrl "https://sudoku-duel-social-production.ilhanahmet246.workers.dev" `
+	-BuildCommit (git rev-parse HEAD)
+```
+
+Never put token values in files, command history, CI logs, or issue comments.
+
 ## 2. Cloudflare D1 Migration
 
 - Where: `backend/social_worker`.
