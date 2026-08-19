@@ -2,7 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../models/avatar_preset_catalog.dart';
+import '../models/rank_identity_models.dart';
 import '../services/platform_game_services.dart';
+import 'rank_frame_overlay.dart';
 
 class PlayerAvatar extends StatelessWidget {
   const PlayerAvatar({
@@ -35,52 +38,106 @@ class PlayerAvatar extends StatelessWidget {
     configureCache();
     final label = semanticLabel ?? displayName;
     final size = radius * 2;
+    final identity = RankIdentityKey.parse(avatarKey);
+    final baseKey = identity.avatarKey;
+    final image = _image(context, size, baseKey) ??
+        _presetAvatar(baseKey) ??
+        _fallback(context, baseKey);
+    final clipped = ClipOval(child: image);
+
     return Semantics(
       image: true,
       label: label,
-      child: ClipOval(
-        child: SizedBox.square(
-          dimension: size,
-          child: _image(context, size) ?? _fallback(context),
+      child: SizedBox.square(
+        dimension: size,
+        child: RankFrameOverlay(
+          size: size,
+          frameKey: identity.frameKey,
+          decorationKeys: identity.decorationKeys,
+          child: clipped,
         ),
       ),
     );
   }
 
-  Widget? _image(BuildContext context, double size) {
-    final bytes = localAvatarBytes;
-    if (bytes != null && bytes.isNotEmpty) {
-      return Image.memory(
-        bytes,
-        fit: BoxFit.cover,
-        cacheWidth: size.round(),
-        cacheHeight: size.round(),
-        errorBuilder: (_, _, _) => _fallback(context),
-        frameBuilder: _frameBuilder,
-      );
-    }
+  Widget? _image(BuildContext context, double size, String baseKey) {
+    // Explicit presets must win over native platform bytes/URLs. Legacy/default
+    // identities retain the previous platform-avatar behavior.
+    if (!baseKey.startsWith('preset_')) {
+      final bytes = localAvatarBytes;
+      if (bytes != null && bytes.isNotEmpty) {
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          cacheWidth: size.round(),
+          cacheHeight: size.round(),
+          errorBuilder: (_, _, _) => _fallback(context, baseKey),
+          frameBuilder: _frameBuilder,
+        );
+      }
 
-    final url = _resolvedRemoteUrl();
-    if (url != null && url.startsWith('https://')) {
-      return Image.network(
-        url,
-        fit: BoxFit.cover,
-        cacheWidth: size.round(),
-        cacheHeight: size.round(),
-        errorBuilder: (_, _, _) => _fallback(context),
-        frameBuilder: _frameBuilder,
-      );
+      final url = _resolvedRemoteUrl(baseKey);
+      if (url != null && url.startsWith('https://')) {
+        return Image.network(
+          url,
+          fit: BoxFit.cover,
+          cacheWidth: size.round(),
+          cacheHeight: size.round(),
+          errorBuilder: (_, _, _) => _fallback(context, baseKey),
+          frameBuilder: _frameBuilder,
+        );
+      }
     }
     return null;
   }
 
-  String? _resolvedRemoteUrl() {
+  Widget? _presetAvatar(String baseKey) {
+    final preset = AvatarPresetCatalog.byKey(baseKey);
+    if (preset == null) return null;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: const Alignment(-.25, -.35),
+          radius: 1.15,
+          colors: [
+            preset.accent.withValues(alpha: .48),
+            preset.background,
+          ],
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Align(
+            alignment: const Alignment(.65, -.68),
+            child: Container(
+              width: radius * .28,
+              height: radius * .28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: preset.accent.withValues(alpha: .72),
+              ),
+            ),
+          ),
+          Center(
+            child: Icon(
+              preset.icon,
+              size: radius * 1.06,
+              color: preset.foreground,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? _resolvedRemoteUrl(String baseKey) {
     final configuredUrl = remoteApprovedImageUrl?.trim();
     if (configuredUrl != null && configuredUrl.isNotEmpty) {
       return configuredUrl;
     }
 
-    if (!avatarKey.startsWith('home-profile-')) return null;
+    if (!baseKey.startsWith('home-profile-')) return null;
     final player = PlatformGameServices.instance.localPlayer.value;
     final playGamesUrl = player?.avatarUrl?.trim();
     if (playGamesUrl == null || playGamesUrl.isEmpty) return null;
@@ -97,7 +154,7 @@ class PlayerAvatar extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _fallback(context),
+        _fallback(context, RankIdentityKey.parse(avatarKey).avatarKey),
         const Center(
           child: SizedBox.square(
             dimension: 14,
@@ -108,10 +165,10 @@ class PlayerAvatar extends StatelessWidget {
     );
   }
 
-  Widget _fallback(BuildContext context) {
+  Widget _fallback(BuildContext context, String baseKey) {
     final scheme = Theme.of(context).colorScheme;
     final initials = _initials(displayName);
-    final seed = avatarKey.hashCode.abs();
+    final seed = baseKey.hashCode.abs();
     final colors = <Color>[
       scheme.primaryContainer,
       scheme.secondaryContainer,
