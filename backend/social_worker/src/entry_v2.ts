@@ -28,6 +28,11 @@ import {
   handlePublicRankProfileRequest,
   isPublicRankProfileRoute,
 } from './rank_public_profile';
+import {
+  handleRankCountryFlagRequest,
+  isRankCountryFlagRoute,
+  type RankCountryFlagEnv,
+} from './rank_country_flags';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
 
 export { GameRoom, MatchmakingQueue };
@@ -57,7 +62,8 @@ export default {
       request.method !== 'OPTIONS' &&
       (isRankProgressionRoute(url.pathname) ||
         isRankMatchResultRoute(url.pathname) ||
-        isPublicRankProfileRoute(url.pathname))
+        isPublicRankProfileRoute(url.pathname) ||
+        isRankCountryFlagRoute(url.pathname))
     ) {
       try {
         await ensureRankProgressionSchema(
@@ -82,6 +88,12 @@ export default {
         return handlePublicRankProfileRequest(
           request,
           env as unknown as RankProgressionEnv,
+        );
+      }
+      if (isRankCountryFlagRoute(url.pathname)) {
+        return handleRankCountryFlagRequest(
+          request,
+          env as unknown as RankCountryFlagEnv,
         );
       }
       return handleRankProgressionRequest(
