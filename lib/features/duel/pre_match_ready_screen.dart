@@ -356,12 +356,13 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     final matchedProfile = publicProfile?.publicId == player.publicId
         ? publicProfile
         : null;
+    final matchedAvatarKey = matchedProfile?.avatarKey;
     return MatchmakingVisualPlayer(
       displayName: player.displayName.isEmpty
           ? player.username
           : player.displayName,
-      avatarKey: matchedProfile?.avatarKey.isNotEmpty == true
-          ? matchedProfile!.avatarKey
+      avatarKey: matchedAvatarKey != null && matchedAvatarKey.isNotEmpty
+          ? matchedAvatarKey
           : player.avatarKey.isEmpty
           ? 'prematch-${player.publicId}'
           : player.avatarKey,
