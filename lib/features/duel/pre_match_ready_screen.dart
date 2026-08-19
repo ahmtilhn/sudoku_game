@@ -353,20 +353,22 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     final player = _opponent;
     if (player == null) return null;
     final publicProfile = _opponentPublicProfile;
-    final profileMatches = publicProfile?.publicId == player.publicId;
+    final matchedProfile = publicProfile?.publicId == player.publicId
+        ? publicProfile
+        : null;
     return MatchmakingVisualPlayer(
       displayName: player.displayName.isEmpty
           ? player.username
           : player.displayName,
-      avatarKey: profileMatches && publicProfile!.avatarKey.isNotEmpty
-          ? publicProfile.avatarKey
+      avatarKey: matchedProfile?.avatarKey.isNotEmpty == true
+          ? matchedProfile!.avatarKey
           : player.avatarKey.isEmpty
           ? 'prematch-${player.publicId}'
           : player.avatarKey,
-      rankLabel: profileMatches ? publicProfile.rankName : null,
-      gamesPlayed: profileMatches ? publicProfile.gamesPlayed : null,
-      winRate: profileMatches ? publicProfile.winRate : null,
-      rating: profileMatches ? publicProfile.rankPoints : null,
+      rankLabel: matchedProfile?.rankName,
+      gamesPlayed: matchedProfile?.gamesPlayed,
+      winRate: matchedProfile?.winRate,
+      rating: matchedProfile?.rankPoints,
     );
   }
 
