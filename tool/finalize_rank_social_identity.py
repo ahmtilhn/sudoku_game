@@ -45,7 +45,7 @@ s = replace_once(
 write(path, s)
 
 # Friends/search/recent-opponent cards now render the server-backed identity
-# key instead of a synthetic local key.
+# key instead of synthetic local-only keys.
 path = 'lib/features/social/social_hub_screen.dart'
 s = read(path)
 s = replace_once(
@@ -88,8 +88,8 @@ s = replace_once(
 )
 write(path, s)
 
-# This is the challenge screen reached by the current social hub. It must not
-# display hidden Elo and it must show the challenger's equipped identity.
+# This is the challenge invitation reached by the current social hub. It must
+# not display hidden Elo and it must show the challenger's equipped identity.
 path = 'lib/features/social/ux_challenge_invitation_screen.dart'
 s = read(path)
 s = replace_once(
@@ -102,6 +102,24 @@ s = replace_once(
     s,
     "                    _Metric(\n                      asset: DuelAsset.trophy,\n                      label: context.tr('rating_value', <Object>[\n                        challenge.challenger.rating,\n                      ]),\n                      color: const Color(0xFFFFC94D),\n                    ),\n",
     "                    _Metric(\n                      asset: DuelAsset.trophy,\n                      label: context.tr('games_count', <Object>[\n                        challenge.challenger.gamesPlayed,\n                      ]),\n                      color: const Color(0xFFFFC94D),\n                    ),\n",
+    path,
+)
+write(path, s)
+
+# The sender's waiting screen is part of the same challenge flow. Preserve the
+# recipient identity here too and remove the last legacy Elo label.
+path = 'lib/features/social/challenge_waiting_screen.dart'
+s = read(path)
+s = replace_once(
+    s,
+    "                            avatarKey: 'challenge-wait-${recipient.publicId}',\n",
+    '                            avatarKey: recipient.avatarKey,\n',
+    path,
+)
+s = replace_once(
+    s,
+    "                              _InfoChip(\n                                asset: DuelAsset.trophy,\n                                label: context.tr('rating_value', <Object>[\n                                  recipient.rating,\n                                ]),\n                                accent: const Color(0xFFFFC94D),\n                              ),\n",
+    "                              _InfoChip(\n                                asset: DuelAsset.trophy,\n                                label: context.tr('games_count', <Object>[\n                                  recipient.gamesPlayed,\n                                ]),\n                                accent: const Color(0xFFFFC94D),\n                              ),\n",
     path,
 )
 write(path, s)
@@ -131,13 +149,20 @@ s = replace_once(
 )
 write(path, s)
 
-# Extend the public-surface contract guard from the previous integration pass.
+# Extend the public-surface contract guard from the previous integration pass
+# without introducing duplicate map keys.
 path = 'test/rank_identity_public_ui_contract_test.dart'
 s = read(path)
 s = replace_once(
     s,
+    "      'lib/features/social/platform_social_screen.dart': <String>[\n        'currentElo',\n        '_competitiveProfile',\n        'CompetitiveProfileCard',\n      ],\n",
+    "      'lib/features/social/platform_social_screen.dart': <String>[\n        'currentElo',\n        '_competitiveProfile',\n        'CompetitiveProfileCard',\n        'player.rating,',\n      ],\n",
+    path,
+)
+s = replace_once(
+    s,
     "      'lib/features/social/challenge_invitation_screen.dart': <String>[\n        \"value: '${challenge.challenger.rating}'\",\n      ],\n",
-    "      'lib/features/social/challenge_invitation_screen.dart': <String>[\n        \"value: '${challenge.challenger.rating}'\",\n      ],\n      'lib/features/social/ux_challenge_invitation_screen.dart': <String>[\n        'challenge.challenger.rating',\n      ],\n      'lib/features/social/platform_social_screen.dart': <String>[\n        'player.rating,',\n        'currentElo',\n      ],\n",
+    "      'lib/features/social/challenge_invitation_screen.dart': <String>[\n        \"value: '${challenge.challenger.rating}'\",\n      ],\n      'lib/features/social/ux_challenge_invitation_screen.dart': <String>[\n        'challenge.challenger.rating',\n      ],\n      'lib/features/social/challenge_waiting_screen.dart': <String>[\n        'recipient.rating',\n      ],\n",
     path,
 )
 write(path, s)
