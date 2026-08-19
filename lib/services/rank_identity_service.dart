@@ -21,6 +21,53 @@ class RankIdentityException implements Exception {
   String toString() => message;
 }
 
+class PublicRankSummary {
+  const PublicRankSummary({
+    required this.publicId,
+    required this.username,
+    required this.displayName,
+    required this.avatarKey,
+    required this.rankPoints,
+    required this.rankKey,
+    required this.rankName,
+    required this.gamesPlayed,
+    required this.wins,
+    required this.losses,
+    required this.draws,
+    required this.winRate,
+  });
+
+  final String publicId;
+  final String username;
+  final String displayName;
+  final String avatarKey;
+  final int rankPoints;
+  final String rankKey;
+  final String rankName;
+  final int gamesPlayed;
+  final int wins;
+  final int losses;
+  final int draws;
+  final double winRate;
+
+  factory PublicRankSummary.fromJson(Map<String, dynamic> json) {
+    return PublicRankSummary(
+      publicId: json['publicId']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
+      displayName: json['displayName']?.toString() ?? 'Player',
+      avatarKey: json['avatarKey']?.toString() ?? 'default',
+      rankPoints: (json['rankPoints'] as num?)?.toInt() ?? 0,
+      rankKey: json['rankKey']?.toString() ?? 'bronze_3',
+      rankName: json['rankName']?.toString() ?? 'Bronze III',
+      gamesPlayed: (json['gamesPlayed'] as num?)?.toInt() ?? 0,
+      wins: (json['wins'] as num?)?.toInt() ?? 0,
+      losses: (json['losses'] as num?)?.toInt() ?? 0,
+      draws: (json['draws'] as num?)?.toInt() ?? 0,
+      winRate: (json['winRate'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
 class RankLeaderboardSnapshot {
   const RankLeaderboardSnapshot({
     required this.entries,
@@ -162,6 +209,15 @@ class RankIdentityService {
   }
 
   Future<RankIdentityProfile> refresh() => load(force: true);
+
+  Future<PublicRankSummary> loadPublicRankSummary(String publicId) async {
+    return PublicRankSummary.fromJson(
+      await _request(
+        'GET',
+        '/v1/competitive/rank-player/${Uri.encodeComponent(publicId.trim())}',
+      ),
+    );
+  }
 
   Future<RankIdentityProfile> save({
     String? avatarKey,
