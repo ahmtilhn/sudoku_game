@@ -5,6 +5,10 @@ const source = readFileSync(
   new URL('../src/rank_post_settlement.ts', import.meta.url),
   'utf8',
 );
+const progressionSource = readFileSync(
+  new URL('../src/rank_progression.ts', import.meta.url),
+  'utf8',
+);
 const resultSource = readFileSync(
   new URL('../src/rank_match_result.ts', import.meta.url),
   'utf8',
@@ -25,9 +29,9 @@ describe('rank post-settlement safety boundary', () => {
   });
 
   it('does not mutate online match authority, escrow, rooms or Elo rows', () => {
-    for (const forbidden of [
-      'match_escrow',
-      'match_settlements',
+    const forbidden = [
+      'match_coin_escrow',
+      'match_coin_settlements',
       'player_ratings',
       'player_variant_ratings',
       'GameRoom',
@@ -35,8 +39,10 @@ describe('rank post-settlement safety boundary', () => {
       'MatchmakingQueue',
       'UPDATE matches',
       'UPDATE match_players',
-    ]) {
-      expect(source).not.toContain(forbidden);
+    ];
+    for (const token of forbidden) {
+      expect(source).not.toContain(token);
+      expect(progressionSource).not.toContain(token);
     }
   });
 
@@ -53,5 +59,21 @@ describe('rank post-settlement safety boundary', () => {
       'CREATE TRIGGER IF NOT EXISTS rank_reward_grant_apply',
     );
     expect(migration).toContain('online_coins = online_coins + NEW.amount');
+    expect(migration).toContain("'rank_reward:' || NEW.player_id || ':' || NEW.rank_key");
+  });
+
+  it('applies the agreed abandonment penalty only to ranked loss reasons', () => {
+    expect(progressionSource).toContain("'explicit_forfeit'");
+    expect(progressionSource).toContain("'disconnect_forfeit'");
+    expect(progressionSource).toContain("'consecutive_timeouts'");
+    expect(progressionSource).toContain('const ABANDONMENT_PENALTY = 8');
+    expect(progressionSource).toContain("match.result === 'loss'");
+  });
+
+  it('does not multiply RP by score margin, speed or a win streak', () => {
+    expect(progressionSource).not.toContain('scoreMargin');
+    expect(progressionSource).not.toContain('speedBonus');
+    expect(progressionSource).not.toContain('winStreakMultiplier');
+    expect(progressionSource).toContain('const base = baseRankDelta(');
   });
 });
