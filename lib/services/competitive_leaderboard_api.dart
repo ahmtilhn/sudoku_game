@@ -262,22 +262,9 @@ class CompetitiveLeaderboardApi {
       '${social.baseUrl}/v1/competitive/leaderboards/${Uri.encodeComponent(scope)}',
     ).replace(queryParameters: query);
 
-    final String appCheckToken;
-    try {
-      appCheckToken = await FirebaseServices.instance.requireAppCheckToken(
-        timeout: _timeout,
-      );
-    } on TimeoutException {
-      throw const SocialApiException(
-        403,
-        'App Check verification timed out. Please try again.',
-      );
-    } catch (_) {
-      throw const SocialApiException(
-        403,
-        'App Check could not verify this installation.',
-      );
-    }
+    final appCheckToken = await FirebaseServices.instance.tryGetAppCheckToken(
+      timeout: _timeout,
+    );
 
     final http.Response response;
     try {
@@ -287,7 +274,8 @@ class CompetitiveLeaderboardApi {
             headers: <String, String>{
               'authorization': 'Bearer $idToken',
               'accept': 'application/json',
-              'x-firebase-appcheck': appCheckToken,
+              if (appCheckToken != null && appCheckToken.isNotEmpty)
+                'x-firebase-appcheck': appCheckToken,
             },
           )
           .timeout(_timeout);
@@ -348,7 +336,7 @@ class CompetitiveLeaderboardApi {
   Future<CompetitiveLeaderboardPage?> _loadLegacyFallback({
     required SocialApiClient social,
     required String idToken,
-    required String appCheckToken,
+    required String? appCheckToken,
     required String scope,
     required String variant,
     required CompetitiveLeaderboardPage? original,
@@ -366,7 +354,8 @@ class CompetitiveLeaderboardApi {
             headers: <String, String>{
               'authorization': 'Bearer $idToken',
               'accept': 'application/json',
-              'x-firebase-appcheck': appCheckToken,
+              if (appCheckToken != null && appCheckToken.isNotEmpty)
+                'x-firebase-appcheck': appCheckToken,
             },
           )
           .timeout(_timeout);
