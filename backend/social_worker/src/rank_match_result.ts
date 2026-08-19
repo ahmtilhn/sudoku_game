@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 import { AppCheckError, verifyAppCheckRequest } from './app_check';
+import { refreshRankPostSettlement } from './rank_post_settlement';
 import {
   RANK_TIERS,
   RankProgressionError,
@@ -65,6 +66,7 @@ export async function handleRankMatchResultRequest(
     }
 
     await reconcileRankProgression(env, player.id);
+    await refreshRankPostSettlement(env, player.id);
 
     const settlement = await env.DB.prepare(
       `SELECT match_id, result, finish_reason, base_delta, alignment_percent,
@@ -114,12 +116,10 @@ export async function handleRankMatchResultRequest(
         )
       : [];
 
-    // A profile refresh can reconcile/grant the same lifetime rank reward a
-    // moment before the result sheet asks for this endpoint. The grant table is
-    // already idempotent, so first ensure the crossed rewards exist and then
-    // report grants whose timestamp belongs to this match's promotion window.
-    // This keeps the UI reward celebration reliable without ever touching the
-    // authoritative match, escrow or Elo/MMR settlement paths.
+    // A profile refresh or the post-settlement reconciliation can grant the
+    // same lifetime reward a moment before this result sheet asks for it. The
+    // grant table is idempotent, so report grants from this promotion window
+    // instead of relying only on whether this exact request inserted the row.
     const newlyGranted = await grantCrossedRankRewardsOnce(
       env,
       player.id,
