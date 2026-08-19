@@ -56,7 +56,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | social | `PlatformSocialScreen`<br>`lib/features/social/platform_social_screen.dart` | Production screen | — | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `PlayerProfileScreen`<br>`lib/features/social/player_profile_screen.dart` | Forwarding wrapper | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | social | `ProfileCustomizationScreen`<br>`lib/features/social/profile_customization_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | — | Remote failure path needs user-safe mapping review; No localization call detected |
-| social | `ProfileHubScreen`<br>`lib/features/social/profile_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
+| social | `ProfileHubScreen`<br>`lib/features/social/profile_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `SocialHubScreen`<br>`lib/features/social/social_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
 | social | `UxChallengeInvitationScreen`<br>`lib/features/social/ux_challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
 | tutorial | `TutorialScreen`<br>`lib/features/tutorial/tutorial_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
@@ -77,7 +77,6 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 - `lib/features/social/challenge_invitation_screen.dart`: Remote failure path needs user-safe mapping review
 - `lib/features/social/challenge_waiting_screen.dart`: Remote failure path needs user-safe mapping review
 - `lib/features/social/profile_customization_screen.dart`: Remote failure path needs user-safe mapping review; No localization call detected
-- `lib/features/social/profile_hub_screen.dart`: Remote failure path needs user-safe mapping review
 - `lib/features/social/social_hub_screen.dart`: Remote failure path needs user-safe mapping review
 - `lib/features/social/ux_challenge_invitation_screen.dart`: Remote failure path needs user-safe mapping review
 
