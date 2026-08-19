@@ -15,6 +15,11 @@ import {
   legacyEconomyRewardResponse,
 } from './economy_v3';
 import type { EconomyV3Env } from './economy_v3_common';
+import {
+  handleRankProgressionRequest,
+  isRankProgressionRoute,
+  type RankProgressionEnv,
+} from './rank_progression';
 
 export { GameRoom, MatchmakingQueue };
 
@@ -35,6 +40,16 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
+
+    // Visible RP/profile identity is an additive wrapper route. The existing
+    // matchmaking, Durable Object room protocol, Elo/MMR settlement and Coin
+    // escrow paths below remain unchanged.
+    if (request.method !== 'OPTIONS' && isRankProgressionRoute(url.pathname)) {
+      return handleRankProgressionRequest(
+        request,
+        env as unknown as RankProgressionEnv,
+      );
+    }
 
     if (
       request.method === 'GET' &&
