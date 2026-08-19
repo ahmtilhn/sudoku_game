@@ -125,7 +125,7 @@ class VariantMatchmakingClient {
       'authorization': 'Bearer $token',
       'accept': 'application/json',
       if (body != null) 'content-type': 'application/json',
-      'x-firebase-appcheck': appCheckToken,
+      if (appCheckToken.isNotEmpty) 'x-firebase-appcheck': appCheckToken,
     };
     final uri = Uri.parse('$_baseUrl/v1/matchmaking/queue');
     final Future<http.Response> pending = switch (method) {

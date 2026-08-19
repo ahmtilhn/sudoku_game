@@ -100,32 +100,33 @@ void main() {
     expect(result.variant, same(SudokuVariant.classic16));
     expect(result.roomId, 'classic16:room-2');
   });
-  test(
-    'does not send queue request when App Check acquisition fails',
-    () async {
-      var requestSent = false;
+  test('does not send an empty App Check header', () async {
+    late http.Request captured;
 
-      final client = VariantMatchmakingClient(
-        baseUrl: 'https://example.test',
-        tokenProvider: () async => 'firebase-token',
-        appCheckProvider: () async {
-          throw StateError('app-check-unavailable');
-        },
-        client: MockClient((request) async {
-          requestSent = true;
-          return http.Response('{}', 200);
-        }),
-      );
+    final client = VariantMatchmakingClient(
+      baseUrl: 'https://example.test',
+      tokenProvider: () async => 'firebase-token',
+      appCheckProvider: () async => '',
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response(
+          jsonEncode(<String, Object>{
+            'status': 'queued',
+            'difficulty': 'easy',
+            'variant': 'classic9',
+            'boardSize': 9,
+            'cellCount': 81,
+          }),
+          200,
+        );
+      }),
+    );
 
-      await expectLater(
-        client.joinRankedQueue(
-          difficulty: 'easy',
-          variant: SudokuVariant.classic9,
-        ),
-        throwsA(isA<StateError>()),
-      );
+    await client.joinRankedQueue(
+      difficulty: 'easy',
+      variant: SudokuVariant.classic9,
+    );
 
-      expect(requestSent, isFalse);
-    },
-  );
+    expect(captured.headers.containsKey('x-firebase-appcheck'), isFalse);
+  });
 }
