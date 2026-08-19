@@ -31,30 +31,72 @@ jobs:
 
           stage = Path('lib/features/duel/matchmaking_stage.dart')
           text = stage.read_text(encoding='utf-8')
-          old = "            label: context.tr('rating'),\n"
-          new = "            // This presentation slot contains visible Rank Points, never hidden MMR.\n            label: 'RP',\n"
-          if old not in text and "label: 'RP'," not in text:
-              raise SystemExit('matchmaking RP label anchor not found')
-          if old in text:
-              text = text.replace(old, new, 1)
+          old_label = "            label: context.tr('rating'),\n"
+          new_label = "            // Public matchup cards expose Rank Points, never hidden MMR.\n            label: 'RP',\n"
+          if old_label in text:
+              text = text.replace(old_label, new_label, 1)
+
+          replacements = {
+              "    this.rating,\n": "    this.rankPoints,\n",
+              "  final int? rating;\n": "  final int? rankPoints;\n",
+              "    int? rating,\n": "    int? rankPoints,\n",
+              "      rating: rating ?? this.rating,\n": "      rankPoints: rankPoints ?? this.rankPoints,\n",
+              "            value: player.rating?.toString() ?? '—',\n": "            value: player.rankPoints?.toString() ?? '—',\n",
+          }
+          for old, new in replacements.items():
+              if old in text:
+                  text = text.replace(old, new)
+          if "final int? rating;" in text or "player.rating" in text:
+              raise SystemExit('legacy public rating field remains in matchmaking stage')
+          if "final int? rankPoints;" not in text or "label: 'RP'," not in text:
+              raise SystemExit('visible RP presentation contract missing')
           stage.write_text(text, encoding='utf-8')
+
+          matchmaking = Path('lib/features/duel/matchmaking_screen.dart')
+          text = matchmaking.read_text(encoding='utf-8')
+          text = text.replace(
+              "      // Legacy presentation slot: visible RP only, never matchmaking MMR.\n      rating: profile.rankPoints,\n",
+              "      rankPoints: profile.rankPoints,\n",
+          )
+          if "rating: profile.rankPoints" in text:
+              raise SystemExit('matchmaking screen still uses legacy rating field')
+          matchmaking.write_text(text, encoding='utf-8')
+
+          prematch = Path('lib/features/duel/pre_match_ready_screen.dart')
+          text = prematch.read_text(encoding='utf-8')
+          text = text.replace(
+              "          // Legacy presentation slot, now populated with visible RP only.\n          rating: profile.rankPoints,\n",
+              "          rankPoints: profile.rankPoints,\n",
+          )
+          text = text.replace("      rating: base?.rating,\n", "      rankPoints: base?.rankPoints,\n")
+          text = text.replace(
+              "      rating: profileMatches ? publicProfile.rankPoints : null,\n",
+              "      rankPoints: profileMatches ? publicProfile.rankPoints : null,\n",
+          )
+          if "base?.rating" in text or "rating: profile.rankPoints" in text:
+              raise SystemExit('pre-match screen still uses legacy rating presentation field')
+          prematch.write_text(text, encoding='utf-8')
 
           progression = Path('backend/social_worker/src/rank_progression.ts')
           text = progression.read_text(encoding='utf-8')
           old = "       AND m.rated = 1\n       AND m.finished_at IS NOT NULL"
           new = "       AND m.rated = 1\n       AND m.mode = 'ranked'\n       AND m.finished_at IS NOT NULL"
-          if old not in text and "AND m.mode = 'ranked'" not in text:
-              raise SystemExit('ranked-mode isolation anchor not found')
           if old in text:
               text = text.replace(old, new, 1)
+          if "AND m.mode = 'ranked'" not in text:
+              raise SystemExit('ranked-mode isolation guard missing')
           progression.write_text(text, encoding='utf-8')
 
       - name: Guard the intended scope
         shell: bash
         run: |
           set -euo pipefail
+          grep -F "final int? rankPoints;" lib/features/duel/matchmaking_stage.dart
           grep -F "label: 'RP'," lib/features/duel/matchmaking_stage.dart
           ! grep -F "context.tr('rating')" lib/features/duel/matchmaking_stage.dart
+          ! grep -F "player.rating" lib/features/duel/matchmaking_stage.dart
+          grep -F "rankPoints: profile.rankPoints" lib/features/duel/matchmaking_screen.dart
+          grep -F "rankPoints: profile.rankPoints" lib/features/duel/pre_match_ready_screen.dart
           grep -F "AND m.mode = 'ranked'" backend/social_worker/src/rank_progression.ts
           git diff --check
 
@@ -82,7 +124,10 @@ jobs:
         run: |
           set -euo pipefail
           flutter pub get
-          dart format --set-exit-if-changed lib/features/duel/matchmaking_stage.dart
+          dart format --set-exit-if-changed \
+            lib/features/duel/matchmaking_stage.dart \
+            lib/features/duel/matchmaking_screen.dart \
+            lib/features/duel/pre_match_ready_screen.dart
           flutter analyze --fatal-infos
           timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
 
@@ -90,7 +135,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git add lib/features/duel/matchmaking_stage.dart backend/social_worker/src/rank_progression.ts
+          git add \
+            lib/features/duel/matchmaking_stage.dart \
+            lib/features/duel/matchmaking_screen.dart \
+            lib/features/duel/pre_match_ready_screen.dart \
+            backend/social_worker/src/rank_progression.ts
           if git diff --cached --quiet; then
             echo 'Guards already present.'
             exit 0
