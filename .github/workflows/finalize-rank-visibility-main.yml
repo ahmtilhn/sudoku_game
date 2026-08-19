@@ -1,0 +1,103 @@
+name: Finalize visible RP isolation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/finalize-rank-visibility-main.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: finalize-rank-visibility-main
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply narrow RP visibility guards
+        shell: python
+        run: |
+          from pathlib import Path
+
+          stage = Path('lib/features/duel/matchmaking_stage.dart')
+          text = stage.read_text(encoding='utf-8')
+          old = "            label: context.tr('rating'),\n"
+          new = "            // This presentation slot contains visible Rank Points, never hidden MMR.\n            label: 'RP',\n"
+          if old not in text and "label: 'RP'," not in text:
+              raise SystemExit('matchmaking RP label anchor not found')
+          if old in text:
+              text = text.replace(old, new, 1)
+          stage.write_text(text, encoding='utf-8')
+
+          progression = Path('backend/social_worker/src/rank_progression.ts')
+          text = progression.read_text(encoding='utf-8')
+          old = "       AND m.rated = 1\n       AND m.finished_at IS NOT NULL"
+          new = "       AND m.rated = 1\n       AND m.mode = 'ranked'\n       AND m.finished_at IS NOT NULL"
+          if old not in text and "AND m.mode = 'ranked'" not in text:
+              raise SystemExit('ranked-mode isolation anchor not found')
+          if old in text:
+              text = text.replace(old, new, 1)
+          progression.write_text(text, encoding='utf-8')
+
+      - name: Guard the intended scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "label: 'RP'," lib/features/duel/matchmaking_stage.dart
+          ! grep -F "context.tr('rating')" lib/features/duel/matchmaking_stage.dart
+          grep -F "AND m.mode = 'ranked'" backend/social_worker/src/rank_progression.ts
+          git diff --check
+
+      - name: Validate backend
+        working-directory: backend/social_worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run typecheck
+          npm test
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Validate Flutter
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          dart format --set-exit-if-changed lib/features/duel/matchmaking_stage.dart
+          flutter analyze --fatal-infos
+          timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
+
+      - name: Commit validated guards to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib/features/duel/matchmaking_stage.dart backend/social_worker/src/rank_progression.ts
+          if git diff --cached --quiet; then
+            echo 'Guards already present.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Isolate visible RP from hidden matchmaking MMR'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
