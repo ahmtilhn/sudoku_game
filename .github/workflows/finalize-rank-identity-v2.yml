@@ -31,21 +31,6 @@ jobs:
           python3 tool/finalize_rank_identity_integration.py
           git diff --check
 
-      - name: Format changed Dart files
-        run: |
-          dart format \
-            lib/features/duel/matchmaking_stage.dart \
-            lib/features/duel/matchmaking_screen.dart \
-            lib/features/duel/pre_match_ready_screen.dart \
-            lib/features/social/social_hub_screen.dart \
-            lib/features/social/friend_requests_screen.dart \
-            lib/features/social/challenge_invitation_screen.dart \
-            lib/features/social/platform_social_screen.dart \
-            lib/features/home/home_screen.dart \
-            lib/features/social/rank_identity_summary_card.dart \
-            lib/features/social/profile_customization_screen.dart \
-            test/rank_identity_public_ui_contract_test.dart
-
       - name: Validate backend rank layer
         working-directory: backend/social_worker
         run: |
@@ -66,6 +51,21 @@ jobs:
 
       - name: Resolve Flutter packages
         run: flutter pub get
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/duel/matchmaking_stage.dart \
+            lib/features/duel/matchmaking_screen.dart \
+            lib/features/duel/pre_match_ready_screen.dart \
+            lib/features/social/social_hub_screen.dart \
+            lib/features/social/friend_requests_screen.dart \
+            lib/features/social/challenge_invitation_screen.dart \
+            lib/features/social/platform_social_screen.dart \
+            lib/features/home/home_screen.dart \
+            lib/features/social/rank_identity_summary_card.dart \
+            lib/features/social/profile_customization_screen.dart \
+            test/rank_identity_public_ui_contract_test.dart
 
       - name: Validate localization and UX contracts
         run: |
