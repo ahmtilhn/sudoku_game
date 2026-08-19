@@ -283,6 +283,9 @@ class _PreviewCard extends StatelessWidget {
       frameKey: effectiveFrame,
       decorationKeys: decorations,
     ).encode();
+    final platform = PlatformGameServices.instance.localPlayer.value;
+    final previewBaseKey = RankIdentityKey.parse(identity).avatarKey;
+    final usePlatformAvatar = previewBaseKey.startsWith('home-profile-');
     final title = profile.unlockedTitles
         .where((item) => item.key == titleKey)
         .map((item) => item.label)
@@ -299,6 +302,9 @@ class _PreviewCard extends StatelessWidget {
           PlayerAvatar(
             displayName: profile.displayName,
             avatarKey: identity,
+            localAvatarBytes: usePlatformAvatar ? platform?.avatarBytes : null,
+            remoteApprovedImageUrl:
+                usePlatformAvatar ? platform?.avatarUrl : null,
             radius: 39,
           ),
           const SizedBox(width: 15),
@@ -457,6 +463,11 @@ class _FrameTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final platform = PlatformGameServices.instance.localPlayer.value;
+    final selectedBaseKey = RankIdentityKey.parse(
+      profile.selectedAvatarKey,
+    ).avatarKey;
+    final usePlatformAvatar = selectedBaseKey.startsWith('home-profile-');
     final rewards = <String, RankRewardState>{
       for (final reward in profile.rankRewards) reward.rankKey: reward,
     };
@@ -502,6 +513,10 @@ class _FrameTab extends StatelessWidget {
                       avatarKey: profile.selectedAvatarKey,
                       frameKey: previewKey,
                     ).encode(),
+                    localAvatarBytes:
+                        usePlatformAvatar ? platform?.avatarBytes : null,
+                    remoteApprovedImageUrl:
+                        usePlatformAvatar ? platform?.avatarUrl : null,
                     radius: 29,
                   ),
                   const SizedBox(width: 13),
