@@ -61,6 +61,87 @@ class RankLeaderboardSnapshot {
   }
 }
 
+class RankMatchReward {
+  const RankMatchReward({
+    required this.rankKey,
+    required this.rankName,
+    required this.amount,
+  });
+
+  final String rankKey;
+  final String rankName;
+  final int amount;
+
+  factory RankMatchReward.fromJson(Map<String, dynamic> json) {
+    return RankMatchReward(
+      rankKey: json['rankKey']?.toString() ?? '',
+      rankName: json['rankName']?.toString() ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class RankMatchResult {
+  const RankMatchResult({
+    required this.matchId,
+    required this.rated,
+    required this.settled,
+    required this.rpBefore,
+    required this.rpAfter,
+    required this.rpDelta,
+    required this.rankBeforeName,
+    required this.rankAfterName,
+    required this.rankUp,
+    required this.rewardCoins,
+    required this.rewards,
+    required this.abandonmentPenalty,
+    required this.repeatPercent,
+  });
+
+  final String matchId;
+  final bool rated;
+  final bool settled;
+  final int rpBefore;
+  final int rpAfter;
+  final int rpDelta;
+  final String rankBeforeName;
+  final String rankAfterName;
+  final bool rankUp;
+  final int rewardCoins;
+  final List<RankMatchReward> rewards;
+  final int abandonmentPenalty;
+  final int repeatPercent;
+
+  factory RankMatchResult.fromJson(Map<String, dynamic> json) {
+    final rewardsJson = json['rewards'];
+    return RankMatchResult(
+      matchId: json['matchId']?.toString() ?? '',
+      rated: json['rated'] == true,
+      settled: json['settled'] == true,
+      rpBefore: (json['rpBefore'] as num?)?.toInt() ?? 0,
+      rpAfter: (json['rpAfter'] as num?)?.toInt() ?? 0,
+      rpDelta: (json['rpDelta'] as num?)?.toInt() ?? 0,
+      rankBeforeName: json['rankBeforeName']?.toString() ?? 'Bronze III',
+      rankAfterName: json['rankAfterName']?.toString() ?? 'Bronze III',
+      rankUp: json['rankUp'] == true,
+      rewardCoins: (json['rewardCoins'] as num?)?.toInt() ?? 0,
+      rewards: rewardsJson is List
+          ? rewardsJson
+                .whereType<Map>()
+                .map(
+                  (value) => RankMatchReward.fromJson(
+                    value.cast<String, dynamic>(),
+                  ),
+                )
+                .toList(growable: false)
+          : const <RankMatchReward>[],
+      abandonmentPenalty:
+          (json['abandonmentPenalty'] as num?)?.toInt() ?? 0,
+      repeatPercent: (json['repeatPercent'] as num?)?.toInt() ?? 100,
+    );
+  }
+}
+
 class RankIdentityService {
   RankIdentityService._();
 
@@ -109,6 +190,40 @@ class RankIdentityService {
         '/v1/competitive/rank-leaderboard?limit=$safe',
       ),
     );
+  }
+
+  /// Reads the additive visible-RP settlement after the authoritative online
+  /// match has already finished. A short retry handles the tiny window between
+  /// the room settlement and the derived RP reconciliation without delaying
+  /// or changing the online match itself.
+  Future<RankMatchResult> loadMatchResult(String matchId) async {
+    RankMatchResult? latest;
+    for (var attempt = 0; attempt < 5; attempt++) {
+      latest = RankMatchResult.fromJson(
+        await _request(
+          'GET',
+          '/v1/me/rank-match-result/${Uri.encodeComponent(matchId)}',
+        ),
+      );
+      if (!latest.rated || latest.settled) return latest;
+      await Future<void>.delayed(const Duration(milliseconds: 180));
+    }
+    return latest ??
+        RankMatchResult(
+          matchId: matchId,
+          rated: true,
+          settled: false,
+          rpBefore: 0,
+          rpAfter: 0,
+          rpDelta: 0,
+          rankBeforeName: 'Bronze III',
+          rankAfterName: 'Bronze III',
+          rankUp: false,
+          rewardCoins: 0,
+          rewards: const <RankMatchReward>[],
+          abandonmentPenalty: 0,
+          repeatPercent: 100,
+        );
   }
 
   Future<Map<String, dynamic>> _request(
@@ -184,7 +299,9 @@ class RankIdentityService {
     } on http.ClientException catch (error) {
       throw RankIdentityException(
         0,
-        error.message.isEmpty ? 'Unable to connect to the rank server.' : error.message,
+        error.message.isEmpty
+            ? 'Unable to connect to the rank server.'
+            : error.message,
         code: 'network_error',
       );
     }
