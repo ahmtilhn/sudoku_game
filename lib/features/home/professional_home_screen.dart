@@ -10,12 +10,14 @@ import '../../domain/classic16_puzzle_factory.dart';
 import '../../domain/sudoku.dart';
 import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
+import '../../models/rank_identity_models.dart';
 import '../../services/economy_service.dart';
 import '../../services/economy_v3_api_client.dart';
 import '../../services/economy_v3_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/player_profile_service.dart';
+import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
@@ -24,6 +26,7 @@ import '../../widgets/player_avatar.dart';
 import '../career/career_hub_screen.dart';
 import '../duel/leaderboards_screen.dart';
 import '../duel/matchmaking_screen.dart';
+import '../duel/ranked_progress_screen.dart';
 import '../economy/coin_store_screen.dart';
 import '../game/enhanced_game_screen.dart';
 import '../settings/ux_settings_screen.dart';
@@ -45,6 +48,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   final UxGameSessionStore _sessions = UxGameSessionStore.instance;
 
   PlayerProfilePreferences? _profile;
+  RankIdentityProfile? _rankProfile;
   UxGameSession? _activeSession;
   int _socialBadge = 0;
   bool _identityBusy = false;
@@ -60,6 +64,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
     unawaited(_economyV3.initialize());
     unawaited(_sessions.initialize());
     unawaited(_loadProfile());
+    unawaited(_loadRankProfile());
     unawaited(_loadSocialBadge());
   }
 
@@ -85,6 +90,16 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
       if (mounted) setState(() => _profile = value);
     } catch (_) {
       // Offline play remains available without a remote profile.
+    }
+  }
+
+  Future<void> _loadRankProfile() async {
+    if (!SocialApiClient.instance.configured) return;
+    try {
+      final value = await RankIdentityService.instance.load();
+      if (mounted) setState(() => _rankProfile = value);
+    } catch (_) {
+      // Ranked summary is optional on the home screen.
     }
   }
 
@@ -122,6 +137,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
       _economyV3.refresh(),
       _sessions.latest().then((_) {}),
       _loadProfile(),
+      _loadRankProfile(),
       _loadSocialBadge(),
     ]);
   }
@@ -206,6 +222,11 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
   Future<void> _openLeaderboards() async {
     if (!await _ensureOnlineIdentity() || !mounted) return;
     await _open(const LeaderboardsScreen());
+  }
+
+  Future<void> _openRankedProgress() async {
+    if (!await _ensureOnlineIdentity() || !mounted) return;
+    await _open(const RankedProgressScreen());
   }
 
   Future<void> _showQuickPlay() async {
@@ -309,6 +330,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
     final rewardReady =
         _economyV3.state?.dailyAvailable == true ||
         (_economyV3.state?.canDoubleLastCoinReward == true && !_economy.noAds);
+    final rank = _rankProfile;
 
     final primaryItems = <_HomeModeData>[
       _HomeModeData(
@@ -356,11 +378,16 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
         onTap: () => _open(const CoinStoreScreen()),
       ),
       _HomeModeData(
-        asset: DuelAsset.homeProfileScene,
-        title: context.tr('profile'),
-        subtitle: context.tr('shown_to_other_players'),
-        accent: const Color(0xFF7A5CFF),
-        onTap: _identityBusy ? null : _openProfile,
+        asset: DuelAsset.resultVictoryTrophyPro,
+        title: rank?.rankName ?? 'Ranked Progress',
+        subtitle: rank == null
+            ? 'Rank · RP · performance'
+            : rank.nextRankName == null
+            ? '${rank.rankPoints} RP · Top rank'
+            : '${rank.rankPoints} RP · ${rank.pointsToNext ?? 0} to ${rank.nextRankName}',
+        accent: const Color(0xFF66C7FF),
+        onTap: _identityBusy ? null : _openRankedProgress,
+        progress: rank?.progress,
       ),
     ];
 
@@ -1056,6 +1083,7 @@ class _HomeModeData {
     required this.accent,
     required this.onTap,
     this.primary = false,
+    this.progress,
   });
 
   final String asset;
@@ -1064,6 +1092,7 @@ class _HomeModeData {
   final Color accent;
   final VoidCallback? onTap;
   final bool primary;
+  final double? progress;
 }
 
 class _PrimaryModes extends StatelessWidget {
@@ -1262,6 +1291,20 @@ class _HomeModeTile extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
+                      if (data.progress != null) ...[
+                        const SizedBox(height: 5),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: LinearProgressIndicator(
+                            value: data.progress!.clamp(0.0, 1.0).toDouble(),
+                            minHeight: 4,
+                            backgroundColor: Colors.white.withValues(alpha: .08),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              data.accent,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
