@@ -77,6 +77,22 @@ jobs:
               raise SystemExit('pre-match callsite conversion failed')
           prematch.write_text(text, encoding='utf-8')
 
+          social = Path('lib/features/social/platform_social_screen.dart')
+          text = social.read_text(encoding='utf-8')
+          text = text.replace("import 'competitive_profile_card.dart';\n", '')
+          text = text.replace("  CompetitiveProfile? _competitiveProfile;\n", '')
+          text = text.replace("      final competitiveProfile = await _social.loadCompetitiveProfile();\n", '')
+          text = text.replace("        _competitiveProfile = competitiveProfile;\n", '')
+          marker = "                    CompetitiveProfileCard(\n"
+          notification = "                    _buildNotificationCard(),"
+          if marker in text:
+              start = text.index(marker)
+              end = text.index(notification, start)
+              text = text[:start] + text[end:]
+          if "CompetitiveProfileCard(" in text or "currentElo:" in text or "_competitiveProfile" in text:
+              raise SystemExit('active social screen still exposes legacy Elo profile UI')
+          social.write_text(text, encoding='utf-8')
+
           progression = Path('backend/social_worker/src/rank_progression.ts')
           text = progression.read_text(encoding='utf-8')
           text = text.replace(
@@ -107,7 +123,8 @@ jobs:
           dart format \
             lib/features/duel/matchmaking_stage.dart \
             lib/features/duel/matchmaking_screen.dart \
-            lib/features/duel/pre_match_ready_screen.dart
+            lib/features/duel/pre_match_ready_screen.dart \
+            lib/features/social/platform_social_screen.dart
           flutter analyze --fatal-infos
           flutter test \
             test/rank_identity_catalog_test.dart \
@@ -132,6 +149,7 @@ jobs:
             lib/features/duel/matchmaking_stage.dart \
             lib/features/duel/matchmaking_screen.dart \
             lib/features/duel/pre_match_ready_screen.dart \
+            lib/features/social/platform_social_screen.dart \
             backend/social_worker/src/rank_progression.ts
           if git diff --cached --quiet; then
             echo 'RP visibility guard already applied.'
