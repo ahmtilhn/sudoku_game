@@ -4,7 +4,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 
 ## Audit scope
 
-- Screen files: **32**
+- Screen files: **33**
 - Forwarding/compatibility wrappers: **1**
 - Feature groups: **9** (career, daily, duel, economy, game, home, settings, social, tutorial)
 - Required device behavior: compact phone, large phone/tablet, text scaling, safe insets, keyboard insets and scroll recovery
@@ -36,6 +36,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | duel | `MatchmakingScreen`<br>`lib/features/duel/matchmaking_screen.dart` | Production screen | Yes | Yes | — | — | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | duel | `OnlineDuelScreen`<br>`lib/features/duel/online_duel_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
 | duel | `PreMatchReadyScreen`<br>`lib/features/duel/pre_match_ready_screen.dart` | Production screen | — | — | — | — | Yes | — | Yes | Yes | No explicit responsive primitive detected |
+| duel | `RankedProgressScreen`<br>`lib/features/duel/ranked_progress_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | — | No localization call detected |
 | economy | `CoinStoreScreen`<br>`lib/features/economy/coin_store_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | economy | `WalletHistoryScreen`<br>`lib/features/economy/wallet_history_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | game | `EnhancedGameScreen`<br>`lib/features/game/enhanced_game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
@@ -70,6 +71,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 - `lib/features/duel/matchmaking_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/duel/online_duel_screen.dart`: Outcome content does not use shared outcome component
 - `lib/features/duel/pre_match_ready_screen.dart`: No explicit responsive primitive detected
+- `lib/features/duel/ranked_progress_screen.dart`: No localization call detected
 - `lib/features/game/enhanced_game_screen.dart`: Outcome content does not use shared outcome component
 - `lib/features/game/game_screen.dart`: Outcome content does not use shared outcome component
 - `lib/features/game/samurai_game_screen.dart`: No explicit responsive primitive detected
