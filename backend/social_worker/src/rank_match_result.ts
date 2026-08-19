@@ -7,6 +7,7 @@ import {
   reconcileRankProgression,
   tierForPoints,
   type RankProgressionEnv,
+  type RankTier,
 } from './rank_progression';
 
 const FIREBASE_JWKS = createRemoteJWKSet(
@@ -112,21 +113,11 @@ export async function handleRankMatchResultRequest(
           (tier) => tier.minPoints > before && tier.minPoints <= after,
         )
       : [];
-
-    if (crossed.length > 0) {
-      const now = new Date().toISOString();
-      await env.DB.batch(
-        crossed
-          .filter((tier) => tier.rewardCoins > 0)
-          .map((tier) =>
-            env.DB.prepare(
-              `INSERT OR IGNORE INTO rank_reward_grants (
-                 player_id, rank_key, amount, granted_at
-               ) VALUES (?, ?, ?, ?)`,
-            ).bind(player.id, tier.key, tier.rewardCoins, now),
-          ),
-      );
-    }
+    const newlyGranted = await grantCrossedRankRewardsOnce(
+      env,
+      player.id,
+      crossed,
+    );
 
     return json(env, 200, {
       matchId,
@@ -142,14 +133,15 @@ export async function handleRankMatchResultRequest(
       rankAfterKey: String(settlement.rank_after ?? afterTier.key),
       rankAfterName: afterTier.label,
       rankUp: afterTier.minPoints > beforeTier.minPoints,
-      rewardCoins: crossed.reduce((sum, tier) => sum + tier.rewardCoins, 0),
-      rewards: crossed
-        .filter((tier) => tier.rewardCoins > 0)
-        .map((tier) => ({
-          rankKey: tier.key,
-          rankName: tier.label,
-          amount: tier.rewardCoins,
-        })),
+      rewardCoins: newlyGranted.reduce(
+        (sum, tier) => sum + tier.rewardCoins,
+        0,
+      ),
+      rewards: newlyGranted.map((tier) => ({
+        rankKey: tier.key,
+        rankName: tier.label,
+        amount: tier.rewardCoins,
+      })),
       abandonmentPenalty: Number(settlement.abandonment_penalty ?? 0),
       repeatPercent: Number(settlement.repeat_percent ?? 100),
       baseDelta: Number(settlement.base_delta ?? 0),
@@ -169,6 +161,30 @@ export async function handleRankMatchResultRequest(
       code: 'rank_match_result_failed',
     });
   }
+}
+
+async function grantCrossedRankRewardsOnce(
+  env: RankProgressionEnv,
+  playerId: string,
+  crossed: readonly RankTier[],
+): Promise<RankTier[]> {
+  const candidates = crossed.filter((tier) => tier.rewardCoins > 0);
+  if (candidates.length === 0) return [];
+
+  const now = new Date().toISOString();
+  const results = await env.DB.batch(
+    candidates.map((tier) =>
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO rank_reward_grants (
+           player_id, rank_key, amount, granted_at
+         ) VALUES (?, ?, ?, ?)`,
+      ).bind(playerId, tier.key, tier.rewardCoins, now),
+    ),
+  );
+
+  return candidates.filter(
+    (_, index) => Number(results[index]?.meta?.changes ?? 0) > 0,
+  );
 }
 
 async function authenticateFirebase(
