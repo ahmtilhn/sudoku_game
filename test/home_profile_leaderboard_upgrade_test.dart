@@ -29,24 +29,32 @@ void main() {
     );
   });
 
-  test('profile cards stay compact and expose leaderboard entry', () {
+  test('profile hub exposes RP identity customization and leaderboard entry', () {
     final source = File(
       'lib/features/social/profile_hub_screen.dart',
     ).readAsStringSync();
-    final profileCard = File(
-      'lib/features/social/competitive_profile_card.dart',
+    final summary = File(
+      'lib/features/social/rank_identity_summary_card.dart',
     ).readAsStringSync();
 
-    expect(profileCard, contains('_ProfilePerformanceStrip'));
+    expect(source, contains('RankIdentitySummaryCard'));
+    expect(source, contains('ProfileCustomizationScreen'));
     expect(source, contains('_ProfileActionGrid'));
     expect(source, contains('_ProfileActionCard'));
     expect(source, contains('_selectedTab'));
     expect(source, contains('DuelAsset.leaderboardCrownPro'));
     expect(source, contains('LeaderboardsScreen'));
-    expect(source, contains('CompetitiveProfileCard'));
+    expect(source, contains('rankPoints'));
     expect(source, contains('_selectedTab = _ProfileTab.leaderboards'));
+    expect(source, isNot(contains('CompetitiveProfileCard')));
+    expect(source, isNot(contains('currentElo')));
     expect(source, isNot(contains('WalletHistoryScreen')));
     expect(source, isNot(contains('SocialHubScreen')));
+
+    expect(summary, contains('profile.rankPoints'));
+    expect(summary, contains('profile.rankName'));
+    expect(summary, contains('profile.avatarKey'));
+    expect(summary, isNot(contains('currentElo')));
   });
 
   test('store and page chrome use transparent glass styling', () {
@@ -123,29 +131,35 @@ void main() {
   });
 
   test(
-    'leaderboards use the competitive backend and retain optional native ELO entry',
+    'in-app competitive ladder uses visible RP while native boards stay isolated',
     () {
       final source = File(
         'lib/features/duel/leaderboards_screen.dart',
       ).readAsStringSync();
 
-      expect(source, contains('CompetitiveLeaderboardApi.instance'));
-      expect(source, contains('_leaderboards.load('));
-      expect(source, contains('SudokuVariant.classic9'));
-      expect(source, contains('SudokuVariant.classic16'));
-      expect(source, contains("_LeaderboardAudience.friends => 'friends'"));
-      expect(source, contains("_LeaderboardAudience.aroundMe => 'around_me'"));
-      expect(source, contains('PlatformLeaderboardService.instance'));
-      expect(source, contains('_platformLeaderboards.show(_selectedScope)'));
-      expect(source, contains('Sudoku Duel ELO'));
-      expect(source, contains('native_leaderboard_short'));
-      expect(source, contains('leaderboard_empty_hint'));
+      expect(source, contains('RankIdentityService.instance'));
+      expect(source, contains('loadLeaderboard(limit: 100)'));
+      expect(source, contains('rankTierCatalog'));
+      expect(source, contains('rankPoints'));
+      expect(source, contains("'Global RP leaderboard'"));
+      expect(source, contains("'Each division is 300 RP."));
+      expect(source, isNot(contains('CompetitiveLeaderboardApi.instance')));
+      expect(source, isNot(contains('PlatformLeaderboardService.instance')));
+      expect(source, isNot(contains('Sudoku Duel ELO')));
       expect(source, isNot(contains('entry.copyWith(rank:')));
 
-      final api = File(
-        'lib/services/competitive_leaderboard_api.dart',
+      final service = File(
+        'lib/services/rank_identity_service.dart',
       ).readAsStringSync();
-      expect(api, contains('FirebaseSessionService.ensureAnonymousSession()'));
+      expect(service, contains("'/v1/competitive/rank-leaderboard?limit="));
+      expect(service, contains('FirebaseSessionService.ensureAnonymousSession()'));
+
+      // Native platform leaderboards remain a separate compatibility surface;
+      // they do not define the in-app visible rank.
+      final platform = File(
+        'lib/features/social/platform_services_screen.dart',
+      ).readAsStringSync();
+      expect(platform, contains('PlatformLeaderboardService.instance'));
     },
   );
 }
