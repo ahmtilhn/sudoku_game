@@ -8,7 +8,7 @@ import '../../localization/app_strings.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
-import '../../services/social_api_client.dart';
+import '../../services/rank_identity_service.dart';
 import 'matchmaking_stage.dart';
 import 'online_duel_screen.dart';
 
@@ -34,7 +34,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   OnlineDuelConnectionState _connectionState =
       OnlineDuelConnectionState.connecting;
   MatchmakingVisualPlayer? _profilePlayer;
-  SocialPlayer? _opponentPublicProfile;
+  PublicRankSummary? _opponentPublicProfile;
   String? _opponentProfileRequestedFor;
   Object? _error;
   bool _readyPressed = false;
@@ -52,8 +52,17 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   @override
   void initState() {
     super.initState();
-    _profilePlayer = widget.initialCurrentPlayer;
-    if (_profilePlayer == null) unawaited(_loadProfile());
+    final initial = widget.initialCurrentPlayer;
+    _profilePlayer = initial == null
+        ? null
+        : MatchmakingVisualPlayer(
+            displayName: initial.displayName,
+            avatarKey: initial.avatarKey,
+            remoteApprovedImageUrl: initial.remoteApprovedImageUrl,
+            gamesPlayed: initial.gamesPlayed,
+            winRate: initial.winRate,
+          );
+    unawaited(_loadProfile());
     unawaited(_connect());
   }
 
@@ -69,16 +78,21 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
 
   Future<void> _loadProfile() async {
     try {
-      final profile = await SocialApiClient.instance.loadCompetitiveProfile();
+      final profile = await RankIdentityService.instance.refresh();
       if (!mounted) return;
+      final stats = profile.stats;
+      final winRate = stats.rankedGames == 0
+          ? 0.0
+          : stats.wins / stats.rankedGames;
       setState(() {
         _profilePlayer = MatchmakingVisualPlayer(
           displayName: profile.displayName,
           avatarKey: profile.avatarKey,
           rankLabel: profile.rankName,
-          gamesPlayed: profile.wins + profile.losses + profile.draws,
-          winRate: profile.winRate,
-          rating: profile.currentElo,
+          gamesPlayed: stats.rankedGames,
+          winRate: winRate,
+          // Legacy presentation slot, now populated with visible RP only.
+          rating: profile.rankPoints,
         );
       });
     } catch (_) {
@@ -95,20 +109,13 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     }
     _opponentProfileRequestedFor = normalized;
     try {
-      final players = await SocialApiClient.instance.searchPlayers(normalized);
-      SocialPlayer? exact;
-      for (final player in players) {
-        if (player.publicId == normalized) {
-          exact = player;
-          break;
-        }
-      }
+      final exact = await RankIdentityService.instance.loadPublicRankSummary(
+        normalized,
+      );
       if (!mounted || _handedOff) return;
-      if (exact != null) {
-        setState(() => _opponentPublicProfile = exact);
-      }
+      setState(() => _opponentPublicProfile = exact);
     } catch (_) {
-      // Private/non-discoverable profiles intentionally keep stats hidden.
+      // Private/non-discoverable profiles intentionally keep RP stats hidden.
     }
   }
 
@@ -347,18 +354,19 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     if (player == null) return null;
     final publicProfile = _opponentPublicProfile;
     final profileMatches = publicProfile?.publicId == player.publicId;
-    final rating = profileMatches ? publicProfile?.rating : null;
     return MatchmakingVisualPlayer(
       displayName: player.displayName.isEmpty
           ? player.username
           : player.displayName,
-      avatarKey: player.avatarKey.isEmpty
+      avatarKey: profileMatches && publicProfile!.avatarKey.isNotEmpty
+          ? publicProfile.avatarKey
+          : player.avatarKey.isEmpty
           ? 'prematch-${player.publicId}'
           : player.avatarKey,
-      rankLabel: rating == null ? null : matchmakingRankLabel(rating),
-      gamesPlayed: profileMatches ? publicProfile?.gamesPlayed : null,
-      winRate: profileMatches ? publicProfile?.winRate : null,
-      rating: rating,
+      rankLabel: profileMatches ? publicProfile.rankName : null,
+      gamesPlayed: profileMatches ? publicProfile.gamesPlayed : null,
+      winRate: profileMatches ? publicProfile.winRate : null,
+      rating: profileMatches ? publicProfile.rankPoints : null,
     );
   }
 
@@ -445,15 +453,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
       OnlineDuelConnectionState.connecting => context.tr('connecting_players'),
     };
   }
-}
-
-@visibleForTesting
-String matchmakingRankLabel(int rating) {
-  if (rating >= 1800) return 'Master';
-  if (rating >= 1500) return 'Platinum';
-  if (rating >= 1300) return 'Gold';
-  if (rating >= 1100) return 'Silver';
-  return 'Bronze';
 }
 
 class _StageAction {
