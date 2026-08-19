@@ -52,7 +52,9 @@ class PlayerAvatar extends StatelessWidget {
         dimension: size,
         child: RankFrameOverlay(
           size: size,
-          frameKey: identity.frameKey,
+          // Legacy/default identities predate the RP system. They still begin
+          // visually at the same public starting point: Bronze III / 0 RP.
+          frameKey: identity.frameKey ?? 'bronze_3',
           decorationKeys: identity.decorationKeys,
           child: clipped,
         ),
