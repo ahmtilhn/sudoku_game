@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
+import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
@@ -29,6 +30,8 @@ class _UxChallengeInvitationScreenState
   final EconomyService _economy = EconomyService.instance;
 
   SocialChallenge? _challenge;
+  PublicRankSummary? _challengerRank;
+  String? _challengerRankRequestedFor;
   Timer? _timer;
   int _statusTicks = 0;
   bool _loading = true;
@@ -84,6 +87,7 @@ class _UxChallengeInvitationScreenState
       final challenge = await _social.loadChallenge(widget.challengeId);
       if (!mounted) return;
       setState(() => _challenge = challenge);
+      unawaited(_loadChallengerRank(challenge.challenger.publicId));
       if (challenge.status == 'accepted') {
         final roomId = await _resolveRoomId(challenge);
         if (roomId != null && roomId.isNotEmpty && mounted) {
@@ -112,6 +116,23 @@ class _UxChallengeInvitationScreenState
     }
   }
 
+  Future<void> _loadChallengerRank(String publicId) async {
+    final normalized = publicId.trim();
+    if (normalized.length < 3 || normalized == _challengerRankRequestedFor) {
+      return;
+    }
+    _challengerRankRequestedFor = normalized;
+    try {
+      final summary = await RankIdentityService.instance.loadPublicRankSummary(
+        normalized,
+      );
+      if (!mounted || _challenge?.challenger.publicId != normalized) return;
+      setState(() => _challengerRank = summary);
+    } catch (_) {
+      // A private/non-discoverable player keeps public rank details hidden.
+    }
+  }
+
   Future<void> _refreshStatus() async {
     if (_busy || !mounted) return;
     try {
@@ -123,6 +144,7 @@ class _UxChallengeInvitationScreenState
           _error = _statusMessage(challenge.status);
         }
       });
+      unawaited(_loadChallengerRank(challenge.challenger.publicId));
       if (challenge.status == 'accepted') {
         final roomId = await _resolveRoomId(challenge);
         if (roomId != null && roomId.isNotEmpty) await _openRoom(roomId);
@@ -277,6 +299,9 @@ class _UxChallengeInvitationScreenState
     );
     final accent = _accent(difficulty);
     final missing = (_entryFee - _economy.balance).clamp(0, _entryFee);
+    final rank = _challengerRank?.publicId == challenge.challenger.publicId
+        ? _challengerRank
+        : null;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -307,7 +332,8 @@ class _UxChallengeInvitationScreenState
                 const SizedBox(height: 18),
                 PlayerAvatar(
                   displayName: challenge.challenger.displayName,
-                  avatarKey: 'challenge-${challenge.challenger.publicId}',
+                  avatarKey:
+                      rank?.avatarKey ?? 'challenge-${challenge.challenger.publicId}',
                   radius: 48,
                 ),
                 const SizedBox(height: 12),
@@ -353,9 +379,11 @@ class _UxChallengeInvitationScreenState
                     ),
                     _Metric(
                       asset: DuelAsset.trophy,
-                      label: context.tr('rating_value', <Object>[
-                        challenge.challenger.rating,
-                      ]),
+                      label: rank == null
+                          ? context.tr('games_count', <Object>[
+                              challenge.challenger.gamesPlayed,
+                            ])
+                          : '${rank.rankName} · ${rank.rankPoints} RP',
                       color: const Color(0xFFFFC94D),
                     ),
                   ],
