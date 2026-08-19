@@ -226,10 +226,10 @@ class RankIdentityService {
     List<String>? achievementIds,
   }) async {
     final body = <String, Object?>{
-      if (avatarKey != null) 'avatarKey': avatarKey,
-      if (frameKey != null) 'frameKey': frameKey,
-      if (titleKey != null) 'titleKey': titleKey,
-      if (achievementIds != null) 'achievementIds': achievementIds,
+      'avatarKey': ?avatarKey,
+      'frameKey': ?frameKey,
+      'titleKey': ?titleKey,
+      'achievementIds': ?achievementIds,
     };
     final value = RankIdentityProfile.fromJson(
       await _request('PUT', '/v1/me/rank-profile', body: body),
