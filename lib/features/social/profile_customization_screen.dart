@@ -7,7 +7,6 @@ import '../../models/avatar_preset_catalog.dart';
 import '../../models/country_catalog.dart';
 import '../../models/rank_identity_fallback.dart';
 import '../../models/rank_identity_models.dart';
-import '../../services/platform_game_services.dart';
 import '../../services/rank_identity_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/in_page_header.dart';
@@ -28,7 +27,7 @@ class _ProfileCustomizationScreenState
   bool _saving = false;
   bool _serverReady = false;
   String? _error;
-  String _avatarKey = 'default';
+  String _avatarKey = AvatarPresetCatalog.firstKey;
   String _frameKey = 'auto';
   String _titleKey = '';
   List<String> _achievementIds = <String>[];
@@ -46,7 +45,7 @@ class _ProfileCustomizationScreenState
 
   void _applyProfile(RankIdentityProfile profile) {
     _profile = profile;
-    _avatarKey = profile.selectedAvatarKey;
+    _avatarKey = AvatarPresetCatalog.normalizeKey(profile.selectedAvatarKey);
     _frameKey = profile.selectedFrameKey;
     _titleKey = profile.selectedTitleKey;
     _achievementIds = List<String>.from(
@@ -112,13 +111,15 @@ class _ProfileCustomizationScreenState
       );
       return;
     }
+
     setState(() {
       _saving = true;
       _error = null;
     });
+
     try {
       final profile = await RankIdentityService.instance.save(
-        avatarKey: _avatarKey,
+        avatarKey: AvatarPresetCatalog.normalizeKey(_avatarKey),
         frameKey: _frameKey,
         titleKey: _titleKey,
         achievementIds: _achievementIds,
@@ -259,6 +260,7 @@ class _ProfileCustomizationScreenState
                           ),
                           _DecorationTab(
                             profile: _profile,
+                            avatarKey: _avatarKey,
                             selectedAchievementIds: _achievementIds,
                             onToggle: _toggleDecoration,
                           ),
@@ -342,14 +344,13 @@ class _PreviewCard extends StatelessWidget {
         }
       }
     }
+
     final effectiveFrame = frameKey == 'auto' ? profile.rankKey : frameKey;
     final identity = RankIdentityKey(
-      avatarKey: avatarKey,
+      avatarKey: AvatarPresetCatalog.normalizeKey(avatarKey),
       frameKey: effectiveFrame,
       decorationKeys: decorations,
     ).encode();
-    final platform = PlatformGameServices.instance.localPlayer.value;
-    final usePlatformAvatar = avatarKey.startsWith('home-profile-');
     final title = _titleLabel(profile, titleKey);
     final flag = countryFlagVisible ? countryFlagEmoji(countryCode) : '';
 
@@ -366,9 +367,6 @@ class _PreviewCard extends StatelessWidget {
           PlayerAvatar(
             displayName: profile.displayName,
             avatarKey: identity,
-            localAvatarBytes: usePlatformAvatar ? platform?.avatarBytes : null,
-            remoteApprovedImageUrl:
-                usePlatformAvatar ? platform?.avatarUrl : null,
             radius: 39,
           ),
           const SizedBox(width: 15),
@@ -458,12 +456,7 @@ class _AvatarTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final platform = PlatformGameServices.instance.localPlayer.value;
-    final choices = <String>[
-      'default',
-      if (platform != null) 'home-profile-platform',
-      ...AvatarPresetCatalog.all.map((preset) => preset.key),
-    ];
+    final choices = AvatarPresetCatalog.all;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -474,6 +467,7 @@ class _AvatarTab extends StatelessWidget {
             : constraints.maxWidth >= 360
             ? 4
             : 3;
+
         return GridView.builder(
           key: const PageStorageKey<String>('profile-avatar-grid'),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
@@ -485,18 +479,13 @@ class _AvatarTab extends StatelessWidget {
           ),
           itemCount: choices.length,
           itemBuilder: (context, index) {
-            final key = choices[index];
-            final preset = AvatarPresetCatalog.byKey(key);
-            final label = key == 'default'
-                ? 'Initials'
-                : key == 'home-profile-platform'
-                ? 'Platform'
-                : preset?.label ?? key;
-            final selected = selectedKey == key;
+            final avatar = choices[index];
+            final selected = selectedKey == avatar.key;
+
             return Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => onSelected(key),
+                onTap: () => onSelected(avatar.key),
                 borderRadius: BorderRadius.circular(16),
                 child: Ink(
                   padding: const EdgeInsets.all(7),
@@ -516,20 +505,13 @@ class _AvatarTab extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       PlayerAvatar(
-                        displayName:
-                            platform?.effectiveDisplayName ?? 'Sudoku Player',
-                        avatarKey: key,
-                        localAvatarBytes: key == 'home-profile-platform'
-                            ? platform?.avatarBytes
-                            : null,
-                        remoteApprovedImageUrl: key == 'home-profile-platform'
-                            ? platform?.avatarUrl
-                            : null,
-                        radius: 25,
+                        displayName: 'Sudoku Player',
+                        avatarKey: avatar.key,
+                        radius: 27,
                       ),
                       const SizedBox(height: 7),
                       Text(
-                        label,
+                        avatar.label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
@@ -568,8 +550,6 @@ class _FrameTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final platform = PlatformGameServices.instance.localPlayer.value;
-    final usePlatformAvatar = avatarKey.startsWith('home-profile-');
     final rewards = <String, RankRewardState>{
       for (final reward in profile.rankRewards) reward.rankKey: reward,
     };
@@ -623,13 +603,9 @@ class _FrameTab extends StatelessWidget {
                   PlayerAvatar(
                     displayName: profile.displayName,
                     avatarKey: RankIdentityKey(
-                      avatarKey: avatarKey,
+                      avatarKey: AvatarPresetCatalog.normalizeKey(avatarKey),
                       frameKey: previewFrame,
                     ).encode(),
-                    localAvatarBytes:
-                        usePlatformAvatar ? platform?.avatarBytes : null,
-                    remoteApprovedImageUrl:
-                        usePlatformAvatar ? platform?.avatarUrl : null,
                     radius: 29,
                   ),
                   const SizedBox(width: 13),
@@ -691,11 +667,13 @@ class _FrameTab extends StatelessWidget {
 class _DecorationTab extends StatelessWidget {
   const _DecorationTab({
     required this.profile,
+    required this.avatarKey,
     required this.selectedAchievementIds,
     required this.onToggle,
   });
 
   final RankIdentityProfile profile;
+  final String avatarKey;
   final List<String> selectedAchievementIds;
   final ValueChanged<String> onToggle;
 
@@ -715,6 +693,7 @@ class _DecorationTab extends StatelessWidget {
                 'Earned badges can be attached directly to your frame. Locked badges stay visible here so you always know what can be earned.',
           );
         }
+
         final decoration = profile.decorations[index - 1];
         final selected = selectedAchievementIds.contains(
           decoration.achievementId,
@@ -744,7 +723,7 @@ class _DecorationTab extends StatelessWidget {
                   PlayerAvatar(
                     displayName: profile.displayName,
                     avatarKey: RankIdentityKey(
-                      avatarKey: 'preset_001',
+                      avatarKey: AvatarPresetCatalog.normalizeKey(avatarKey),
                       frameKey: profile.rankKey,
                       decorationKeys: <String>[decoration.decorationKey],
                     ).encode(),
@@ -841,6 +820,7 @@ class _TitleTab extends StatelessWidget {
                 'Master and Master I titles are permanent account unlocks. Your actual current rank is always shown separately.',
           );
         }
+
         final option = options[index - 1];
         final selected = selectedKey == option.key;
         return ListTile(
@@ -1162,7 +1142,7 @@ class _SaveBar extends StatelessWidget {
           Expanded(
             child: Text(
               serverReady
-                  ? 'Rank cosmetics are earned. Country flag is your optional profile choice.'
+                  ? 'Avatars come only from the bundled avatar collection. Rank cosmetics are earned.'
                   : 'Preview mode · reconnect to save changes.',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: .56),
