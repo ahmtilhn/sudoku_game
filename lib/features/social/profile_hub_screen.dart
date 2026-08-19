@@ -3,16 +3,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
+import '../../models/rank_identity_models.dart';
 import '../../services/platform_game_services.dart';
-import '../../services/social_api_client.dart';
+import '../../services/rank_identity_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/in_page_header.dart';
 import '../duel/leaderboards_screen.dart';
-import 'competitive_profile_card.dart';
 import 'platform_services_screen.dart';
+import 'profile_customization_screen.dart';
+import 'rank_identity_summary_card.dart';
 
-enum _ProfileTab { leaderboards, platform }
+enum _ProfileTab { customize, leaderboards, platform }
 
 class ProfileHubScreen extends StatefulWidget {
   const ProfileHubScreen({super.key});
@@ -23,10 +25,12 @@ class ProfileHubScreen extends StatefulWidget {
 
 class _ProfileHubScreenState extends State<ProfileHubScreen> {
   final PlatformGameServices _games = PlatformGameServices.instance;
-  CompetitiveProfile? _profile;
+  final RankIdentityService _rankIdentity = RankIdentityService.instance;
+
+  RankIdentityProfile? _profile;
   bool _loading = true;
   String? _error;
-  _ProfileTab _selectedTab = _ProfileTab.leaderboards;
+  _ProfileTab _selectedTab = _ProfileTab.customize;
 
   @override
   void initState() {
@@ -54,17 +58,18 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         _games.localPlayer.value = await _games.getLocalPlayer();
       }
     } catch (_) {
-      // Remote profile remains usable without native platform identity.
+      // The in-game profile remains usable without native platform identity.
     }
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final value = await SocialApiClient.instance.loadCompetitiveProfile();
+      final value = await _rankIdentity.refresh();
       if (mounted) setState(() => _profile = value);
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
@@ -73,9 +78,17 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     }
   }
 
-  void _open(Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+  Future<void> _open(Widget screen, {bool refreshAfter = false}) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => screen),
+    );
+    if (refreshAfter && mounted) await _load();
   }
+
+  Future<void> _openCustomization() => _open(
+        const ProfileCustomizationScreen(),
+        refreshAfter: true,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -87,27 +100,51 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 740),
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
-                      children: [
-                        InPageHeader(title: context.tr('profile')),
-                        if (_profile != null) ...[
-                          CompetitiveProfileCard(profile: _profile!),
+              child: RefreshIndicator(
+                onRefresh: _load,
+                child: _loading && _profile == null
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          SizedBox(height: 220),
+                          Center(child: CircularProgressIndicator()),
                         ],
-                        if (_error != null)
-                          _ProfileNotice(message: _error!, onRetry: _load),
-                        const SizedBox(height: 10),
-                        _ProfileActionGrid(
-                          tabs: tabs,
-                          selected: _selectedTab,
-                          onSelected: (value) =>
-                              setState(() => _selectedTab = value),
-                        ),
-                      ],
-                    ),
+                      )
+                    : ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
+                        children: [
+                          InPageHeader(
+                            title: context.tr('profile'),
+                            actions: [
+                              IconButton(
+                                tooltip: context.tr('refresh'),
+                                onPressed: _loading ? null : _load,
+                                icon: const Icon(Icons.refresh_rounded),
+                              ),
+                            ],
+                          ),
+                          if (_profile != null)
+                            RankIdentitySummaryCard(
+                              profile: _profile!,
+                              onCustomize: _openCustomization,
+                            ),
+                          if (_error != null)
+                            _ProfileNotice(message: _error!, onRetry: _load),
+                          const SizedBox(height: 12),
+                          _ProfileActionGrid(
+                            tabs: tabs,
+                            selected: _selectedTab,
+                            onSelected: (value) =>
+                                setState(() => _selectedTab = value),
+                          ),
+                          if (_profile != null) ...[
+                            const SizedBox(height: 12),
+                            _IdentityPolicyNote(profile: _profile!),
+                          ],
+                        ],
+                      ),
+              ),
             ),
           ),
         ),
@@ -118,25 +155,77 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   List<_ProfileTabData> _tabs(BuildContext context) {
     return [
       _ProfileTabData(
+        tab: _ProfileTab.customize,
+        asset: DuelAsset.profilePro,
+        title: 'Profile style',
+        subtitle: 'Avatar, rank frame, badges and title',
+        accent: const Color(0xFF66C7FF),
+        metric: '96 avatars',
+        onOpen: _openCustomization,
+      ),
+      _ProfileTabData(
         tab: _ProfileTab.leaderboards,
         asset: DuelAsset.leaderboardCrownPro,
         title: context.tr('leaderboards'),
-        subtitle: context.tr('home_rating_label'),
+        subtitle: 'Rank Points and division progress',
         accent: const Color(0xFFB7A9FF),
-        metric: '9x9 / 16x16',
-        onOpen: () => _open(const LeaderboardsScreen()),
+        metric: '${_profile?.rankPoints ?? 0} RP',
+        onOpen: () => _open(const LeaderboardsScreen(), refreshAfter: true),
       ),
       if (Platform.isAndroid || Platform.isIOS)
         _ProfileTabData(
           tab: _ProfileTab.platform,
           asset: DuelAsset.profilePro,
           title: Platform.isIOS ? 'Game Center' : 'Google Play Games',
-          subtitle: context.tr('leaderboards'),
+          subtitle: 'Native platform services',
           accent: const Color(0xFF29D398),
           metric: Platform.isIOS ? 'Native' : 'Play Games',
           onOpen: () => _open(const PlatformServicesScreen()),
         ),
     ];
+  }
+}
+
+class _IdentityPolicyNote extends StatelessWidget {
+  const _IdentityPolicyNote({required this.profile});
+
+  final RankIdentityProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedBadges = profile.selectedDecorationKeys.length;
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: .055)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.verified_user_rounded,
+            color: Color(0xFF29D398),
+            size: 23,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Rank frames and achievement badges are earned, not purchased. '
+              'You can equip up to 3 earned badges on your frame. '
+              '$selectedBadges/3 badge slots are currently in use.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .60),
+                fontSize: 11,
+                height: 1.4,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -312,7 +401,7 @@ class _ProfileActionCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       tab.subtitle,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: .58),
