@@ -20,6 +20,7 @@ import {
   isRankProgressionRoute,
   type RankProgressionEnv,
 } from './rank_progression';
+import { ensureRankProgressionSchema } from './rank_progression_schema';
 
 export { GameRoom, MatchmakingQueue };
 
@@ -45,6 +46,19 @@ export default {
     // matchmaking, Durable Object room protocol, Elo/MMR settlement and Coin
     // escrow paths below remain unchanged.
     if (request.method !== 'OPTIONS' && isRankProgressionRoute(url.pathname)) {
+      try {
+        await ensureRankProgressionSchema(
+          env as unknown as RankProgressionEnv,
+        );
+      } catch (error) {
+        console.error('rank_progression_schema_install_failed', error);
+        return leaderboardError(
+          env,
+          503,
+          'Rank progression is temporarily unavailable.',
+          'rank_progression_schema_unavailable',
+        );
+      }
       return handleRankProgressionRequest(
         request,
         env as unknown as RankProgressionEnv,
