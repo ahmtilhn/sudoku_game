@@ -246,6 +246,7 @@ class EconomyV3ApiClient {
         'POST',
         '/v1/economy/v3/career/claim',
         body: <String, Object>{'level': level, 'variant': variant},
+        allowMissingAppCheck: true,
       ),
     );
   }
@@ -314,6 +315,7 @@ class EconomyV3ApiClient {
     String method,
     String path, {
     Map<String, Object?>? body,
+    bool allowMissingAppCheck = false,
   }) async {
     final social = SocialApiClient.instance;
     if (!social.configured) {
@@ -339,18 +341,24 @@ class EconomyV3ApiClient {
       throw const EconomyApiException(401, 'Unable to obtain a player token.');
     }
 
-    final String appCheckToken;
-    try {
-      appCheckToken = await FirebaseServices.instance.requireAppCheckToken(
+    final String? appCheckToken;
+    if (allowMissingAppCheck) {
+      appCheckToken = await FirebaseServices.instance.tryGetAppCheckToken(
         timeout: _timeout,
       );
-    } on TimeoutException {
-      throw const EconomyApiException(403, 'App Check verification timed out.');
-    } catch (_) {
-      throw const EconomyApiException(
-        403,
-        'App Check could not verify this installation.',
-      );
+    } else {
+      try {
+        appCheckToken = await FirebaseServices.instance.requireAppCheckToken(
+          timeout: _timeout,
+        );
+      } on TimeoutException {
+        throw const EconomyApiException(403, 'App Check verification timed out.');
+      } catch (_) {
+        throw const EconomyApiException(
+          403,
+          'App Check could not verify this installation.',
+        );
+      }
     }
 
     final uri = Uri.parse('${social.baseUrl}$path');
@@ -358,7 +366,8 @@ class EconomyV3ApiClient {
       'authorization': 'Bearer $idToken',
       'accept': 'application/json',
       if (body != null) 'content-type': 'application/json',
-      'x-firebase-appcheck': appCheckToken,
+      if (appCheckToken != null && appCheckToken.isNotEmpty)
+        'x-firebase-appcheck': appCheckToken,
     };
 
     final Future<http.Response> pending = switch (method) {
