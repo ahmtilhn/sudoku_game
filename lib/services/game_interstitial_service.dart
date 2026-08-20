@@ -19,7 +19,9 @@ enum GameInterstitialContext { careerWin, careerLoss, practice, normalPlay }
 /// includes a skip action and clearly states the +1 Hint reward.
 ///
 /// When the completion also produced a new server-authoritative Career Coin
-/// reward, a separate optional RewardedAd can double that exact reward once.
+/// reward, a separate optional RewardedAd doubles that exact reward once. For
+/// offline modes without a Coin completion reward, the same RewardedAd slot can
+/// double the earned +1 Hint post-game bonus instead.
 class GameInterstitialService {
   GameInterstitialService._();
 
@@ -124,6 +126,8 @@ class GameInterstitialService {
 
       if (careerGrant != null && context.mounted && !_ads.noAds) {
         await _offerCareerDouble(context, careerGrant);
+      } else if (earnedPostGameHint && context.mounted && !_ads.noAds) {
+        await _offerHintDouble(context, store);
       }
       return earnedPostGameHint;
     } finally {
@@ -265,6 +269,73 @@ class GameInterstitialService {
           content: Text('+${result.amount} ${context.tr('coin')} · x2'),
         ),
       );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
+      );
+    }
+  }
+
+  Future<void> _offerHintDouble(
+    BuildContext context,
+    LocalProgressStore store,
+  ) async {
+    final watch = await showModalBottomSheet<bool>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      useSafeArea: true,
+      showDragHandle: false,
+      builder: (sheetContext) => Padding(
+        key: const ValueKey<String>('offline-x2-hint-rewarded-offer'),
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(Icons.auto_awesome_rounded, size: 46),
+            const SizedBox(height: 10),
+            Text(
+              'x2 ${sheetContext.tr('hints')}',
+              textAlign: TextAlign.center,
+              style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '+1 ${sheetContext.tr('hints')}',
+              textAlign: TextAlign.center,
+              style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(sheetContext).pop(true),
+              icon: const Icon(Icons.ondemand_video_rounded),
+              label: Text('x2 · ${sheetContext.tr('watch_rewarded_ad')}'),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: () => Navigator.of(sheetContext).pop(false),
+              child: Text(sheetContext.tr('skip')),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (watch != true || !context.mounted) return;
+    final earned = await _economyV3.earnHintWithAd();
+    if (!context.mounted) return;
+    if (earned) {
+      await store.addHints(1);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('+1 ${context.tr('hints')} · x2')),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
