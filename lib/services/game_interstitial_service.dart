@@ -1,186 +1,119 @@
-import 'dart:async';
-import 'dart:io';
+import 'package:flutter/material.dart';
 
-import 'package:flutter/foundation.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-
+import '../data/local_progress_store.dart';
+import '../localization/app_strings.dart';
 import 'ads_service.dart';
 import 'career_reward_sync_service.dart';
 import 'economy_service.dart';
+import 'economy_v3_service.dart';
 
 enum GameInterstitialContext { careerWin, careerLoss, practice, normalPlay }
 
-/// Central gate for non-rewarded, post-result interstitials.
+/// Central gate for post-game rewarded interstitials in offline play.
 ///
-/// Rules:
-/// - every second eligible result per context;
-/// - at least four minutes between any two forced interstitials;
-/// - never load/show for No Ads;
-/// - only runs after gameplay has ended, before the result surface opens.
+/// The ad is offered after every eligible completed offline game. There is no
+/// frequency counter or cooldown. Rewarded interstitial policy requires a
+/// disclosure and a way to skip before the ad starts, so this service owns that
+/// small transition surface as well as the +1 Hint reward.
 class GameInterstitialService {
   GameInterstitialService._();
 
   static final GameInterstitialService instance = GameInterstitialService._();
 
-  static const Duration _globalCooldown = Duration(minutes: 4);
-  static const String _androidTestId =
-      'ca-app-pub-3940256099942544/1033173712';
-  static const String _iosTestId =
-      'ca-app-pub-3940256099942544/4411468910';
-
   final AdsService _ads = AdsService.instance;
-  final Map<GameInterstitialContext, int> _eligibleResults =
-      <GameInterstitialContext, int>{};
-
-  InterstitialAd? _loadedAd;
-  Completer<void>? _loadCompleter;
-  DateTime? _lastShownAt;
+  final EconomyV3Service _economyV3 = EconomyV3Service.instance;
   bool _showing = false;
 
-  bool get _supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
-
-  String get _adUnitId {
-    if (Platform.isAndroid) {
-      const configured = String.fromEnvironment(
-        'ADMOB_ANDROID_INTERSTITIAL_ID',
-        defaultValue: '',
-      );
-      if (configured.isNotEmpty) return configured;
-      return kReleaseMode ? '' : _androidTestId;
-    }
-    const configured = String.fromEnvironment(
-      'ADMOB_IOS_INTERSTITIAL_ID',
-      defaultValue: '',
-    );
-    if (configured.isNotEmpty) return configured;
-    return kReleaseMode ? '' : _iosTestId;
-  }
-
-  /// Records an eligible natural transition and, when the frequency gate is
-  /// reached, waits until the interstitial is dismissed before returning.
-  Future<bool> recordAndMaybeShow(GameInterstitialContext context) async {
+  Future<bool> recordAndMaybeShow({
+    required BuildContext context,
+    required LocalProgressStore store,
+    required GameInterstitialContext adContext,
+  }) async {
     // Career progress is written locally first. Drain the V3 reward sync and
-    // refresh the wallet before any early return so the result sheet observes
-    // the authoritative Career Coin grant even for No Ads / odd ad counters.
-    if (context == GameInterstitialContext.careerWin) {
+    // refresh the wallet before opening the post-game surface so the result
+    // sheet can observe the authoritative Career Coin grant.
+    if (adContext == GameInterstitialContext.careerWin) {
       await CareerRewardSyncService.instance.waitForIdle();
       await EconomyService.instance.refresh(showLoading: false);
     }
 
-    if (_ads.noAds || !_supported) return false;
+    if (_ads.noAds || _showing || !context.mounted) return false;
+    if (!_ads.adsAvailable.value) await _ads.initialize();
+    if (_ads.noAds || !_ads.adsAvailable.value || !context.mounted) return false;
 
-    final count = (_eligibleResults[context] ?? 0) + 1;
-    _eligibleResults[context] = count;
-    if (count.isOdd) return false;
-
-    final lastShownAt = _lastShownAt;
-    if (lastShownAt != null &&
-        DateTime.now().difference(lastShownAt) < _globalCooldown) {
-      return false;
-    }
-    if (_showing) return false;
-
-    if (!AdsService.instance.adsAvailable.value) {
-      await AdsService.instance.initialize();
-    }
-    if (_ads.noAds || !AdsService.instance.adsAvailable.value) return false;
-    if (_adUnitId.isEmpty) {
-      debugPrint(
-        'Post-game interstitial is not configured for this release build. '
-        'Set ADMOB_ANDROID_INTERSTITIAL_ID / ADMOB_IOS_INTERSTITIAL_ID.',
-      );
-      return false;
-    }
-
-    if (_loadedAd == null) await _load();
-    final ad = _loadedAd;
-    if (ad == null || _ads.noAds) return false;
-    _loadedAd = null;
     _showing = true;
-
-    final completion = Completer<bool>();
-    void complete(bool value) {
-      if (!completion.isCompleted) completion.complete(value);
-    }
-
-    ad.fullScreenContentCallback = FullScreenContentCallback<InterstitialAd>(
-      onAdShowedFullScreenContent: (_) {
-        _lastShownAt = DateTime.now();
-      },
-      onAdFailedToShowFullScreenContent: (failedAd, error) {
-        debugPrint('Post-game interstitial failed to show: $error');
-        failedAd.dispose();
-        complete(false);
-      },
-      onAdDismissedFullScreenContent: (dismissedAd) {
-        dismissedAd.dispose();
-        complete(true);
-      },
-    );
-
     try {
-      ad.show();
-      return await completion.future.timeout(const Duration(minutes: 2));
-    } on TimeoutException {
-      await ad.dispose();
-      return false;
-    } catch (error) {
-      debugPrint('Post-game interstitial show threw: $error');
-      await ad.dispose();
-      return false;
+      final watch = await showModalBottomSheet<bool>(
+        context: context,
+        isDismissible: false,
+        enableDrag: false,
+        useSafeArea: true,
+        showDragHandle: false,
+        builder: (sheetContext) => Padding(
+          key: const ValueKey<String>('post-game-rewarded-interstitial-offer'),
+          padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.ondemand_video_rounded, size: 46),
+              const SizedBox(height: 10),
+              Text(
+                sheetContext.tr('watch_rewarded_ad'),
+                textAlign: TextAlign.center,
+                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '+1 ${sheetContext.tr('hints')}',
+                textAlign: TextAlign.center,
+                style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: () => Navigator.of(sheetContext).pop(true),
+                icon: const Icon(Icons.play_circle_fill_rounded),
+                label: Text(
+                  '${sheetContext.tr('watch_rewarded_ad')} · +1 ${sheetContext.tr('hints')}',
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: () => Navigator.of(sheetContext).pop(false),
+                child: Text(sheetContext.tr('skip')),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (watch != true || !context.mounted) return false;
+      final earned = await _economyV3.earnHintWithRewardedInterstitial();
+      if (!context.mounted) return earned;
+
+      if (earned) {
+        await store.addHints(1);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('+1 ${context.tr('hints')}')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
+        );
+      }
+      return earned;
     } finally {
       _showing = false;
-      unawaited(_load());
     }
   }
 
-  Future<void> disposeLoadedAd() async {
-    final ad = _loadedAd;
-    _loadedAd = null;
-    await ad?.dispose();
-  }
-
-  Future<void> _load() async {
-    if (_ads.noAds ||
-        !_supported ||
-        !AdsService.instance.adsAvailable.value ||
-        _adUnitId.isEmpty ||
-        _loadedAd != null) {
-      return;
-    }
-    final current = _loadCompleter;
-    if (current != null) {
-      await current.future;
-      return;
-    }
-
-    final completer = Completer<void>();
-    _loadCompleter = completer;
-    InterstitialAd.load(
-      adUnitId: _adUnitId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          if (_ads.noAds) {
-            ad.dispose();
-          } else {
-            _loadedAd = ad;
-          }
-          if (!completer.isCompleted) completer.complete();
-        },
-        onAdFailedToLoad: (error) {
-          debugPrint('Post-game interstitial failed to load: $error');
-          if (!completer.isCompleted) completer.complete();
-        },
-      ),
-    );
-
-    try {
-      await completer.future.timeout(const Duration(seconds: 30));
-    } on TimeoutException {
-      debugPrint('Post-game interstitial load timed out.');
-    } finally {
-      if (identical(_loadCompleter, completer)) _loadCompleter = null;
-    }
-  }
+  /// Kept for compatibility with older lifecycle callers. Loaded rewarded ads
+  /// are owned and disposed by [AdsService].
+  Future<void> disposeLoadedAd() async {}
 }
