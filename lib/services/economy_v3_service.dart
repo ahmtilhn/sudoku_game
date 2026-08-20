@@ -17,10 +17,12 @@ class EconomyV3Service extends ChangeNotifier {
 
   EconomyV3State? _state;
   String? _error;
+  String? _errorCode;
   bool _loading = false;
 
   EconomyV3State? get state => _state;
   String? get error => _error;
+  String? get errorCode => _errorCode;
   bool get loading => _loading;
 
   Future<void> initialize() async {
@@ -94,11 +96,18 @@ class EconomyV3Service extends ChangeNotifier {
       final result = await _api.claimCareer(level: level, variant: variant);
       _state = result.state;
       _error = null;
+      _errorCode = null;
       await _syncLegacyWallet();
       notifyListeners();
       return result;
+    } on EconomyApiException catch (error) {
+      _error = error.toString();
+      _errorCode = error.code;
+      notifyListeners();
+      return null;
     } catch (error) {
       _error = error.toString();
+      _errorCode = null;
       notifyListeners();
       return null;
     }
