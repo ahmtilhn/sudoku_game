@@ -7,7 +7,6 @@ import {
   utcDay,
 } from './economy_v3_common';
 import {
-  CAREER_DAILY_COIN_CAP,
   HINT_COIN_COST,
   HINT_REFILL_SIZE,
   careerDifficulty,
@@ -51,37 +50,29 @@ export async function claimCareerReward(
     );
   }
 
+  // Career completion rewards are intentionally uncapped. A player earns the
+  // full configured reward for every first-time level completion, regardless
+  // of how many Career levels they finish in the same UTC day.
+  const amount = requested;
+  const inserted = await insertCoinEvent(env, {
+    playerId,
+    source: 'career_completion',
+    referenceId: `${input.variant}:${input.level}`,
+    amount,
+    // Kept inside the existing production ledger CHECK. economySource in
+    // metadata carries the exact V3 semantic reason.
+    ledgerReason: 'achievement_reward',
+    metadata: {
+      variant: input.variant,
+      level: input.level,
+      difficulty,
+      requested,
+      dailyCap: null,
+      rewardPolicy: 'uncapped',
+    },
+  });
+
   const day = utcDay();
-  const daily = await env.DB.prepare(
-    `SELECT coins_earned FROM economy_v3_career_daily
-     WHERE player_id = ? AND day_key = ?`,
-  )
-    .bind(playerId, day)
-    .first<{ coins_earned: number }>();
-  const earned = Number(daily?.coins_earned ?? 0);
-  const remaining = Math.max(0, CAREER_DAILY_COIN_CAP - earned);
-  const amount = Math.min(requested, remaining);
-  let inserted = false;
-
-  if (amount > 0) {
-    inserted = await insertCoinEvent(env, {
-      playerId,
-      source: 'career_completion',
-      referenceId: `${input.variant}:${input.level}`,
-      amount,
-      // Kept inside the existing production ledger CHECK. economySource in
-      // metadata carries the exact V3 semantic reason.
-      ledgerReason: 'achievement_reward',
-      metadata: {
-        variant: input.variant,
-        level: input.level,
-        difficulty,
-        requested,
-        dailyCap: CAREER_DAILY_COIN_CAP,
-      },
-    });
-  }
-
   const now = new Date().toISOString();
   await env.DB.batch([
     env.DB.prepare(
@@ -95,6 +86,8 @@ export async function claimCareerReward(
          ),
          updated_at = excluded.updated_at`,
     ).bind(playerId, input.variant, input.level, now),
+    // Keep the daily aggregate for analytics/state reporting only. It no longer
+    // limits how many Coins Career mode can award in a day.
     env.DB.prepare(
       `INSERT INTO economy_v3_career_daily (player_id, day_key, coins_earned, updated_at)
        VALUES (?, ?, ?, ?)
@@ -108,7 +101,7 @@ export async function claimCareerReward(
     granted: inserted,
     amount: inserted ? amount : 0,
     requestedAmount: requested,
-    capped: amount < requested,
+    capped: false,
     difficulty,
     level: input.level,
     variant: input.variant,
