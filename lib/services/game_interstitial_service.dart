@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_navigator.dart';
 import '../data/local_progress_store.dart';
+import '../domain/sudoku.dart';
 import '../localization/app_strings.dart';
 import 'ads_service.dart';
 import 'career_reward_sync_service.dart';
@@ -25,11 +26,39 @@ class GameInterstitialService {
 
   final AdsService _ads = AdsService.instance;
   final EconomyV3Service _economyV3 = EconomyV3Service.instance;
+  final Map<String, LevelProgress?> _samuraiProgress =
+      <String, LevelProgress?>{};
   LocalProgressStore? _store;
   bool _showing = false;
 
   void bindStore(LocalProgressStore store) {
+    if (identical(_store, store)) return;
+    _store?.removeListener(_onStoreChanged);
     _store = store;
+    _samuraiProgress.clear();
+    for (final difficulty in SudokuDifficulty.values) {
+      final id = 'practice-samurai-${difficulty.name}';
+      _samuraiProgress[id] = store.progressFor(id);
+    }
+    store.addListener(_onStoreChanged);
+  }
+
+  void _onStoreChanged() {
+    final store = _store;
+    if (store == null) return;
+    var samuraiCompleted = false;
+    for (final difficulty in SudokuDifficulty.values) {
+      final id = 'practice-samurai-${difficulty.name}';
+      final previous = _samuraiProgress[id];
+      final current = store.progressFor(id);
+      if (identical(previous, current)) continue;
+      _samuraiProgress[id] = current;
+      if (current != null) samuraiCompleted = true;
+    }
+    if (!samuraiCompleted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      recordAndMaybeShow(GameInterstitialContext.practice);
+    });
   }
 
   Future<bool> recordAndMaybeShow(GameInterstitialContext adContext) async {
@@ -195,7 +224,7 @@ class GameInterstitialService {
     );
     if (!context.mounted) return;
 
-    if (result?.granted == true && result!.amount > 0) {
+    if (result != null && result.granted && result.amount > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('+${result.amount} ${context.tr('coin')} · x2'),
