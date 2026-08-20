@@ -112,7 +112,6 @@ jobs:
           --dart-define=APP_ENVIRONMENT=${APP_ENVIRONMENT}
           --dart-define=SOCIAL_BACKEND_URL=${SOCIAL_BACKEND_URL}
           --dart-define=BUILD_COMMIT=${BUILD_COMMIT}
-          --dart-define=ADMOB_ANDROID_INTERSTITIAL_ID=${{ vars.ADMOB_ANDROID_INTERSTITIAL_ID }}
 
       - name: Inspect release app bundle
         shell: pwsh
