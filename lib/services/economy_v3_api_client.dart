@@ -43,6 +43,7 @@ class EconomyV3State {
     required this.careerDailyCap,
     required this.careerEarnedToday,
     required this.careerRemainingToday,
+    required this.careerUnlimited,
     required this.recoveryEarnedToday,
     required this.recoveryPopupCountToday,
     required this.recoveryDailyCoinCap,
@@ -61,9 +62,10 @@ class EconomyV3State {
   final int hintRefills;
   final int hintRefillSize;
   final int hintCoinCost;
-  final int careerDailyCap;
+  final int? careerDailyCap;
   final int careerEarnedToday;
-  final int careerRemainingToday;
+  final int? careerRemainingToday;
+  final bool careerUnlimited;
   final int recoveryEarnedToday;
   final int recoveryPopupCountToday;
   final int recoveryDailyCoinCap;
@@ -110,9 +112,10 @@ class EconomyV3State {
       hintRefills: (inventory['hintRefills'] as num?)?.toInt() ?? 0,
       hintRefillSize: (inventory['hintRefillSize'] as num?)?.toInt() ?? 3,
       hintCoinCost: (inventory['hintCoinCost'] as num?)?.toInt() ?? 25,
-      careerDailyCap: (career['dailyCap'] as num?)?.toInt() ?? 250,
+      careerDailyCap: (career['dailyCap'] as num?)?.toInt(),
       careerEarnedToday: (career['earnedToday'] as num?)?.toInt() ?? 0,
-      careerRemainingToday: (career['remainingToday'] as num?)?.toInt() ?? 0,
+      careerRemainingToday: (career['remainingToday'] as num?)?.toInt(),
+      careerUnlimited: career['unlimited'] == true,
       recoveryEarnedToday: (recovery['earnedToday'] as num?)?.toInt() ?? 0,
       recoveryPopupCountToday:
           (recovery['popupCountToday'] as num?)?.toInt() ?? 0,
