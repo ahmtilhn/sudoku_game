@@ -60,7 +60,10 @@ class GameInterstitialService {
       final previous = _careerNextLevel[variant.id] ?? 1;
       final current = store.nextCareerLevelNumberFor(variant);
       _careerNextLevel[variant.id] = current;
-      if (current > previous) detectedCompletion = GameInterstitialContext.careerWin;
+      if (current > previous) {
+        CareerRewardSyncService.instance.armRewardCapture();
+        detectedCompletion = GameInterstitialContext.careerWin;
+      }
     }
 
     for (final difficulty in SudokuDifficulty.values) {
