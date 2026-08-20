@@ -109,6 +109,85 @@ export async function claimCareerReward(
   };
 }
 
+export async function prepareCareerDouble(
+  env: EconomyV3Env,
+  playerId: string,
+  input: { level: number; variant: 'classic9' | 'classic16' },
+): Promise<Record<string, unknown>> {
+  if (!(await adsAllowed(env, playerId))) {
+    throw new EconomyV3Error(
+      403,
+      'Rewarded ads are disabled for the No Ads entitlement.',
+      'ads_disabled_entitlement',
+    );
+  }
+
+  const baseReference = `${input.variant}:${input.level}`;
+  const completion = await env.DB.prepare(
+    `SELECT amount FROM economy_v3_coin_events
+     WHERE player_id = ? AND source = 'career_completion' AND reference_id = ?
+     LIMIT 1`,
+  )
+    .bind(playerId, baseReference)
+    .first<{ amount: number }>();
+  const amount = Number(completion?.amount ?? 0);
+  if (amount <= 0) {
+    throw new EconomyV3Error(
+      409,
+      'The Career completion reward must be earned before it can be doubled.',
+      'career_reward_not_earned',
+    );
+  }
+
+  return prepareRewardClaim(env, {
+    playerId,
+    rewardType: 'career_rewarded_ad',
+    rewardKey: `v3_career_double:${input.variant}:${input.level}`,
+    amount,
+  });
+}
+
+export async function confirmCareerDouble(
+  env: EconomyV3Env,
+  playerId: string,
+  token: string,
+): Promise<Record<string, unknown>> {
+  const claim = await preparedClaim(env, playerId, token, 'v3_career_double:');
+  if (claim.status === 'claimed') {
+    return {
+      granted: false,
+      amount: 0,
+      replay: true,
+      ...(await economyV3State(env, playerId)),
+    };
+  }
+
+  const rewardKey = String(claim.reward_key ?? '');
+  const amount = Number(claim.amount ?? 0);
+  if (amount <= 0) {
+    throw new EconomyV3Error(409, 'Invalid Career double reward.', 'invalid_reward_amount');
+  }
+
+  const inserted = await insertCoinEvent(env, {
+    playerId,
+    source: 'career_double_rewarded_ad',
+    referenceId: rewardKey,
+    amount,
+    ledgerReason: 'career_rewarded_ad',
+    metadata: {
+      rewardKey,
+      rewardPolicy: 'career_completion_x2',
+    },
+  });
+  await markClaimed(env, claim.id);
+
+  return {
+    granted: inserted,
+    amount: inserted ? amount : 0,
+    ...(await economyV3State(env, playerId)),
+  };
+}
+
 export async function purchaseHint(
   env: EconomyV3Env,
   playerId: string,
