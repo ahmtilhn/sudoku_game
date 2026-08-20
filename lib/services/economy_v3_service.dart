@@ -113,6 +113,43 @@ class EconomyV3Service extends ChangeNotifier {
     }
   }
 
+  Future<EconomyV3ClaimResult?> doubleCareerReward({
+    required int level,
+    required String variant,
+  }) async {
+    if (_ads.noAds) return null;
+    try {
+      final preparation = await _api.prepareCareerDouble(
+        level: level,
+        variant: variant,
+      );
+      if (preparation.token.isEmpty || preparation.amount <= 0) return null;
+      final earned = await _ads.showRewarded(
+        verificationToken: preparation.token,
+      );
+      if (!earned) return null;
+      final result = await _confirmAfterSsv(
+        () => _api.confirmCareerDouble(preparation.token),
+      );
+      _state = result.state;
+      _error = null;
+      _errorCode = null;
+      await _syncLegacyWallet();
+      notifyListeners();
+      return result;
+    } on EconomyApiException catch (error) {
+      _error = error.toString();
+      _errorCode = error.code;
+      notifyListeners();
+      return null;
+    } catch (error) {
+      _error = error.toString();
+      _errorCode = null;
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<bool> purchaseHint({required String requestId}) async {
     try {
       final result = await _api.purchaseHint(requestId);
@@ -128,20 +165,30 @@ class EconomyV3Service extends ChangeNotifier {
     }
   }
 
-  Future<bool> earnHintWithAd() async {
+  Future<bool> earnHintWithAd() => _earnHintWithAd(
+    showAd: (token) => _ads.showRewarded(verificationToken: token),
+  );
+
+  Future<bool> earnHintWithRewardedInterstitial() => _earnHintWithAd(
+    showAd: (token) =>
+        _ads.showRewardedInterstitial(verificationToken: token),
+  );
+
+  Future<bool> _earnHintWithAd({
+    required Future<bool> Function(String token) showAd,
+  }) async {
     if (_ads.noAds) return false;
     try {
       final preparation = await _api.prepareHintReward();
       if (preparation.token.isEmpty) return false;
-      final earned = await _ads.showRewarded(
-        verificationToken: preparation.token,
-      );
+      final earned = await showAd(preparation.token);
       if (!earned) return false;
       final result = await _confirmAfterSsv(
         () => _api.confirmHintReward(preparation.token),
       );
       _state = result.state;
       _error = null;
+      await _syncLegacyWallet();
       notifyListeners();
       return result.granted;
     } catch (error) {
