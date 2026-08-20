@@ -1,6 +1,5 @@
 import { ensureStarterGrant, walletSnapshot, type EconomyEnv } from './economy';
 import {
-  CAREER_DAILY_COIN_CAP,
   CAREER_REWARDS,
   DAILY_REWARD_CALENDAR,
   HINT_COIN_COST,
@@ -121,9 +120,10 @@ export async function economyV3State(
       hintCoinCost: HINT_COIN_COST,
     },
     career: {
-      dailyCap: CAREER_DAILY_COIN_CAP,
+      dailyCap: null,
       earnedToday: careerEarned,
-      remainingToday: Math.max(0, CAREER_DAILY_COIN_CAP - careerEarned),
+      remainingToday: null,
+      unlimited: true,
       rewards: CAREER_REWARDS,
     },
     recovery: {

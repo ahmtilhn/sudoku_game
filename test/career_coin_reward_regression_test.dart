@@ -115,6 +115,69 @@ void main() {
     expect(sync, contains('await pending.future'));
   });
 
+  test('career Coin sync repairs a missed sequential claim without double grant', () {
+    final sync = File(
+      'lib/services/career_reward_sync_service.dart',
+    ).readAsStringSync();
+    final economyV3 = File(
+      'lib/services/economy_v3_service.dart',
+    ).readAsStringSync();
+
+    expect(sync, contains("_economy.errorCode != 'career_sequence_gap'"));
+    expect(sync, contains('for (var level = 1; level <= completedLevel; level++)'));
+    expect(sync, contains('_lastSyncedLevel[variant.id] = level'));
+    expect(
+      sync,
+      contains('Preserve the existing migration behavior'),
+      reason: 'old local career progress must not be bulk-granted accidentally',
+    );
+    expect(economyV3, contains('String? get errorCode => _errorCode;'));
+    expect(economyV3, contains('_errorCode = error.code;'));
+  });
+
+  test('career completion rewards are unlimited and never daily-capped', () {
+    final policy = File(
+      'backend/social_worker/src/economy_v3_policy.ts',
+    ).readAsStringSync();
+    final career = File(
+      'backend/social_worker/src/economy_v3_career_hints.ts',
+    ).readAsStringSync();
+    final state = File(
+      'backend/social_worker/src/economy_v3_common.ts',
+    ).readAsStringSync();
+    final api = File(
+      'lib/services/economy_v3_api_client.dart',
+    ).readAsStringSync();
+
+    expect(policy, contains('CAREER_DAILY_COIN_CAP: null = null'));
+    expect(career, contains('final amount = requested;'));
+    expect(career, contains("rewardPolicy: 'uncapped'"));
+    expect(career, contains('capped: false'));
+    expect(career, isNot(contains('Math.min(requested, remaining)')));
+    expect(career, isNot(contains('CAREER_DAILY_COIN_CAP - earned')));
+    expect(state, contains('dailyCap: null'));
+    expect(state, contains('remainingToday: null'));
+    expect(state, contains('unlimited: true'));
+    expect(api, contains('final int? careerDailyCap;'));
+    expect(api, contains('final int? careerRemainingToday;'));
+    expect(api, contains('final bool careerUnlimited;'));
+  });
+
+  test('career claim tolerates missing App Check only in monitor mode path', () {
+    final api = File(
+      'lib/services/economy_v3_api_client.dart',
+    ).readAsStringSync();
+
+    expect(api, contains("'/v1/economy/v3/career/claim'"));
+    expect(api, contains('allowMissingAppCheck: true'));
+    expect(api, contains('tryGetAppCheckToken('));
+    expect(
+      api,
+      contains('bool allowMissingAppCheck = false'),
+      reason: 'all other Economy V3 routes remain strict by default',
+    );
+  });
+
   test('active Coin balance and spend surfaces use the current Coin artwork', () {
     final sources = <String, String>{
       'career': File(

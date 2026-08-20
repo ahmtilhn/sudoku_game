@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 import 'economy_api_client.dart';
@@ -33,6 +34,15 @@ class CoinStoreService extends ChangeNotifier {
     ...coinProductIds,
     ...entitlementProductIds,
   };
+
+  static const Set<BillingResponse> _retryableConsumeResponses =
+      <BillingResponse>{
+        BillingResponse.serviceTimeout,
+        BillingResponse.serviceDisconnected,
+        BillingResponse.serviceUnavailable,
+        BillingResponse.networkError,
+        BillingResponse.error,
+      };
 
   final InAppPurchase _store = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
@@ -71,6 +81,14 @@ class CoinStoreService extends ChangeNotifier {
       },
     );
     await refreshProducts();
+
+    // Google Play keeps an unconsumed consumable as owned. Recover those tokens
+    // on startup so an interrupted/failed consume cannot permanently block the
+    // same Coin package from being purchased again. The backend grant is
+    // idempotent, so replaying an already verified token is safe.
+    if (Platform.isAndroid && available) {
+      await _recoverAndroidConsumables();
+    }
   }
 
   Future<void> refreshProducts() async {
@@ -129,8 +147,8 @@ class CoinStoreService extends ChangeNotifier {
     try {
       final started = await _store.buyConsumable(
         purchaseParam: PurchaseParam(productDetails: details),
-        // StoreKit requires auto-consumption for consumables. Google Play stays
-        // manual so the token is consumed after the backend verifies/grants it.
+        // iOS consumables must auto-consume. Android stays manual: the token is
+        // first verified/granted by the backend, then explicitly consumed below.
         autoConsume: Platform.isIOS,
       );
       if (!started) {
@@ -190,6 +208,83 @@ class CoinStoreService extends ChangeNotifier {
     }
   }
 
+  Future<void> _recoverAndroidConsumables() async {
+    try {
+      final androidAddition = _store
+          .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+      final response = await androidAddition.queryPastPurchases();
+      if (response.error != null) {
+        debugPrint(
+          'Google Play consumable recovery query failed: ${response.error}',
+        );
+        return;
+      }
+
+      final pendingConsumables = response.pastPurchases
+          .where((purchase) => coinProductIds.contains(purchase.productID))
+          .toList(growable: false);
+      if (pendingConsumables.isEmpty) return;
+
+      debugPrint(
+        'Recovering ${pendingConsumables.length} unconsumed Google Play purchase(s).',
+      );
+      await _handlePurchases(pendingConsumables);
+    } catch (recoveryError) {
+      // Recovery is best-effort and must never make the whole store unavailable.
+      // The normal purchase stream can still redeliver the same token later.
+      debugPrint('Google Play consumable recovery failed: $recoveryError');
+    }
+  }
+
+  Future<void> _consumeAndroidCoinPurchase(PurchaseDetails purchase) async {
+    final androidAddition = _store
+        .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+
+    Object? lastThrownError;
+    BillingResultWrapper? lastResult;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final result = await androidAddition.consumePurchase(purchase);
+        lastResult = result;
+
+        // itemNotOwned is also a success for our verified token: production may
+        // have consumed it server-side before the client fallback runs.
+        if (result.responseCode == BillingResponse.ok ||
+            result.responseCode == BillingResponse.itemNotOwned) {
+          return;
+        }
+
+        if (!_retryableConsumeResponses.contains(result.responseCode) ||
+            attempt == 2) {
+          break;
+        }
+      } catch (consumeError) {
+        if (_looksAlreadyConsumed(consumeError)) return;
+        lastThrownError = consumeError;
+        if (attempt == 2) break;
+      }
+
+      await Future<void>.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+    }
+
+    final details = lastResult == null
+        ? lastThrownError?.toString() ?? 'unknown Google Play error'
+        : '${lastResult.responseCode.name}: '
+              '${lastResult.debugMessage ?? 'no debug message'}';
+    throw _CoinConsumptionException(
+      'Coin purchase was verified but Google Play could not consume it. '
+      'The purchase will be retried automatically. ($details)',
+    );
+  }
+
+  bool _looksAlreadyConsumed(Object error) {
+    final message = error.toString().toLowerCase();
+    return message.contains('itemnotowned') ||
+        message.contains('item not owned') ||
+        message.contains('already consumed') ||
+        message.contains('already been consumed');
+  }
+
   Future<void> _handlePurchases(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
       if (!productIds.contains(purchase.productID)) continue;
@@ -225,6 +320,10 @@ class CoinStoreService extends ChangeNotifier {
 
       if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
+        pendingProductId = purchase.productID;
+        EconomyService.instance.setPurchaseProcessing(true);
+        notifyListeners();
+
         try {
           final verificationData =
               purchase.verificationData.serverVerificationData;
@@ -241,25 +340,24 @@ class CoinStoreService extends ChangeNotifier {
           );
 
           if (Platform.isAndroid && !isNoAds) {
-            try {
-              final androidAddition = _store
-                  .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
-              await androidAddition.consumePurchase(purchase);
-            } catch (consumeError) {
-              // Production may already have consumed this token server-side.
-              // Verification/grant is idempotent, so a duplicate consume error
-              // must not hide the wallet update from the player.
-              debugPrint(
-                'Android consumable already handled or delayed: $consumeError',
-              );
-            }
+            // Do not swallow consumption failures. A verified Coin token must be
+            // consumed before completing the transaction, otherwise Play keeps
+            // the product owned and blocks the next purchase of the same pack.
+            await _consumeAndroidCoinPurchase(purchase);
           }
+
           if (purchase.pendingCompletePurchase) {
             await _store.completePurchase(purchase);
           }
 
           await EconomyService.instance.applyPurchaseWallet(snapshot);
           error = null;
+        } on _CoinConsumptionException catch (exception) {
+          error = exception.message;
+          EconomyService.instance.reportError(exception.message);
+          debugPrint(exception.message);
+          // Intentionally do not complete the purchase. The owned token remains
+          // discoverable by queryPastPurchases and will be retried on next start.
         } on EconomyApiException catch (exception) {
           error = exception.message;
           EconomyService.instance.reportError(exception.message);
@@ -286,4 +384,13 @@ class CoinStoreService extends ChangeNotifier {
     _purchaseSubscription = null;
     _initialized = false;
   }
+}
+
+class _CoinConsumptionException implements Exception {
+  const _CoinConsumptionException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }

@@ -43,6 +43,7 @@ class EconomyV3State {
     required this.careerDailyCap,
     required this.careerEarnedToday,
     required this.careerRemainingToday,
+    required this.careerUnlimited,
     required this.recoveryEarnedToday,
     required this.recoveryPopupCountToday,
     required this.recoveryDailyCoinCap,
@@ -61,9 +62,10 @@ class EconomyV3State {
   final int hintRefills;
   final int hintRefillSize;
   final int hintCoinCost;
-  final int careerDailyCap;
+  final int? careerDailyCap;
   final int careerEarnedToday;
-  final int careerRemainingToday;
+  final int? careerRemainingToday;
+  final bool careerUnlimited;
   final int recoveryEarnedToday;
   final int recoveryPopupCountToday;
   final int recoveryDailyCoinCap;
@@ -110,9 +112,10 @@ class EconomyV3State {
       hintRefills: (inventory['hintRefills'] as num?)?.toInt() ?? 0,
       hintRefillSize: (inventory['hintRefillSize'] as num?)?.toInt() ?? 3,
       hintCoinCost: (inventory['hintCoinCost'] as num?)?.toInt() ?? 25,
-      careerDailyCap: (career['dailyCap'] as num?)?.toInt() ?? 250,
+      careerDailyCap: (career['dailyCap'] as num?)?.toInt(),
       careerEarnedToday: (career['earnedToday'] as num?)?.toInt() ?? 0,
-      careerRemainingToday: (career['remainingToday'] as num?)?.toInt() ?? 0,
+      careerRemainingToday: (career['remainingToday'] as num?)?.toInt(),
+      careerUnlimited: career['unlimited'] == true,
       recoveryEarnedToday: (recovery['earnedToday'] as num?)?.toInt() ?? 0,
       recoveryPopupCountToday:
           (recovery['popupCountToday'] as num?)?.toInt() ?? 0,
@@ -246,6 +249,7 @@ class EconomyV3ApiClient {
         'POST',
         '/v1/economy/v3/career/claim',
         body: <String, Object>{'level': level, 'variant': variant},
+        allowMissingAppCheck: true,
       ),
     );
   }
@@ -314,6 +318,7 @@ class EconomyV3ApiClient {
     String method,
     String path, {
     Map<String, Object?>? body,
+    bool allowMissingAppCheck = false,
   }) async {
     final social = SocialApiClient.instance;
     if (!social.configured) {
@@ -339,18 +344,24 @@ class EconomyV3ApiClient {
       throw const EconomyApiException(401, 'Unable to obtain a player token.');
     }
 
-    final String appCheckToken;
-    try {
-      appCheckToken = await FirebaseServices.instance.requireAppCheckToken(
+    final String? appCheckToken;
+    if (allowMissingAppCheck) {
+      appCheckToken = await FirebaseServices.instance.tryGetAppCheckToken(
         timeout: _timeout,
       );
-    } on TimeoutException {
-      throw const EconomyApiException(403, 'App Check verification timed out.');
-    } catch (_) {
-      throw const EconomyApiException(
-        403,
-        'App Check could not verify this installation.',
-      );
+    } else {
+      try {
+        appCheckToken = await FirebaseServices.instance.requireAppCheckToken(
+          timeout: _timeout,
+        );
+      } on TimeoutException {
+        throw const EconomyApiException(403, 'App Check verification timed out.');
+      } catch (_) {
+        throw const EconomyApiException(
+          403,
+          'App Check could not verify this installation.',
+        );
+      }
     }
 
     final uri = Uri.parse('${social.baseUrl}$path');
@@ -358,7 +369,8 @@ class EconomyV3ApiClient {
       'authorization': 'Bearer $idToken',
       'accept': 'application/json',
       if (body != null) 'content-type': 'application/json',
-      'x-firebase-appcheck': appCheckToken,
+      if (appCheckToken != null && appCheckToken.isNotEmpty)
+        'x-firebase-appcheck': appCheckToken,
     };
 
     final Future<http.Response> pending = switch (method) {

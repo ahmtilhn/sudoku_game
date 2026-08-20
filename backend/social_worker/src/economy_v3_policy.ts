@@ -1,4 +1,4 @@
-export const CAREER_DAILY_COIN_CAP = 250;
+export const CAREER_DAILY_COIN_CAP: null = null;
 export const RECOVERY_DAILY_COIN_CAP = 150;
 export const RECOVERY_DAILY_POPUP_CAP = 3;
 export const RECOVERY_COOLDOWN_MS = 2 * 60 * 60 * 1000;

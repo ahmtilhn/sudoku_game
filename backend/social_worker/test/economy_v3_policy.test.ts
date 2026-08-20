@@ -57,7 +57,7 @@ describe('Economy V3 policy', () => {
     expect(DAILY_REWARD_CALENDAR[29]).toEqual({ kind: 'coin', amount: 150 });
   });
 
-  it('locks Career rewards and daily budget', () => {
+  it('keeps Career level rewards uncapped', () => {
     expect(CAREER_REWARDS).toEqual({
       beginner: 20,
       easy: 25,
@@ -65,7 +65,7 @@ describe('Economy V3 policy', () => {
       hard: 40,
       expert: 50,
     });
-    expect(CAREER_DAILY_COIN_CAP).toBe(250);
+    expect(CAREER_DAILY_COIN_CAP).toBeNull();
     expect(careerDifficulty(1, 'classic9')).toBe('beginner');
     expect(careerDifficulty(41, 'classic9')).toBe('expert');
     expect(careerDifficulty(999, 'classic9')).toBe('expert');
