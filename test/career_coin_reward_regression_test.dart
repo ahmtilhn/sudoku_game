@@ -135,6 +135,34 @@ void main() {
     expect(economyV3, contains('_errorCode = error.code;'));
   });
 
+  test('career completion rewards are unlimited and never daily-capped', () {
+    final policy = File(
+      'backend/social_worker/src/economy_v3_policy.ts',
+    ).readAsStringSync();
+    final career = File(
+      'backend/social_worker/src/economy_v3_career_hints.ts',
+    ).readAsStringSync();
+    final state = File(
+      'backend/social_worker/src/economy_v3_common.ts',
+    ).readAsStringSync();
+    final api = File(
+      'lib/services/economy_v3_api_client.dart',
+    ).readAsStringSync();
+
+    expect(policy, contains('CAREER_DAILY_COIN_CAP: null = null'));
+    expect(career, contains('final amount = requested;'));
+    expect(career, contains("rewardPolicy: 'uncapped'"));
+    expect(career, contains('capped: false'));
+    expect(career, isNot(contains('Math.min(requested, remaining)')));
+    expect(career, isNot(contains('CAREER_DAILY_COIN_CAP - earned')));
+    expect(state, contains('dailyCap: null'));
+    expect(state, contains('remainingToday: null'));
+    expect(state, contains('unlimited: true'));
+    expect(api, contains('final int? careerDailyCap;'));
+    expect(api, contains('final int? careerRemainingToday;'));
+    expect(api, contains('final bool careerUnlimited;'));
+  });
+
   test('career claim tolerates missing App Check only in monitor mode path', () {
     final api = File(
       'lib/services/economy_v3_api_client.dart',
