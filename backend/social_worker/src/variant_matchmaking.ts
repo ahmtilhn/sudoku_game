@@ -10,6 +10,10 @@ import {
   type EconomyEnv,
   type FundedMatchInput,
 } from './economy';
+import {
+  MATCHMAKING_UNBOUNDED_RATING_DELTA,
+  matchmakingRatingDeltaForWaitMs,
+} from './matchmaking_model';
 import { LOBBY_DEADLINE_MS } from './online_duel_model';
 import { roomIdForVariant } from './online_duel_factory';
 import {
@@ -37,6 +41,10 @@ const ACTIVE_MATCH_STATUSES =
 const QUEUE_STALE_AFTER_MS = 2 * 60 * 1000;
 const MATCH_LOBBY_STALE_AFTER_MS = LOBBY_DEADLINE_MS;
 const DIFFICULTY_ORDER = ['beginner', 'easy', 'medium', 'hard', 'expert'];
+const MATCHMAKING_5_SECONDS_MS = 5_000;
+const MATCHMAKING_10_SECONDS_MS = 10_000;
+const MATCHMAKING_15_SECONDS_MS = 15_000;
+const MATCHMAKING_20_SECONDS_MS = 20_000;
 
 export type VariantMatchmakingEnv = EconomyEnv & {
   FIREBASE_PROJECT_ID: string;
@@ -204,9 +212,10 @@ async function coordinateRankedMatch(
   input: MatchmakingRequest,
 ): Promise<MatchmakingResult> {
   const config = duelVariantConfig(input.variant);
-  const now = new Date().toISOString();
+  const nowMs = Date.now();
+  const now = new Date(nowMs).toISOString();
   const staleMatchBefore = new Date(
-    Date.now() - MATCH_LOBBY_STALE_AFTER_MS,
+    nowMs - MATCH_LOBBY_STALE_AFTER_MS,
   ).toISOString();
   await cancelStaleRankedLobbies(env, staleMatchBefore, now);
   const active = await env.DB.prepare(
@@ -254,9 +263,7 @@ async function coordinateRankedMatch(
     );
   }
 
-  const staleBefore = new Date(
-    Date.now() - QUEUE_STALE_AFTER_MS,
-  ).toISOString();
+  const staleBefore = new Date(nowMs - QUEUE_STALE_AFTER_MS).toISOString();
   await env.DB.prepare(
     `DELETE FROM ranked_queue
      WHERE room_id IS NOT NULL OR updated_at < ?`,
@@ -264,7 +271,39 @@ async function coordinateRankedMatch(
     .bind(staleBefore)
     .run();
 
-  let opponent: { player_id: string; rating: number; difficulty: string } | null = null;
+  const ownQueue = await env.DB.prepare(
+    `SELECT joined_at
+     FROM ranked_queue
+     WHERE player_id = ?
+       AND difficulty = ?
+       AND variant = ?
+       AND room_id IS NULL
+     LIMIT 1`,
+  )
+    .bind(input.playerId, input.difficulty, input.variant)
+    .first<{ joined_at: string }>();
+  const parsedOwnJoinedAt = ownQueue?.joined_at
+    ? Date.parse(ownQueue.joined_at)
+    : nowMs;
+  const ownJoinedAtMs = Number.isFinite(parsedOwnJoinedAt)
+    ? parsedOwnJoinedAt
+    : nowMs;
+  const ownWaitMs = Math.max(0, nowMs - ownJoinedAtMs);
+  const ownRatingDelta = matchmakingRatingDeltaForWaitMs(ownWaitMs);
+  const fiveSecondsAgo = new Date(nowMs - MATCHMAKING_5_SECONDS_MS).toISOString();
+  const tenSecondsAgo = new Date(nowMs - MATCHMAKING_10_SECONDS_MS).toISOString();
+  const fifteenSecondsAgo = new Date(
+    nowMs - MATCHMAKING_15_SECONDS_MS,
+  ).toISOString();
+  const twentySecondsAgo = new Date(
+    nowMs - MATCHMAKING_20_SECONDS_MS,
+  ).toISOString();
+
+  let opponent: {
+    player_id: string;
+    rating: number;
+    difficulty: string;
+  } | null = null;
   let matchDifficulty = input.difficulty;
   for (let attempt = 0; attempt < 5; attempt++) {
     opponent = await env.DB.prepare(
@@ -274,6 +313,14 @@ async function coordinateRankedMatch(
          AND q.player_id != ?
          AND q.room_id IS NULL
          AND q.updated_at >= ?
+         AND ABS(q.rating - ?) <= ?
+         AND ABS(q.rating - ?) <= CASE
+           WHEN q.joined_at > ? THEN 150
+           WHEN q.joined_at > ? THEN 300
+           WHEN q.joined_at > ? THEN 500
+           WHEN q.joined_at > ? THEN 750
+           ELSE ?
+         END
          AND NOT EXISTS (
            SELECT 1 FROM matches m
            WHERE (m.player_a_id = q.player_id OR m.player_b_id = q.player_id)
@@ -295,6 +342,14 @@ async function coordinateRankedMatch(
         input.variant,
         input.playerId,
         staleBefore,
+        input.rating,
+        ownRatingDelta,
+        input.rating,
+        fiveSecondsAgo,
+        tenSecondsAgo,
+        fifteenSecondsAgo,
+        twentySecondsAgo,
+        MATCHMAKING_UNBOUNDED_RATING_DELTA,
         input.playerId,
         input.playerId,
         input.playerId,
