@@ -47,8 +47,8 @@ class DuelAsset {
   static const friendsPro = 'assets/images/ui/pro/mode_friends.svg';
   static const storePro = 'assets/images/ui/pro/mode_store.svg';
   static const profilePro = 'assets/images/ui/pro/mode_profile.svg';
-  static const board9Pro = 'assets/images/ui/pro/board_9x9.svg';
-  static const board16Pro = 'assets/images/ui/pro/board_16x16.svg';
+  static const board9Pro = 'assets/cards/9x9.png';
+  static const board16Pro = 'assets/cards/16x16.png';
   static const statusErrorPro = 'assets/images/ui/pro/status_error.svg';
   static const statusSuccessPro = 'assets/images/ui/pro/status_success.svg';
   static const statusWarningPro = 'assets/images/ui/pro/status_warning.svg';
@@ -87,6 +87,8 @@ class DuelAsset {
     shield,
     trophy,
     wifi,
+    board9Pro,
+    board16Pro,
     homePlayScene,
     homeDuelScene,
     homeCareerScene,
