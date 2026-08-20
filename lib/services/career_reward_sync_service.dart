@@ -4,6 +4,20 @@ import '../data/local_progress_store.dart';
 import '../domain/sudoku_variant.dart';
 import 'economy_v3_service.dart';
 
+class CareerRewardGrant {
+  const CareerRewardGrant({
+    required this.level,
+    required this.variant,
+    required this.amount,
+    required this.createdAt,
+  });
+
+  final int level;
+  final String variant;
+  final int amount;
+  final DateTime createdAt;
+}
+
 class CareerRewardSyncService {
   CareerRewardSyncService._();
 
@@ -16,6 +30,7 @@ class CareerRewardSyncService {
   bool _syncing = false;
   bool _syncAgain = false;
   Completer<void>? _idleCompleter;
+  CareerRewardGrant? _recentGrant;
 
   bool get syncing => _syncing;
 
@@ -25,6 +40,16 @@ class CareerRewardSyncService {
     _store = store;
     store.addListener(_onProgressChanged);
     unawaited(syncNow());
+  }
+
+  CareerRewardGrant? takeRecentGrant({
+    Duration maxAge = const Duration(seconds: 10),
+  }) {
+    final grant = _recentGrant;
+    _recentGrant = null;
+    if (grant == null) return null;
+    if (DateTime.now().difference(grant.createdAt) > maxAge) return null;
+    return grant;
   }
 
   void _onProgressChanged() {
@@ -86,6 +111,12 @@ class CareerRewardSyncService {
           variant: variantName,
         );
         if (result == null) return;
+        _captureGrant(
+          level: level,
+          variant: variantName,
+          granted: result.granted,
+          amount: result.amount,
+        );
         _lastSyncedLevel[variant.id] = level;
       }
       return;
@@ -99,6 +130,12 @@ class CareerRewardSyncService {
       variant: variantName,
     );
     if (currentResult != null) {
+      _captureGrant(
+        level: completedLevel,
+        variant: variantName,
+        granted: currentResult.granted,
+        amount: currentResult.amount,
+      );
       _lastSyncedLevel[variant.id] = completedLevel;
       return;
     }
@@ -115,7 +152,28 @@ class CareerRewardSyncService {
         variant: variantName,
       );
       if (result == null) return;
+      _captureGrant(
+        level: level,
+        variant: variantName,
+        granted: result.granted,
+        amount: result.amount,
+      );
       _lastSyncedLevel[variant.id] = level;
     }
+  }
+
+  void _captureGrant({
+    required int level,
+    required String variant,
+    required bool granted,
+    required int amount,
+  }) {
+    if (!granted || amount <= 0) return;
+    _recentGrant = CareerRewardGrant(
+      level: level,
+      variant: variant,
+      amount: amount,
+      createdAt: DateTime.now(),
+    );
   }
 }
