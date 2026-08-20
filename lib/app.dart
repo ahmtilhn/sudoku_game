@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/app_messenger.dart';
+import 'core/app_navigator.dart';
 import 'core/app_theme.dart';
 import 'data/local_progress_store.dart';
 import 'features/social/challenge_navigation_gate.dart';
 import 'localization/app_strings.dart';
+import 'services/game_interstitial_service.dart';
 
 class SudokuApp extends StatelessWidget {
   const SudokuApp({super.key, required this.store, required this.strings});
@@ -15,6 +17,7 @@ class SudokuApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    GameInterstitialService.instance.bindStore(store);
     return AnimatedBuilder(
       animation: store,
       builder: (context, _) {
@@ -22,6 +25,7 @@ class SudokuApp extends StatelessWidget {
           strings: strings,
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
+            navigatorKey: AppNavigator.key,
             scaffoldMessengerKey: AppMessenger.key,
             onGenerateTitle: (context) => context.tr('app_name'),
             theme: AppTheme.dark(highContrast: store.highContrast),
