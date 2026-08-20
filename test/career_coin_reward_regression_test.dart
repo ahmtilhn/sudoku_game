@@ -115,6 +115,41 @@ void main() {
     expect(sync, contains('await pending.future'));
   });
 
+  test('career Coin sync repairs a missed sequential claim without double grant', () {
+    final sync = File(
+      'lib/services/career_reward_sync_service.dart',
+    ).readAsStringSync();
+    final economyV3 = File(
+      'lib/services/economy_v3_service.dart',
+    ).readAsStringSync();
+
+    expect(sync, contains("_economy.errorCode != 'career_sequence_gap'"));
+    expect(sync, contains('for (var level = 1; level <= completedLevel; level++)'));
+    expect(sync, contains('_lastSyncedLevel[variant.id] = level'));
+    expect(
+      sync,
+      contains('Preserve the existing migration behavior'),
+      reason: 'old local career progress must not be bulk-granted accidentally',
+    );
+    expect(economyV3, contains('String? get errorCode => _errorCode;'));
+    expect(economyV3, contains('_errorCode = error.code;'));
+  });
+
+  test('career claim tolerates missing App Check only in monitor mode path', () {
+    final api = File(
+      'lib/services/economy_v3_api_client.dart',
+    ).readAsStringSync();
+
+    expect(api, contains("'/v1/economy/v3/career/claim'"));
+    expect(api, contains('allowMissingAppCheck: true'));
+    expect(api, contains('tryGetAppCheckToken('));
+    expect(
+      api,
+      contains('bool allowMissingAppCheck = false'),
+      reason: 'all other Economy V3 routes remain strict by default',
+    );
+  });
+
   test('active Coin balance and spend surfaces use the current Coin artwork', () {
     final sources = <String, String>{
       'career': File(
