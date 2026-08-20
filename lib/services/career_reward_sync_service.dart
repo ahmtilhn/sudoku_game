@@ -31,6 +31,7 @@ class CareerRewardSyncService {
   bool _syncAgain = false;
   Completer<void>? _idleCompleter;
   CareerRewardGrant? _recentGrant;
+  DateTime? _rewardCaptureUntil;
 
   bool get syncing => _syncing;
 
@@ -42,11 +43,17 @@ class CareerRewardSyncService {
     unawaited(syncNow());
   }
 
+  void armRewardCapture({Duration window = const Duration(seconds: 20)}) {
+    _rewardCaptureUntil = DateTime.now().add(window);
+    _recentGrant = null;
+  }
+
   CareerRewardGrant? takeRecentGrant({
     Duration maxAge = const Duration(seconds: 10),
   }) {
     final grant = _recentGrant;
     _recentGrant = null;
+    _rewardCaptureUntil = null;
     if (grant == null) return null;
     if (DateTime.now().difference(grant.createdAt) > maxAge) return null;
     return grant;
@@ -169,6 +176,8 @@ class CareerRewardSyncService {
     required int amount,
   }) {
     if (!granted || amount <= 0) return;
+    final captureUntil = _rewardCaptureUntil;
+    if (captureUntil == null || DateTime.now().isAfter(captureUntil)) return;
     _recentGrant = CareerRewardGrant(
       level: level,
       variant: variant,
