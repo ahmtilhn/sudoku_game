@@ -254,6 +254,29 @@ class EconomyV3ApiClient {
     );
   }
 
+  Future<EconomyV3Preparation> prepareCareerDouble({
+    required int level,
+    required String variant,
+  }) async {
+    return EconomyV3Preparation.fromJson(
+      await _request(
+        'POST',
+        '/v1/economy/v3/career/double/prepare',
+        body: <String, Object>{'level': level, 'variant': variant},
+      ),
+    );
+  }
+
+  Future<EconomyV3ClaimResult> confirmCareerDouble(String token) async {
+    return EconomyV3ClaimResult.fromJson(
+      await _request(
+        'POST',
+        '/v1/economy/v3/career/double/confirm',
+        body: <String, Object>{'token': token},
+      ),
+    );
+  }
+
   Future<EconomyV3ClaimResult> purchaseHint(String requestId) async {
     return EconomyV3ClaimResult.fromJson(
       await _request(
