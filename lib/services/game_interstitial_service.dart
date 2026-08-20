@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/app_navigator.dart';
 import '../data/local_progress_store.dart';
 import '../domain/sudoku.dart';
+import '../domain/sudoku_variant.dart';
 import '../localization/app_strings.dart';
 import 'ads_service.dart';
 import 'career_reward_sync_service.dart';
@@ -28,17 +29,24 @@ class GameInterstitialService {
   final EconomyV3Service _economyV3 = EconomyV3Service.instance;
   final Map<String, LevelProgress?> _samuraiProgress =
       <String, LevelProgress?>{};
+  final Map<SudokuVariantId, int> _careerNextLevel =
+      <SudokuVariantId, int>{};
   LocalProgressStore? _store;
   bool _showing = false;
+  int _pendingCompletionVersion = 0;
 
   void bindStore(LocalProgressStore store) {
     if (identical(_store, store)) return;
     _store?.removeListener(_onStoreChanged);
     _store = store;
     _samuraiProgress.clear();
+    _careerNextLevel.clear();
     for (final difficulty in SudokuDifficulty.values) {
       final id = 'practice-samurai-${difficulty.name}';
       _samuraiProgress[id] = store.progressFor(id);
+    }
+    for (final variant in SudokuVariant.values) {
+      _careerNextLevel[variant.id] = store.nextCareerLevelNumberFor(variant);
     }
     store.addListener(_onStoreChanged);
   }
@@ -46,22 +54,48 @@ class GameInterstitialService {
   void _onStoreChanged() {
     final store = _store;
     if (store == null) return;
-    var samuraiCompleted = false;
+
+    GameInterstitialContext? detectedCompletion;
+    for (final variant in SudokuVariant.values) {
+      final previous = _careerNextLevel[variant.id] ?? 1;
+      final current = store.nextCareerLevelNumberFor(variant);
+      _careerNextLevel[variant.id] = current;
+      if (current > previous) detectedCompletion = GameInterstitialContext.careerWin;
+    }
+
     for (final difficulty in SudokuDifficulty.values) {
       final id = 'practice-samurai-${difficulty.name}';
       final previous = _samuraiProgress[id];
       final current = store.progressFor(id);
       if (identical(previous, current)) continue;
       _samuraiProgress[id] = current;
-      if (current != null) samuraiCompleted = true;
+      if (current != null && detectedCompletion == null) {
+        detectedCompletion = GameInterstitialContext.practice;
+      }
     }
-    if (!samuraiCompleted) return;
+
+    if (detectedCompletion != null) {
+      _scheduleDetectedCompletion(detectedCompletion);
+    }
+  }
+
+  void _scheduleDetectedCompletion(GameInterstitialContext adContext) {
+    final version = ++_pendingCompletionVersion;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      recordAndMaybeShow(GameInterstitialContext.practice);
+      if (version != _pendingCompletionVersion) return;
+      recordAndMaybeShow(adContext, cancelDetectedCompletion: false);
     });
   }
 
-  Future<bool> recordAndMaybeShow(GameInterstitialContext adContext) async {
+  Future<bool> recordAndMaybeShow(
+    GameInterstitialContext adContext, {
+    bool cancelDetectedCompletion = true,
+  }) async {
+    // EnhancedGameScreen calls this directly after its onCompleted callback.
+    // Cancel the store-listener fallback so a Career completion cannot surface
+    // the same ad flow twice. Legacy Career/Samurai screens use the fallback.
+    if (cancelDetectedCompletion) _pendingCompletionVersion++;
+
     CareerRewardGrant? careerGrant;
     if (adContext == GameInterstitialContext.careerWin) {
       await CareerRewardSyncService.instance.waitForIdle();
@@ -203,9 +237,7 @@ class GameInterstitialService {
             FilledButton.icon(
               onPressed: () => Navigator.of(sheetContext).pop(true),
               icon: const Icon(Icons.ondemand_video_rounded),
-              label: Text(
-                'x2 · ${sheetContext.tr('watch_rewarded_ad')}',
-              ),
+              label: Text('x2 · ${sheetContext.tr('watch_rewarded_ad')}'),
             ),
             const SizedBox(height: 6),
             TextButton(
