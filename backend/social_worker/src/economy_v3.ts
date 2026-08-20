@@ -18,8 +18,10 @@ import {
 } from './economy_v3_daily';
 import {
   claimCareerReward,
+  confirmCareerDouble,
   confirmHintReward,
   consumeHintRefill,
+  prepareCareerDouble,
   prepareHintReward,
   purchaseHint,
 } from './economy_v3_career_hints';
@@ -114,6 +116,38 @@ export async function handleEconomyV3Request(
           level: positiveInt(body.level, 'level'),
           variant,
         }),
+      );
+    }
+    if (
+      url.pathname === '/v1/economy/v3/career/double/prepare' &&
+      request.method === 'POST'
+    ) {
+      const body = await readJson(request);
+      let variant: 'classic9' | 'classic16';
+      try {
+        variant = normalizeVariant(body.variant);
+      } catch {
+        throw new EconomyV3Error(400, 'Invalid Sudoku variant.', 'invalid_variant');
+      }
+      return json(
+        env,
+        200,
+        await prepareCareerDouble(env, playerId, {
+          level: positiveInt(body.level, 'level'),
+          variant,
+        }),
+      );
+    }
+    if (
+      url.pathname === '/v1/economy/v3/career/double/confirm' &&
+      request.method === 'POST'
+    ) {
+      await assertProductionRewardConfirmedBySsv(cloneForSsv(request), env);
+      const body = await readJson(request);
+      return json(
+        env,
+        200,
+        await confirmCareerDouble(env, playerId, requiredString(body.token, 'token')),
       );
     }
     if (url.pathname === '/v1/economy/v3/hints/purchase' && request.method === 'POST') {
