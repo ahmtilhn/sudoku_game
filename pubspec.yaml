@@ -43,6 +43,7 @@ flutter:
     - assets/avatar/
     - assets/frames/
     - assets/puzzles/
+    - assets/cards/
     - assets/images/app_backdrop.png
     - assets/images/ui/
     - assets/images/ui/pro/
