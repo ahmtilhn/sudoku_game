@@ -182,11 +182,15 @@ class PushNotificationService {
       userDisabled.value = savedEnabled == false;
 
       await _initializeLocalNotifications();
+      // Foreground presentation is handled by flutter_local_notifications so
+      // we can suppress the banner when the app immediately opens the social UI
+      // on a safe route, while still showing a real phone notification during
+      // gameplay/online flows where navigation is intentionally deferred.
       await FirebaseMessaging.instance
           .setForegroundNotificationPresentationOptions(
-            alert: true,
+            alert: false,
             badge: false,
-            sound: true,
+            sound: false,
           );
 
       await _tokenSubscription?.cancel();
@@ -361,32 +365,59 @@ class PushNotificationService {
     final target = parsePushNotificationDestination(message.data);
     if (target == null) return;
 
-    // Actionable social notifications should move an already-open app directly
-    // into the invitation/ready/social flow. Background and terminated apps
-    // continue to route when the user taps the system notification.
-    if (target.type != PushNotificationDestinationType.informational) {
+    final actionable =
+        target.type != PushNotificationDestinationType.informational;
+    if (actionable) {
+      // Keep the destination pending immediately. A navigation gate may consume
+      // it if the app is on a safe route. Active game/online routes deliberately
+      // leave it pending, which causes the phone notification below to appear.
       _openTarget(target);
-      return;
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      if (!_targetStillPending(target)) return;
     }
 
-    if (!kIsWeb && Platform.isAndroid) {
-      await _localNotifications.show(
-        id: target.id.hashCode & 0x7fffffff,
-        title: message.notification?.title ?? target.defaultTitle,
-        body: message.notification?.body ?? target.defaultBody,
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            _challengeChannelId,
-            'Online challenges',
-            channelDescription:
-                'Invitations and updates for online Sudoku challenges and rematches.',
-            importance: Importance.high,
-            priority: Priority.high,
-          ),
+    await _showForegroundSystemNotification(message, target);
+  }
+
+  Future<void> _showForegroundSystemNotification(
+    RemoteMessage message,
+    PushNotificationDestination target,
+  ) async {
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
+
+    await _localNotifications.show(
+      id: target.id.hashCode & 0x7fffffff,
+      title: message.notification?.title ?? target.defaultTitle,
+      body: message.notification?.body ?? target.defaultBody,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _challengeChannelId,
+          'Online challenges',
+          channelDescription:
+              'Invitations and updates for online Sudoku challenges and rematches.',
+          importance: Importance.high,
+          priority: Priority.high,
         ),
-        payload: target.payload,
-      );
-    }
+        iOS: DarwinNotificationDetails(
+          threadIdentifier: 'online-challenges',
+        ),
+      ),
+      payload: target.payload,
+    );
+  }
+
+  bool _targetStillPending(PushNotificationDestination target) {
+    return switch (target.type) {
+      PushNotificationDestinationType.room =>
+        openedRoomId.value == target.id,
+      PushNotificationDestinationType.rematch =>
+        openedRematchId.value == target.id,
+      PushNotificationDestinationType.challenge =>
+        openedChallengeId.value == target.id,
+      PushNotificationDestinationType.social =>
+        openedSocialId.value == target.id,
+      PushNotificationDestinationType.informational => false,
+    };
   }
 
   void _handleOpenedMessage(RemoteMessage message) {
