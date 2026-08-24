@@ -71,15 +71,22 @@ void main() {
     expect(source, contains('size: snapshot.boardSize'));
   });
 
-  test('challenge notification navigation is owned by the root gate', () {
-    final source = File(
+  test('challenge navigation is deferred off the main route', () {
+    final globalGate = File(
       'lib/features/home/push_room_navigation_gate.dart',
     ).readAsStringSync();
+    final challengeGate = File(
+      'lib/features/social/challenge_navigation_gate.dart',
+    ).readAsStringSync();
 
-    expect(source, contains('_push.openedChallengeId.addListener'));
-    expect(source, contains('UxChallengeInvitationScreen('));
-    expect(source, contains('_push.openedChallengeId.value = null;'));
-    expect(source, isNot(contains('ModalRoute.of(context)?.isCurrent')));
+    expect(globalGate, isNot(contains('_push.openedChallengeId.addListener')));
+    expect(globalGate, isNot(contains('UxChallengeInvitationScreen(')));
+    expect(globalGate, contains('ModalRoute.of(context)?.isCurrent'));
+
+    expect(challengeGate, contains('_push.openedChallengeId.addListener'));
+    expect(challengeGate, contains('ChallengeInvitationScreen('));
+    expect(challengeGate, contains('ModalRoute.of(context)?.isCurrent'));
+    expect(challengeGate, contains('_challengeOpenScheduled'));
   });
 
   test('profile identity card uses one aligned avatar axis', () {
