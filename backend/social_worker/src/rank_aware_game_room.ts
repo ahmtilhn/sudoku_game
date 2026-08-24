@@ -1,4 +1,5 @@
 import { GameRoom as AuthoritativeGameRoom, type Env } from './index';
+import type { DuelState, Seat } from './online_duel';
 import {
   reconcileRankProgression,
   type RankProgressionEnv,
@@ -17,16 +18,7 @@ const DUEL_EMOTE_IDS = new Set([
   'respect',
 ]);
 const DUEL_EMOTE_COOLDOWN_MS = 3_000;
-
-type EmoteSeat = 'A' | 'B';
-type EmoteDuelState = {
-  roomId?: unknown;
-  revision?: unknown;
-  status?: unknown;
-  playerA?: { player?: { id?: unknown } };
-  playerB?: { player?: { id?: unknown } };
-};
-type EmoteCooldownState = Partial<Record<EmoteSeat, number>>;
+type EmoteCooldownState = Partial<Record<Seat, number>>;
 
 /**
  * Production wrapper around the existing authoritative GameRoom.
@@ -91,14 +83,14 @@ export class GameRoom extends AuthoritativeGameRoom {
     if (parsed.v !== 1 || parsed.type !== 'emote') return false;
 
     const now = Date.now();
-    const duel = await this.rankState.storage.get<EmoteDuelState>('duelState');
+    const duel = await this.rankState.storage.get<DuelState>('duelState');
     const [playerId] = this.rankState.getTags(socket);
     const seat = this.emoteSeatForPlayer(duel, playerId);
     if (!duel || !seat) {
       this.sendEmoteEvent(socket, {
         type: 'emote_rejected',
-        roomId: String(duel?.roomId ?? 'room'),
-        revision: Number(duel?.revision ?? 0),
+        roomId: duel?.roomId ?? 'room',
+        revision: duel?.revision ?? 0,
         seat: seat ?? 'A',
         now,
         payload: { reason: 'room_not_initialized' },
@@ -106,14 +98,14 @@ export class GameRoom extends AuthoritativeGameRoom {
       return true;
     }
 
-    const roomId = String(duel.roomId ?? this.knownRoomId ?? 'room');
-    const revision = Number(duel.revision ?? 0);
+    const roomId = duel.roomId;
+    const revision = duel.revision;
     const emoteId =
       typeof parsed.payload?.emoteId === 'string'
         ? parsed.payload.emoteId.trim()
         : '';
 
-    if (String(duel.status ?? '') !== 'active') {
+    if (duel.status !== 'active') {
       this.sendEmoteEvent(socket, {
         type: 'emote_rejected',
         roomId,
@@ -169,12 +161,12 @@ export class GameRoom extends AuthoritativeGameRoom {
   }
 
   private emoteSeatForPlayer(
-    duel: EmoteDuelState | undefined,
+    duel: DuelState | undefined,
     playerId: string | undefined,
-  ): EmoteSeat | null {
+  ): Seat | null {
     if (!duel || !playerId) return null;
-    if (String(duel.playerA?.player?.id ?? '') === playerId) return 'A';
-    if (String(duel.playerB?.player?.id ?? '') === playerId) return 'B';
+    if (duel.playerA.player.id === playerId) return 'A';
+    if (duel.playerB.player.id === playerId) return 'B';
     return null;
   }
 
@@ -184,7 +176,7 @@ export class GameRoom extends AuthoritativeGameRoom {
       type: 'emote' | 'emote_rejected';
       roomId: string;
       revision: number;
-      seat: EmoteSeat;
+      seat: Seat;
       now: number;
       payload: { emoteId?: string; reason?: string };
     },
