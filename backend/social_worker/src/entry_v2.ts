@@ -16,6 +16,10 @@ import {
 } from './economy_v3';
 import type { EconomyV3Env } from './economy_v3_common';
 import {
+  handleFriendNotificationRequest,
+  isFriendNotificationRoute,
+} from './friend_notifications';
+import {
   handleRankProgressionRequest,
   isRankProgressionRoute,
   type RankProgressionEnv,
@@ -155,6 +159,18 @@ export default {
       request.method !== 'OPTIONS'
     ) {
       return handleVariantMatchmakingRequest(
+        request,
+        env,
+        ctx,
+        (forwarded, forwardedEnv, forwardedCtx) =>
+          legacyWorker.fetch(forwarded, forwardedEnv as never, forwardedCtx),
+      );
+    }
+    if (
+      request.method === 'POST' &&
+      isFriendNotificationRoute(url.pathname)
+    ) {
+      return handleFriendNotificationRequest(
         request,
         env,
         ctx,
