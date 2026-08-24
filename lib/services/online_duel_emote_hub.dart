@@ -80,11 +80,10 @@ OnlineDuelEmoteDefinition? onlineDuelEmoteById(String? id) {
 
 typedef OnlineDuelEmoteSender = bool Function(String emoteId);
 
-/// UI-facing, match-scoped bridge for lightweight online duel emotes.
+/// Match-scoped presentation bridge for lightweight online duel emotes.
 ///
-/// The authoritative game state stays in the online duel controller. This hub
-/// intentionally owns only presentation state, local mute state, and
-/// client-side cooldown protection.
+/// Emotes never become authoritative duel state. This class only owns local
+/// cooldown, local mute and the short-lived incoming opponent presentation.
 class OnlineDuelEmoteHub extends ChangeNotifier {
   OnlineDuelEmoteHub();
 
@@ -99,10 +98,8 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
   bool _muted = false;
   bool _cooldown = false;
   String? _incomingEmoteId;
-  String? _outgoingEmoteId;
   Timer? _cooldownTimer;
   Timer? _incomingTimer;
-  Timer? _outgoingTimer;
 
   bool get attached => _owner != null && _sender != null;
   bool get matchActive => _matchActive;
@@ -111,7 +108,6 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
   bool get onCooldown => _cooldown;
   bool get canSend => visible && !_cooldown;
   String? get incomingEmoteId => _incomingEmoteId;
-  String? get outgoingEmoteId => _outgoingEmoteId;
 
   Object attach({required OnlineDuelEmoteSender sender}) {
     _cancelTimers();
@@ -122,7 +118,6 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     _muted = false;
     _cooldown = false;
     _incomingEmoteId = null;
-    _outgoingEmoteId = null;
     notifyListeners();
     return owner;
   }
@@ -132,11 +127,8 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     _matchActive = active;
     if (!active) {
       _incomingTimer?.cancel();
-      _outgoingTimer?.cancel();
       _incomingTimer = null;
-      _outgoingTimer = null;
       _incomingEmoteId = null;
-      _outgoingEmoteId = null;
     }
     notifyListeners();
   }
@@ -147,16 +139,8 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     if (sender == null || !sender(emoteId)) return false;
 
     _cooldownTimer?.cancel();
-    _outgoingTimer?.cancel();
     _cooldown = true;
-    _outgoingEmoteId = emoteId;
     notifyListeners();
-
-    _outgoingTimer = Timer(bubbleDuration, () {
-      if (_outgoingEmoteId != emoteId) return;
-      _outgoingEmoteId = null;
-      notifyListeners();
-    });
     _cooldownTimer = Timer(cooldownDuration, () {
       _cooldown = false;
       notifyListeners();
@@ -214,23 +198,20 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     _muted = false;
     _cooldown = false;
     _incomingEmoteId = null;
-    _outgoingEmoteId = null;
     notifyListeners();
   }
 
   void _cancelTimers() {
     _cooldownTimer?.cancel();
     _incomingTimer?.cancel();
-    _outgoingTimer?.cancel();
     _cooldownTimer = null;
     _incomingTimer = null;
-    _outgoingTimer = null;
   }
 }
 
-/// Installs the emote controls into the root overlay whenever an online duel is
-/// active. Keeping the controls in the root overlay means they remain usable on
-/// the opponent's turn even though the number pad itself is input-locked.
+/// Keeps the emote controls in the root overlay without manually owning an
+/// OverlayEntry. OverlayPortal guarantees the overlay child cannot outlive the
+/// duel widget that created it, which makes route teardown/forfeit safe.
 class OnlineDuelEmoteDock extends StatefulWidget {
   const OnlineDuelEmoteDock({
     super.key,
@@ -247,68 +228,56 @@ class OnlineDuelEmoteDock extends StatefulWidget {
 
 class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
   final OnlineDuelEmoteHub _hub = OnlineDuelEmoteHub.instance;
-  OverlayEntry? _entry;
+  final OverlayPortalController _portalController = OverlayPortalController();
   bool _syncScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _hub.addListener(_onHubChanged);
-    _scheduleSync();
+    _schedulePortalSync();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _scheduleSync();
-  }
-
-  @override
-  void didUpdateWidget(covariant OnlineDuelEmoteDock oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.compact != widget.compact) {
-      _entry?.markNeedsBuild();
-    }
+    _schedulePortalSync();
   }
 
   @override
   void dispose() {
     _hub.removeListener(_onHubChanged);
-    _entry?.remove();
-    _entry = null;
     super.dispose();
   }
 
   void _onHubChanged() {
-    _scheduleSync();
-    _entry?.markNeedsBuild();
+    _schedulePortalSync();
   }
 
-  void _scheduleSync() {
+  void _schedulePortalSync() {
     if (_syncScheduled || !mounted) return;
     _syncScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncScheduled = false;
       if (!mounted) return;
-      _syncOverlay();
+      if (_hub.visible) {
+        _portalController.show();
+      } else {
+        _portalController.hide();
+      }
     });
   }
 
-  void _syncOverlay() {
-    if (_hub.visible) {
-      if (_entry != null) return;
-      final overlay = Overlay.maybeOf(context, rootOverlay: true);
-      if (overlay == null) return;
-      _entry = OverlayEntry(builder: _buildOverlay);
-      overlay.insert(_entry!);
-      return;
-    }
-    _entry?.remove();
-    _entry = null;
+  @override
+  Widget build(BuildContext context) {
+    return OverlayPortal.targetsRootOverlay(
+      controller: _portalController,
+      overlayChildBuilder: _buildOverlay,
+      child: widget.child,
+    );
   }
 
   Widget _buildOverlay(BuildContext overlayContext) {
-    if (!_hub.visible) return const SizedBox.shrink();
     final bottomPadding = MediaQuery.viewPaddingOf(overlayContext).bottom;
     return Positioned(
       right: 12,
@@ -326,10 +295,6 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
                 _EmoteBubble(
                   emoteId: _hub.incomingEmoteId,
                   accent: Theme.of(context).colorScheme.tertiary,
-                ),
-                _EmoteBubble(
-                  emoteId: _hub.outgoingEmoteId,
-                  accent: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(height: 6),
                 Semantics(
@@ -463,9 +428,6 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
       ),
     );
   }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }
 
 class _EmotePickerButton extends StatelessWidget {
