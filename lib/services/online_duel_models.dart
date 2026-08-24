@@ -254,6 +254,7 @@ class OnlineDuelSnapshot {
       cellCount: (json['cellCount'] as num?)?.toInt(),
       puzzleLength: puzzle.length,
     );
+    final status = _status(json['status']?.toString());
     _validateSnapshotShape(
       puzzle: puzzle,
       board: board,
@@ -262,13 +263,20 @@ class OnlineDuelSnapshot {
       cellCount: (json['cellCount'] as num?)?.toInt(),
     );
 
+    final parsedRating = _rating(json['rating']);
+    final presentationRating = parsedRating ??
+        (status == OnlineDuelStatus.completed ||
+                status == OnlineDuelStatus.forfeited
+            ? const <OnlineDuelSeat, OnlineDuelRatingChange>{}
+            : null);
+
     return OnlineDuelSnapshot(
       roomId: json['roomId']?.toString() ?? '',
       matchId: json['matchId']?.toString() ?? '',
       mode: json['mode']?.toString() ?? 'friendly',
       variant: variant,
       difficulty: json['difficulty']?.toString() ?? 'easy',
-      status: _status(json['status']?.toString()),
+      status: status,
       youSeat: _seat(json['youSeat']?.toString()) ?? OnlineDuelSeat.a,
       players: _players(json['players']),
       puzzle: puzzle,
@@ -288,7 +296,7 @@ class OnlineDuelSnapshot {
       revision: (json['revision'] as num?)?.toInt() ?? 0,
       winnerSeat: _seat(json['winnerSeat']?.toString()),
       finishReason: json['finishReason']?.toString(),
-      rating: _rating(json['rating']),
+      rating: presentationRating,
       coinSettlement: OnlineDuelCoinSettlement.parse(json['coinSettlement']),
     );
   }
