@@ -193,7 +193,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
       ),
       OnlineDuelEmoteDefinition(
         id: 'one_v_one',
-        icon: Icons.swords_rounded,
+        icon: Icons.compare_arrows_rounded,
         label: '1V1',
         category: OnlineDuelEmoteCategory.taunt,
         shortText: '1V1',
@@ -220,6 +220,11 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         shortText: 'LAG',
       ),
     ];
+
+/// Compatibility aliases kept for older duel tests/call sites while the
+/// selection UI migrates from the fixed starter set to the full catalog.
+const List<OnlineDuelEmoteDefinition> onlineDuelBasicEmotes =
+    onlineDuelEmoteCatalog;
 
 const Set<String> onlineDuelEmoteCatalogIds = <String>{
   'smile',
@@ -251,6 +256,8 @@ const Set<String> onlineDuelEmoteCatalogIds = <String>{
   'afk',
   'lag',
 };
+
+const Set<String> onlineDuelBasicEmoteIds = onlineDuelEmoteCatalogIds;
 
 OnlineDuelEmoteDefinition? onlineDuelEmoteById(String? id) {
   if (id == null) return null;
@@ -311,7 +318,7 @@ class OnlineDuelEmoteVisual extends StatelessWidget {
             style: TextStyle(
               color: color ?? Theme.of(context).colorScheme.primary,
               fontSize: 24,
-              fontWeight: FontWeight.w1000,
+              fontWeight: FontWeight.w900,
               letterSpacing: -.8,
               height: 1,
             ),
