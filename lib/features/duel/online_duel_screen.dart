@@ -185,28 +185,27 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
       ),
     );
     if (forfeit != true || !mounted) return;
-    await _returnToMainMenu(sendForfeit: true);
+    await _submitForfeitAndWaitForResult();
   }
 
-  Future<void> _returnToMainMenu({required bool sendForfeit}) async {
-    if (sendForfeit) {
-      setState(() => _forfeiting = true);
-      _controller?.forfeit();
+  Future<void> _submitForfeitAndWaitForResult() async {
+    setState(() => _forfeiting = true);
+    _controller?.forfeit();
+    _controller?.requestSnapshot();
+    final settled = await waitForAuthoritativeResult();
+    if (!mounted) return;
+    if (!settled) {
+      setState(() => _forfeiting = false);
       _controller?.requestSnapshot();
-      final settled = await waitForAuthoritativeResult();
-      if (!mounted) return;
-      if (!settled) {
-        setState(() => _forfeiting = false);
-        _controller?.requestSnapshot();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('connection_interrupted_retrying')),
-          ),
-        );
-        return;
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('connection_interrupted_retrying'))),
+      );
+      return;
     }
-    if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+    final finished = _snapshot;
+    if (finished != null) {
+      _showResultOnce(finished);
+    }
   }
 
   Future<bool> waitForAuthoritativeResult() async {

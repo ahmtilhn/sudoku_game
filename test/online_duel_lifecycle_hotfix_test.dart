@@ -17,23 +17,31 @@ void main() {
     expect(source, contains('_localConnectionInterrupted'));
   });
 
-  test('forfeit waits for the authoritative result before leaving', () {
-    final source = File(
-      'lib/features/duel/online_duel_screen.dart',
-    ).readAsStringSync();
-    expect(source, contains('await _returnToMainMenu(sendForfeit: true)'));
-    expect(source, contains('waitForAuthoritativeResult'));
-    expect(source, contains('setState(() => _forfeiting = true)'));
-    expect(source, contains('_showResultOnce(snapshot);'));
-    expect(
-      source,
-      isNot(
-        contains(
-          'await Future<void>.delayed(const Duration(milliseconds: 180))',
+  test(
+    'forfeit waits for the authoritative result and keeps result visible',
+    () {
+      final source = File(
+        'lib/features/duel/online_duel_screen.dart',
+      ).readAsStringSync();
+      expect(source, contains('await _submitForfeitAndWaitForResult()'));
+      expect(source, contains('waitForAuthoritativeResult'));
+      expect(source, contains('setState(() => _forfeiting = true)'));
+      expect(source, contains('_showResultOnce(snapshot);'));
+      expect(source, contains('_showResultOnce(finished);'));
+      expect(
+        source,
+        isNot(contains('if (mounted) Navigator.of(context).popUntil')),
+      );
+      expect(
+        source,
+        isNot(
+          contains(
+            'await Future<void>.delayed(const Duration(milliseconds: 180))',
+          ),
         ),
-      ),
-    );
-  });
+      );
+    },
+  );
 
   test('result sheet is resilient while waiting for settlement', () {
     final source = File(
@@ -75,6 +83,9 @@ void main() {
   test('rematch acceptance creates a fresh ready-room id', () {
     final main = File('backend/social_worker/src/main.ts').readAsStringSync();
     expect(main, contains('roomIdForVariant(variant, crypto.randomUUID())'));
-    expect(main, contains('markRematchStatus(env, invitation.id, \'accepted\', roomId)'));
+    expect(
+      main,
+      contains('markRematchStatus(env, invitation.id, \'accepted\', roomId)'),
+    );
   });
 }
