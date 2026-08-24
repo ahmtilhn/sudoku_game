@@ -270,8 +270,9 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
 
   @override
   Widget build(BuildContext context) {
-    return OverlayPortal.targetsRootOverlay(
+    return OverlayPortal(
       controller: _portalController,
+      overlayLocation: OverlayChildLocation.rootOverlay,
       overlayChildBuilder: _buildOverlay,
       child: widget.child,
     );
