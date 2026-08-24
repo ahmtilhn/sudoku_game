@@ -31,7 +31,15 @@ class CareerRewardSyncService {
     unawaited(syncNow());
   }
 
+  /// Ensures the latest locally recorded Career completion has been offered to
+  /// the authoritative Economy V3 backend, then returns only after the sync is
+  /// fully idle. This closes the short race between LocalProgressStore notifying
+  /// listeners and a completion result reading the refreshed Coin balance.
   Future<void> waitForIdle() async {
+    if (!_syncing) {
+      await syncNow();
+      return;
+    }
     while (_syncing) {
       final pending = _idleCompleter;
       if (pending == null) return;
