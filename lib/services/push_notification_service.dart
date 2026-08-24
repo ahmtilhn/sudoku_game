@@ -20,6 +20,7 @@ enum PushNotificationDestinationType {
   challenge,
   rematch,
   room,
+  social,
   informational,
 }
 
@@ -73,6 +74,35 @@ PushNotificationDestination? parsePushNotificationDestination(
     );
   }
 
+  if (messageType == 'friend_request') {
+    final requesterId = data['requesterPublicId']?.toString();
+    if (requesterId != null && requesterId.isNotEmpty) {
+      return PushNotificationDestination(
+        type: PushNotificationDestinationType.social,
+        id: requesterId,
+        defaultTitle: 'New friend request',
+        defaultBody: 'A player sent you a friend request.',
+      );
+    }
+  }
+
+  if (messageType == 'friend_response') {
+    final playerId = data['playerPublicId']?.toString();
+    final status = data['status']?.toString();
+    if (playerId != null && playerId.isNotEmpty) {
+      return PushNotificationDestination(
+        type: PushNotificationDestinationType.social,
+        id: playerId,
+        defaultTitle: status == 'accepted'
+            ? 'Friend request accepted'
+            : 'Friend request updated',
+        defaultBody: status == 'accepted'
+            ? 'Your friend request was accepted.'
+            : 'Your friend request was updated.',
+      );
+    }
+  }
+
   final rematchId = data['rematchId']?.toString();
   if (rematchId != null && rematchId.isNotEmpty) {
     return PushNotificationDestination(
@@ -118,6 +148,7 @@ class PushNotificationService {
   final ValueNotifier<String?> openedRoomId = ValueNotifier<String?>(null);
   final ValueNotifier<String?> openedChallengeId = ValueNotifier<String?>(null);
   final ValueNotifier<String?> openedRematchId = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> openedSocialId = ValueNotifier<String?>(null);
 
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _messageSubscription;
@@ -129,7 +160,8 @@ class PushNotificationService {
   bool get hasPendingNavigation =>
       openedRoomId.value?.isNotEmpty == true ||
       openedChallengeId.value?.isNotEmpty == true ||
-      openedRematchId.value?.isNotEmpty == true;
+      openedRematchId.value?.isNotEmpty == true ||
+      openedSocialId.value?.isNotEmpty == true;
 
   Future<void> initialize() {
     if (!configured || initialized.value) return Future<void>.value();
@@ -330,8 +362,8 @@ class PushNotificationService {
     if (target == null) return;
 
     // Actionable social notifications should move an already-open app directly
-    // into the invitation/ready flow. Background and terminated apps continue
-    // to route when the user taps the system notification.
+    // into the invitation/ready/social flow. Background and terminated apps
+    // continue to route when the user taps the system notification.
     if (target.type != PushNotificationDestinationType.informational) {
       _openTarget(target);
       return;
@@ -395,6 +427,8 @@ class PushNotificationService {
         openedRematchId.value = target.id;
       case PushNotificationDestinationType.challenge:
         openedChallengeId.value = target.id;
+      case PushNotificationDestinationType.social:
+        openedSocialId.value = target.id;
       case PushNotificationDestinationType.informational:
         break;
     }
