@@ -148,6 +148,9 @@ export class GameRoom extends AuthoritativeGameRoom {
     cooldowns[seat] = now;
     await this.rankState.storage.put('duelEmoteCooldowns', cooldowns);
     for (const target of this.rankState.getWebSockets()) {
+      const [targetPlayerId] = this.rankState.getTags(target);
+      const targetSeat = this.emoteSeatForPlayer(duel, targetPlayerId);
+      if (!targetSeat || targetSeat === seat) continue;
       this.sendEmoteEvent(target, {
         type: 'emote',
         roomId,
