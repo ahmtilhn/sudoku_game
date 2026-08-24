@@ -4,7 +4,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 
 ## Audit scope
 
-- Screen files: **33**
+- Screen files: **34**
 - Forwarding/compatibility wrappers: **1**
 - Feature groups: **9** (career, daily, duel, economy, game, home, settings, social, tutorial)
 - Required device behavior: compact phone, large phone/tablet, text scaling, safe insets, keyboard insets and scroll recovery
@@ -58,6 +58,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | social | `PlayerProfileScreen`<br>`lib/features/social/player_profile_screen.dart` | Forwarding wrapper | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
 | social | `ProfileCustomizationScreen`<br>`lib/features/social/profile_customization_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | — | No localization call detected |
 | social | `ProfileHubScreen`<br>`lib/features/social/profile_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| social | `RematchInvitationScreen`<br>`lib/features/social/rematch_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `SocialHubScreen`<br>`lib/features/social/social_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
 | social | `UxChallengeInvitationScreen`<br>`lib/features/social/ux_challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review |
 | tutorial | `TutorialScreen`<br>`lib/features/tutorial/tutorial_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
