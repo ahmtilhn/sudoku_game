@@ -2,81 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-@immutable
-class OnlineDuelEmoteDefinition {
-  const OnlineDuelEmoteDefinition({
-    required this.id,
-    required this.icon,
-    required this.label,
-  });
+import '../models/online_duel_emote_catalog.dart';
+import 'online_duel_emote_loadout_service.dart';
 
-  final String id;
-  final IconData icon;
-  final String label;
-}
-
-const List<OnlineDuelEmoteDefinition> onlineDuelBasicEmotes =
-    <OnlineDuelEmoteDefinition>[
-      OnlineDuelEmoteDefinition(
-        id: 'smile',
-        icon: Icons.sentiment_satisfied_alt_rounded,
-        label: 'Smile',
-      ),
-      OnlineDuelEmoteDefinition(
-        id: 'laugh',
-        icon: Icons.sentiment_very_satisfied_rounded,
-        label: 'Laugh',
-      ),
-      OnlineDuelEmoteDefinition(
-        id: 'smug',
-        icon: Icons.face_retouching_natural_rounded,
-        label: 'Smug',
-      ),
-      OnlineDuelEmoteDefinition(
-        id: 'bored',
-        icon: Icons.bedtime_rounded,
-        label: 'Bored',
-      ),
-      OnlineDuelEmoteDefinition(
-        id: 'fire',
-        icon: Icons.local_fire_department_rounded,
-        label: 'Fire',
-      ),
-      OnlineDuelEmoteDefinition(
-        id: 'crown',
-        icon: Icons.workspace_premium_rounded,
-        label: 'Crown',
-      ),
-      OnlineDuelEmoteDefinition(
-        id: 'shocked',
-        icon: Icons.sentiment_very_dissatisfied_rounded,
-        label: 'Shocked',
-      ),
-      OnlineDuelEmoteDefinition(
-        id: 'respect',
-        icon: Icons.front_hand_rounded,
-        label: 'Respect',
-      ),
-    ];
-
-const Set<String> onlineDuelBasicEmoteIds = <String>{
-  'smile',
-  'laugh',
-  'smug',
-  'bored',
-  'fire',
-  'crown',
-  'shocked',
-  'respect',
-};
-
-OnlineDuelEmoteDefinition? onlineDuelEmoteById(String? id) {
-  if (id == null) return null;
-  for (final emote in onlineDuelBasicEmotes) {
-    if (emote.id == id) return emote;
-  }
-  return null;
-}
+export '../models/online_duel_emote_catalog.dart';
 
 typedef OnlineDuelEmoteSender = bool Function(String emoteId);
 
@@ -134,7 +63,7 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
   }
 
   bool send(String emoteId) {
-    if (!canSend || !onlineDuelBasicEmoteIds.contains(emoteId)) return false;
+    if (!canSend || !onlineDuelEmoteCatalogIds.contains(emoteId)) return false;
     final sender = _sender;
     if (sender == null || !sender(emoteId)) return false;
 
@@ -152,7 +81,7 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     if (!identical(_owner, owner) ||
         !_matchActive ||
         _muted ||
-        !onlineDuelBasicEmoteIds.contains(emoteId)) {
+        !onlineDuelEmoteCatalogIds.contains(emoteId)) {
       return;
     }
     _incomingTimer?.cancel();
@@ -356,6 +285,10 @@ Future<void> showOnlineDuelEmotePicker(
   BuildContext context,
   OnlineDuelEmoteHub hub,
 ) {
+  final loadout = OnlineDuelEmoteLoadoutService.instance;
+  unawaited(loadout.initialize());
+  final listenable = Listenable.merge(<Listenable>[hub, loadout]);
+
   return showModalBottomSheet<void>(
     context: context,
     useRootNavigator: true,
@@ -365,11 +298,14 @@ Future<void> showOnlineDuelEmotePicker(
     builder: (sheetContext) => SafeArea(
       top: false,
       child: AnimatedBuilder(
-        animation: hub,
+        animation: listenable,
         builder: (context, _) {
           return LayoutBuilder(
             builder: (context, _) {
               final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
+              final equipped = loadout.selectedEmotes.isEmpty
+                  ? onlineDuelEmotesForIds(onlineDuelDefaultEmoteIds)
+                  : loadout.selectedEmotes;
               return ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: maxHeight),
                 child: SingleChildScrollView(
@@ -410,7 +346,7 @@ Future<void> showOnlineDuelEmotePicker(
                           crossAxisSpacing: 8,
                           childAspectRatio: 1.05,
                           children: [
-                            for (final emote in onlineDuelBasicEmotes)
+                            for (final emote in equipped)
                               _EmotePickerButton(
                                 emote: emote,
                                 enabled: hub.canSend,
@@ -535,9 +471,9 @@ class _EmotePickerButton extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                emote.icon,
-                size: 28,
+              OnlineDuelEmoteVisual(
+                emote: emote,
+                size: 30,
                 color: enabled ? scheme.primary : scheme.onSurfaceVariant,
               ),
               const SizedBox(height: 5),
@@ -582,13 +518,13 @@ class OnlineDuelEmoteBubble extends StatelessWidget {
           : Container(
               key: ValueKey<String>('duel-emote-${emote.id}-$accent'),
               margin: const EdgeInsets.only(bottom: 5),
-              width: 52,
-              height: 52,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
                 ).colorScheme.surfaceContainerHighest.withValues(alpha: .98),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(17),
                 border: Border.all(color: accent.withValues(alpha: .72)),
                 boxShadow: [
                   BoxShadow(
@@ -599,7 +535,11 @@ class OnlineDuelEmoteBubble extends StatelessWidget {
                 ],
               ),
               alignment: Alignment.center,
-              child: Icon(emote.icon, size: 30, color: accent),
+              child: OnlineDuelEmoteVisual(
+                emote: emote,
+                size: 42,
+                color: accent,
+              ),
             ),
     );
   }
