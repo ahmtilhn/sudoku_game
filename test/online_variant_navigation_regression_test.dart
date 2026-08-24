@@ -24,8 +24,9 @@ void main() {
       );
       expect(source, contains("roomId.startsWith('classic16:')"));
       expect(source, contains('final pending = _activeQueueRequest;'));
+      expect(source, contains('unawaited(_finishCancelledSearch(pending));'));
       expect(source, contains('await _matchmaking.cancelRankedQueue();'));
-      expect(source, contains('SocialApiClient.instance.activeMatch()'));
+      expect(source, isNot(contains('SocialApiClient.instance.activeMatch()')));
 
       final sessionIndex = source.indexOf(
         'await FirebaseSessionService.ensureAnonymousSession();',
@@ -51,8 +52,14 @@ void main() {
       'lib/services/player_profile_service.dart',
     ).readAsStringSync();
 
-    expect(source, contains('var authenticated = await games.refreshAuthentication();'));
-    expect(source, isNot(contains('authenticated = await games.authenticate();')));
+    expect(
+      source,
+      contains('var authenticated = await games.refreshAuthentication();'),
+    );
+    expect(
+      source,
+      isNot(contains('authenticated = await games.authenticate();')),
+    );
     expect(
       source,
       contains('games.localPlayer.value ?? await games.getLocalPlayer()'),

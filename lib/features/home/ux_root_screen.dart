@@ -198,6 +198,11 @@ class _UxRootScreenState extends State<UxRootScreen> {
       _snack(context.tr('friend_requests_setup_required'));
       return false;
     }
+    final cached = _profile ?? PlayerProfileService.instance.current.value;
+    if (cached?.profileConfirmed == true) {
+      if (_profile == null && mounted) setState(() => _profile = cached);
+      return true;
+    }
     setState(() => _identityBusy = true);
     try {
       await FirebaseSessionService.ensureAnonymousSession();

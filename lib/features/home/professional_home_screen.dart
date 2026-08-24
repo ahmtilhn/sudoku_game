@@ -154,6 +154,11 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
       );
       return false;
     }
+    final cached = _profile ?? PlayerProfileService.instance.current.value;
+    if (cached?.profileConfirmed == true) {
+      if (_profile == null && mounted) setState(() => _profile = cached);
+      return true;
+    }
 
     setState(() => _identityBusy = true);
     try {
@@ -1298,7 +1303,9 @@ class _HomeModeTile extends StatelessWidget {
                           child: LinearProgressIndicator(
                             value: data.progress!.clamp(0.0, 1.0).toDouble(),
                             minHeight: 4,
-                            backgroundColor: Colors.white.withValues(alpha: .08),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: .08,
+                            ),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               data.accent,
                             ),

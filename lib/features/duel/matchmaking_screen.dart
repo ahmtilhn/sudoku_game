@@ -13,7 +13,7 @@ import '../../models/rank_identity_models.dart';
 import '../../services/economy_service.dart';
 import '../../services/firebase_session_service.dart';
 import '../../services/rank_identity_service.dart';
-import '../../services/social_api_client.dart';
+import '../../services/social_api_client.dart' show SocialApiException;
 import '../../services/variant_matchmaking_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
@@ -615,11 +615,20 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     _pollTimer = null;
     final pending = _activeQueueRequest;
     setState(() {
-      _cancelling = true;
+      _searching = false;
+      _polling = false;
+      _cancelling = false;
       _searchStatus = null;
+      _pollAttempt = 0;
+      _activeQueueRequest = null;
     });
 
-    VariantMatchmakingResult? lateResult;
+    unawaited(_finishCancelledSearch(pending));
+  }
+
+  Future<void> _finishCancelledSearch(
+    Future<VariantMatchmakingResult>? pending,
+  ) async {
     try {
       await _matchmaking.cancelRankedQueue();
     } catch (_) {
@@ -628,16 +637,10 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
     if (pending != null) {
       try {
-        lateResult = await pending;
+        await pending;
       } catch (_) {
-        lateResult = null;
+        // The user has already left the search state.
       }
-    }
-    if (!mounted || _openingRoom) return;
-    if (lateResult?.matched == true) {
-      _cancelling = false;
-      _openMatchedResult(lateResult!);
-      return;
     }
 
     try {
@@ -645,42 +648,6 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     } catch (_) {
       // Returning to the selection screen must remain possible while offline.
     }
-
-    try {
-      final active = await SocialApiClient.instance.activeMatch();
-      final roomId = active?['roomId']?.toString().trim() ?? '';
-      if (roomId.isNotEmpty && mounted) {
-        _cancelling = false;
-        _openRecoveredRoom(roomId);
-        return;
-      }
-    } catch (_) {
-      // Offline cancellation still returns to the selection screen.
-    }
-
-    if (!mounted || _openingRoom) return;
-    setState(() {
-      _searching = false;
-      _polling = false;
-      _cancelling = false;
-      _searchStatus = null;
-      _pollAttempt = 0;
-      _activeQueueRequest = null;
-    });
-  }
-
-  void _openRecoveredRoom(String roomId) {
-    if (_variant.id == SudokuVariantId.classic16 &&
-        !roomId.startsWith('classic16:')) {
-      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
-      return;
-    }
-    if (_variant.id == SudokuVariantId.classic9 &&
-        roomId.startsWith('classic16:')) {
-      unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
-      return;
-    }
-    _openOnlineRoom(roomId);
   }
 
   void _openOnlineRoom(String roomId) {

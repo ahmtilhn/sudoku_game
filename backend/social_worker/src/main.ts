@@ -507,17 +507,10 @@ async function connectRoomWithoutResponseWrapping(
       .first<{ id: string }>();
     if (!player) return json(env, 404, { error: 'Player profile not found.' });
 
-    const roomId = decodeURIComponent(url.pathname.split('/')[3] ?? '');
-    const match = await env.DB.prepare(
-      `SELECT player_a_id, player_b_id, status
-       FROM matches
-       WHERE room_id = ?
-         AND status IN ('waiting', 'ready_window', 'countdown', 'active', 'paused')
-       LIMIT 1`,
-    )
-      .bind(roomId)
-      .first<{ player_a_id: string; player_b_id: string; status: string }>();
-    if (!match) return json(env, 404, { error: 'Game room not found.' });
+    const requestedRoomId = decodeURIComponent(url.pathname.split('/')[3] ?? '');
+    const resolved = await activeRoomForConnect(env, requestedRoomId);
+    if (!resolved) return json(env, 404, { error: 'Game room not found.' });
+    const { roomId, match } = resolved;
     if (
       match.player_a_id !== player.id &&
       match.player_b_id !== player.id
@@ -534,6 +527,36 @@ async function connectRoomWithoutResponseWrapping(
   } catch (error) {
     return routeError(env, error);
   }
+}
+
+async function activeRoomForConnect(
+  env: RuntimeEnv,
+  requestedRoomId: string,
+): Promise<{
+  roomId: string;
+  match: { player_a_id: string; player_b_id: string; status: string };
+} | null> {
+  const candidates = [requestedRoomId];
+  if (
+    requestedRoomId.length > 0 &&
+    !requestedRoomId.includes(':')
+  ) {
+    candidates.push(`classic9:${requestedRoomId}`);
+  }
+
+  for (const roomId of candidates) {
+    const match = await env.DB.prepare(
+      `SELECT player_a_id, player_b_id, status
+       FROM matches
+       WHERE room_id = ?
+         AND status IN ('waiting', 'ready_window', 'countdown', 'active', 'paused')
+       LIMIT 1`,
+    )
+      .bind(roomId)
+      .first<{ player_a_id: string; player_b_id: string; status: string }>();
+    if (match) return { roomId, match };
+  }
+  return null;
 }
 
 export class MatchmakingQueue {

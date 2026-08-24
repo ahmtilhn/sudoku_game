@@ -248,6 +248,7 @@ class SocialApiClient {
 
   static const Duration _requestTimeout = Duration(seconds: 15);
   static const Duration _appCheckTimeout = Duration(seconds: 15);
+  static bool _runtimeConfigLogged = false;
 
   final http.Client _client = http.Client();
 
@@ -496,6 +497,7 @@ class SocialApiClient {
         'The social backend URL is not configured.',
       );
     }
+    _logRuntimeConfigOnce();
 
     final user = await FirebaseSessionService.ensureAnonymousSession();
 
@@ -590,6 +592,16 @@ class SocialApiClient {
       );
     }
     return decoded;
+  }
+
+  static void _logRuntimeConfigOnce() {
+    if (!kDebugMode || _runtimeConfigLogged) return;
+    _runtimeConfigLogged = true;
+    debugPrint(
+      'SocialApiClient debug config: baseUrl=$_baseUrl, '
+      'usingDebugFallback=${SocialApiClient.instance.usingDebugFallback}, '
+      'usingBundledDefault=${SocialApiClient.instance.usingBundledDefault}',
+    );
   }
 
   List<SocialPlayer> _playerList(Object? value) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -37,9 +38,17 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   @override
   void initState() {
     super.initState();
+    final cachedProfile = _rankIdentity.current.value;
+    if (cachedProfile != null) {
+      _profile = cachedProfile;
+      _loading = false;
+    }
     _games.localPlayer.addListener(_platformIdentityChanged);
-    _refreshPlatformIdentity();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_refreshPlatformIdentity());
+      unawaited(_load(force: true, showLoading: cachedProfile == null));
+    });
   }
 
   @override
@@ -64,14 +73,20 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool force = false, bool showLoading = true}) async {
     if (!mounted) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (showLoading || _profile == null) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    } else if (_error != null) {
+      setState(() => _error = null);
+    }
     try {
-      final value = await _rankIdentity.refresh();
+      final value = force
+          ? await _rankIdentity.refresh()
+          : await _rankIdentity.load();
       if (mounted) setState(() => _profile = value);
     } catch (error) {
       if (mounted) {
@@ -83,16 +98,14 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
   }
 
   Future<void> _open(Widget screen, {bool refreshAfter = false}) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => screen),
-    );
-    if (refreshAfter && mounted) await _load();
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => screen));
+    if (refreshAfter && mounted) await _load(force: true);
   }
 
-  Future<void> _openCustomization() => _open(
-        const ProfileCustomizationScreen(),
-        refreshAfter: true,
-      );
+  Future<void> _openCustomization() =>
+      _open(const ProfileCustomizationScreen(), refreshAfter: true);
 
   Future<void> _openEmotes() => _open(const EmoteLoadoutScreen());
 
