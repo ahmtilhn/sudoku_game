@@ -53,9 +53,6 @@ class FirebaseServices {
           .getToken(forceRefresh)
           .timeout(timeout);
 
-      // A newly activated native provider can briefly have no cached token.
-      // Retry exactly once with a forced refresh instead of failing every
-      // authenticated client at the same startup boundary.
       if ((token == null || token.isEmpty) && !forceRefresh) {
         token = await FirebaseAppCheck.instance.getToken(true).timeout(timeout);
       }
@@ -82,13 +79,8 @@ class FirebaseServices {
   Future<String?> tryGetAppCheckToken({
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    try {
-      final token = await requireAppCheckToken(timeout: timeout);
-      return token.isEmpty ? null : token;
-    } catch (error) {
-      debugPrint('Firebase App Check token unavailable: ${error.runtimeType}');
-      return null;
-    }
+    final token = await requireAppCheckToken(timeout: timeout);
+    return token.isEmpty ? null : token;
   }
 
   Future<void> _ensureAppCheckReadyOnce() async {
@@ -115,10 +107,17 @@ class FirebaseServices {
     final initialized = await FirebaseRuntimeConfig.initializeIfConfigured();
     if (!initialized) return;
 
-    // App Check activation is attempted eagerly so healthy installations keep
-    // sending attestation tokens, but monitor-only backend deployments must not
-    // make the rest of Firebase initialization permanently fail.
-    await ensureAppCheckReady();
+    // Healthy installations keep sending App Check tokens. While the Worker is
+    // monitor-only, attestation setup must not prevent Analytics/Crashlytics and
+    // the rest of Firebase from finishing initialization.
+    try {
+      await ensureAppCheckReady();
+    } catch (error) {
+      debugPrint(
+        'Firebase App Check activation unavailable in monitor mode: '
+        '${error.runtimeType}',
+      );
+    }
 
     await _loadPrivacyPreferences();
     await _configureCrashlytics();
