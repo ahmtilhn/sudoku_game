@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/local_progress_store.dart';
 import 'professional_home_screen.dart';
+import 'push_room_navigation_gate.dart';
 
 class MainExperienceShell extends StatelessWidget {
   const MainExperienceShell({super.key, required this.store});
@@ -10,6 +11,8 @@ class MainExperienceShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: ProfessionalHomeScreen(store: store));
+    return PushRoomNavigationGate(
+      child: Scaffold(body: ProfessionalHomeScreen(store: store)),
+    );
   }
 }
