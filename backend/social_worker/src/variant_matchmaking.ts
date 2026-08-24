@@ -499,20 +499,24 @@ async function ratingForMatchmaking(
   difficulty: string,
   variant: DuelVariant,
 ): Promise<number> {
+  // Visible RP and its rank-alignment targets are based on the authoritative
+  // global hidden MMR snapshot. Keep queue pairing on that same global skill
+  // signal; difficulty scopes continue to update for per-difficulty stats.
+  void difficulty;
   const now = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO player_variant_ratings (
        player_id, variant, scope, updated_at
-     ) VALUES (?, ?, ?, ?)
+     ) VALUES (?, ?, 'global', ?)
      ON CONFLICT(player_id, variant, scope) DO NOTHING`,
   )
-    .bind(playerId, variant, difficulty, now)
+    .bind(playerId, variant, now)
     .run();
   const row = await env.DB.prepare(
     `SELECT rating FROM player_variant_ratings
-     WHERE player_id = ? AND variant = ? AND scope = ?`,
+     WHERE player_id = ? AND variant = ? AND scope = 'global'`,
   )
-    .bind(playerId, variant, difficulty)
+    .bind(playerId, variant)
     .first<{ rating: number }>();
   return row?.rating ?? 1000;
 }
