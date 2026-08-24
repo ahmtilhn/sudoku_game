@@ -374,8 +374,12 @@ async function searchPlayers(
   current: PlayerRow,
 ): Promise<Response> {
   await enforceRateLimit(env, `search:${current.id}`, 30, 60);
-  const query = normalizeUsername(url.searchParams.get('q') ?? '');
-  if (query.length < 3) return reply(env, { players: [] });
+  const rawQuery = url.searchParams.get('q') ?? '';
+  const usernameQuery = normalizeUsername(rawQuery);
+  const publicIdQuery = normalizePublicId(rawQuery);
+  if (usernameQuery.length < 3 && publicIdQuery.length < 3) {
+    return reply(env, { players: [] });
+  }
 
   const rows = await env.DB.prepare(
     `SELECT p.*,
@@ -385,14 +389,21 @@ async function searchPlayers(
        LIMIT 1) AS friendship_status
      FROM players p
      WHERE p.id != ?
-       AND p.username_normalized LIKE ?
+       AND (
+         p.username_normalized LIKE ?
+         OR p.public_id LIKE ?
+       )
        AND NOT EXISTS (
          SELECT 1 FROM friendships b
          WHERE b.player_low_id = CASE WHEN p.id < ? THEN p.id ELSE ? END
            AND b.player_high_id = CASE WHEN p.id < ? THEN ? ELSE p.id END
            AND b.status = 'blocked'
        )
-     ORDER BY CASE WHEN p.username_normalized = ? THEN 0 ELSE 1 END,
+     ORDER BY CASE
+                WHEN p.public_id = ? THEN 0
+                WHEN p.username_normalized = ? THEN 1
+                ELSE 2
+              END,
               p.rating DESC
      LIMIT 20`,
   )
@@ -402,12 +413,14 @@ async function searchPlayers(
       current.id,
       current.id,
       current.id,
-      `%${query}%`,
+      `%${usernameQuery}%`,
+      `%${publicIdQuery}%`,
       current.id,
       current.id,
       current.id,
       current.id,
-      query,
+      publicIdQuery,
+      usernameQuery,
     )
     .all<PlayerRow>();
   return reply(env, { players: rows.results.map(playerJson) });
@@ -1594,6 +1607,10 @@ function orderedPair(a: string, b: string): [string, string] {
 
 function normalizeUsername(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 32);
+}
+
+function normalizePublicId(value: string): string {
+  return value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 64);
 }
 
 function sanitizeDisplayName(value: string): string {
