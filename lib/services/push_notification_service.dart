@@ -154,6 +154,7 @@ class PushNotificationService {
   StreamSubscription<RemoteMessage>? _messageSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
   Future<void>? _initialization;
+  bool _automaticSocialUiAllowed = false;
 
   bool get configured => FirebaseRuntimeConfig.configured;
 
@@ -162,6 +163,10 @@ class PushNotificationService {
       openedChallengeId.value?.isNotEmpty == true ||
       openedRematchId.value?.isNotEmpty == true ||
       openedSocialId.value?.isNotEmpty == true;
+
+  void setAutomaticSocialUiAllowed(bool value) {
+    _automaticSocialUiAllowed = value;
+  }
 
   Future<void> initialize() {
     if (!configured || initialized.value) return Future<void>.value();
@@ -182,10 +187,6 @@ class PushNotificationService {
       userDisabled.value = savedEnabled == false;
 
       await _initializeLocalNotifications();
-      // Foreground presentation is handled by flutter_local_notifications so
-      // we can suppress the banner when the app immediately opens the social UI
-      // on a safe route, while still showing a real phone notification during
-      // gameplay/online flows where navigation is intentionally deferred.
       await FirebaseMessaging.instance
           .setForegroundNotificationPresentationOptions(
             alert: false,
@@ -368,12 +369,8 @@ class PushNotificationService {
     final actionable =
         target.type != PushNotificationDestinationType.informational;
     if (actionable) {
-      // Keep the destination pending immediately. A navigation gate may consume
-      // it if the app is on a safe route. Active game/online routes deliberately
-      // leave it pending, which causes the phone notification below to appear.
       _openTarget(target);
-      await Future<void>.delayed(const Duration(milliseconds: 350));
-      if (!_targetStillPending(target)) return;
+      if (_automaticSocialUiAllowed) return;
     }
 
     await _showForegroundSystemNotification(message, target);
@@ -404,20 +401,6 @@ class PushNotificationService {
       ),
       payload: target.payload,
     );
-  }
-
-  bool _targetStillPending(PushNotificationDestination target) {
-    return switch (target.type) {
-      PushNotificationDestinationType.room =>
-        openedRoomId.value == target.id,
-      PushNotificationDestinationType.rematch =>
-        openedRematchId.value == target.id,
-      PushNotificationDestinationType.challenge =>
-        openedChallengeId.value == target.id,
-      PushNotificationDestinationType.social =>
-        openedSocialId.value == target.id,
-      PushNotificationDestinationType.informational => false,
-    };
   }
 
   void _handleOpenedMessage(RemoteMessage message) {
