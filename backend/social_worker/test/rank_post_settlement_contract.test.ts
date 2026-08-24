@@ -9,12 +9,24 @@ const progressionSource = readFileSync(
   new URL('../src/rank_progression.ts', import.meta.url),
   'utf8',
 );
+const schemaSource = readFileSync(
+  new URL('../src/rank_progression_schema.ts', import.meta.url),
+  'utf8',
+);
 const resultSource = readFileSync(
   new URL('../src/rank_match_result.ts', import.meta.url),
   'utf8',
 );
+const clientSource = readFileSync(
+  new URL('../../../lib/services/rank_identity_service.dart', import.meta.url),
+  'utf8',
+);
 const migration = readFileSync(
   new URL('../migrations/0024_rank_progression_identity.sql', import.meta.url),
+  'utf8',
+);
+const recoveryMigration = readFileSync(
+  new URL('../migrations/0026_rank_progression_start_backfill.sql', import.meta.url),
   'utf8',
 );
 
@@ -46,11 +58,30 @@ describe('rank post-settlement safety boundary', () => {
     }
   });
 
-  it('is invoked only after the normal RP reconciliation in the result route', () => {
-    const reconcile = resultSource.indexOf('await reconcileRankProgression');
-    const derived = resultSource.indexOf('await refreshRankPostSettlement');
-    expect(reconcile).toBeGreaterThanOrEqual(0);
-    expect(derived).toBeGreaterThan(reconcile);
+  it('retries reconciliation before exposing an unsettled ranked result', () => {
+    expect(resultSource).toContain('RANK_RESULT_RECONCILE_ATTEMPTS = 4');
+    expect(resultSource).toContain('await reconcileRankProgression');
+    expect(resultSource).toContain('await rankSettlementForMatch');
+    expect(resultSource).toContain('retryAfterMs: 300');
+    expect(resultSource.indexOf('await reconcileRankProgression')).toBeLessThan(
+      resultSource.indexOf('await refreshRankPostSettlement'),
+    );
+  });
+
+  it('keeps the Flutter result client alive across the normal RP propagation window', () => {
+    expect(clientSource).toContain('const maxAttempts = 16');
+    expect(clientSource).toContain('error.statusCode == 429');
+    expect(clientSource).toContain('error.statusCode >= 500');
+    expect(clientSource).toContain('boundedAttempt');
+  });
+
+  it('repairs only untouched progression rows whose start baseline skipped rated matches', () => {
+    for (const text of [schemaSource, recoveryMigration]) {
+      expect(text).toContain('2026-08-19T13:45:00.000Z');
+      expect(text).toContain('ranked_games = 0');
+      expect(text).toContain('NOT EXISTS');
+      expect(text).toContain('rank_progression_settlements');
+    }
   });
 
   it('keeps lifetime Coin grants idempotent at the database boundary', () => {
