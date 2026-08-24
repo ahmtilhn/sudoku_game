@@ -22,7 +22,8 @@ class PushRoomNavigationGate extends StatefulWidget {
       _PushRoomNavigationGateState();
 }
 
-class _PushRoomNavigationGateState extends State<PushRoomNavigationGate> {
+class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
+    with WidgetsBindingObserver {
   final PushNotificationService _push = PushNotificationService.instance;
   Timer? _retryTimer;
   bool _routing = false;
@@ -31,19 +32,41 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _push.openedRoomId.addListener(_scheduleRouting);
     _push.openedChallengeId.addListener(_scheduleRouting);
     _push.openedRematchId.addListener(_scheduleRouting);
+    unawaited(_initializePush());
     WidgetsBinding.instance.addPostFrameCallback((_) => _scheduleRouting());
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshPushRegistration());
+      _scheduleRouting();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _retryTimer?.cancel();
     _push.openedRoomId.removeListener(_scheduleRouting);
     _push.openedChallengeId.removeListener(_scheduleRouting);
     _push.openedRematchId.removeListener(_scheduleRouting);
     super.dispose();
+  }
+
+  Future<void> _initializePush() async {
+    await _push.initialize();
+    await _refreshPushRegistration();
+    if (mounted) _scheduleRouting();
+  }
+
+  Future<void> _refreshPushRegistration() async {
+    if (!_push.configured || _push.userDisabled.value) return;
+    await _push.refreshRegistration();
   }
 
   void _scheduleRouting() {
