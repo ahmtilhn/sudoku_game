@@ -41,6 +41,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/avatar/
+    - assets/emote/
     - assets/frames/
     - assets/rank/
     - assets/puzzles/
