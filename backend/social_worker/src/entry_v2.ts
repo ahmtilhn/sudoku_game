@@ -39,6 +39,7 @@ import {
 } from './rank_country_flags';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
 import { ensureCompetitiveEconomyHardening } from './competitive_economy_hardening';
+import { ensureRuntimeSchema } from './runtime_schema';
 
 export { GameRoom, MatchmakingQueue };
 
@@ -62,6 +63,11 @@ export default {
 
     if (request.method !== 'OPTIONS') {
       try {
+        // Install the complete legacy trigger set first, then replace only the
+        // competitive/economy-sensitive definitions with hardened versions.
+        // This keeps fresh/staging databases complete while preventing the old
+        // runtime installer from restoring weaker definitions afterward.
+        await ensureRuntimeSchema(env);
         await ensureCompetitiveEconomyHardening(env);
       } catch (error) {
         console.error('competitive_economy_hardening_install_failed', error);
@@ -211,6 +217,7 @@ export default {
     ctx: ExecutionContext,
   ): Promise<void> {
     try {
+      await ensureRuntimeSchema(env);
       await ensureCompetitiveEconomyHardening(env);
     } catch (error) {
       console.error('competitive_economy_hardening_install_failed', error);
