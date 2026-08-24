@@ -115,12 +115,9 @@ class PushNotificationService {
   final ValueNotifier<String?> lastRegistrationError = ValueNotifier<String?>(
     null,
   );
-  final ValueNotifier<String?> openedRoomId =
-      _ConsumableValueNotifier<String>();
-  final ValueNotifier<String?> openedChallengeId =
-      _ConsumableValueNotifier<String>();
-  final ValueNotifier<String?> openedRematchId =
-      _ConsumableValueNotifier<String>();
+  final ValueNotifier<String?> openedRoomId = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> openedChallengeId = ValueNotifier<String?>(null);
+  final ValueNotifier<String?> openedRematchId = ValueNotifier<String?>(null);
 
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _messageSubscription;
@@ -332,8 +329,12 @@ class PushNotificationService {
     final target = parsePushNotificationDestination(message.data);
     if (target == null) return;
 
-    if (target.type == PushNotificationDestinationType.room) {
+    // Actionable social notifications should move an already-open app directly
+    // into the invitation/ready flow. Background and terminated apps continue
+    // to route when the user taps the system notification.
+    if (target.type != PushNotificationDestinationType.informational) {
       _openTarget(target);
+      return;
     }
 
     if (!kIsWeb && Platform.isAndroid) {
@@ -454,30 +455,5 @@ class PushNotificationService {
     await _tokenSubscription?.cancel();
     await _messageSubscription?.cancel();
     await _openedSubscription?.cancel();
-  }
-}
-
-class _ConsumableValueNotifier<T> extends ValueNotifier<T?> {
-  _ConsumableValueNotifier() : super(null);
-
-  bool _clearScheduled = false;
-
-  @override
-  T? get value {
-    final current = super.value;
-    if (current != null && !_clearScheduled) {
-      _clearScheduled = true;
-      scheduleMicrotask(() {
-        _clearScheduled = false;
-        if (identical(super.value, current)) super.value = null;
-      });
-    }
-    return current;
-  }
-
-  @override
-  set value(T? next) {
-    _clearScheduled = false;
-    super.value = next;
   }
 }
