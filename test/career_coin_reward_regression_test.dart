@@ -113,7 +113,7 @@ void main() {
         'Future<int> claimCareerRewardedInterstitialCoins() async => 0;',
       ),
     );
-    expect(economy, isNot(contains('confirmCareerAd(prepared.token)'));
+    expect(economy, isNot(contains('confirmCareerAd(prepared.token)')));
     expect(sync, contains('_economy.claimCareer('));
     expect(sync, contains('await syncNow();'));
     expect(sync, contains('await pending.future'));
