@@ -337,7 +337,8 @@ class RankIdentityService {
       }
 
       if (attempt < maxAttempts - 1) {
-        final delayMs = 220 + (attempt.clamp(0, 6) * 45);
+        final boundedAttempt = attempt < 6 ? attempt : 6;
+        final delayMs = 220 + (boundedAttempt * 45);
         await Future<void>.delayed(Duration(milliseconds: delayMs));
       }
     }
