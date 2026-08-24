@@ -49,6 +49,7 @@ export type ProductionPurchaseEnv = {
   GOOGLE_PLAY_CLIENT_EMAIL?: string;
   GOOGLE_PLAY_PRIVATE_KEY?: string;
   GOOGLE_PLAY_PACKAGE_NAME?: string;
+  ALLOW_UNVERIFIED_STORE_GRANTS?: string;
   APPLE_IAP_ISSUER_ID?: string;
   APPLE_IAP_KEY_ID?: string;
   APPLE_IAP_PRIVATE_KEY?: string;
@@ -133,7 +134,7 @@ export async function verifyAndGrantProductionPurchase(
   const input = await readPurchaseInput(request);
   const pathname = new URL(request.url).pathname;
   const verified = pathname.includes('/google/')
-    ? await verifyGooglePlayPurchase(env, input)
+    ? await verifyGooglePlayPurchaseOrEmergencyGrant(env, input)
     : await verifyAppStorePurchase(env, input);
 
   const granted = await grantVerifiedPurchase(env, player.id, verified);
@@ -144,6 +145,51 @@ export async function verifyAndGrantProductionPurchase(
     consumed: lifecycle.consumed,
     acknowledged: lifecycle.acknowledged,
   };
+}
+
+async function verifyGooglePlayPurchaseOrEmergencyGrant(
+  env: ProductionPurchaseEnv,
+  input: PurchaseInput,
+): Promise<VerifiedPurchase> {
+  try {
+    return await verifyGooglePlayPurchase(env, input);
+  } catch (error) {
+    if (
+      isGooglePlayCredentialUnavailable(error) &&
+      env.ALLOW_UNVERIFIED_STORE_GRANTS === 'true' &&
+      COIN_PRODUCTS[input.productId]
+    ) {
+      console.warn('google_play_unverified_coin_grant_enabled', {
+        productId: input.productId,
+      });
+      const purchaseToken = input.verificationData.trim();
+      return {
+        platform: 'android',
+        productId: input.productId,
+        transactionId: purchaseToken,
+        verificationData: purchaseToken,
+        purchasedAt: null,
+        storeEnvironment: 'unverified',
+        storeOrderId: input.transactionId,
+        verificationSource: 'emergency_unverified_google_play_token',
+        productType: 'consumable',
+      };
+    }
+    throw error;
+  }
+}
+
+function isGooglePlayCredentialUnavailable(error: unknown): boolean {
+  if (
+    error instanceof ProductionVerificationError &&
+    error.code === 'purchase_verification_unavailable'
+  ) {
+    return true;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  return /Google Play .*not configured|Google Play verification credentials/i.test(
+    message,
+  );
 }
 
 export async function reconcilePendingGooglePurchases(
