@@ -147,10 +147,19 @@ export class GameRoom extends AuthoritativeGameRoom {
 
     cooldowns[seat] = now;
     await this.rankState.storage.put('duelEmoteCooldowns', cooldowns);
+
+    // A room only accepts sockets belonging to its two authenticated players.
+    // Relay to every other accepted socket instead of requiring the recipient
+    // tag to map back to a seat. That keeps delivery working across Durable
+    // Object hibernation/reconnects even if a recovered socket has incomplete
+    // tag metadata. We still exclude every socket tagged as the sender so the
+    // sender never receives its own emote presentation event.
+    let recipientCount = 0;
     for (const target of this.rankState.getWebSockets()) {
       const [targetPlayerId] = this.rankState.getTags(target);
-      const targetSeat = this.emoteSeatForPlayer(duel, targetPlayerId);
-      if (!targetSeat || targetSeat === seat) continue;
+      if (target === socket || (targetPlayerId && targetPlayerId === playerId)) {
+        continue;
+      }
       this.sendEmoteEvent(target, {
         type: 'emote',
         roomId,
@@ -159,7 +168,20 @@ export class GameRoom extends AuthoritativeGameRoom {
         now,
         payload: { emoteId },
       });
+      recipientCount++;
     }
+
+    // Silent protocol acknowledgement. The Flutter UI deliberately does not
+    // render this as a banner/snackbar; it exists so delivery can be diagnosed
+    // without duplicating the emote on the sender's screen.
+    this.sendEmoteEvent(socket, {
+      type: 'emote_ack',
+      roomId,
+      revision,
+      seat,
+      now,
+      payload: { emoteId, recipientCount },
+    });
     return true;
   }
 
@@ -176,12 +198,16 @@ export class GameRoom extends AuthoritativeGameRoom {
   private sendEmoteEvent(
     socket: WebSocket,
     input: {
-      type: 'emote' | 'emote_rejected';
+      type: 'emote' | 'emote_ack' | 'emote_rejected';
       roomId: string;
       revision: number;
       seat: Seat;
       now: number;
-      payload: { emoteId?: string; reason?: string };
+      payload: {
+        emoteId?: string;
+        reason?: string;
+        recipientCount?: number;
+      };
     },
   ): void {
     try {
