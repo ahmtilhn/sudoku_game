@@ -405,7 +405,7 @@ export async function leaderboardPage(
               ) AS rank
        FROM player_variant_ratings pr
        JOIN players p ON p.id = pr.player_id
-       WHERE pr.variant = ? AND pr.scope = ?
+       WHERE pr.variant = ? AND pr.scope = ? AND pr.games_played > 0
      ) ranked
      WHERE (
          ? IS NULL
@@ -573,7 +573,7 @@ async function aroundMeLeaderboard(
               ) AS rank
        FROM player_variant_ratings pr
        JOIN players p ON p.id = pr.player_id
-       WHERE pr.variant = ? AND pr.scope = ?
+       WHERE pr.variant = ? AND pr.scope = ? AND pr.games_played > 0
      ) ranked
      WHERE ranked.rank > ?
      ORDER BY ranked.rank ASC
@@ -602,7 +602,7 @@ async function friendsLeaderboard(
               ) AS rank
        FROM player_variant_ratings pr
        JOIN players p ON p.id = pr.player_id
-       WHERE pr.variant = ? AND pr.scope = ?
+       WHERE pr.variant = ? AND pr.scope = ? AND pr.games_played > 0
          AND (
            pr.player_id = ?
            OR pr.player_id IN (

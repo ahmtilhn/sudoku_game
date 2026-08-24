@@ -185,9 +185,11 @@ export class GameRoom extends AuthoritativeGameRoom {
     let recipientCount = 0;
     for (const target of this.rankState.getWebSockets()) {
       const [targetPlayerId] = this.rankState.getTags(target);
+      const targetSeat = this.emoteSeatForPlayer(duel, targetPlayerId);
       if (
         target === socket ||
-        (targetPlayerId && targetPlayerId === playerId)
+        (targetPlayerId && targetPlayerId === playerId) ||
+        (targetSeat && targetSeat === seat)
       ) {
         continue;
       }

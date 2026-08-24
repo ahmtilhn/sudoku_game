@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -13,6 +14,13 @@ import {
 } from '../src/rank_progression';
 
 describe('visible rank progression', () => {
+  it('keeps unplayed accounts out of the public RP leaderboard', () => {
+    const source = readFileSync('src/rank_progression.ts', 'utf8');
+
+    expect(source).toContain('WHERE rp.ranked_games > 0');
+    expect(source).toContain('AND (COALESCE(p.discoverable, 1) = 1 OR p.id = ?)');
+  });
+
   it('starts at Bronze III and advances every 300 RP through Master I', () => {
     expect(tierForPoints(0).key).toBe('bronze_3');
     expect(tierForPoints(299).key).toBe('bronze_3');

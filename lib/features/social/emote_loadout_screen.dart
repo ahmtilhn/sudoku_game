@@ -59,9 +59,9 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   List<OnlineDuelEmoteDefinition> get _visibleEmotes {
@@ -110,7 +110,10 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
                                       _showMessage('Default emotes restored.');
                                     }
                                   },
-                            icon: const Icon(Icons.restart_alt_rounded, size: 19),
+                            icon: const Icon(
+                              Icons.restart_alt_rounded,
+                              size: 19,
+                            ),
                             label: const Text('Reset'),
                           ),
                         ],
@@ -134,9 +137,8 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
                       const SizedBox(height: 9),
                       _SelectedEmoteRail(
                         emotes: _loadout.selectedEmotes,
-                        onReorder: (oldIndex, newIndex) => unawaited(
-                          _loadout.reorder(oldIndex, newIndex),
-                        ),
+                        onReorder: (oldIndex, newIndex) =>
+                            unawaited(_loadout.reorder(oldIndex, newIndex)),
                         onRemove: (emote) => unawaited(_toggle(emote)),
                       ),
                       const SizedBox(height: 18),
@@ -148,7 +150,8 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
                       const SizedBox(height: 9),
                       _FilterBar(
                         selected: _filter,
-                        onSelected: (filter) => setState(() => _filter = filter),
+                        onSelected: (filter) =>
+                            setState(() => _filter = filter),
                       ),
                       const SizedBox(height: 12),
                       LayoutBuilder(
@@ -369,7 +372,7 @@ class _SelectedEmoteRail extends StatelessWidget {
         buildDefaultDragHandles: false,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         itemCount: emotes.length,
-        onReorder: onReorder,
+        onReorderItem: onReorder,
         proxyDecorator: (child, index, animation) => Material(
           color: Colors.transparent,
           elevation: 8,

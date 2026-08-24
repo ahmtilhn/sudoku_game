@@ -110,6 +110,7 @@ describe('competitive profile model', () => {
     const source = readFileSync('src/competitive.ts', 'utf8');
 
     expect(source).toContain('ROW_NUMBER() OVER');
+    expect(source).toContain('pr.games_played > 0');
     expect(source).toContain('winStreak: Number(row.win_streak ?? 0)');
     expect(source).toContain('bestRating: Number(row.best_rating ?? row.rating ?? 1000)');
     expect(source).toContain('provisionalGames: Number(row.provisional_games ?? 0)');

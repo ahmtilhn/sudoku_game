@@ -55,7 +55,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   Future<VariantMatchmakingResult>? _activeQueueRequest;
 
   int get _entryFee => _economy.entryFeeForDifficulty(_difficulty.name);
-  bool get _canEnter => _economy.balance >= _entryFee;
+  bool get _canEnter => _economy.serverBalance >= _entryFee;
 
   @override
   void initState() {
@@ -125,7 +125,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _Header(
-                          balance: _economy.balance,
+                          balance: _economy.serverBalance,
                           onBack: () => Navigator.of(context).pop(),
                           onStore: _openStore,
                         ),

@@ -28,8 +28,10 @@ class EconomyService extends ChangeNotifier {
   int get balance => debugUnlimitedCoinsEnabled
       ? debugUnlimitedCoinBalance
       : wallet?.balance ?? 0;
+  int get serverBalance => wallet?.balance ?? 0;
   bool get canEnterOnline =>
       debugUnlimitedCoinsEnabled || (wallet?.canEnterOnline ?? false);
+  bool get canEnterOnlineWithServerBalance => wallet?.canEnterOnline ?? false;
   int get entryFee => wallet?.entryFee ?? 100;
   int get winnerPot => wallet?.winnerPot ?? 200;
   int get minimumOnlineBalance => wallet?.minimumOnlineBalance ?? 100;

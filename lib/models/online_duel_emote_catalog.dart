@@ -294,14 +294,11 @@ OnlineDuelEmoteDefinition? onlineDuelEmoteById(String? id) {
   return null;
 }
 
-List<OnlineDuelEmoteDefinition> onlineDuelEmotesForIds(
-  Iterable<String> ids,
-) {
-  return <OnlineDuelEmoteDefinition>[
-    for (final id in ids)
-      if (onlineDuelEmoteById(id) case final emote?) emote,
-  ];
-}
+List<OnlineDuelEmoteDefinition> onlineDuelEmotesForIds(Iterable<String> ids) =>
+    ids
+        .map(onlineDuelEmoteById)
+        .whereType<OnlineDuelEmoteDefinition>()
+        .toList(growable: false);
 
 class OnlineDuelEmoteVisual extends StatelessWidget {
   const OnlineDuelEmoteVisual({
@@ -326,7 +323,7 @@ class OnlineDuelEmoteVisual extends StatelessWidget {
         fit: BoxFit.contain,
         filterQuality: FilterQuality.medium,
         gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => _fallback(context),
+        errorBuilder: (_, error, stackTrace) => _fallback(context),
       );
     }
     return _fallback(context);
