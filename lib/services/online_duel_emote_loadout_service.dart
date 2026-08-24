@@ -4,10 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/online_duel_emote_catalog.dart';
 
 class OnlineDuelEmoteLoadoutService extends ChangeNotifier {
-  OnlineDuelEmoteLoadoutService._();
+  OnlineDuelEmoteLoadoutService();
 
   static final OnlineDuelEmoteLoadoutService instance =
-      OnlineDuelEmoteLoadoutService._();
+      OnlineDuelEmoteLoadoutService();
 
   static const int maxSlots = 8;
   static const String _storageKey = 'online_duel_emote_loadout_v1';
