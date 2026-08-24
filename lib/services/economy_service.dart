@@ -187,6 +187,46 @@ class EconomyService extends ChangeNotifier {
   }
 
   Future<RematchInvitation> createRematch(String matchId) async {
+    // Challenge Again is idempotent for one finished match. If our own invite
+    // is already pending, return it instead of creating duplicate pushes. If
+    // the opponent already asked for a rematch, pressing Challenge Again means
+    // the intent is mutual, so accept that invitation immediately.
+    try {
+      final existing = await EconomyApiClient.instance.loadRematches();
+      final now = DateTime.now();
+      RematchInvitation? pending;
+      for (final invitation in existing) {
+        if (invitation.previousMatchId == matchId &&
+            invitation.status == 'pending' &&
+            invitation.expiresAt.isAfter(now)) {
+          pending = invitation;
+          break;
+        }
+      }
+      if (pending != null) {
+        if (pending.isSender) return pending;
+        try {
+          final accepted = await EconomyApiClient.instance.respondRematch(
+            invitationId: pending.id,
+            accept: true,
+          );
+          await refresh(showLoading: false);
+          return accepted;
+        } on EconomyApiException catch (exception) {
+          if (exception.code != 'rematch_expired' &&
+              exception.code != 'rematch_closed') {
+            rethrow;
+          }
+          // It expired between the list and accept calls; create a fresh invite.
+        }
+      }
+    } on EconomyApiException catch (exception) {
+      if (exception.statusCode == 401 || exception.statusCode == 403) rethrow;
+      // A stale pending-list read must not prevent the explicit rematch request.
+    } catch (_) {
+      // Continue with the explicit create request below.
+    }
+
     EconomyApiException? settlementError;
     for (var attempt = 0; attempt < 8; attempt++) {
       try {
