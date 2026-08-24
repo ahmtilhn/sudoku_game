@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
-import '../../services/push_notification_service.dart';
 import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
@@ -35,7 +34,6 @@ class ChallengeWaitingScreen extends StatefulWidget {
 class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     with WidgetsBindingObserver {
   final SocialApiClient _social = SocialApiClient.instance;
-  final PushNotificationService _push = PushNotificationService.instance;
 
   Timer? _pollTimer;
   Timer? _clockTimer;
@@ -46,21 +44,22 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   ChallengeWaitingEndReason _endReason = ChallengeWaitingEndReason.none;
   String? _error;
 
+  bool get _ended => _endReason != ChallengeWaitingEndReason.none;
+  bool get _routeIsCurrent => ModalRoute.of(context)?.isCurrent ?? false;
+
   int get _secondsLeft => widget.challenge.expiresAt
       .difference(DateTime.now())
       .inSeconds
       .clamp(0, 24 * 60 * 60);
 
-  bool get _ended => _endReason != ChallengeWaitingEndReason.none;
-  bool get _routeIsCurrent => ModalRoute.of(context)?.isCurrent ?? false;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(_prepareNotifications());
     unawaited(_loadRecipientRank());
-    unawaited(_checkStatus());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_checkStatus());
+    });
     _pollTimer = Timer.periodic(
       const Duration(seconds: 1),
       (_) => unawaited(_checkStatus()),
@@ -78,8 +77,9 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && !_ended) {
-      unawaited(_push.refreshRegistration());
-      unawaited(_checkStatus());
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_checkStatus());
+      });
     }
   }
 
@@ -91,13 +91,6 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     super.dispose();
   }
 
-  Future<void> _prepareNotifications() async {
-    await _push.initialize();
-    if (!_push.userDisabled.value) {
-      await _push.refreshRegistration();
-    }
-  }
-
   Future<void> _loadRecipientRank() async {
     final publicId = widget.challenge.recipient.publicId.trim();
     if (publicId.length < 3) return;
@@ -107,7 +100,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       );
       if (mounted) setState(() => _recipientRank = summary);
     } catch (_) {
-      // Private/non-discoverable profiles keep rank details hidden.
+      // Public rank is optional for the waiting UI.
     }
   }
 
@@ -124,34 +117,36 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       final challenge = await _social.loadChallenge(widget.challenge.id);
       if (!mounted || !_routeIsCurrent || _openingRoom) return;
 
-      switch (challenge.status) {
-        case 'accepted':
-          var roomId = challenge.roomId?.trim();
-          if (roomId == null || roomId.isEmpty) {
-            final active = await _social.activeMatch();
-            if (!mounted || !_routeIsCurrent || _openingRoom) return;
-            final challengeId = active?['challengeId']?.toString();
-            final activeRoomId = active?['roomId']?.toString().trim();
-            if (challengeId == widget.challenge.id &&
-                activeRoomId != null &&
-                activeRoomId.isNotEmpty) {
-              roomId = activeRoomId;
-            }
+      if (challenge.status == 'accepted') {
+        var roomId = challenge.roomId?.trim();
+        if (roomId == null || roomId.isEmpty) {
+          final active = await _social.activeMatch();
+          if (!mounted || !_routeIsCurrent || _openingRoom) return;
+          final activeChallengeId = active?['challengeId']?.toString();
+          final activeRoomId = active?['roomId']?.toString().trim();
+          if (activeChallengeId == widget.challenge.id &&
+              activeRoomId != null &&
+              activeRoomId.isNotEmpty) {
+            roomId = activeRoomId;
           }
-          if (roomId != null && roomId.isNotEmpty) {
-            await _openRoom(roomId);
-          }
-        case 'pending':
-          if (_error != null && mounted) setState(() => _error = null);
-        case 'declined':
-        case 'cancelled':
-          _finish(ChallengeWaitingEndReason.declined);
-        case 'expired':
-          _finish(ChallengeWaitingEndReason.expired);
-        default:
-          if (_secondsLeft <= 0) {
-            _finish(ChallengeWaitingEndReason.expired);
-          }
+        }
+        if (roomId != null && roomId.isNotEmpty) {
+          await _openRoom(roomId);
+        }
+        return;
+      }
+
+      if (challenge.status == 'pending') {
+        if (_error != null && mounted) setState(() => _error = null);
+        return;
+      }
+
+      if (challenge.status == 'declined' || challenge.status == 'cancelled') {
+        _finish(ChallengeWaitingEndReason.declined);
+        return;
+      }
+      if (challenge.status == 'expired' || _secondsLeft <= 0) {
+        _finish(ChallengeWaitingEndReason.expired);
       }
     } on SocialApiException catch (error) {
       if (mounted && _routeIsCurrent) {
@@ -172,6 +167,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       Navigator.of(context).pop();
       return;
     }
+
     setState(() {
       _cancelling = true;
       _error = null;
@@ -181,8 +177,6 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       if (mounted) Navigator.of(context).pop();
     } on SocialApiException catch (error) {
       if (!mounted) return;
-      // Acceptance may win the race against cancellation. Re-read the
-      // authoritative challenge before deciding whether to leave or enter room.
       try {
         final current = await _social.loadChallenge(widget.challenge.id);
         if (!mounted) return;
@@ -194,7 +188,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
           }
         }
       } catch (_) {
-        // Surface the original cancellation error below.
+        // Keep the original cancellation error.
       }
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
@@ -226,35 +220,23 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     );
   }
 
-  String _title(BuildContext context) {
-    return switch (_endReason) {
-      ChallengeWaitingEndReason.declined => context.tr('challenge_declined'),
-      ChallengeWaitingEndReason.expired => context.tr('challenge_timed_out'),
-      ChallengeWaitingEndReason.none => context.tr('finding_opponent_title'),
-    };
-  }
-
-  String _subtitle(BuildContext context) {
-    return switch (_endReason) {
-      ChallengeWaitingEndReason.declined => context.tr('try_again'),
-      ChallengeWaitingEndReason.expired => context.tr('try_again'),
-      ChallengeWaitingEndReason.none => context.tr(
-        'searching_similar_opponents',
-      ),
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
+    final recipient = widget.challenge.recipient;
+    final rank = _recipientRank?.publicId == recipient.publicId
+        ? _recipientRank
+        : null;
     final difficulty = SudokuDifficulty.values.firstWhere(
       (value) => value.name == widget.challenge.difficulty,
       orElse: () => SudokuDifficulty.easy,
     );
     final accent = _accent(difficulty);
-    final recipient = widget.challenge.recipient;
-    final rank = _recipientRank?.publicId == recipient.publicId
-        ? _recipientRank
-        : null;
+
+    final title = switch (_endReason) {
+      ChallengeWaitingEndReason.declined => context.tr('challenge_declined'),
+      ChallengeWaitingEndReason.expired => context.tr('challenge_timed_out'),
+      ChallengeWaitingEndReason.none => context.tr('finding_opponent_title'),
+    };
 
     return PopScope<void>(
       canPop: _ended || _openingRoom,
@@ -285,7 +267,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                             _StatusOrb(accent: accent, endReason: _endReason),
                             const SizedBox(height: 18),
                             Text(
-                              _title(context),
+                              title,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: Colors.white,
@@ -293,9 +275,11 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
                             Text(
-                              _subtitle(context),
+                              _ended
+                                  ? context.tr('try_again')
+                                  : context.tr('searching_similar_opponents'),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: .68),
@@ -365,18 +349,18 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.errorContainer,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .errorContainer,
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(
                                   _error!,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onErrorContainer,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onErrorContainer,
                                   ),
                                 ),
                               ),
