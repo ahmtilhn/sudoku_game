@@ -10,6 +10,7 @@ import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/in_page_header.dart';
 import '../../widgets/player_avatar.dart';
+import 'challenge_waiting_screen.dart';
 import 'ux_challenge_invitation_screen.dart';
 
 class SocialHubScreen extends StatefulWidget {
@@ -182,6 +183,10 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 
   Future<void> _sendFriendRequest(SocialPlayer player) async {
+    if (player.friendshipStatus == 'accepted' ||
+        player.friendshipStatus == 'pending') {
+      return;
+    }
     await _perform('friend-${player.publicId}', () async {
       await _social.sendFriendRequest(player.publicId);
     });
@@ -203,6 +208,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 
   Future<void> _challenge(SocialPlayer player) async {
+    if (_busyId != null) return;
     final difficulty = await showModalBottomSheet<SudokuDifficulty>(
       context: context,
       showDragHandle: true,
@@ -233,15 +239,31 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         ),
       ),
     );
-    if (difficulty == null) return;
-    await _perform('challenge-${player.publicId}', () async {
-      await _social.createChallenge(
+    if (difficulty == null || !mounted) return;
+
+    setState(() {
+      _busyId = 'challenge-${player.publicId}';
+      _error = null;
+    });
+    try {
+      final challenge = await _social.createChallenge(
         recipientPublicId: player.publicId,
         difficulty: difficulty.name,
       );
-    });
-    if (!mounted || _error != null) return;
-    _showSnack(context.tr('rematch_invitation_sent'));
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => ChallengeWaitingScreen(challenge: challenge),
+        ),
+      );
+      if (mounted) await _load();
+    } on SocialApiException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    } finally {
+      if (mounted) setState(() => _busyId = null);
+    }
   }
 
   Future<void> _openChallenge(SocialChallenge challenge) async {
@@ -339,7 +361,15 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                                     rank: _rankFor(player.publicId),
                                     busy:
                                         _busyId == 'friend-${player.publicId}',
-                                    primaryLabel: context.tr('add_friend'),
+                                    enabled:
+                                        player.friendshipStatus != 'accepted' &&
+                                        player.friendshipStatus != 'pending',
+                                    primaryLabel:
+                                        player.friendshipStatus == 'accepted'
+                                        ? context.tr('friends')
+                                        : player.friendshipStatus == 'pending'
+                                        ? context.tr('friend_request_sent')
+                                        : context.tr('add_friend'),
                                     onPrimary: () => _sendFriendRequest(player),
                                   ),
                               ],
@@ -491,6 +521,7 @@ class _PlayerRow extends StatelessWidget {
     required this.busy,
     required this.primaryLabel,
     required this.onPrimary,
+    this.enabled = true,
     this.secondaryLabel,
     this.onSecondary,
   });
@@ -498,6 +529,7 @@ class _PlayerRow extends StatelessWidget {
   final SocialPlayer player;
   final PublicRankSummary? rank;
   final bool busy;
+  final bool enabled;
   final String primaryLabel;
   final VoidCallback onPrimary;
   final String? secondaryLabel;
@@ -542,7 +574,7 @@ class _PlayerRow extends StatelessWidget {
                 child: Text(secondaryLabel!),
               ),
             FilledButton.tonal(
-              onPressed: busy ? null : onPrimary,
+              onPressed: busy || !enabled ? null : onPrimary,
               child: busy
                   ? const SizedBox.square(
                       dimension: 18,
