@@ -73,7 +73,8 @@ Push bildirimleri atlanır.
 ## Staging Worker URL
 
 Neden gerekli:
-Flutter `SOCIAL_BACKEND_URL` olmadan online servisleri kapalı tutar.
+Flutter `SOCIAL_BACKEND_URL` olmadan production sosyal backend'e bağlanır.
+Staging testi için URL açıkça verilmelidir.
 
 Nerede:
 Flutter build args and CI.
@@ -82,7 +83,7 @@ Adımlar:
 1. HTTPS staging URL belirle.
 2. WSS connect URL'sini doğrula.
 3. `/health` endpointini kontrol et.
-4. App'i `--dart-define=SOCIAL_BACKEND_URL=...` ile build et.
+4. Testteki her cihazı aynı `--dart-define=SOCIAL_BACKEND_URL=...` ile build et.
 
 Beklenen sonuç:
 REST ve WebSocket aynı staging host'u kullanır.

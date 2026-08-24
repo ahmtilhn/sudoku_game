@@ -26,9 +26,9 @@ snapshots.
    `0004_ranked_queue_cleanup.sql`.
 3. Set Firebase/FCM secrets through Wrangler.
 4. Confirm `/health` and `/version` on the deployed Worker.
-5. For a plain debug `flutter run`, confirm both devices resolve the same staging
-   REST/WSS host. For release/profile builds, pass `SOCIAL_BACKEND_URL`
-   explicitly.
+5. Confirm both devices resolve the same REST/WSS host. A plain `flutter run`
+   falls back to production; staging requires passing `SOCIAL_BACKEND_URL`
+   explicitly on every device build.
 6. Use two different Firebase-authenticated accounts and select the same
    difficulty.
 7. Verify Android + Android ranked matching.

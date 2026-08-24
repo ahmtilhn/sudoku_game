@@ -14,14 +14,13 @@ Decision target: `READY FOR TWO-DEVICE STAGING TEST`.
 - `flutter test --concurrency=1 --timeout 120s -r expanded`
 - `flutter build apk --debug`
 
-## Debug Backend Selection
+## Backend Selection
 
-A plain debug `flutter run` now falls back to the checked staging Worker URL when
-`SOCIAL_BACKEND_URL` is not supplied. Android and iOS therefore use the same
-REST/WSS host during local device testing.
+A plain `flutter run` now falls back to the production Worker URL when
+`SOCIAL_BACKEND_URL` is not supplied. Android and iOS therefore only use staging
+when both builds are run with the same explicit staging URL.
 
-Release and profile builds do not use that fallback. They must still be built
-with an explicit HTTPS value:
+Staging, release and profile builds must be built with an explicit HTTPS value:
 
 ```powershell
 flutter run --release `
