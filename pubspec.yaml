@@ -42,6 +42,7 @@ flutter:
   assets:
     - assets/avatar/
     - assets/frames/
+    - assets/rank/
     - assets/puzzles/
     - assets/cards/
     - assets/images/app_backdrop.png
