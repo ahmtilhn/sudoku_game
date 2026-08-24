@@ -47,7 +47,10 @@ void main() {
 
     expect(source, contains("event.type == 'match_completed'"));
     expect(source, contains('_applyTerminalResultEvent(event);'));
-    expect(source, contains('winnerSeat: _seat(event.payload[\'winnerSeat\']?.toString())'));
+    expect(
+      source,
+      contains("winnerSeat: _seat(event.payload['winnerSeat']?.toString())"),
+    );
     expect(source, contains('requestSnapshot();'));
   });
 
@@ -65,7 +68,7 @@ void main() {
     expect(gate, contains('_push.setAutomaticSocialUiAllowed(routeIsCurrent);'));
   });
 
-  test('rematch creation retries settlement race and backend pushes invite', () {
+  test('rematch is idempotent, retries settlement, and backend pushes invite', () {
     final economy = File(
       'lib/services/economy_service.dart',
     ).readAsStringSync();
@@ -76,6 +79,10 @@ void main() {
       'backend/social_worker/src/push_notifications.ts',
     ).readAsStringSync();
 
+    expect(economy, contains('invitation.previousMatchId == matchId'));
+    expect(economy, contains('if (pending.isSender) return pending;'));
+    expect(economy, contains('invitationId: pending.id'));
+    expect(economy, contains('accept: true'));
     expect(economy, contains('for (var attempt = 0; attempt < 8; attempt++)'));
     expect(economy, contains("contains('match has not finished yet')"));
     expect(entry, contains('notifyRematchRecipient'));
