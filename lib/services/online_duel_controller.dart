@@ -233,11 +233,40 @@ class OnlineDuelController with WidgetsBindingObserver {
       _snapshots.add(_snapshot!);
       return;
     }
-    if (event.type == 'match_completed' ||
-        event.type == 'player_forfeited' ||
-        event.type == 'rating_updated') {
+    if (event.type == 'match_completed' || event.type == 'player_forfeited') {
+      _applyTerminalResultEvent(event);
+      requestSnapshot();
+      return;
+    }
+    if (event.type == 'rating_updated') {
       requestSnapshot();
     }
+  }
+
+  void _applyTerminalResultEvent(OnlineDuelEvent event) {
+    final snapshot = _snapshot;
+    if (snapshot == null) return;
+    _clearPendingMove();
+    final status =
+        _status(event.payload['status']?.toString()) ??
+        (event.type == 'player_forfeited'
+            ? OnlineDuelStatus.forfeited
+            : OnlineDuelStatus.completed);
+    final terminal = snapshot.copyWith(
+      status: status,
+      scores: _seatIntMap(event.payload['scores']) ?? snapshot.scores,
+      mistakes: _seatIntMap(event.payload['mistakes']) ?? snapshot.mistakes,
+      correctMoves:
+          _seatIntMap(event.payload['correctMoves']) ?? snapshot.correctMoves,
+      timeouts: _seatIntMap(event.payload['timeouts']) ?? snapshot.timeouts,
+      winnerSeat: _seat(event.payload['winnerSeat']?.toString()),
+      finishReason: event.payload['finishReason']?.toString(),
+      rating: const <OnlineDuelSeat, OnlineDuelRatingChange>{},
+      revision: event.revision,
+      serverTime: event.serverTime,
+    );
+    _snapshot = terminal;
+    _snapshots.add(terminal);
   }
 
   void _applySnapshot(Map<String, dynamic> payload) {
