@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../localization/app_strings.dart';
+import '../services/online_duel_emote_hub.dart';
 
 Set<int> completedSudokuNumbers({
   required List<int> board,
@@ -44,7 +45,7 @@ class NumberPadDock extends StatelessWidget {
           heightFactor: 1,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: compact ? 500 : 560),
-            child: child,
+            child: OnlineDuelEmoteDock(child: child, compact: compact),
           ),
         ),
       ),
