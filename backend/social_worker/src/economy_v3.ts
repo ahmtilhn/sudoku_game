@@ -24,7 +24,12 @@ import {
   purchaseHint,
 } from './economy_v3_career_hints';
 import { normalizeVariant } from './economy_v3_policy';
-import { claimPlayReward, normalizePlayDifficulty } from './economy_v3_play';
+import {
+  claimPlayReward,
+  confirmCareerDouble,
+  normalizePlayDifficulty,
+  prepareCareerDouble,
+} from './economy_v3_play';
 import {
   confirmDuelRecovery,
   dismissDuelRecovery,
@@ -44,9 +49,6 @@ type SsvVerificationRequest = Parameters<
 >[0];
 
 function cloneForSsv(request: Request): SsvVerificationRequest {
-  // Cloudflare's handler Request carries host metadata generics that differ
-  // from the shared verifier's default Request generic. Runtime objects are the
-  // same Fetch API Request; narrow only the type at this boundary.
   return request.clone() as unknown as SsvVerificationRequest;
 }
 
@@ -117,6 +119,38 @@ export async function handleEconomyV3Request(
         }),
       );
     }
+    if (
+      url.pathname === '/v1/economy/v3/career/double/prepare' &&
+      request.method === 'POST'
+    ) {
+      const body = await readJson(request);
+      let variant: 'classic9' | 'classic16';
+      try {
+        variant = normalizeVariant(body.variant);
+      } catch {
+        throw new EconomyV3Error(400, 'Invalid Sudoku variant.', 'invalid_variant');
+      }
+      return json(
+        env,
+        200,
+        await prepareCareerDouble(env, playerId, {
+          level: positiveInt(body.level, 'level'),
+          variant,
+        }),
+      );
+    }
+    if (
+      url.pathname === '/v1/economy/v3/career/double/confirm' &&
+      request.method === 'POST'
+    ) {
+      await assertProductionRewardConfirmedBySsv(cloneForSsv(request), env);
+      const body = await readJson(request);
+      return json(
+        env,
+        200,
+        await confirmCareerDouble(env, playerId, requiredString(body.token, 'token')),
+      );
+    }
     if (url.pathname === '/v1/economy/v3/play/claim' && request.method === 'POST') {
       const body = await readJson(request);
       let variant: 'classic9' | 'classic16';
@@ -130,6 +164,7 @@ export async function handleEconomyV3Request(
         200,
         await claimPlayReward(env, playerId, {
           puzzleId: requiredString(body.puzzleId, 'puzzleId', 192),
+          completionId: requiredString(body.completionId, 'completionId', 128),
           difficulty: normalizePlayDifficulty(body.difficulty),
           variant,
         }),
