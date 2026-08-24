@@ -35,6 +35,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
 
   ActiveGameSessionMetadata? _activeSession;
   bool _openingChallenge = false;
+  bool _challengeOpenScheduled = false;
   bool _launchingSession = false;
 
   @override
@@ -57,6 +58,12 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
 
   @override
   Widget build(BuildContext context) {
+    final routeIsCurrent = ModalRoute.of(context)?.isCurrent ?? false;
+    final pendingChallenge = _push.openedChallengeId.value?.isNotEmpty == true;
+    if (routeIsCurrent && pendingChallenge && !_openingChallenge) {
+      _scheduleChallengeOpen();
+    }
+
     final metadata = _activeSession;
     final level = metadata == null
         ? null
@@ -65,7 +72,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
         level != null &&
         !_openingChallenge &&
         !_launchingSession &&
-        (ModalRoute.of(context)?.isCurrent ?? false);
+        routeIsCurrent;
 
     return Stack(
       children: [
@@ -108,8 +115,11 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
   }
 
   void _scheduleChallengeOpen() {
+    if (_challengeOpenScheduled || !mounted) return;
+    _challengeOpenScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_openChallenge());
+      _challengeOpenScheduled = false;
+      if (mounted) unawaited(_openChallenge());
     });
   }
 
