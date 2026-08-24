@@ -882,18 +882,55 @@ async function applyDebugUnlimitedCoins(
   playerId: string,
 ): Promise<void> {
   if (!debugUnlimitedCoinsEnabled(env)) return;
-  await env.DB.prepare(
-    `UPDATE players
-     SET online_coins = ?, updated_at = ?
-     WHERE id = ? AND online_coins < ?`,
+
+  const player = await env.DB.prepare(
+    'SELECT online_coins FROM players WHERE id = ? LIMIT 1',
   )
-    .bind(
-      DEBUG_UNLIMITED_COINS_BALANCE,
-      new Date().toISOString(),
+    .bind(playerId)
+    .first<{ online_coins: number }>();
+  if (!player) return;
+
+  const currentBalance = Number(player.online_coins ?? 0);
+  const targetBalance = Math.max(currentBalance, DEBUG_UNLIMITED_COINS_BALANCE);
+  const latestLedger = await env.DB.prepare(
+    `SELECT balance_after
+     FROM coin_ledger
+     WHERE player_id = ? AND balance_after IS NOT NULL
+     ORDER BY created_at DESC, rowid DESC
+     LIMIT 1`,
+  )
+    .bind(playerId)
+    .first<{ balance_after: number | null }>();
+  const latestLedgerBalance =
+    latestLedger?.balance_after == null ? null : Number(latestLedger.balance_after);
+
+  if (currentBalance >= DEBUG_UNLIMITED_COINS_BALANCE && latestLedgerBalance === targetBalance) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE players
+       SET online_coins = ?, updated_at = ?
+       WHERE id = ? AND online_coins < ?`,
+    ).bind(targetBalance, now, playerId, targetBalance),
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO coin_ledger (
+         id, player_id, amount, balance_after, reason,
+         reference_type, reference_id, idempotency_key, metadata_json, created_at
+       ) VALUES (?, ?, ?, ?, 'admin_adjustment', 'debug', ?, ?, ?, ?)`,
+    ).bind(
+      crypto.randomUUID(),
       playerId,
-      DEBUG_UNLIMITED_COINS_BALANCE,
-    )
-    .run();
+      targetBalance - currentBalance,
+      targetBalance,
+      playerId,
+      `debug_unlimited:${playerId}:${now}:${crypto.randomUUID()}`,
+      JSON.stringify({ source: 'debug_unlimited_coins' }),
+      now,
+    ),
+  ]);
 }
 
 function debugUnlimitedCoinsEnabled(env: EconomyEnv): boolean {

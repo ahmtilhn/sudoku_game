@@ -27,6 +27,7 @@ void main() {
     expect(source, contains('_consumeAndroidCoinPurchase(purchase)'));
     expect(source, contains('BillingResponse.ok'));
     expect(source, contains('BillingResponse.itemNotOwned'));
+    expect(source, contains("exception.code == 'purchase_replayed'"));
     expect(source, contains('throw _CoinConsumptionException'));
     expect(
       source,
@@ -43,5 +44,18 @@ void main() {
     expect(source, contains("iosNoAdsProductId = 'sudoku_duel_no_ads'"));
     expect(source, contains('buyNonConsumable(String productId)'));
     expect(source, contains('_store.buyNonConsumable('));
+  });
+
+  test('coin store screen routes coin packs through consumable buy flow', () {
+    final source = File(
+      'lib/features/economy/coin_store_screen.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('onBuy: () => _store.buy(product.id)'));
+    expect(
+      source,
+      contains('onBuy: () => _store.buyNonConsumable('),
+    );
+    expect(source, contains('CoinStoreService.noAdsProductId'));
   });
 }

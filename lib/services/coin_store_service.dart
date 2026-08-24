@@ -359,6 +359,17 @@ class CoinStoreService extends ChangeNotifier {
           // Intentionally do not complete the purchase. The owned token remains
           // discoverable by queryPastPurchases and will be retried on next start.
         } on EconomyApiException catch (exception) {
+          if (Platform.isAndroid &&
+              !isNoAds &&
+              exception.code == 'purchase_replayed') {
+            await _consumeAndroidCoinPurchase(purchase);
+            if (purchase.pendingCompletePurchase) {
+              await _store.completePurchase(purchase);
+            }
+            await EconomyService.instance.refresh(showLoading: false);
+            error = null;
+            continue;
+          }
           error = exception.message;
           EconomyService.instance.reportError(exception.message);
           // Keep the transaction pending when server verification is unavailable

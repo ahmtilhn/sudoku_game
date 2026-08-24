@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 import {
   CAREER_AD_REWARD,
@@ -60,5 +63,15 @@ describe('online Coin economy defaults', () => {
     expect(isNoAdsProductId(NO_ADS_PRODUCT_ID)).toBe(true);
     expect(isNoAdsProductId(IOS_NO_ADS_PRODUCT_ID)).toBe(true);
     expect(isNoAdsProductId('coins_100')).toBe(false);
+  });
+
+  it('keeps debug unlimited coins aligned with the ledger invariant', () => {
+    const testDir = fileURLToPath(new URL('.', import.meta.url));
+    const source = readFileSync(resolve(testDir, '../src/economy.ts'), 'utf8');
+
+    expect(source).toContain('DEBUG_UNLIMITED_COINS_BALANCE');
+    expect(source).toContain('targetBalance - currentBalance');
+    expect(source).toContain("'admin_adjustment', 'debug'");
+    expect(source).toContain('debug_unlimited:');
   });
 });
