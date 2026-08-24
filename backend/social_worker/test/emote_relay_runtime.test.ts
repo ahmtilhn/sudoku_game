@@ -104,6 +104,40 @@ describe('runtime online duel emote relay', () => {
     vi.useRealTimers();
   });
 
+  it('relays expanded text and taunt emote ids', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(25_000);
+    const state = new FakeDurableObjectState();
+    const room = new GameRoom(
+      state as unknown as DurableObjectState,
+      { DB: {} } as never,
+    );
+    const playerA = new FakeSocket('player-a');
+    const playerB = new FakeSocket('player-b');
+    state.accept(playerA);
+    state.accept(playerB);
+    const duel = _duel();
+    duel.status = 'active';
+    await state.storage.put('duelState', duel);
+
+    await room.webSocketMessage(
+      playerA as unknown as WebSocket,
+      JSON.stringify({ v: 1, type: 'emote', payload: { emoteId: 'gg' } }),
+    );
+
+    expect(playerB.sent).toHaveLength(1);
+    expect(playerB.sent[0]).toMatchObject({
+      type: 'emote',
+      payload: { seat: 'A', emoteId: 'gg' },
+    });
+    expect(playerA.sent.at(-1)).toMatchObject({
+      type: 'emote_ack',
+      payload: { seat: 'A', emoteId: 'gg', recipientCount: 1 },
+    });
+
+    vi.useRealTimers();
+  });
+
   it('rate-limits repeats across allowed phases', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(10_000);
