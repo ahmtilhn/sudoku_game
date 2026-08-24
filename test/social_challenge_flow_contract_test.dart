@@ -3,20 +3,30 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('modern home mounts the global push navigation gate', () {
+  test('modern home mounts a non-interrupting global push gate', () {
     final shell = File(
       'lib/features/home/main_experience_shell.dart',
     ).readAsStringSync();
     final gate = File(
       'lib/features/home/push_room_navigation_gate.dart',
     ).readAsStringSync();
+    final challengeGate = File(
+      'lib/features/social/challenge_navigation_gate.dart',
+    ).readAsStringSync();
 
     expect(shell, contains('PushRoomNavigationGate('));
     expect(gate, contains('_push.initialize()'));
     expect(gate, contains('PreMatchReadyScreen(roomId: roomId)'));
-    expect(gate, contains('UxChallengeInvitationScreen('));
     expect(gate, contains('RematchInvitationScreen('));
     expect(gate, contains('SocialHubScreen()'));
+    expect(gate, contains('ModalRoute.of(context)?.isCurrent'));
+    expect(gate, isNot(contains('openedChallengeId.addListener')));
+    expect(gate, isNot(contains('UxChallengeInvitationScreen(')));
+
+    expect(challengeGate, contains('openedChallengeId.addListener'));
+    expect(challengeGate, contains('ChallengeInvitationScreen('));
+    expect(challengeGate, contains('ModalRoute.of(context)?.isCurrent'));
+    expect(challengeGate, contains('_challengeOpenScheduled'));
   });
 
   test('outgoing direct challenge opens and owns a waiting flow', () {
@@ -58,5 +68,23 @@ void main() {
     expect(push, contains('openedChallengeId = ValueNotifier<String?>(null)'));
     expect(push, contains('openedRematchId = ValueNotifier<String?>(null)'));
     expect(push, contains('openedSocialId = ValueNotifier<String?>(null)'));
+  });
+
+  test('foreground challenge becomes a phone notification when UI is deferred', () {
+    final push = File(
+      'lib/services/push_notification_service.dart',
+    ).readAsStringSync();
+
+    expect(
+      push,
+      contains('setForegroundNotificationPresentationOptions('),
+    );
+    expect(push, contains('alert: false'));
+    expect(push, contains('sound: false'));
+    expect(push, contains('const Duration(milliseconds: 350)'));
+    expect(push, contains('_targetStillPending(target)'));
+    expect(push, contains('_showForegroundSystemNotification'));
+    expect(push, contains('AndroidNotificationDetails('));
+    expect(push, contains('DarwinNotificationDetails('));
   });
 }
