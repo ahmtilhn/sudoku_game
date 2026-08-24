@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../services/push_notification_service.dart';
 import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/app_backdrop.dart';
@@ -16,11 +17,9 @@ enum ChallengeWaitingEndReason { none, declined, expired }
 
 ChallengeWaitingEndReason inferMissingChallengeEndReason({
   required int secondsLeft,
-}) {
-  return secondsLeft > 0
-      ? ChallengeWaitingEndReason.declined
-      : ChallengeWaitingEndReason.expired;
-}
+}) => secondsLeft > 0
+    ? ChallengeWaitingEndReason.declined
+    : ChallengeWaitingEndReason.expired;
 
 class ChallengeWaitingScreen extends StatefulWidget {
   const ChallengeWaitingScreen({super.key, required this.challenge});
@@ -34,6 +33,7 @@ class ChallengeWaitingScreen extends StatefulWidget {
 class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     with WidgetsBindingObserver {
   final SocialApiClient _social = SocialApiClient.instance;
+  final PushNotificationService _push = PushNotificationService.instance;
 
   Timer? _pollTimer;
   Timer? _clockTimer;
@@ -46,7 +46,6 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
 
   bool get _ended => _endReason != ChallengeWaitingEndReason.none;
   bool get _routeIsCurrent => ModalRoute.of(context)?.isCurrent ?? false;
-
   int get _secondsLeft => widget.challenge.expiresAt
       .difference(DateTime.now())
       .inSeconds
@@ -56,6 +55,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _push.openedRoomId.addListener(_consumeRoomPush);
     unawaited(_loadRecipientRank());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(_checkStatus());
@@ -86,9 +86,24 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _push.openedRoomId.removeListener(_consumeRoomPush);
     _pollTimer?.cancel();
     _clockTimer?.cancel();
     super.dispose();
+  }
+
+  void _consumeRoomPush() {
+    final roomId = _push.openedRoomId.value?.trim();
+    if (roomId == null || roomId.isEmpty || _ended || _openingRoom) return;
+
+    // Consume synchronously so the global gate, which schedules its navigation
+    // for the next frame, does not push a second ready screen above this route.
+    _push.openedRoomId.value = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_ended && !_openingRoom && _routeIsCurrent) {
+        unawaited(_openRoom(roomId));
+      }
+    });
   }
 
   Future<void> _loadRecipientRank() async {
@@ -100,7 +115,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       );
       if (mounted) setState(() => _recipientRank = summary);
     } catch (_) {
-      // Public rank is optional for the waiting UI.
+      // Rank details are decorative and may be private.
     }
   }
 
@@ -130,17 +145,14 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
             roomId = activeRoomId;
           }
         }
-        if (roomId != null && roomId.isNotEmpty) {
-          await _openRoom(roomId);
-        }
+        if (roomId != null && roomId.isNotEmpty) await _openRoom(roomId);
         return;
       }
 
       if (challenge.status == 'pending') {
-        if (_error != null && mounted) setState(() => _error = null);
+        if (_error != null) setState(() => _error = null);
         return;
       }
-
       if (challenge.status == 'declined' || challenge.status == 'cancelled') {
         _finish(ChallengeWaitingEndReason.declined);
         return;
@@ -149,9 +161,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
         _finish(ChallengeWaitingEndReason.expired);
       }
     } on SocialApiException catch (error) {
-      if (mounted && _routeIsCurrent) {
-        setState(() => _error = error.message);
-      }
+      if (mounted && _routeIsCurrent) setState(() => _error = error.message);
     } catch (_) {
       if (mounted && _routeIsCurrent) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -167,7 +177,6 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       Navigator.of(context).pop();
       return;
     }
-
     setState(() {
       _cancelling = true;
       _error = null;
@@ -180,15 +189,15 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       try {
         final current = await _social.loadChallenge(widget.challenge.id);
         if (!mounted) return;
-        if (current.status == 'accepted') {
-          final roomId = current.roomId?.trim();
-          if (roomId != null && roomId.isNotEmpty) {
-            await _openRoom(roomId);
-            return;
-          }
+        final roomId = current.roomId?.trim();
+        if (current.status == 'accepted' &&
+            roomId != null &&
+            roomId.isNotEmpty) {
+          await _openRoom(roomId);
+          return;
         }
       } catch (_) {
-        // Keep the original cancellation error.
+        // Keep original cancellation failure visible.
       }
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
@@ -231,7 +240,6 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       orElse: () => SudokuDifficulty.easy,
     );
     final accent = _accent(difficulty);
-
     final title = switch (_endReason) {
       ChallengeWaitingEndReason.declined => context.tr('challenge_declined'),
       ChallengeWaitingEndReason.expired => context.tr('challenge_timed_out'),
