@@ -4,14 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
+import '../../data/career_catalog.dart';
 import '../../data/local_progress_store.dart';
 import '../../data/samurai_game_session_store.dart';
 import '../../data/ux_game_session_store.dart';
 import '../../domain/sudoku.dart';
+import '../../domain/sudoku_variant.dart';
 import '../../localization/app_strings.dart';
 import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/game_interstitial_service.dart';
+import '../../services/offline_reward_service.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
@@ -80,10 +83,22 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   bool _paused = false;
   bool _roundLost = false;
   bool _lossVisible = false;
+  bool _lossAdShown = false;
   bool _hintBusy = false;
 
   bool get _canUndo =>
       _ready && !_completed && !_paused && !_roundLost && _history.isNotEmpty;
+
+  bool get _isCareerPuzzle =>
+      CareerCatalog.numberFromId(widget.puzzle.id) != null;
+
+  bool get _earnsRepeatCompletionCoins =>
+      widget.puzzle.id.startsWith('generated-') ||
+      widget.puzzle.id.startsWith('classic16-');
+
+  SudokuVariant get _variant => widget.puzzle.size == 16
+      ? SudokuVariant.classic16
+      : SudokuVariant.classic9;
 
   @override
   void initState() {
@@ -405,6 +420,16 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     await _saveNow();
     if (!mounted) return;
 
+    if (!_lossAdShown) {
+      _lossAdShown = true;
+      await GameInterstitialService.instance.recordAndMaybeShow(
+        _isCareerPuzzle
+            ? GameInterstitialContext.careerLoss
+            : GameInterstitialContext.normalPlay,
+      );
+      if (!mounted) return;
+    }
+
     final action = await showModalBottomSheet<_LossAction>(
       context: context,
       isScrollControlled: true,
@@ -514,6 +539,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _mistakes = 0;
       _roundLost = false;
       _errorIndex = null;
+      _lossAdShown = false;
     });
     _startClock();
     _scheduleSave(immediate: true);
@@ -536,6 +562,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _notesMode = false;
       _completed = false;
       _roundLost = false;
+      _lossAdShown = false;
     });
     _startClock();
     _scheduleSave(immediate: true);
@@ -573,8 +600,22 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       hints: _hintsUsed,
     );
     if (!mounted) return;
+
+    if (_earnsRepeatCompletionCoins) {
+      try {
+        await OfflineRewardService.instance.claimQuickPlayCompletion(
+          puzzle: widget.puzzle,
+          variant: _variant,
+        );
+      } catch (error) {
+        debugPrint('Offline completion Coin reward failed: $error');
+      }
+    }
+
     await GameInterstitialService.instance.recordAndMaybeShow(
-      GameInterstitialContext.careerWin,
+      _isCareerPuzzle
+          ? GameInterstitialContext.careerWin
+          : GameInterstitialContext.normalPlay,
     );
     if (!mounted) return;
     final completionCoinReward = positiveCoinDelta(
@@ -582,6 +623,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       EconomyService.instance.balance,
     );
     final initialEarnedCoins = completionCoinReward;
+    final careerLevel = CareerCatalog.numberFromId(widget.puzzle.id);
 
     final stars = _totalMistakes == 0 && _hintsUsed == 0
         ? 3
@@ -602,6 +644,15 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
         hints: _hintsUsed,
         earnedCoins: initialEarnedCoins,
         showNextAction: widget.showNextAction,
+        onDoubleReward:
+            careerLevel != null &&
+                initialEarnedCoins > 0 &&
+                !AdsService.instance.noAds
+            ? () => OfflineRewardService.instance.doubleCareerReward(
+                level: careerLevel,
+                variant: _variant,
+              )
+            : null,
       ),
     );
     if (!mounted) return;
@@ -792,6 +843,7 @@ class _GameResultSheet extends StatefulWidget {
     required this.hints,
     required this.earnedCoins,
     required this.showNextAction,
+    this.onDoubleReward,
   });
 
   final String title;
@@ -801,14 +853,48 @@ class _GameResultSheet extends StatefulWidget {
   final int hints;
   final int earnedCoins;
   final bool showNextAction;
+  final Future<int> Function()? onDoubleReward;
 
   @override
   State<_GameResultSheet> createState() => _GameResultSheetState();
 }
 
 class _GameResultSheetState extends State<_GameResultSheet> {
+  int _bonusCoins = 0;
+  bool _doubling = false;
+  bool _doubleClaimed = false;
+
+  Future<void> _doubleReward() async {
+    final action = widget.onDoubleReward;
+    if (action == null || _doubling || _doubleClaimed) return;
+    setState(() => _doubling = true);
+    try {
+      final bonus = await action();
+      if (!mounted) return;
+      if (bonus > 0) {
+        setState(() {
+          _bonusCoins += bonus;
+          _doubleClaimed = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('rewarded_ad_unavailable'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _doubling = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final totalCoins = widget.earnedCoins + _bonusCoins;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
       child: Column(
@@ -856,7 +942,7 @@ class _GameResultSheetState extends State<_GameResultSheet> {
                   ),
                   _ResultRow(
                     label: context.tr('coin'),
-                    value: '+${widget.earnedCoins}',
+                    value: '+$totalCoins',
                     icon: const DuelAssetIcon(
                       DuelAsset.coin,
                       size: 18,
@@ -867,6 +953,19 @@ class _GameResultSheetState extends State<_GameResultSheet> {
               ),
             ),
           ),
+          if (widget.onDoubleReward != null && !_doubleClaimed) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _doubling ? null : _doubleReward,
+              icon: _doubling
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.ondemand_video_rounded),
+              label: Text('x2 Coins · ${context.tr('watch_rewarded_ad')}'),
+            ),
+          ],
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: () => Navigator.of(context).pop(
