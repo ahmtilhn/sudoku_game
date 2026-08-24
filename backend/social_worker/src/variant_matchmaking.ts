@@ -30,13 +30,7 @@ const FIREBASE_JWKS = createRemoteJWKSet(
   ),
 );
 
-const DIFFICULTIES = new Set([
-  'beginner',
-  'easy',
-  'medium',
-  'hard',
-  'expert',
-]);
+const DIFFICULTIES = new Set(['beginner', 'easy', 'medium', 'hard', 'expert']);
 const ACTIVE_MATCH_STATUSES =
   "'waiting', 'ready_window', 'countdown', 'active', 'paused'";
 const QUEUE_STALE_AFTER_MS = 2 * 60 * 1000;
@@ -226,7 +220,8 @@ export class MatchmakingQueue {
       ) {
         return internalJson(normalized.status, {
           error: normalized.message,
-          code: normalized instanceof EconomyError ? normalized.code : undefined,
+          code:
+            normalized instanceof EconomyError ? normalized.code : undefined,
         });
       }
       console.error('Variant matchmaking coordinator failed', normalized);
@@ -293,7 +288,9 @@ async function coordinateRankedMatch(
   }
 
   const staleBefore = new Date(nowMs - QUEUE_STALE_AFTER_MS).toISOString();
-  const rankedPairCutoff = new Date(nowMs - RANKED_PAIR_WINDOW_MS).toISOString();
+  const rankedPairCutoff = new Date(
+    nowMs - RANKED_PAIR_WINDOW_MS,
+  ).toISOString();
   await env.DB.prepare(
     `DELETE FROM ranked_queue
      WHERE room_id IS NOT NULL OR updated_at < ?`,
@@ -320,8 +317,12 @@ async function coordinateRankedMatch(
     : nowMs;
   const ownWaitMs = Math.max(0, nowMs - ownJoinedAtMs);
   const ownRatingDelta = matchmakingRatingDeltaForWaitMs(ownWaitMs);
-  const fiveSecondsAgo = new Date(nowMs - MATCHMAKING_5_SECONDS_MS).toISOString();
-  const tenSecondsAgo = new Date(nowMs - MATCHMAKING_10_SECONDS_MS).toISOString();
+  const fiveSecondsAgo = new Date(
+    nowMs - MATCHMAKING_5_SECONDS_MS,
+  ).toISOString();
+  const tenSecondsAgo = new Date(
+    nowMs - MATCHMAKING_10_SECONDS_MS,
+  ).toISOString();
   const fifteenSecondsAgo = new Date(
     nowMs - MATCHMAKING_15_SECONDS_MS,
   ).toISOString();
@@ -362,21 +363,9 @@ async function coordinateRankedMatch(
              AND b.player_high_id = CASE WHEN q.player_id < ? THEN ? ELSE q.player_id END
              AND b.status = 'blocked'
          )
-         AND (
-           SELECT COUNT(*)
-           FROM matches recent
-           WHERE recent.mode = 'ranked'
-             AND recent.rated = 1
-             AND recent.finished_at IS NOT NULL
-             AND recent.finished_at >= ?
-             AND (
-               (recent.player_a_id = q.player_id AND recent.player_b_id = ?)
-               OR (recent.player_a_id = ? AND recent.player_b_id = q.player_id)
-             )
-         ) < ?
-       ORDER BY
-         CASE WHEN q.difficulty = ? THEN 0 ELSE 1 END,
-         ABS(q.rating - ?),
+        ORDER BY
+          CASE WHEN q.difficulty = ? THEN 0 ELSE 1 END,
+          ABS(q.rating - ?),
          q.joined_at
        LIMIT 1`,
     )
@@ -396,10 +385,6 @@ async function coordinateRankedMatch(
         input.playerId,
         input.playerId,
         input.playerId,
-        rankedPairCutoff,
-        input.playerId,
-        input.playerId,
-        MAX_RATED_PAIR_MATCHES_24H,
         input.difficulty,
         input.rating,
       )
@@ -460,6 +445,14 @@ async function coordinateRankedMatch(
 
   const roomId = roomIdForVariant(input.variant);
   const matchId = crypto.randomUUID();
+  const recentPairMatches = await recentRatedPairMatchCount(
+    env,
+    opponent.player_id,
+    input.playerId,
+    rankedPairCutoff,
+  );
+  const matchMode =
+    recentPairMatches >= MAX_RATED_PAIR_MATCHES_24H ? 'friendly' : 'ranked';
   try {
     await createVariantFundedMatch(
       env,
@@ -467,7 +460,7 @@ async function coordinateRankedMatch(
         matchId,
         roomId,
         challengeId: null,
-        mode: 'ranked',
+        mode: matchMode,
         difficulty: matchDifficulty,
         variant: input.variant,
         playerAId: opponent.player_id,
@@ -490,6 +483,29 @@ async function coordinateRankedMatch(
     roomId,
     onlineCoins: await coinBalance(env, input.playerId),
   };
+}
+
+async function recentRatedPairMatchCount(
+  env: VariantMatchmakingEnv,
+  playerAId: string,
+  playerBId: string,
+  cutoff: string,
+): Promise<number> {
+  const pair = await env.DB.prepare(
+    `SELECT COUNT(*) AS value
+     FROM matches recent
+     WHERE recent.mode = 'ranked'
+       AND recent.rated = 1
+       AND recent.finished_at IS NOT NULL
+       AND recent.finished_at >= ?
+       AND (
+         (recent.player_a_id = ? AND recent.player_b_id = ?)
+         OR (recent.player_a_id = ? AND recent.player_b_id = ?)
+       )`,
+  )
+    .bind(cutoff, playerAId, playerBId, playerBId, playerAId)
+    .first<{ value: number }>();
+  return Number(pair?.value ?? 0);
 }
 
 function easierDifficulty(left: string, right: string): string {
@@ -533,13 +549,7 @@ async function createVariantFundedMatch(
      SET variant = ?, board_size = ?, cell_count = ?, updated_at = ?
      WHERE id = ?`,
   )
-    .bind(
-      variant,
-      config.boardSize,
-      config.cellCount,
-      input.now,
-      input.matchId,
-    )
+    .bind(variant, config.boardSize, config.cellCount, input.now, input.matchId)
     .run();
 }
 
@@ -704,9 +714,7 @@ class MatchmakingHttpError extends Error {
   }
 }
 
-async function safeJson(
-  response: Response,
-): Promise<Record<string, unknown>> {
+async function safeJson(response: Response): Promise<Record<string, unknown>> {
   try {
     const value = await response.json();
     return value && typeof value === 'object' && !Array.isArray(value)
@@ -723,7 +731,10 @@ function routeError(env: VariantMatchmakingEnv, error: unknown): Response {
   }
   const normalized = normalizeFundingError(error);
   if (normalized instanceof EconomyError) {
-    return json(env, normalized.status, { error: normalized.message, code: normalized.code });
+    return json(env, normalized.status, {
+      error: normalized.message,
+      code: normalized.code,
+    });
   }
   if (normalized instanceof MatchmakingHttpError) {
     return json(env, normalized.status, { error: normalized.message });

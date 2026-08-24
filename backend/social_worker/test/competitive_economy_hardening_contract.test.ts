@@ -10,7 +10,10 @@ const hardening = readFileSync(
   'utf8',
 );
 const migration = readFileSync(
-  new URL('../migrations/0027_competitive_economy_hardening.sql', import.meta.url),
+  new URL(
+    '../migrations/0027_competitive_economy_hardening.sql',
+    import.meta.url,
+  ),
   'utf8',
 );
 const entry = readFileSync(
@@ -29,16 +32,22 @@ describe('competitive economy hardening', () => {
     const activeQueryStart = matchmaking.indexOf(
       'SELECT room_id, difficulty, variant, board_size, cell_count',
     );
-    const activeQueryEnd = matchmaking.indexOf('ORDER BY created_at DESC', activeQueryStart);
+    const activeQueryEnd = matchmaking.indexOf(
+      'ORDER BY created_at DESC',
+      activeQueryStart,
+    );
     const activeQuery = matchmaking.slice(activeQueryStart, activeQueryEnd);
     expect(activeQuery).toContain('(player_a_id = ? OR player_b_id = ?)');
     expect(activeQuery).not.toContain('AND variant = ?');
   });
 
-  it('skips ranked opponents whose rolling pair allowance is exhausted', () => {
+  it('keeps pairing alive when the rolling ranked pair allowance is exhausted', () => {
     expect(matchmaking).toContain('MAX_RATED_PAIR_MATCHES_24H');
     expect(matchmaking).toContain('rankedPairCutoff');
-    expect(matchmaking).toContain('SELECT COUNT(*)');
+    expect(matchmaking).toContain('recentRatedPairMatchCount');
+    expect(matchmaking).toContain(
+      "recentPairMatches >= MAX_RATED_PAIR_MATCHES_24H ? 'friendly' : 'ranked'",
+    );
     expect(matchmaking).toContain("recent.mode = 'ranked'");
   });
 
@@ -54,7 +63,9 @@ describe('competitive economy hardening', () => {
 
   it('requires negative legacy debits to prove that the wallet actually moved', () => {
     for (const source of [hardening, migration]) {
-      expect(source).toContain("NEW.reason IN ('match_entry', 'career_continue')");
+      expect(source).toContain(
+        "NEW.reason IN ('match_entry', 'career_continue')",
+      );
       expect(source).toContain('ORDER BY created_at DESC, rowid DESC');
       expect(source).toContain("RAISE(ABORT, 'coin_debit_balance_invariant')");
     }
@@ -62,7 +73,9 @@ describe('competitive economy hardening', () => {
 
   it('makes payout and refund wallet mutations idempotent before crediting', () => {
     for (const source of [hardening, migration]) {
-      expect(source).toContain("idempotency_key = 'match_payout:' || NEW.match_id");
+      expect(source).toContain(
+        "idempotency_key = 'match_payout:' || NEW.match_id",
+      );
       expect(source).toContain(
         "idempotency_key = 'match_refund:' || NEW.id || ':' || NEW.player_a_id",
       );
@@ -77,7 +90,9 @@ describe('competitive economy hardening', () => {
   it('installs the hardening before entry_v2 routes requests', () => {
     expect(entry).toContain("from './competitive_economy_hardening'");
     expect(entry).toContain('await ensureCompetitiveEconomyHardening(env)');
-    const install = entry.indexOf('await ensureCompetitiveEconomyHardening(env)');
+    const install = entry.indexOf(
+      'await ensureCompetitiveEconomyHardening(env)',
+    );
     const rankRoute = entry.indexOf('isRankProgressionRoute(url.pathname)');
     expect(install).toBeGreaterThanOrEqual(0);
     expect(rankRoute).toBeGreaterThan(install);
