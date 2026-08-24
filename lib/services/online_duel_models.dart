@@ -264,11 +264,6 @@ class OnlineDuelSnapshot {
     );
 
     final parsedRating = _rating(json['rating']);
-    final presentationRating = parsedRating ??
-        (status == OnlineDuelStatus.completed ||
-                status == OnlineDuelStatus.forfeited
-            ? const <OnlineDuelSeat, OnlineDuelRatingChange>{}
-            : null);
 
     return OnlineDuelSnapshot(
       roomId: json['roomId']?.toString() ?? '',
@@ -296,7 +291,7 @@ class OnlineDuelSnapshot {
       revision: (json['revision'] as num?)?.toInt() ?? 0,
       winnerSeat: _seat(json['winnerSeat']?.toString()),
       finishReason: json['finishReason']?.toString(),
-      rating: presentationRating,
+      rating: parsedRating,
       coinSettlement: OnlineDuelCoinSettlement.parse(json['coinSettlement']),
     );
   }
