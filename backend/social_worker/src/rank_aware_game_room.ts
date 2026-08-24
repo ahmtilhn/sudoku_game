@@ -6,14 +6,36 @@ import {
 import { refreshRankPostSettlement } from './rank_post_settlement';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
 
+const DUEL_EMOTE_IDS = new Set([
+  'smile',
+  'laugh',
+  'smug',
+  'bored',
+  'fire',
+  'crown',
+  'shocked',
+  'respect',
+]);
+const DUEL_EMOTE_COOLDOWN_MS = 3_000;
+
+type EmoteSeat = 'A' | 'B';
+type EmoteDuelState = {
+  roomId?: unknown;
+  revision?: unknown;
+  status?: unknown;
+  playerA?: { player?: { id?: unknown } };
+  playerB?: { player?: { id?: unknown } };
+};
+type EmoteCooldownState = Partial<Record<EmoteSeat, number>>;
+
 /**
  * Production wrapper around the existing authoritative GameRoom.
  *
  * The base class still owns WebSocket state, Sudoku result authority, hidden
- * Elo/MMR and Coin escrow settlement. This wrapper only reacts after that
- * settlement is visible in D1 and reconciles the additive RP/rank-reward
- * layer. Failure here is logged and self-heals through the existing rank
- * endpoints/backfill; it can never turn a completed duel back into a failure.
+ * Elo/MMR and Coin escrow settlement. This wrapper only adds two independent
+ * concerns: ephemeral, rate-limited duel emotes and post-settlement RP/rank
+ * reconciliation. Neither concern can mutate the authoritative Sudoku board,
+ * turn revision, Elo/MMR or Coin settlement.
  */
 export class GameRoom extends AuthoritativeGameRoom {
   private knownRoomId: string | null = null;
@@ -38,6 +60,7 @@ export class GameRoom extends AuthoritativeGameRoom {
     socket: WebSocket,
     message: string | ArrayBuffer,
   ): Promise<void> {
+    if (await this.handleEmoteMessage(socket, message)) return;
     await super.webSocketMessage(socket, message);
     await this.reconcileRankIfAuthoritativelySettled();
   }
@@ -45,6 +68,141 @@ export class GameRoom extends AuthoritativeGameRoom {
   override async alarm(): Promise<void> {
     await super.alarm();
     await this.reconcileRankIfAuthoritativelySettled();
+  }
+
+  private async handleEmoteMessage(
+    socket: WebSocket,
+    message: string | ArrayBuffer,
+  ): Promise<boolean> {
+    const text =
+      typeof message === 'string' ? message : new TextDecoder().decode(message);
+    if (text.length > 4096) return false;
+
+    let parsed: {
+      v?: unknown;
+      type?: unknown;
+      payload?: { emoteId?: unknown } | null;
+    };
+    try {
+      parsed = JSON.parse(text) as typeof parsed;
+    } catch {
+      return false;
+    }
+    if (parsed.v !== 1 || parsed.type !== 'emote') return false;
+
+    const now = Date.now();
+    const duel = await this.rankState.storage.get<EmoteDuelState>('duelState');
+    const [playerId] = this.rankState.getTags(socket);
+    const seat = this.emoteSeatForPlayer(duel, playerId);
+    if (!duel || !seat) {
+      this.sendEmoteEvent(socket, {
+        type: 'emote_rejected',
+        roomId: String(duel?.roomId ?? 'room'),
+        revision: Number(duel?.revision ?? 0),
+        seat: seat ?? 'A',
+        now,
+        payload: { reason: 'room_not_initialized' },
+      });
+      return true;
+    }
+
+    const roomId = String(duel.roomId ?? this.knownRoomId ?? 'room');
+    const revision = Number(duel.revision ?? 0);
+    const emoteId =
+      typeof parsed.payload?.emoteId === 'string'
+        ? parsed.payload.emoteId.trim()
+        : '';
+
+    if (String(duel.status ?? '') !== 'active') {
+      this.sendEmoteEvent(socket, {
+        type: 'emote_rejected',
+        roomId,
+        revision,
+        seat,
+        now,
+        payload: { reason: 'game_not_active' },
+      });
+      return true;
+    }
+    if (!DUEL_EMOTE_IDS.has(emoteId)) {
+      this.sendEmoteEvent(socket, {
+        type: 'emote_rejected',
+        roomId,
+        revision,
+        seat,
+        now,
+        payload: { reason: 'invalid_emote' },
+      });
+      return true;
+    }
+
+    const cooldowns =
+      (await this.rankState.storage.get<EmoteCooldownState>(
+        'duelEmoteCooldowns',
+      )) ?? {};
+    const lastSentAt = cooldowns[seat] ?? 0;
+    if (now - lastSentAt < DUEL_EMOTE_COOLDOWN_MS) {
+      this.sendEmoteEvent(socket, {
+        type: 'emote_rejected',
+        roomId,
+        revision,
+        seat,
+        now,
+        payload: { reason: 'emote_cooldown' },
+      });
+      return true;
+    }
+
+    cooldowns[seat] = now;
+    await this.rankState.storage.put('duelEmoteCooldowns', cooldowns);
+    for (const target of this.rankState.getWebSockets()) {
+      this.sendEmoteEvent(target, {
+        type: 'emote',
+        roomId,
+        revision,
+        seat,
+        now,
+        payload: { emoteId },
+      });
+    }
+    return true;
+  }
+
+  private emoteSeatForPlayer(
+    duel: EmoteDuelState | undefined,
+    playerId: string | undefined,
+  ): EmoteSeat | null {
+    if (!duel || !playerId) return null;
+    if (String(duel.playerA?.player?.id ?? '') === playerId) return 'A';
+    if (String(duel.playerB?.player?.id ?? '') === playerId) return 'B';
+    return null;
+  }
+
+  private sendEmoteEvent(
+    socket: WebSocket,
+    input: {
+      type: 'emote' | 'emote_rejected';
+      roomId: string;
+      revision: number;
+      seat: EmoteSeat;
+      now: number;
+      payload: { emoteId?: string; reason?: string };
+    },
+  ): void {
+    try {
+      socket.send(
+        JSON.stringify({
+          v: 1,
+          type: input.type,
+          eventId: `${input.roomId}:${input.revision}:${input.type}:${input.seat}:${input.now}`,
+          revision: input.revision,
+          serverTime: input.now,
+          payload: { seat: input.seat, ...input.payload },
+        }),
+      );
+    } catch {
+      // Closed sockets are removed by the Durable Object hibernation runtime.
+    }
   }
 
   private async reconcileRankIfAuthoritativelySettled(): Promise<void> {
