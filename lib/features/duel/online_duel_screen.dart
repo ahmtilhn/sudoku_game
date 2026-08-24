@@ -11,6 +11,7 @@ import '../../models/rank_identity_models.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
 import '../../services/online_duel_controller.dart';
+import '../../services/online_duel_emote_hub.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
 import '../../services/rank_identity_service.dart';
@@ -327,11 +328,13 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     _shownResultFor = snapshot.matchId;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      try {
-        await EconomyService.instance.refresh(showLoading: false);
-      } catch (error) {
-        debugPrint('Result economy refresh unavailable: $error');
-      }
+      unawaited(
+        EconomyService.instance.refresh(showLoading: false).catchError((
+          Object error,
+        ) {
+          debugPrint('Result economy refresh unavailable: $error');
+        }),
+      );
       if (!mounted) return;
       final action = await showModalBottomSheet<String>(
         context: context,
@@ -777,6 +780,11 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
           ),
         ],
         const SizedBox(height: 14),
+        const OnlineDuelInlineEmoteSurface(
+          key: ValueKey<String>('result-screen-emotes'),
+          accent: Color(0xFFFFC857),
+        ),
+        const SizedBox(height: 12),
         _ResultActionGrid(
           busy: _busy,
           canPlay: canPlay,
@@ -1498,11 +1506,15 @@ class _ResultRankBar extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             SizedBox(width: 9),
-            Text(
-              'Updating Rank Points…',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
+            Expanded(
+              child: Text(
+                'Updating Rank Points…',
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],

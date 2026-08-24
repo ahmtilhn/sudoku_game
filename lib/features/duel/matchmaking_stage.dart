@@ -61,6 +61,7 @@ class MatchmakingStage extends StatefulWidget {
     this.searchStatus,
     this.opponentStatus,
     this.opponentReady = false,
+    this.floatingControl,
   });
 
   final MatchmakingVisualPlayer currentPlayer;
@@ -74,6 +75,7 @@ class MatchmakingStage extends StatefulWidget {
   final String? searchStatus;
   final String? opponentStatus;
   final bool opponentReady;
+  final Widget? floatingControl;
 
   bool get matched => opponent != null;
 
@@ -250,7 +252,11 @@ class _MatchmakingStageState extends State<MatchmakingStage>
                         child: FadeTransition(
                           opacity: CurvedAnimation(
                             parent: _introController,
-                            curve: const Interval(.36, 1, curve: Curves.easeOut),
+                            curve: const Interval(
+                              .36,
+                              1,
+                              curve: Curves.easeOut,
+                            ),
                           ),
                           child: _MatchmakingActionButton(
                             label: widget.actionLabel,
@@ -260,6 +266,12 @@ class _MatchmakingStageState extends State<MatchmakingStage>
                           ),
                         ),
                       ),
+                      if (widget.floatingControl != null)
+                        Positioned(
+                          right: 18,
+                          bottom: compact ? 88 : 98,
+                          child: widget.floatingControl!,
+                        ),
                     ],
                   );
                 },
@@ -290,10 +302,7 @@ class _EntranceMotion extends AnimatedWidget {
       opacity: t,
       child: Transform.translate(
         offset: Offset(from.dx * (1 - t), from.dy * (1 - t)),
-        child: Transform.scale(
-          scale: .97 + (.03 * t),
-          child: child,
-        ),
+        child: Transform.scale(scale: .97 + (.03 * t), child: child),
       ),
     );
   }
@@ -424,7 +433,8 @@ class _SearchingOpponentContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final breathe = 1 + .025 * ((math.sin(animationValue * math.pi * 2) + 1) / 2);
+    final breathe =
+        1 + .025 * ((math.sin(animationValue * math.pi * 2) + 1) / 2);
     return Column(
       children: [
         Transform.scale(
@@ -522,15 +532,14 @@ class _MatchedOpponentContent extends StatelessWidget {
           children: [
             Icon(
               ready ? Icons.check_circle_rounded : Icons.link_rounded,
-              color: ready
-                  ? const Color(0xFF39D98A)
-                  : const Color(0xFF66C7FF),
+              color: ready ? const Color(0xFF39D98A) : const Color(0xFF66C7FF),
               size: 16,
             ),
             const SizedBox(width: 5),
             Flexible(
               child: Text(
-                status ?? (ready ? context.tr('ready') : context.tr('connected')),
+                status ??
+                    (ready ? context.tr('ready') : context.tr('connected')),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -621,10 +630,9 @@ class _AvatarRing extends StatelessWidget {
         avatarKey: player.avatarKey,
         remoteApprovedImageUrl: player.remoteApprovedImageUrl,
         radius: 32,
-        semanticLabel: context.tr(
-          'player_avatar_semantics',
-          <Object>[player.displayName],
-        ),
+        semanticLabel: context.tr('player_avatar_semantics', <Object>[
+          player.displayName,
+        ]),
       ),
     );
   }
@@ -704,9 +712,15 @@ class _UnknownStatsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _Stat(value: '—', label: context.tr('match_type'))),
-        Expanded(child: _Stat(value: '—', label: context.tr('win_rate'))),
-        const Expanded(child: _Stat(value: '—', label: 'RP')),
+        Expanded(
+          child: _Stat(value: '—', label: context.tr('match_type')),
+        ),
+        Expanded(
+          child: _Stat(value: '—', label: context.tr('win_rate')),
+        ),
+        const Expanded(
+          child: _Stat(value: '—', label: 'RP'),
+        ),
       ],
     );
   }
@@ -926,7 +940,11 @@ class _MatchmakingActionButtonState extends State<_MatchmakingActionButton> {
                                 color: Color(0xFF8FCBFF),
                               ),
                             )
-                          : Icon(widget.icon, color: const Color(0xFFA9C5FF), size: 22),
+                          : Icon(
+                              widget.icon,
+                              color: const Color(0xFFA9C5FF),
+                              size: 22,
+                            ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -1006,8 +1024,8 @@ class _MatchmakingEnergyPainter extends CustomPainter {
       final t = i / (_zig.length - 1);
       final base = Offset.lerp(start, end, t)!;
       final fixed = normal * (_zig[i] * 18);
-      final animated = normal *
-          (math.sin(progress * math.pi * 2 + i * 1.37) * jitter);
+      final animated =
+          normal * (math.sin(progress * math.pi * 2 + i * 1.37) * jitter);
       final point = base + fixed + animated;
       points.add(point);
       if (i == 0) {
@@ -1024,9 +1042,9 @@ class _MatchmakingEnergyPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = 13 + flash * 5
-      ..color = const Color(0xFF7B42FF).withValues(
-        alpha: (.12 + flash * .10) * visible,
-      )
+      ..color = const Color(
+        0xFF7B42FF,
+      ).withValues(alpha: (.12 + flash * .10) * visible)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
     final middle = Paint()
       ..style = PaintingStyle.stroke
@@ -1044,9 +1062,9 @@ class _MatchmakingEnergyPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..strokeWidth = 1.8 + flash * 1.0
-      ..color = const Color(0xFFE7F5FF).withValues(
-        alpha: (.86 + flash * .14) * visible,
-      );
+      ..color = const Color(
+        0xFFE7F5FF,
+      ).withValues(alpha: (.86 + flash * .14) * visible);
 
     canvas.drawPath(path, outer);
     canvas.drawPath(path, middle);
@@ -1072,15 +1090,15 @@ class _MatchmakingEnergyPainter extends CustomPainter {
     const indices = <int>[2, 4, 7, 8];
     for (var j = 0; j < indices.length; j++) {
       final index = indices[j];
-      final flicker = math.pow(
-        ((math.sin(progress * math.pi * 4 + j * 2.1) + 1) / 2),
-        5,
-      ).toDouble();
+      final flicker = math
+          .pow(((math.sin(progress * math.pi * 4 + j * 2.1) + 1) / 2), 5)
+          .toDouble();
       final alpha = (.08 + flicker * .44 + flash * .12) * visible;
       if (alpha < .10) continue;
       final anchor = points[index];
       final sign = j.isEven ? 1.0 : -1.0;
-      final end = anchor + normal * (sign * (14 + j * 3)) + Offset(4 * sign, -7);
+      final end =
+          anchor + normal * (sign * (14 + j * 3)) + Offset(4 * sign, -7);
       final p = Path()
         ..moveTo(anchor.dx, anchor.dy)
         ..lineTo(end.dx, end.dy);
@@ -1106,17 +1124,18 @@ class _MatchmakingEnergyPainter extends CustomPainter {
     for (var i = 0; i < count; i++) {
       final t = (i / count + progress * .075) % 1;
       final base = start + delta * t;
-      final drift = math.sin(i * 1.73 + progress * math.pi * 2) * (8 + (i % 3) * 3);
+      final drift =
+          math.sin(i * 1.73 + progress * math.pi * 2) * (8 + (i % 3) * 3);
       final point = base + normal * drift + Offset(math.sin(i * 2.2) * 5, 0);
-      final pulse = .35 + .65 * ((math.sin(progress * math.pi * 2 + i) + 1) / 2);
+      final pulse =
+          .35 + .65 * ((math.sin(progress * math.pi * 2 + i) + 1) / 2);
       canvas.drawCircle(
         point,
         i % 4 == 0 ? 1.4 : .8,
         Paint()
-          ..color = (i.isEven
-                  ? const Color(0xFF79BFFF)
-                  : const Color(0xFFB077FF))
-              .withValues(alpha: .45 * pulse * visible),
+          ..color =
+              (i.isEven ? const Color(0xFF79BFFF) : const Color(0xFFB077FF))
+                  .withValues(alpha: .45 * pulse * visible),
       );
     }
   }
@@ -1128,27 +1147,27 @@ class _MatchmakingEnergyPainter extends CustomPainter {
       center,
       radius * 3.2,
       Paint()
-        ..color = const Color(0xFF5E7DFF).withValues(
-          alpha: (.08 + flash * .12) * visible,
-        )
+        ..color = const Color(
+          0xFF5E7DFF,
+        ).withValues(alpha: (.08 + flash * .12) * visible)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 13),
     );
     canvas.drawCircle(
       center,
       radius * 1.6,
       Paint()
-        ..color = const Color(0xFF6CC7FF).withValues(
-          alpha: (.22 + flash * .16) * visible,
-        )
+        ..color = const Color(
+          0xFF6CC7FF,
+        ).withValues(alpha: (.22 + flash * .16) * visible)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
     canvas.drawCircle(
       center,
       radius,
       Paint()
-        ..color = const Color(0xFFF4FBFF).withValues(
-          alpha: (.88 + flash * .12) * visible,
-        ),
+        ..color = const Color(
+          0xFFF4FBFF,
+        ).withValues(alpha: (.88 + flash * .12) * visible),
     );
   }
 
@@ -1160,9 +1179,9 @@ class _MatchmakingEnergyPainter extends CustomPainter {
     for (var i = 0; i < cycles; i++) {
       final phase = reducedMotion ? .36 : (progress + i / cycles) % 1;
       final radius = 14 + phase * 42 + flash * 12;
-      ringPaint.color = const Color(0xFF6FAEFF).withValues(
-        alpha: (1 - phase) * .25 * visible + flash * .10 * visible,
-      );
+      ringPaint.color = const Color(
+        0xFF6FAEFF,
+      ).withValues(alpha: (1 - phase) * .25 * visible + flash * .10 * visible);
       canvas.drawCircle(center, radius, ringPaint);
     }
     if (flash > .01) {
@@ -1173,9 +1192,9 @@ class _MatchmakingEnergyPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.4
-          ..color = const Color(0xFFA783FF).withValues(
-            alpha: (1 - matchProgress) * .48 * visible,
-          ),
+          ..color = const Color(
+            0xFFA783FF,
+          ).withValues(alpha: (1 - matchProgress) * .48 * visible),
       );
     }
   }

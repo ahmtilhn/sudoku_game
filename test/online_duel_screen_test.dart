@@ -239,6 +239,64 @@ void main() {
       hasLength(1),
     );
   });
+
+  testWidgets(
+    'win result sheet has emotes and renders incoming opponent emote',
+    (tester) async {
+      final transport = await _pumpOnlineDuel(
+        tester,
+        size: const Size(390, 844),
+        status: 'completed',
+        winnerSeat: 'A',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(
+        find.byKey(const ValueKey<String>('result-screen-emotes')),
+        findsOneWidget,
+      );
+      transport.emit(_event('emote', {'seat': 'B', 'emoteId': 'crown'}));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('result-screen-emotes')),
+          matching: find.byIcon(Icons.workspace_premium_rounded),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'loss result sheet has emotes and renders incoming opponent emote',
+    (tester) async {
+      final transport = await _pumpOnlineDuel(
+        tester,
+        size: const Size(390, 844),
+        status: 'completed',
+        winnerSeat: 'B',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(
+        find.byKey(const ValueKey<String>('result-screen-emotes')),
+        findsOneWidget,
+      );
+      transport.emit(_event('emote', {'seat': 'B', 'emoteId': 'shocked'}));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('result-screen-emotes')),
+          matching: find.byIcon(Icons.sentiment_very_dissatisfied_rounded),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 Future<FakeOnlineDuelTransport> _pumpOnlineDuel(
@@ -251,6 +309,7 @@ Future<FakeOnlineDuelTransport> _pumpOnlineDuel(
   String status = 'ready_window',
   String currentTurnSeat = 'A',
   bool opponentConnected = true,
+  String? winnerSeat,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -290,6 +349,7 @@ Future<FakeOnlineDuelTransport> _pumpOnlineDuel(
         status: status,
         currentTurnSeat: currentTurnSeat,
         opponentConnected: opponentConnected,
+        winnerSeat: winnerSeat,
       ),
     ),
   );
@@ -329,6 +389,7 @@ Map<String, dynamic> _snapshot({
   String status = 'active',
   String currentTurnSeat = 'A',
   bool opponentConnected = true,
+  String? winnerSeat,
 }) {
   final puzzle = List<int>.filled(81, 0)..[0] = 1;
   final now = DateTime.now();
@@ -379,5 +440,27 @@ Map<String, dynamic> _snapshot({
     'pausedTurnRemainingMs': status == 'paused' ? 17000 : null,
     'serverTime': 1000,
     'revision': 2,
+    ...(winnerSeat == null
+        ? const <String, dynamic>{}
+        : <String, dynamic>{'winnerSeat': winnerSeat}),
+    if (status == 'completed' || status == 'forfeited')
+      'rating': {
+        'A': {
+          'beforeGlobal': 1000,
+          'afterGlobal': winnerSeat == 'A' ? 1010 : 990,
+          'deltaGlobal': winnerSeat == 'A' ? 10 : -10,
+          'beforeDifficulty': 1000,
+          'afterDifficulty': winnerSeat == 'A' ? 1010 : 990,
+          'deltaDifficulty': winnerSeat == 'A' ? 10 : -10,
+        },
+        'B': {
+          'beforeGlobal': 1000,
+          'afterGlobal': winnerSeat == 'B' ? 1010 : 990,
+          'deltaGlobal': winnerSeat == 'B' ? 10 : -10,
+          'beforeDifficulty': 1000,
+          'afterDifficulty': winnerSeat == 'B' ? 1010 : 990,
+          'deltaDifficulty': winnerSeat == 'B' ? 10 : -10,
+        },
+      },
   };
 }

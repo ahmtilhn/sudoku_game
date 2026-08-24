@@ -5,19 +5,30 @@ import 'package:sudoku_game/services/online_duel_models.dart';
 import 'package:sudoku_game/services/online_duel_transport.dart';
 
 void main() {
-  test('active duel sends a whitelisted emote through the transport', () async {
-    final transport = FakeOnlineDuelTransport();
-    final controller = OnlineDuelController(transport)..start();
-    transport.emit(_event('snapshot', _snapshot()));
-    await pumpEventQueue();
+  test(
+    'allowed duel phases send a whitelisted emote through the transport',
+    () async {
+      for (final status in <String>[
+        'ready_window',
+        'countdown',
+        'active',
+        'completed',
+        'forfeited',
+      ]) {
+        final transport = FakeOnlineDuelTransport();
+        final controller = OnlineDuelController(transport)..start();
+        transport.emit(_event('snapshot', _snapshot(status: status)));
+        await pumpEventQueue();
 
-    expect(controller.sendEmote('laugh'), isTrue);
-    final message = transport.sent.last;
-    expect(message['type'], 'emote');
-    expect((message['payload'] as Map)['emoteId'], 'laugh');
+        expect(controller.sendEmote('laugh'), isTrue);
+        final message = transport.sent.last;
+        expect(message['type'], 'emote');
+        expect((message['payload'] as Map)['emoteId'], 'laugh');
 
-    await controller.dispose();
-  });
+        await controller.dispose();
+      }
+    },
+  );
 
   test('opponent emote event is exposed to the presentation hub', () async {
     final transport = FakeOnlineDuelTransport();
@@ -36,16 +47,41 @@ void main() {
     expect(OnlineDuelEmoteHub.instance.attached, isFalse);
   });
 
-  test('emote sending is disabled outside an active duel', () async {
-    final transport = FakeOnlineDuelTransport();
-    final controller = OnlineDuelController(transport)..start();
-    transport.emit(_event('snapshot', _snapshot(status: 'ready_window')));
-    await pumpEventQueue();
+  test('emote sending is disabled in disallowed terminal states', () async {
+    for (final status in <String>['cancelled', 'abandoned']) {
+      final transport = FakeOnlineDuelTransport();
+      final controller = OnlineDuelController(transport)..start();
+      transport.emit(_event('snapshot', _snapshot(status: status)));
+      await pumpEventQueue();
 
-    expect(controller.sendEmote('smile'), isFalse);
-    expect(transport.sent.where((message) => message['type'] == 'emote'), isEmpty);
+      expect(controller.sendEmote('smile'), isFalse);
+      expect(
+        transport.sent.where((message) => message['type'] == 'emote'),
+        isEmpty,
+      );
 
-    await controller.dispose();
+      await controller.dispose();
+    }
+  });
+
+  test('opponent emote reception works in ready and result phases', () async {
+    for (final status in <String>['ready_window', 'completed']) {
+      final transport = FakeOnlineDuelTransport();
+      final controller = OnlineDuelController(transport)..start();
+      transport.emit(
+        _event('snapshot', _snapshot(status: status, youSeat: 'A')),
+      );
+      await pumpEventQueue();
+
+      transport.emit(
+        _event('emote', <String, dynamic>{'seat': 'B', 'emoteId': 'respect'}),
+      );
+      await pumpEventQueue();
+
+      expect(OnlineDuelEmoteHub.instance.incomingEmoteId, 'respect');
+
+      await controller.dispose();
+    }
   });
 }
 

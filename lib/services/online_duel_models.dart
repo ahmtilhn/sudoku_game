@@ -17,6 +17,15 @@ enum OnlineDuelSeat { a, b }
 
 const Object _unsetOnlineDuelValue = Object();
 
+bool onlineDuelStatusAllowsEmotes(OnlineDuelStatus status) {
+  return status == OnlineDuelStatus.waiting ||
+      status == OnlineDuelStatus.readyWindow ||
+      status == OnlineDuelStatus.countdown ||
+      status == OnlineDuelStatus.active ||
+      status == OnlineDuelStatus.completed ||
+      status == OnlineDuelStatus.forfeited;
+}
+
 class OnlineDuelPlayer {
   const OnlineDuelPlayer({
     required this.publicId,
@@ -52,10 +61,7 @@ class OnlineDuelPlayer {
       ready: ready ?? this.ready,
       screenLoaded: screenLoaded ?? this.screenLoaded,
       connected: connected ?? this.connected,
-      disconnectDeadline: identical(
-        disconnectDeadline,
-        _unsetOnlineDuelValue,
-      )
+      disconnectDeadline: identical(disconnectDeadline, _unsetOnlineDuelValue)
           ? this.disconnectDeadline
           : disconnectDeadline as DateTime?,
     );
@@ -285,8 +291,7 @@ class OnlineDuelSnapshot {
       turnNumber: (json['turnNumber'] as num?)?.toInt() ?? 1,
       readyDeadline: _dateFromMillis(json['readyDeadline']),
       turnDeadline: _dateFromMillis(json['turnDeadline']),
-      pausedTurnRemainingMs:
-          (json['pausedTurnRemainingMs'] as num?)?.toInt(),
+      pausedTurnRemainingMs: (json['pausedTurnRemainingMs'] as num?)?.toInt(),
       serverTime: _dateFromMillis(json['serverTime']) ?? DateTime.now(),
       revision: (json['revision'] as num?)?.toInt() ?? 0,
       winnerSeat: _seat(json['winnerSeat']?.toString()),
@@ -433,7 +438,9 @@ void _validateSnapshotShape({
       throw FormatException('Invalid online duel cell value at index $index.');
     }
     if (clue != 0 && value != clue) {
-      throw FormatException('Online duel board changed a clue at index $index.');
+      throw FormatException(
+        'Online duel board changed a clue at index $index.',
+      );
     }
   }
 }

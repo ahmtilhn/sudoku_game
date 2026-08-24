@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../core/user_safe_error.dart';
 import '../../localization/app_strings.dart';
 import '../../services/online_duel_controller.dart';
+import '../../services/online_duel_emote_hub.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
 import '../../services/rank_identity_service.dart';
@@ -17,10 +18,12 @@ class PreMatchReadyScreen extends StatefulWidget {
     super.key,
     required this.roomId,
     this.initialCurrentPlayer,
+    this.controller,
   });
 
   final String roomId;
   final MatchmakingVisualPlayer? initialCurrentPlayer;
+  final OnlineDuelController? controller;
 
   @override
   State<PreMatchReadyScreen> createState() => _PreMatchReadyScreenState();
@@ -131,7 +134,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
 
     await _snapshotSubscription?.cancel();
     await _connectionSubscription?.cancel();
-    await _controller?.dispose();
+    if (!identical(_controller, widget.controller)) {
+      await _controller?.dispose();
+    }
     _controller = null;
     _screenLoadedSent = false;
     _autoReadySent = false;
@@ -139,10 +144,13 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     _autoReadyTimer = null;
 
     try {
-      final transport = await WebSocketOnlineDuelTransport.connect(
-        widget.roomId,
-      );
-      final controller = OnlineDuelController(transport)..start();
+      final injectedController = widget.controller;
+      final controller =
+          injectedController ??
+          OnlineDuelController(
+            await WebSocketOnlineDuelTransport.connect(widget.roomId),
+          );
+      controller.start();
       final snapshotSubscription = controller.snapshots.listen((snapshot) {
         if (!mounted) return;
         final hadOpponent = _opponent != null;
@@ -398,6 +406,12 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
             ? context.tr('opponent_ready')
             : _connectionLabel(context),
         opponentReady: _opponentReady,
+        floatingControl: _showReadyEmotes
+            ? const OnlineDuelInlineEmoteSurface(
+                key: ValueKey<String>('ready-screen-emotes'),
+                accent: Color(0xFF69CCFF),
+              )
+            : null,
         actionLabel: action.label,
         actionIcon: action.icon,
         actionBusy: _leaving || _connecting || action.busy,
@@ -405,6 +419,16 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         onClose: _leaving ? null : _cancelAndLeave,
       ),
     );
+  }
+
+  bool get _showReadyEmotes {
+    final opponent = _opponent;
+    final status = _snapshot?.status;
+    return opponent != null &&
+        opponent.publicId.trim().isNotEmpty &&
+        status != null &&
+        onlineDuelStatusAllowsEmotes(status) &&
+        _connectionState == OnlineDuelConnectionState.connected;
   }
 
   _StageAction _actionForState(BuildContext context, bool failed) {

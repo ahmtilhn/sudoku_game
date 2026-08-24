@@ -293,57 +293,15 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _EmoteBubble(
+                OnlineDuelEmoteBubble(
                   emoteId: _hub.incomingEmoteId,
                   accent: Theme.of(context).colorScheme.tertiary,
                 ),
                 const SizedBox(height: 6),
-                Semantics(
-                  button: true,
-                  label: 'Open emotes',
-                  child: Material(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest.withValues(alpha: .96),
-                    elevation: 8,
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () => _openPicker(context),
-                      child: SizedBox.square(
-                        dimension: 46,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Icon(
-                              _hub.muted
-                                  ? Icons.chat_bubble_outline_rounded
-                                  : Icons.add_reaction_outlined,
-                              size: 23,
-                            ),
-                            if (_hub.onCooldown)
-                              Positioned.fill(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  backgroundColor: Colors.transparent,
-                                ),
-                              ),
-                            if (_hub.muted)
-                              Positioned(
-                                right: 7,
-                                bottom: 7,
-                                child: Icon(
-                                  Icons.volume_off_rounded,
-                                  size: 12,
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                _EmoteRoundButton(
+                  hub: _hub,
+                  dimension: 46,
+                  onTap: () => _openPicker(context),
                 ),
               ],
             );
@@ -354,77 +312,194 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
   }
 
   Future<void> _openPicker(BuildContext context) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: AnimatedBuilder(
-          animation: _hub,
-          builder: (context, _) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Quick Emotes',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
+    await showOnlineDuelEmotePicker(context, _hub);
+  }
+}
+
+class OnlineDuelInlineEmoteSurface extends StatelessWidget {
+  const OnlineDuelInlineEmoteSurface({
+    super.key,
+    this.compact = false,
+    this.accent,
+  });
+
+  final bool compact;
+  final Color? accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final hub = OnlineDuelEmoteHub.instance;
+    return AnimatedBuilder(
+      animation: hub,
+      builder: (context, _) {
+        if (!hub.visible) return const SizedBox.shrink();
+        final color = accent ?? Theme.of(context).colorScheme.tertiary;
+        return Column(
+          key: const ValueKey<String>('online-duel-inline-emotes'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OnlineDuelEmoteBubble(emoteId: hub.incomingEmoteId, accent: color),
+            SizedBox(height: compact ? 3 : 6),
+            _EmoteRoundButton(
+              hub: hub,
+              dimension: compact ? 42 : 46,
+              onTap: () => showOnlineDuelEmotePicker(context, hub),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+Future<void> showOnlineDuelEmotePicker(
+  BuildContext context,
+  OnlineDuelEmoteHub hub,
+) {
+  return showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    backgroundColor: Theme.of(context).colorScheme.surface,
+    showDragHandle: true,
+    builder: (sheetContext) => SafeArea(
+      top: false,
+      child: AnimatedBuilder(
+        animation: hub,
+        builder: (context, _) {
+          return LayoutBuilder(
+            builder: (context, _) {
+              final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
+              return ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Quick Emotes',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: hub.toggleMute,
+                              icon: Icon(
+                                hub.muted
+                                    ? Icons.volume_off_rounded
+                                    : Icons.volume_up_rounded,
+                                size: 18,
+                              ),
+                              label: Text(hub.muted ? 'Unmute' : 'Mute'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 4,
+                          mainAxisSpacing: 8,
+                          crossAxisSpacing: 8,
+                          childAspectRatio: 1.05,
+                          children: [
+                            for (final emote in onlineDuelBasicEmotes)
+                              _EmotePickerButton(
+                                emote: emote,
+                                enabled: hub.canSend,
+                                onTap: () {
+                                  if (hub.send(emote.id)) {
+                                    Navigator.of(sheetContext).pop();
+                                  }
+                                },
+                              ),
+                          ],
+                        ),
+                        if (hub.onCooldown) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            'Emotes have a short cooldown to prevent spam.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: _hub.toggleMute,
-                        icon: Icon(
-                          _hub.muted
-                              ? Icons.volume_off_rounded
-                              : Icons.volume_up_rounded,
-                          size: 18,
-                        ),
-                        label: Text(_hub.muted ? 'Unmute' : 'Mute'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.05,
-                    children: [
-                      for (final emote in onlineDuelBasicEmotes)
-                        _EmotePickerButton(
-                          emote: emote,
-                          enabled: _hub.canSend,
-                          onTap: () {
-                            if (_hub.send(emote.id)) {
-                              Navigator.of(sheetContext).pop();
-                            }
-                          },
-                        ),
-                    ],
-                  ),
-                  if (_hub.onCooldown) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      'Emotes have a short cooldown to prevent spam.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
+                        ],
+                      ],
                     ),
-                  ],
-                ],
-              ),
-            );
-          },
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    ),
+  );
+}
+
+class _EmoteRoundButton extends StatelessWidget {
+  const _EmoteRoundButton({
+    required this.hub,
+    required this.dimension,
+    required this.onTap,
+  });
+
+  final OnlineDuelEmoteHub hub;
+  final double dimension;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Open emotes',
+      child: Material(
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withValues(alpha: .96),
+        elevation: 8,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox.square(
+            dimension: dimension,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  hub.muted
+                      ? Icons.chat_bubble_outline_rounded
+                      : Icons.add_reaction_outlined,
+                  size: 23,
+                ),
+                if (hub.onCooldown)
+                  Positioned.fill(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Theme.of(context).colorScheme.primary,
+                      backgroundColor: Colors.transparent,
+                    ),
+                  ),
+                if (hub.muted)
+                  Positioned(
+                    right: 7,
+                    bottom: 7,
+                    child: Icon(
+                      Icons.volume_off_rounded,
+                      size: 12,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -483,8 +558,12 @@ class _EmotePickerButton extends StatelessWidget {
   }
 }
 
-class _EmoteBubble extends StatelessWidget {
-  const _EmoteBubble({required this.emoteId, required this.accent});
+class OnlineDuelEmoteBubble extends StatelessWidget {
+  const OnlineDuelEmoteBubble({
+    super.key,
+    required this.emoteId,
+    required this.accent,
+  });
 
   final String? emoteId;
   final Color accent;

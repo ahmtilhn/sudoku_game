@@ -18,6 +18,14 @@ const DUEL_EMOTE_IDS = new Set([
   'respect',
 ]);
 const DUEL_EMOTE_COOLDOWN_MS = 3_000;
+const DUEL_EMOTE_ALLOWED_STATUSES = new Set([
+  'waiting',
+  'ready_window',
+  'countdown',
+  'active',
+  'completed',
+  'forfeited',
+]);
 type EmoteCooldownState = Partial<Record<Seat, number>>;
 
 /**
@@ -105,7 +113,7 @@ export class GameRoom extends AuthoritativeGameRoom {
         ? parsed.payload.emoteId.trim()
         : '';
 
-    if (duel.status !== 'active') {
+    if (!DUEL_EMOTE_ALLOWED_STATUSES.has(duel.status)) {
       this.sendEmoteEvent(socket, {
         type: 'emote_rejected',
         roomId,
@@ -157,7 +165,10 @@ export class GameRoom extends AuthoritativeGameRoom {
     let recipientCount = 0;
     for (const target of this.rankState.getWebSockets()) {
       const [targetPlayerId] = this.rankState.getTags(target);
-      if (target === socket || (targetPlayerId && targetPlayerId === playerId)) {
+      if (
+        target === socket ||
+        (targetPlayerId && targetPlayerId === playerId)
+      ) {
         continue;
       }
       this.sendEmoteEvent(target, {
