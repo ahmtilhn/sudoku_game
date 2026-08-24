@@ -6,7 +6,7 @@ import '../../services/firebase_session_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../duel/pre_match_ready_screen.dart';
-import '../social/social_hub_screen.dart';
+import '../social/rematch_invitation_screen.dart';
 import '../social/ux_challenge_invitation_screen.dart';
 
 class PushRoomNavigationGate extends StatefulWidget {
@@ -113,7 +113,11 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate> {
         );
       } else if (rematchId != null && rematchId.isNotEmpty) {
         await Navigator.of(context).push<void>(
-          MaterialPageRoute(builder: (_) => const SocialHubScreen()),
+          MaterialPageRoute(
+            builder: (_) => RematchInvitationScreen(
+              invitationId: rematchId,
+            ),
+          ),
         );
       }
     } catch (_) {
