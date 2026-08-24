@@ -12,13 +12,13 @@ void main() {
   });
 
   group('backend URL resolver', () {
-    test('debug build without an explicit URL uses staging', () {
+    test('debug build without an explicit URL uses production', () {
       final url = SocialApiClient.resolveBaseUrlForTest(
         configuredBaseUrl: '',
         debugMode: true,
       );
 
-      expect(url, SocialApiClient.defaultSocialBackendUrl);
+      expect(url, SocialApiClient.productionSocialBackendUrl);
       expect(url, isNotEmpty);
     });
 
@@ -30,7 +30,7 @@ void main() {
 
       expect(url, SocialApiClient.productionSocialBackendUrl);
       expect(url, isNotEmpty);
-      expect(url, isNot(SocialApiClient.defaultSocialBackendUrl));
+      expect(url, SocialApiClient.defaultSocialBackendUrl);
     });
 
     test('explicit backend always wins over bundled fallback', () {

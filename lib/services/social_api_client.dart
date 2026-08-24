@@ -240,11 +240,9 @@ class SocialApiClient {
   static const String _configuredBaseUrl = String.fromEnvironment(
     'SOCIAL_BACKEND_URL',
   );
-  static const String defaultSocialBackendUrl =
-      'https://sudoku-duel-social-staging.ilhanahmet246.workers.dev';
-
   static const String productionSocialBackendUrl =
       'https://sudoku-duel-social-production.ilhanahmet246.workers.dev';
+  static const String defaultSocialBackendUrl = productionSocialBackendUrl;
 
   static const Duration _requestTimeout = Duration(seconds: 15);
   static const Duration _appCheckTimeout = Duration(seconds: 15);
@@ -265,7 +263,7 @@ class SocialApiClient {
 
     final selected = configured.isNotEmpty
         ? configured
-        : (debugMode ? defaultSocialBackendUrl : productionSocialBackendUrl);
+        : productionSocialBackendUrl;
 
     return _withoutTrailingSlashes(selected);
   }
