@@ -1,6 +1,7 @@
 import type { RankProgressionEnv } from './rank_progression';
 
 let schemaPromise: Promise<void> | null = null;
+const RANK_SYSTEM_EPOCH = '2026-08-19T13:45:00.000Z';
 
 /**
  * Runtime safety net for the additive visible-RP/profile identity layer.
@@ -99,6 +100,46 @@ async function install(env: RankProgressionEnv): Promise<void> {
       FOREIGN KEY(player_id) REFERENCES players(id) ON DELETE CASCADE
     )`),
   ]);
+
+  // 0024 initially bootstrapped existing players with migration time as the RP
+  // start. If a player had already completed rated matches after the RP epoch,
+  // those matches could be permanently skipped. Only untouched progression
+  // rows are repaired so existing settlement chronology is never rewritten.
+  await env.DB.prepare(`UPDATE player_rank_progression
+    SET started_at = CASE
+      WHEN (
+        SELECT p.created_at FROM players p
+        WHERE p.id = player_rank_progression.player_id
+      ) > ?
+      THEN (
+        SELECT p.created_at FROM players p
+        WHERE p.id = player_rank_progression.player_id
+      )
+      ELSE ?
+    END
+    WHERE ranked_games = 0
+      AND NOT EXISTS (
+        SELECT 1 FROM rank_progression_settlements s
+        WHERE s.player_id = player_rank_progression.player_id
+      )
+      AND started_at > CASE
+        WHEN (
+          SELECT p.created_at FROM players p
+          WHERE p.id = player_rank_progression.player_id
+        ) > ?
+        THEN (
+          SELECT p.created_at FROM players p
+          WHERE p.id = player_rank_progression.player_id
+        )
+        ELSE ?
+      END`)
+    .bind(
+      RANK_SYSTEM_EPOCH,
+      RANK_SYSTEM_EPOCH,
+      RANK_SYSTEM_EPOCH,
+      RANK_SYSTEM_EPOCH,
+    )
+    .run();
 
   await env.DB.prepare(`CREATE TRIGGER IF NOT EXISTS rank_reward_grant_apply
     AFTER INSERT ON rank_reward_grants
