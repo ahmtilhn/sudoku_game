@@ -42,7 +42,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   PublicRankSummary? _recipientRank;
   bool _checking = false;
   bool _openingRoom = false;
-  int _missingPolls = 0;
+  bool _cancelling = false;
   ChallengeWaitingEndReason _endReason = ChallengeWaitingEndReason.none;
   String? _error;
 
@@ -52,21 +52,21 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       .clamp(0, 24 * 60 * 60);
 
   bool get _ended => _endReason != ChallengeWaitingEndReason.none;
+  bool get _routeIsCurrent => ModalRoute.of(context)?.isCurrent ?? false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _push.openedRoomId.addListener(_handlePushRoom);
     unawaited(_prepareNotifications());
     unawaited(_loadRecipientRank());
     unawaited(_checkStatus());
     _pollTimer = Timer.periodic(
-      const Duration(seconds: 2),
+      const Duration(seconds: 1),
       (_) => unawaited(_checkStatus()),
     );
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted || _ended) return;
+      if (!mounted || _ended || !_routeIsCurrent) return;
       if (_secondsLeft <= 0 && !_openingRoom) {
         _finish(ChallengeWaitingEndReason.expired);
       } else {
@@ -86,7 +86,6 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _push.openedRoomId.removeListener(_handlePushRoom);
     _pollTimer?.cancel();
     _clockTimer?.cancel();
     super.dispose();
@@ -112,45 +111,98 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
     }
   }
 
-  void _handlePushRoom() {
-    final roomId = _push.openedRoomId.value;
-    if (roomId == null || roomId.isEmpty) return;
-    _push.openedRoomId.value = null;
-    unawaited(_openRoom(roomId));
-  }
-
   Future<void> _checkStatus() async {
-    if (_checking || _openingRoom || _ended || !mounted) return;
+    if (_checking ||
+        _openingRoom ||
+        _ended ||
+        !mounted ||
+        !_routeIsCurrent) {
+      return;
+    }
     _checking = true;
     try {
-      final active = await _social.activeMatch();
-      final roomId = active?['roomId']?.toString();
-      if (roomId != null && roomId.isNotEmpty) {
-        await _openRoom(roomId);
-        return;
-      }
+      final challenge = await _social.loadChallenge(widget.challenge.id);
+      if (!mounted || !_routeIsCurrent || _openingRoom) return;
 
-      final pending = await _social.loadPendingChallenges();
-      final stillPending = pending.any(
-        (challenge) => challenge.id == widget.challenge.id,
-      );
-      if (stillPending) {
-        _missingPolls = 0;
-        if (mounted && _error != null) setState(() => _error = null);
-        return;
+      switch (challenge.status) {
+        case 'accepted':
+          var roomId = challenge.roomId?.trim();
+          if (roomId == null || roomId.isEmpty) {
+            final active = await _social.activeMatch();
+            if (!mounted || !_routeIsCurrent || _openingRoom) return;
+            final challengeId = active?['challengeId']?.toString();
+            final activeRoomId = active?['roomId']?.toString().trim();
+            if (challengeId == widget.challenge.id &&
+                activeRoomId != null &&
+                activeRoomId.isNotEmpty) {
+              roomId = activeRoomId;
+            }
+          }
+          if (roomId != null && roomId.isNotEmpty) {
+            await _openRoom(roomId);
+          }
+        case 'pending':
+          if (_error != null && mounted) setState(() => _error = null);
+        case 'declined':
+        case 'cancelled':
+          _finish(ChallengeWaitingEndReason.declined);
+        case 'expired':
+          _finish(ChallengeWaitingEndReason.expired);
+        default:
+          if (_secondsLeft <= 0) {
+            _finish(ChallengeWaitingEndReason.expired);
+          }
       }
-
-      _missingPolls++;
-      if (_missingPolls < 2) return;
-      _finish(inferMissingChallengeEndReason(secondsLeft: _secondsLeft));
     } on SocialApiException catch (error) {
+      if (mounted && _routeIsCurrent) {
+        setState(() => _error = error.message);
+      }
+    } catch (_) {
+      if (mounted && _routeIsCurrent) {
+        setState(() => _error = context.tr('try_again_when_connected'));
+      }
+    } finally {
+      _checking = false;
+    }
+  }
+
+  Future<void> _cancelAndExit() async {
+    if (_cancelling || _openingRoom || !mounted) return;
+    if (_ended) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() {
+      _cancelling = true;
+      _error = null;
+    });
+    try {
+      await _social.cancelChallenge(widget.challenge.id);
+      if (mounted) Navigator.of(context).pop();
+    } on SocialApiException catch (error) {
+      if (!mounted) return;
+      // Acceptance may win the race against cancellation. Re-read the
+      // authoritative challenge before deciding whether to leave or enter room.
+      try {
+        final current = await _social.loadChallenge(widget.challenge.id);
+        if (!mounted) return;
+        if (current.status == 'accepted') {
+          final roomId = current.roomId?.trim();
+          if (roomId != null && roomId.isNotEmpty) {
+            await _openRoom(roomId);
+            return;
+          }
+        }
+      } catch (_) {
+        // Surface the original cancellation error below.
+      }
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('try_again_when_connected'));
       }
     } finally {
-      _checking = false;
+      if (mounted) setState(() => _cancelling = false);
     }
   }
 
@@ -204,156 +256,169 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
         ? _recipientRank
         : null;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0B1215),
-      body: AppBackdrop(
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 620),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                children: [
-                  InPageHeader(title: context.tr('challenge')),
-                  Card(
-                    color: const Color(0xFF101B20).withValues(alpha: .96),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                      side: BorderSide(color: accent.withValues(alpha: .48)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-                      child: Column(
-                        children: [
-                          _StatusOrb(accent: accent, endReason: _endReason),
-                          const SizedBox(height: 18),
-                          Text(
-                            _title(context),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _subtitle(context),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: .68),
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          PlayerAvatar(
-                            displayName: recipient.displayName,
-                            avatarKey:
-                                rank?.avatarKey ?? 'challenge-wait-${recipient.publicId}',
-                            radius: 45,
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            recipient.displayName,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 21,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          Text(
-                            '@${recipient.username}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: .54),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _InfoChip(
-                                asset: DuelAsset.grid,
-                                label: context.strings.difficultyLabel(
-                                  difficulty,
-                                ),
-                                accent: accent,
+    return PopScope<void>(
+      canPop: _ended || _openingRoom,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_cancelAndExit());
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0B1215),
+        body: AppBackdrop(
+          child: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                  children: [
+                    InPageHeader(title: context.tr('challenge')),
+                    Card(
+                      color: const Color(0xFF101B20).withValues(alpha: .96),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                        side: BorderSide(color: accent.withValues(alpha: .48)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                        child: Column(
+                          children: [
+                            _StatusOrb(accent: accent, endReason: _endReason),
+                            const SizedBox(height: 18),
+                            Text(
+                              _title(context),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w900,
                               ),
-                              _InfoChip(
-                                asset: DuelAsset.trophy,
-                                label: rank == null
-                                    ? context.tr('games_count', <Object>[
-                                        recipient.gamesPlayed,
-                                      ])
-                                    : '${rank.rankName} · ${rank.rankPoints} RP',
-                                accent: const Color(0xFFFFC94D),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              _subtitle(context),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: .68),
                               ),
-                              if (!_ended)
+                            ),
+                            const SizedBox(height: 22),
+                            PlayerAvatar(
+                              displayName: recipient.displayName,
+                              avatarKey:
+                                  rank?.avatarKey ?? 'challenge-wait-${recipient.publicId}',
+                              radius: 45,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              recipient.displayName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 21,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            Text(
+                              '@${recipient.username}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: .54),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
                                 _InfoChip(
-                                  asset: DuelAsset.timer,
-                                  label: '${_secondsLeft}s',
-                                  accent: const Color(0xFF3AA9FF),
+                                  asset: DuelAsset.grid,
+                                  label: context.strings.difficultyLabel(
+                                    difficulty,
+                                  ),
+                                  accent: accent,
                                 ),
-                            ],
-                          ),
-                          if (_error != null) ...[
-                            const SizedBox(height: 16),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.errorContainer,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Text(
-                                _error!,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
+                                _InfoChip(
+                                  asset: DuelAsset.trophy,
+                                  label: rank == null
+                                      ? context.tr('games_count', <Object>[
+                                          recipient.gamesPlayed,
+                                        ])
+                                      : '${rank.rankName} · ${rank.rankPoints} RP',
+                                  accent: const Color(0xFFFFC94D),
+                                ),
+                                if (!_ended)
+                                  _InfoChip(
+                                    asset: DuelAsset.timer,
+                                    label: '${_secondsLeft}s',
+                                    accent: const Color(0xFF3AA9FF),
+                                  ),
+                              ],
+                            ),
+                            if (_error != null) ...[
+                              const SizedBox(height: 16),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.onErrorContainer,
+                                  ).colorScheme.errorContainer,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Text(
+                                  _error!,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onErrorContainer,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                          const SizedBox(height: 20),
-                          if (_ended)
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.icon(
-                                onPressed: () => Navigator.of(context).pop(),
-                                icon: const DuelAssetIcon(
-                                  DuelAsset.home,
-                                  size: 21,
+                            ],
+                            const SizedBox(height: 20),
+                            if (_ended)
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.icon(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  icon: const DuelAssetIcon(
+                                    DuelAsset.home,
+                                    size: 21,
+                                  ),
+                                  label: Text(context.tr('main_menu')),
                                 ),
-                                label: Text(context.tr('main_menu')),
+                              )
+                            else ...[
+                              const LinearProgressIndicator(minHeight: 6),
+                              const SizedBox(height: 8),
+                              TextButton.icon(
+                                onPressed: _cancelling ? null : _cancelAndExit,
+                                icon: _cancelling
+                                    ? const SizedBox.square(
+                                        dimension: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const DuelAssetIcon(
+                                        DuelAsset.close,
+                                        size: 20,
+                                      ),
+                                label: Text(context.tr('cancel_search')),
                               ),
-                            )
-                          else ...[
-                            const LinearProgressIndicator(minHeight: 6),
-                            const SizedBox(height: 8),
-                            TextButton.icon(
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: const DuelAssetIcon(
-                                DuelAsset.home,
-                                size: 20,
-                              ),
-                              label: Text(context.tr('main_menu')),
-                            ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
