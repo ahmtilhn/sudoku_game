@@ -17,6 +17,7 @@ export const DAILY_LOGIN_REWARD = 50;
 export const DAILY_AD_REWARD = 50;
 export const CAREER_AD_REWARD = 25;
 export const REMATCH_WINDOW_MS = 10_000;
+export const MAX_RATED_PAIR_MATCHES_24H = 3;
 export const DEBUG_UNLIMITED_COINS_BALANCE = 999999999;
 export const NO_ADS_PRODUCT_ID = 'no_ads';
 export const IOS_NO_ADS_PRODUCT_ID = 'sudoku_duel_no_ads';
@@ -446,6 +447,10 @@ export async function createFundedMatch(
     .bind(input.matchId, input.roomId)
     .first();
   if (existing) return;
+
+  if (input.mode === 'ranked') {
+    await assertRankedPairEligible(env, input);
+  }
 
   await Promise.all([
     ensureStarterGrant(env, input.playerAId),
@@ -988,6 +993,44 @@ async function verifyAchievement(
   const value = requirement.kind === 'wins' ? Number(row?.wins ?? 0) : Number(row?.games_played ?? 0);
   if (value < requirement.value) {
     throw new EconomyError(409, 'Achievement requirement is not complete.');
+  }
+}
+
+async function assertRankedPairEligible(
+  env: EconomyEnv,
+  input: FundedMatchInput,
+): Promise<void> {
+  const nowMs = Date.parse(input.now);
+  const cutoff = new Date(
+    (Number.isFinite(nowMs) ? nowMs : Date.now()) - 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const pair = await env.DB.prepare(
+    `SELECT COUNT(*) AS value
+     FROM matches
+     WHERE mode = 'ranked'
+       AND rated = 1
+       AND finished_at IS NOT NULL
+       AND finished_at >= ?
+       AND (
+         (player_a_id = ? AND player_b_id = ?)
+         OR (player_a_id = ? AND player_b_id = ?)
+       )`,
+  )
+    .bind(
+      cutoff,
+      input.playerAId,
+      input.playerBId,
+      input.playerBId,
+      input.playerAId,
+    )
+    .first<{ value: number }>();
+  const priorRated = Number(pair?.value ?? 0);
+  if (priorRated >= MAX_RATED_PAIR_MATCHES_24H) {
+    throw new EconomyError(
+      409,
+      'Ranked rematch limit reached for this opponent. Find a different ranked opponent.',
+      'ranked_pair_limit',
+    );
   }
 }
 
