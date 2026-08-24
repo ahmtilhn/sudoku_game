@@ -20,11 +20,10 @@ class OnlineDuelEmoteDefinition {
 
   /// Optional text fallback for iconic text emotes such as GG / EZ.
   ///
-  /// When a final PNG is wired later, [assetPath] takes priority.
+  /// [assetPath] takes priority whenever final artwork is bundled.
   final String? shortText;
 
-  /// Final transparent PNG asset path. Kept nullable so the whole selection
-  /// and protocol system can be completed before the art pack lands.
+  /// Transparent PNG used by the collection, picker and incoming bubble.
   final String? assetPath;
 }
 
@@ -46,108 +45,126 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         icon: Icons.sentiment_satisfied_alt_rounded,
         label: 'Smile',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/smile.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'laugh',
         icon: Icons.sentiment_very_satisfied_rounded,
         label: 'Laugh',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/mock_laugh.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'smug',
         icon: Icons.face_retouching_natural_rounded,
         label: 'Smug',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/smug.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'bored',
         icon: Icons.bedtime_rounded,
         label: 'Bored',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/bored.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'fire',
         icon: Icons.local_fire_department_rounded,
         label: 'Fire',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/fire.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'crown',
         icon: Icons.workspace_premium_rounded,
         label: 'Crown',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/crown.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'shocked',
         icon: Icons.sentiment_very_dissatisfied_rounded,
         label: 'Shocked',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/shocked.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'respect',
         icon: Icons.front_hand_rounded,
         label: 'Respect',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/respect.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'angry',
         icon: Icons.mood_bad_rounded,
         label: 'Angry',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/angry.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'clap',
         icon: Icons.back_hand_rounded,
         label: 'Slow Clap',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/sarcastic_clap.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'facepalm',
         icon: Icons.face_6_rounded,
         label: 'Facepalm',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/facepalm.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'eye_roll',
         icon: Icons.visibility_rounded,
         label: 'Eye Roll',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/eye_roll.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'shush',
         icon: Icons.volume_off_rounded,
         label: 'Shush',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/shush.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'salty_cry',
         icon: Icons.water_drop_rounded,
         label: 'Salty Cry',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/salty_cry.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'love',
         icon: Icons.favorite_rounded,
         label: 'Love',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/mock_love.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'plotting',
         icon: Icons.psychology_alt_rounded,
         label: 'Plotting',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/plotting_thinking.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'dizzy',
         icon: Icons.cyclone_rounded,
         label: 'Dizzy',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/dizzy_ko.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'victory',
         icon: Icons.emoji_events_rounded,
         label: 'Victory',
         category: OnlineDuelEmoteCategory.reaction,
+        assetPath: 'assets/emote/victory_peace.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'gg',
@@ -155,6 +172,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: 'GG',
         category: OnlineDuelEmoteCategory.taunt,
         shortText: 'GG',
+        assetPath: 'assets/emote/gg_txt.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'ez',
@@ -162,6 +180,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: 'EZ',
         category: OnlineDuelEmoteCategory.taunt,
         shortText: 'EZ',
+        assetPath: 'assets/emote/ez.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'noob',
@@ -169,6 +188,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: 'NOOB',
         category: OnlineDuelEmoteCategory.taunt,
         shortText: 'NOOB',
+        assetPath: 'assets/emote/noob.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'oops',
@@ -176,6 +196,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: 'OOPS',
         category: OnlineDuelEmoteCategory.taunt,
         shortText: 'OOPS',
+        assetPath: 'assets/emote/ooops.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'rekt',
@@ -183,6 +204,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: 'REKT',
         category: OnlineDuelEmoteCategory.taunt,
         shortText: 'REKT',
+        assetPath: 'assets/emote/rekt.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'bruh',
@@ -190,6 +212,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: 'BRUH',
         category: OnlineDuelEmoteCategory.taunt,
         shortText: 'BRUH',
+        assetPath: 'assets/emote/bruh.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'one_v_one',
@@ -197,6 +220,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: '1V1',
         category: OnlineDuelEmoteCategory.taunt,
         shortText: '1V1',
+        assetPath: 'assets/emote/1v1.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'clutch',
@@ -204,6 +228,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: 'CLUTCH',
         category: OnlineDuelEmoteCategory.taunt,
         shortText: 'CLUTCH',
+        assetPath: 'assets/emote/clutch.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'afk',
@@ -211,6 +236,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: 'AFK',
         category: OnlineDuelEmoteCategory.status,
         shortText: 'AFK',
+        assetPath: 'assets/emote/afk.png',
       ),
       OnlineDuelEmoteDefinition(
         id: 'lag',
@@ -218,6 +244,7 @@ const List<OnlineDuelEmoteDefinition> onlineDuelEmoteCatalog =
         label: 'LAG',
         category: OnlineDuelEmoteCategory.status,
         shortText: 'LAG',
+        assetPath: 'assets/emote/lag.png',
       ),
     ];
 
