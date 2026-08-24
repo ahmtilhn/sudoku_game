@@ -12,6 +12,12 @@ type LegacyFetch = (
   ctx: ExecutionContext,
 ) => Promise<Response>;
 
+type PlayerIdentity = {
+  id: string;
+  display_name: string;
+  public_id: string;
+};
+
 export function isFriendNotificationRoute(pathname: string): boolean {
   return (
     pathname === '/v1/friends/requests' ||
@@ -30,10 +36,16 @@ export async function handleFriendNotificationRequest(
   const response = await legacyFetch(request, env, ctx);
   if (!response.ok || request.method !== 'POST') return response;
 
+  // The legacy request already authenticated this exact bearer token. Decode
+  // only after success to identify the actor for the best-effort notification;
+  // authorization continues to be owned by the legacy handler.
+  const actor = await authenticatedPlayer(env, request);
+  if (actor == null) return response;
+
   if (url.pathname === '/v1/friends/requests') {
     const targetPublicId = stringValue(body.targetPublicId);
     if (targetPublicId != null) {
-      ctx.waitUntil(notifyFriendRequest(env, targetPublicId));
+      ctx.waitUntil(notifyFriendRequest(env, actor, targetPublicId));
     }
   } else if (url.pathname === '/v1/friends/requests/respond') {
     const requesterPublicId = stringValue(body.requesterPublicId);
@@ -43,7 +55,12 @@ export async function handleFriendNotificationRequest(
       (action === 'accept' || action === 'decline')
     ) {
       ctx.waitUntil(
-        notifyFriendResponse(env, requesterPublicId, action === 'accept'),
+        notifyFriendResponse(
+          env,
+          actor,
+          requesterPublicId,
+          action === 'accept',
+        ),
       );
     }
   }
@@ -53,6 +70,7 @@ export async function handleFriendNotificationRequest(
 
 async function notifyFriendRequest(
   env: FriendNotificationEnv,
+  requester: PlayerIdentity,
   targetPublicId: string,
 ): Promise<void> {
   const target = await env.DB.prepare(
@@ -60,40 +78,39 @@ async function notifyFriendRequest(
   )
     .bind(targetPublicId)
     .first<{ id: string }>();
-  if (!target) return;
+  if (!target || target.id === requester.id) return;
 
+  const [low, high] = [requester.id, target.id].sort();
   const relation = await env.DB.prepare(
-    `SELECT f.requester_id, f.status, p.display_name, p.public_id
-     FROM friendships f
-     JOIN players p ON p.id = f.requester_id
-     WHERE (f.player_low_id = ? OR f.player_high_id = ?)
-       AND f.status = 'pending'
-       AND f.requester_id != ?
-     ORDER BY f.updated_at DESC
-     LIMIT 1`,
+    `SELECT requester_id, status FROM friendships
+     WHERE player_low_id = ? AND player_high_id = ? LIMIT 1`,
   )
-    .bind(target.id, target.id, target.id)
-    .first<{
-      requester_id: string;
-      status: string;
-      display_name: string;
-      public_id: string;
-    }>();
-  if (!relation) return;
+    .bind(low, high)
+    .first<{ requester_id: string; status: string }>();
+
+  // Do not notify for an already-accepted relationship or for a reverse
+  // pending request. This also makes repeated send taps notification-idempotent.
+  if (
+    relation?.status !== 'pending' ||
+    relation.requester_id !== requester.id
+  ) {
+    return;
+  }
 
   await sendPlayerPush(env, target.id, {
     title: 'New friend request',
-    body: `${relation.display_name} sent you a friend request.`,
-    tag: `friend_request_${relation.requester_id}`,
+    body: `${requester.display_name} sent you a friend request.`,
+    tag: `friend_request_${requester.id}`,
     data: {
       type: 'friend_request',
-      requesterPublicId: relation.public_id,
+      requesterPublicId: requester.public_id,
     },
   });
 }
 
 async function notifyFriendResponse(
   env: FriendNotificationEnv,
+  responder: PlayerIdentity,
   requesterPublicId: string,
   accepted: boolean,
 ): Promise<void> {
@@ -102,47 +119,54 @@ async function notifyFriendResponse(
   )
     .bind(requesterPublicId)
     .first<{ id: string }>();
-  if (!requester) return;
-
-  const relation = await env.DB.prepare(
-    `SELECT f.player_low_id, f.player_high_id, f.status
-     FROM friendships f
-     WHERE (f.player_low_id = ? OR f.player_high_id = ?)
-       AND f.requester_id = ?
-     ORDER BY f.updated_at DESC
-     LIMIT 1`,
-  )
-    .bind(requester.id, requester.id, requester.id)
-    .first<{
-      player_low_id: string;
-      player_high_id: string;
-      status: string;
-    }>();
-  if (!relation) return;
-
-  const responderId =
-    relation.player_low_id === requester.id
-      ? relation.player_high_id
-      : relation.player_low_id;
-  const responder = await env.DB.prepare(
-    'SELECT display_name, public_id FROM players WHERE id = ? LIMIT 1',
-  )
-    .bind(responderId)
-    .first<{ display_name: string; public_id: string }>();
-  if (!responder) return;
+  if (!requester || requester.id === responder.id) return;
 
   await sendPlayerPush(env, requester.id, {
     title: accepted ? 'Friend request accepted' : 'Friend request declined',
     body: accepted
       ? `${responder.display_name} accepted your friend request.`
       : `${responder.display_name} declined your friend request.`,
-    tag: `friend_response_${responderId}`,
+    tag: `friend_response_${responder.id}`,
     data: {
       type: 'friend_response',
       status: accepted ? 'accepted' : 'declined',
       playerPublicId: responder.public_id,
     },
   });
+}
+
+async function authenticatedPlayer(
+  env: FriendNotificationEnv,
+  request: Request,
+): Promise<PlayerIdentity | null> {
+  const header = request.headers.get('authorization')?.trim() ?? '';
+  if (!header.toLowerCase().startsWith('bearer ')) return null;
+  const token = header.slice(7).trim();
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+
+  try {
+    const payload = JSON.parse(base64UrlDecode(parts[1])) as JsonObject;
+    const firebaseUid = stringValue(payload.sub) ?? stringValue(payload.user_id);
+    if (firebaseUid == null) return null;
+    return env.DB.prepare(
+      `SELECT id, display_name, public_id
+       FROM players WHERE firebase_uid = ? LIMIT 1`,
+    )
+      .bind(firebaseUid)
+      .first<PlayerIdentity>();
+  } catch (_) {
+    return null;
+  }
+}
+
+function base64UrlDecode(value: string): string {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(
+    normalized.length + ((4 - (normalized.length % 4)) % 4),
+    '=',
+  );
+  return atob(padded);
 }
 
 async function readJsonClone(request: Request): Promise<JsonObject> {
