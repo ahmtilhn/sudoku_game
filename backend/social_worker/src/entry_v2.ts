@@ -38,6 +38,7 @@ import {
   type RankCountryFlagEnv,
 } from './rank_country_flags';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
+import { ensureCompetitiveEconomyHardening } from './competitive_economy_hardening';
 
 export { GameRoom, MatchmakingQueue };
 
@@ -58,6 +59,20 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> {
     const url = new URL(request.url);
+
+    if (request.method !== 'OPTIONS') {
+      try {
+        await ensureCompetitiveEconomyHardening(env);
+      } catch (error) {
+        console.error('competitive_economy_hardening_install_failed', error);
+        return leaderboardError(
+          env,
+          503,
+          'The competitive economy is temporarily unavailable.',
+          'competitive_economy_schema_unavailable',
+        );
+      }
+    }
 
     // Visible RP/profile identity is an additive wrapper route. The existing
     // matchmaking, Durable Object room protocol, Elo/MMR settlement and Coin
@@ -195,6 +210,12 @@ export default {
     env: VariantMatchmakingEnv,
     ctx: ExecutionContext,
   ): Promise<void> {
+    try {
+      await ensureCompetitiveEconomyHardening(env);
+    } catch (error) {
+      console.error('competitive_economy_hardening_install_failed', error);
+      return;
+    }
     await legacyWorker.scheduled(event, env as never, ctx);
   },
 };
