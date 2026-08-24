@@ -64,8 +64,12 @@ async function notifyOriginalSender(
         ? `${responderName} accepted. Your rematch room is ready.`
         : `${responderName} declined the rematch.`,
       tag: `rematch_response_${rematchId}`,
+      // Reuse the existing accepted-room response envelope so every client
+      // version that understands challenge_response can navigate directly to
+      // PreMatchReadyScreen. rematchId remains available for diagnostics.
       data: {
-        type: 'rematch_response',
+        type: 'challenge_response',
+        challengeId: rematchId,
         rematchId,
         status,
         roomId,
