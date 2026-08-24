@@ -31,4 +31,14 @@ void main() {
     expect(prematch, contains('initialCurrentPlayer'));
     expect(prematch, contains('HapticFeedback.mediumImpact()'));
   });
+
+  test('visible rank points are never presented as Elo or generic rating', () {
+    final source = File(
+      'lib/features/duel/matchmaking_stage.dart',
+    ).readAsStringSync();
+
+    expect(source, contains("label: 'RP'"));
+    expect(source, isNot(contains("context.tr('rating')")));
+    expect(source, isNot(contains("context.tr('elo_unknown')")));
+  });
 }
