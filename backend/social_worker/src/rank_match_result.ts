@@ -16,6 +16,8 @@ const FIREBASE_JWKS = createRemoteJWKSet(
     'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
   ),
 );
+const RANK_RESULT_RECONCILE_ATTEMPTS = 4;
+const RANK_RESULT_RETRY_DELAY_MS = 120;
 
 export function isRankMatchResultRoute(pathname: string): boolean {
   return /^\/v1\/me\/rank-match-result\/[^/]+$/.test(pathname);
@@ -65,19 +67,18 @@ export async function handleRankMatchResultRequest(
       );
     }
 
-    await reconcileRankProgression(env, player.id);
-    await refreshRankPostSettlement(env, player.id);
-
-    const settlement = await env.DB.prepare(
-      `SELECT match_id, result, finish_reason, base_delta, alignment_percent,
-              repeat_percent, abandonment_penalty, rp_delta, rp_before, rp_after,
-              rank_before, rank_after, finished_at
-       FROM rank_progression_settlements
-       WHERE match_id = ? AND player_id = ?
-       LIMIT 1`,
-    )
-      .bind(matchId, player.id)
-      .first<Record<string, unknown>>();
+    let settlement: Record<string, unknown> | null = null;
+    for (let attempt = 0; attempt < RANK_RESULT_RECONCILE_ATTEMPTS; attempt++) {
+      await reconcileRankProgression(env, player.id);
+      settlement = await rankSettlementForMatch(env, player.id, matchId);
+      if (settlement) {
+        await refreshRankPostSettlement(env, player.id);
+        break;
+      }
+      if (attempt < RANK_RESULT_RECONCILE_ATTEMPTS - 1) {
+        await delay(RANK_RESULT_RETRY_DELAY_MS);
+      }
+    }
 
     if (!settlement) {
       const match = await env.DB.prepare(
@@ -103,6 +104,7 @@ export async function handleRankMatchResultRequest(
         rated: true,
         settled: false,
         status: String(match.status ?? ''),
+        retryAfterMs: 300,
       });
     }
 
@@ -179,6 +181,23 @@ export async function handleRankMatchResultRequest(
   }
 }
 
+async function rankSettlementForMatch(
+  env: RankProgressionEnv,
+  playerId: string,
+  matchId: string,
+): Promise<Record<string, unknown> | null> {
+  return env.DB.prepare(
+    `SELECT match_id, result, finish_reason, base_delta, alignment_percent,
+            repeat_percent, abandonment_penalty, rp_delta, rp_before, rp_after,
+            rank_before, rank_after, finished_at
+     FROM rank_progression_settlements
+     WHERE match_id = ? AND player_id = ?
+     LIMIT 1`,
+  )
+    .bind(matchId, playerId)
+    .first<Record<string, unknown>>();
+}
+
 async function grantCrossedRankRewardsOnce(
   env: RankProgressionEnv,
   playerId: string,
@@ -253,6 +272,10 @@ async function authenticateFirebase(
       'invalid_auth',
     );
   }
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function json(
