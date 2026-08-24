@@ -45,7 +45,7 @@ class NumberPadDock extends StatelessWidget {
           heightFactor: 1,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: compact ? 500 : 560),
-            child: OnlineDuelEmoteDock(child: child, compact: compact),
+            child: OnlineDuelEmoteDock(compact: compact, child: child),
           ),
         ),
       ),

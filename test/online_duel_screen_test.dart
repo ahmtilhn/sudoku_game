@@ -125,28 +125,43 @@ void main() {
     expect(find.text('s'), findsOneWidget);
   });
 
-  testWidgets('active header aligns timer, puts names below avatars and scores inward', (tester) async {
-    await _pumpOnlineDuel(tester, size: const Size(390, 844), status: 'active');
+  testWidgets(
+    'active header aligns timer, puts names below avatars and scores inward',
+    (tester) async {
+      await _pumpOnlineDuel(
+        tester,
+        size: const Size(390, 844),
+        status: 'active',
+      );
 
-    final timerCenter = tester.getCenter(
-      find.byKey(const ValueKey<String>('online-turn-timer')),
-    );
-    final avatarACenter = tester.getCenter(
-      find.byKey(const ValueKey<String>('duel-avatar-A')),
-    );
-    final avatarBCenter = tester.getCenter(
-      find.byKey(const ValueKey<String>('duel-avatar-B')),
-    );
-    expect((timerCenter.dy - avatarACenter.dy).abs(), lessThan(12));
-    expect((timerCenter.dy - avatarBCenter.dy).abs(), lessThan(12));
+      final timerCenter = tester.getCenter(
+        find.byKey(const ValueKey<String>('online-turn-timer')),
+      );
+      final avatarACenter = tester.getCenter(
+        find.byKey(const ValueKey<String>('duel-avatar-A')),
+      );
+      final avatarBCenter = tester.getCenter(
+        find.byKey(const ValueKey<String>('duel-avatar-B')),
+      );
+      expect((timerCenter.dy - avatarACenter.dy).abs(), lessThan(12));
+      expect((timerCenter.dy - avatarBCenter.dy).abs(), lessThan(12));
 
-    expect(find.byKey(const ValueKey<String>('duel-name-A')), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('duel-name-B')), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('duel-score-A')), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('duel-score-B')), findsOneWidget);
-  });
+      expect(find.byKey(const ValueKey<String>('duel-name-A')), findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('duel-name-B')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('duel-score-A')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('duel-score-B')),
+        findsOneWidget,
+      );
+    },
+  );
 
-  testWidgets('paused online duel blocks input and shows reconnect state', (tester) async {
+  testWidgets('paused online duel blocks input and shows reconnect state', (
+    tester,
+  ) async {
     await _pumpOnlineDuel(
       tester,
       size: const Size(390, 844),
@@ -176,9 +191,26 @@ void main() {
     );
     expect(numberButton.onPressed, isNull);
   });
+
+  testWidgets('incoming opponent emote is visible during active duel', (
+    tester,
+  ) async {
+    final transport = await _pumpOnlineDuel(
+      tester,
+      size: const Size(390, 844),
+      status: 'active',
+      currentTurnSeat: 'B',
+    );
+
+    transport.emit(_event('emote', {'seat': 'B', 'emoteId': 'fire'}));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.byIcon(Icons.local_fire_department_rounded), findsOneWidget);
+  });
 }
 
-Future<void> _pumpOnlineDuel(
+Future<FakeOnlineDuelTransport> _pumpOnlineDuel(
   WidgetTester tester, {
   required Size size,
   Brightness brightness = Brightness.light,
@@ -232,6 +264,7 @@ Future<void> _pumpOnlineDuel(
   );
   await tester.pump();
   await tester.pump();
+  return transport;
 }
 
 class _ViewportVariant {
