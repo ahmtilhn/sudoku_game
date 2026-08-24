@@ -62,14 +62,28 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
   }
 
   Future<void> _initializePush() async {
-    await _push.initialize();
-    await _refreshPushRegistration();
+    try {
+      // Restore the Play Games/Firebase player before obtaining and registering
+      // the FCM token. Otherwise a cold start could attach the device token to
+      // a temporary guest UID and direct challenges would notify the wrong
+      // account (or no visible device at all).
+      await FirebaseSessionService.ensureAnonymousSession();
+      await _push.initialize();
+      await _refreshPushRegistration();
+    } catch (_) {
+      // Offline play must stay available. Registration is retried on resume.
+    }
     if (mounted) _scheduleRouting();
   }
 
   Future<void> _refreshPushRegistration() async {
     if (!_push.configured || _push.userDisabled.value) return;
-    await _push.refreshRegistration();
+    try {
+      await FirebaseSessionService.ensureAnonymousSession();
+      await _push.refreshRegistration();
+    } catch (_) {
+      // Best effort; foreground routing/polling remains available.
+    }
   }
 
   void _scheduleRouting() {
