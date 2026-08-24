@@ -92,6 +92,9 @@ void main() {
     final sync = File(
       'lib/services/career_reward_sync_service.dart',
     ).readAsStringSync();
+    final interstitial = File(
+      'lib/services/game_interstitial_service.dart',
+    ).readAsStringSync();
 
     expect(game, contains('balanceBeforeCompletion'));
     expect(game, contains('completionCoinReward'));
@@ -110,9 +113,18 @@ void main() {
         'Future<int> claimCareerRewardedInterstitialCoins() async => 0;',
       ),
     );
-    expect(economy, isNot(contains('confirmCareerAd(prepared.token)')));
+    expect(economy, isNot(contains('confirmCareerAd(prepared.token)'));
     expect(sync, contains('_economy.claimCareer('));
+    expect(sync, contains('await syncNow();'));
     expect(sync, contains('await pending.future'));
+    expect(
+      interstitial,
+      contains('CareerRewardSyncService.instance.waitForIdle()'),
+    );
+    expect(
+      interstitial,
+      contains('EconomyService.instance.refresh(showLoading: false)'),
+    );
   });
 
   test('career Coin sync repairs a missed sequential claim without double grant', () {
