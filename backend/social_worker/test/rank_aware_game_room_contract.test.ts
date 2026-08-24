@@ -36,12 +36,17 @@ describe('rank-aware production GameRoom', () => {
     expect(wrapper).toContain('this.rankState.getWebSockets()');
   });
 
-  it('delivers accepted emotes only to the opponent socket', () => {
-    expect(wrapper).toContain('const [targetPlayerId] = this.rankState.getTags(target)');
-    expect(wrapper).toContain(
-      'const targetSeat = this.emoteSeatForPlayer(duel, targetPlayerId)',
-    );
-    expect(wrapper).toContain('if (!targetSeat || targetSeat === seat) continue;');
+  it('relays accepted emotes to every other authenticated room socket', () => {
+    expect(wrapper).toContain('let recipientCount = 0');
+    expect(wrapper).toContain('target === socket');
+    expect(wrapper).toContain('targetPlayerId === playerId');
+    expect(wrapper).toContain("type: 'emote'");
+    expect(wrapper).toContain('recipientCount++');
+  });
+
+  it('acks delivery silently so recipient routing can be diagnosed', () => {
+    expect(wrapper).toContain("type: 'emote_ack'");
+    expect(wrapper).toContain('payload: { emoteId, recipientCount }');
   });
 
   it('only reconciles after an authoritative rated ranked settlement exists', () => {
