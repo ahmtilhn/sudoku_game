@@ -37,7 +37,9 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
 
+    expect(tester.takeException(), isNull);
     expect(find.byType(RankEmblem), findsNWidgets(15));
     expect(find.byType(Image), findsNWidgets(15));
 
