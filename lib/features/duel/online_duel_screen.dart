@@ -375,20 +375,17 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             ? null
             : Theme(
                 data: activeArena ? _arenaTheme(context) : Theme.of(context),
-                child: IgnorePointer(
-                  ignoring: inputLocked,
-                  child: NumberPadDock(
-                    compact: activeArena,
-                    child: NumberPad(
+                child: NumberPadDock(
+                  compact: activeArena,
+                  child: NumberPad(
+                    maxValue: snapshot.boardSize,
+                    completedValues: completedSudokuNumbers(
+                      board: snapshot.board,
                       maxValue: snapshot.boardSize,
-                      completedValues: completedSudokuNumbers(
-                        board: snapshot.board,
-                        maxValue: snapshot.boardSize,
-                      ),
-                      enabled: !inputLocked,
-                      onNumber: _enterNumber,
-                      onErase: () => setState(() => _selectedIndex = null),
                     ),
+                    enabled: !inputLocked,
+                    onNumber: _enterNumber,
+                    onErase: () => setState(() => _selectedIndex = null),
                   ),
                 ),
               ),

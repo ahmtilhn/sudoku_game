@@ -208,6 +208,37 @@ void main() {
 
     expect(find.byIcon(Icons.local_fire_department_rounded), findsOneWidget);
   });
+
+  testWidgets('emote picker remains usable when number input is locked', (
+    tester,
+  ) async {
+    final transport = await _pumpOnlineDuel(
+      tester,
+      size: const Size(390, 844),
+      status: 'active',
+      currentTurnSeat: 'B',
+    );
+
+    final numberButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('number-1')),
+    );
+    expect(numberButton.onPressed, isNull);
+
+    await tester.tap(find.byIcon(Icons.add_reaction_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fire'));
+    await tester.pumpAndSettle();
+
+    expect(
+      transport.sent.where((message) {
+        final payload = message['payload'];
+        return message['type'] == 'emote' &&
+            payload is Map &&
+            payload['emoteId'] == 'fire';
+      }),
+      hasLength(1),
+    );
+  });
 }
 
 Future<FakeOnlineDuelTransport> _pumpOnlineDuel(
