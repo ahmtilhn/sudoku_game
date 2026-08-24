@@ -100,10 +100,12 @@ class OnlineDuelController with WidgetsBindingObserver {
 
   bool sendEmote(String emoteId) {
     final current = _snapshot;
+    final connectionState = _transport.connectionState;
     if (current == null ||
         !onlineDuelStatusAllowsEmotes(current.status) ||
         !onlineDuelBasicEmoteIds.contains(emoteId) ||
-        _transport.connectionState != OnlineDuelConnectionState.connected) {
+        (connectionState != OnlineDuelConnectionState.connected &&
+            connectionState != OnlineDuelConnectionState.resyncing)) {
       return false;
     }
     _send('emote', <String, Object?>{'emoteId': emoteId});
@@ -140,7 +142,8 @@ class OnlineDuelController with WidgetsBindingObserver {
     if (session != null && snapshot != null) {
       OnlineDuelEmoteHub.instance.setMatchActive(
         session,
-        state == OnlineDuelConnectionState.connected &&
+        (state == OnlineDuelConnectionState.connected ||
+                state == OnlineDuelConnectionState.resyncing) &&
             onlineDuelStatusAllowsEmotes(snapshot.status),
       );
     }
@@ -164,7 +167,27 @@ class OnlineDuelController with WidgetsBindingObserver {
           actorSeat != null &&
           actorSeat != current.youSeat &&
           emoteId != null) {
-        OnlineDuelEmoteHub.instance.receive(session, emoteId);
+        OnlineDuelEmoteHub.instance.receive(
+          session,
+          emoteId,
+          forceActive: true,
+        );
+      }
+      return;
+    }
+    if (event.type == 'emote_ack') {
+      final session = _emoteSession;
+      final actorSeat = _seat(event.payload['seat']?.toString());
+      final emoteId = event.payload['emoteId']?.toString();
+      if (current != null &&
+          session != null &&
+          actorSeat == current.youSeat &&
+          emoteId != null) {
+        OnlineDuelEmoteHub.instance.receive(
+          session,
+          emoteId,
+          forceActive: true,
+        );
       }
       return;
     }

@@ -6,19 +6,19 @@ void main() {
     final client = SocialApiClient.instance;
 
     expect(client.configured, isTrue);
-    expect(client.baseUrl, SocialApiClient.defaultSocialBackendUrl);
+    expect(client.baseUrl, SocialApiClient.stagingSocialBackendUrl);
     expect(client.baseUrl, isNot(endsWith('/')));
     expect(client.usingBundledDefault, isTrue);
   });
 
   group('backend URL resolver', () {
-    test('debug build without an explicit URL uses production', () {
+    test('debug build without an explicit URL uses staging', () {
       final url = SocialApiClient.resolveBaseUrlForTest(
         configuredBaseUrl: '',
         debugMode: true,
       );
 
-      expect(url, SocialApiClient.productionSocialBackendUrl);
+      expect(url, SocialApiClient.stagingSocialBackendUrl);
       expect(url, isNotEmpty);
     });
 

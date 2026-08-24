@@ -13,7 +13,7 @@ BUILD_COMMIT = "791acbdfaee7fd46821fb5097e22dafdc40494e9"
 ENVIRONMENT = "staging"
 ALLOW_TEST_PURCHASE_GRANTS = "true"
 TEST_STARTER_COINS = "10000"
-DEBUG_UNLIMITED_COINS = "false"
+DEBUG_UNLIMITED_COINS = "true"
 
 [[d1_databases]]
 binding = "DB"

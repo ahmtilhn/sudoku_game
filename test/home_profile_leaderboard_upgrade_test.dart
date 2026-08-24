@@ -3,101 +3,119 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('home uses premium scene artwork and exposes distinct profile/rank paths', () {
-    final source = File(
-      'lib/features/home/professional_home_screen.dart',
-    ).readAsStringSync();
+  test(
+    'home uses premium scene artwork and exposes distinct profile/rank paths',
+    () {
+      final source = File(
+        'lib/features/home/professional_home_screen.dart',
+      ).readAsStringSync();
 
-    for (final asset in <String>[
-      'DuelAsset.homePlayScene',
-      'DuelAsset.homeDuelScene',
-      'DuelAsset.homeCareerScene',
-      'DuelAsset.homeFriendsScene',
-      'DuelAsset.homeStoreScene',
-      'DuelAsset.resultVictoryTrophyPro',
-      'DuelAsset.dailyRewardPro',
-      'DuelAsset.coin',
-      'DuelAsset.leaderboardCrownPro',
-    ]) {
-      expect(source, contains(asset));
-    }
-    expect(source, contains('LeaderboardsScreen'));
-    expect(source, contains('RankedProgressScreen'));
-    expect(source, contains("title: rank?.rankName ?? 'Ranked Progress'"));
-    expect(source, contains('progress: rank?.progress'));
-    expect(source, contains('onTap: _identityBusy ? null : _openRankedProgress'));
-    expect(source, isNot(contains('DuelAsset.homeProfileScene')));
-    expect(source, contains('localAvatarBytes: platformPlayer?.avatarBytes'));
-    expect(
-      source,
-      contains('constraints: const BoxConstraints(maxWidth: 760)'),
-    );
-  });
+      for (final asset in <String>[
+        'DuelAsset.homePlayScene',
+        'DuelAsset.homeDuelScene',
+        'DuelAsset.homeCareerScene',
+        'DuelAsset.homeFriendsScene',
+        'DuelAsset.homeStoreScene',
+        'DuelAsset.resultVictoryTrophyPro',
+        'DuelAsset.dailyRewardPro',
+        'DuelAsset.coin',
+        'DuelAsset.leaderboardCrownPro',
+      ]) {
+        expect(source, contains(asset));
+      }
+      expect(source, contains('LeaderboardsScreen'));
+      expect(source, contains('RankedProgressScreen'));
+      expect(source, contains("title: rank?.rankName ?? 'Ranked Progress'"));
+      expect(source, contains('progress: rank?.progress'));
+      expect(
+        source,
+        contains('onTap: _identityBusy ? null : _openRankedProgress'),
+      );
+      expect(source, isNot(contains('DuelAsset.homeProfileScene')));
+      expect(source, contains('localAvatarBytes: platformPlayer?.avatarBytes'));
+      expect(
+        source,
+        contains('constraints: const BoxConstraints(maxWidth: 760)'),
+      );
+    },
+  );
 
-  test('ranked progress screen owns RP detail instead of another home profile shortcut', () {
-    final source = File(
-      'lib/features/duel/ranked_progress_screen.dart',
-    ).readAsStringSync();
+  test(
+    'ranked progress screen owns RP detail instead of another home profile shortcut',
+    () {
+      final source = File(
+        'lib/features/duel/ranked_progress_screen.dart',
+      ).readAsStringSync();
 
-    expect(source, contains('RankIdentitySummaryCard'));
-    expect(source, contains('RankIdentityService.instance.refresh()'));
-    expect(source, contains('ProfileCustomizationScreen'));
-    expect(source, contains('LeaderboardsScreen'));
-    expect(source, contains("title: 'Ranked Progress'"));
-  });
+      expect(source, contains('RankIdentitySummaryCard'));
+      expect(source, contains('RankIdentityService.instance.refresh()'));
+      expect(source, contains('ProfileCustomizationScreen'));
+      expect(source, contains('LeaderboardsScreen'));
+      expect(source, contains("title: 'Ranked Progress'"));
+    },
+  );
 
-  test('profile hub exposes RP identity customization and leaderboard entry', () {
-    final source = File(
-      'lib/features/social/profile_hub_screen.dart',
-    ).readAsStringSync();
-    final summary = File(
-      'lib/features/social/rank_identity_summary_card.dart',
-    ).readAsStringSync();
+  test(
+    'profile hub exposes RP identity customization and leaderboard entry',
+    () {
+      final source = File(
+        'lib/features/social/profile_hub_screen.dart',
+      ).readAsStringSync();
+      final summary = File(
+        'lib/features/social/rank_identity_summary_card.dart',
+      ).readAsStringSync();
 
-    expect(source, contains('RankIdentitySummaryCard'));
-    expect(source, contains('ProfileCustomizationScreen'));
-    expect(source, contains('_ProfileActionGrid'));
-    expect(source, contains('_ProfileActionCard'));
-    expect(source, contains('_selectedTab'));
-    expect(source, contains('DuelAsset.leaderboardCrownPro'));
-    expect(source, contains('LeaderboardsScreen'));
-    expect(source, contains('rankPoints'));
-    expect(source, contains('_selectedTab = _ProfileTab.leaderboards'));
-    expect(source, isNot(contains('CompetitiveProfileCard')));
-    expect(source, isNot(contains('currentElo')));
-    expect(source, isNot(contains('WalletHistoryScreen')));
-    expect(source, isNot(contains('SocialHubScreen')));
+      expect(source, contains('RankIdentitySummaryCard'));
+      expect(source, contains('ProfileCustomizationScreen'));
+      expect(source, contains('_ProfileActionGrid'));
+      expect(source, contains('_ProfileActionCard'));
+      expect(source, contains('_selectedTab'));
+      expect(source, contains('DuelAsset.leaderboardCrownPro'));
+      expect(source, contains('LeaderboardsScreen'));
+      expect(source, contains('rankPoints'));
+      expect(source, contains('_selectedTab = _ProfileTab.leaderboards'));
+      expect(source, isNot(contains('CompetitiveProfileCard')));
+      expect(source, isNot(contains('currentElo')));
+      expect(source, isNot(contains('WalletHistoryScreen')));
+      expect(source, isNot(contains('SocialHubScreen')));
 
-    expect(summary, contains('profile.rankPoints'));
-    expect(summary, contains('profile.rankName'));
-    expect(summary, contains('profile.avatarKey'));
-    expect(summary, isNot(contains('currentElo')));
-  });
+      expect(summary, contains('profile.rankPoints'));
+      expect(summary, contains('profile.rankName'));
+      expect(summary, contains('profile.avatarKey'));
+      expect(summary, isNot(contains('currentElo')));
+    },
+  );
 
-  test('profile customization lets the player choose and hide a country flag', () {
-    final source = File(
-      'lib/features/social/profile_customization_screen.dart',
-    ).readAsStringSync();
-    final service = File(
-      'lib/services/rank_identity_service.dart',
-    ).readAsStringSync();
-    final catalog = File(
-      'lib/models/country_catalog.dart',
-    ).readAsStringSync();
+  test(
+    'profile customization lets the player choose and hide a country flag',
+    () {
+      final source = File(
+        'lib/features/social/profile_customization_screen.dart',
+      ).readAsStringSync();
+      final service = File(
+        'lib/services/rank_identity_service.dart',
+      ).readAsStringSync();
+      final catalog = File(
+        'lib/models/country_catalog.dart',
+      ).readAsStringSync();
 
-    expect(source, contains("text: 'Country'"));
-    expect(source, contains('countryOptions'));
-    expect(source, contains('countryFlagEmoji'));
-    expect(source, contains('Show flag on Ranked Ladder'));
-    expect(source, contains('No country abbreviation is shown.'));
-    expect(source, contains('loadCountryPreference()'));
-    expect(source, contains('saveCountryPreference('));
-    expect(source, contains('is never inferred from your location'));
-    expect(service, contains("'/v1/me/rank-country'"));
-    expect(service, contains("'/v1/competitive/rank-country-flags?limit="));
-    expect(catalog, contains("CountryOption(code: 'NL', name: 'Netherlands')"));
-    expect(catalog, contains("CountryOption(code: 'TR', name: 'Türkiye')"));
-  });
+      expect(source, contains("text: 'Country'"));
+      expect(source, contains('countryOptions'));
+      expect(source, contains('countryFlagEmoji'));
+      expect(source, contains('Show flag on Ranked Ladder'));
+      expect(source, contains('No country abbreviation is shown.'));
+      expect(source, contains('loadCountryPreference()'));
+      expect(source, contains('saveCountryPreference('));
+      expect(source, contains('is never inferred from your location'));
+      expect(service, contains("'/v1/me/rank-country'"));
+      expect(service, contains("'/v1/competitive/rank-country-flags?limit="));
+      expect(
+        catalog,
+        contains("CountryOption(code: 'NL', name: 'Netherlands')"),
+      );
+      expect(catalog, contains("CountryOption(code: 'TR', name: 'Türkiye')"));
+    },
+  );
 
   test('store and page chrome use transparent glass styling', () {
     final theme = File('lib/core/app_theme.dart').readAsStringSync();
@@ -199,7 +217,10 @@ void main() {
         'lib/services/rank_identity_service.dart',
       ).readAsStringSync();
       expect(service, contains("'/v1/competitive/rank-leaderboard?limit="));
-      expect(service, contains('FirebaseSessionService.ensureAnonymousSession()'));
+      expect(
+        service,
+        contains('FirebaseSessionService.ensureAnonymousSession()'),
+      );
 
       // Native platform leaderboards remain a separate compatibility surface;
       // they do not define the in-app visible rank.

@@ -67,6 +67,7 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     final sender = _sender;
     if (sender == null || !sender(emoteId)) return false;
 
+    _present(owner: _owner, emoteId: emoteId, forceActive: true);
     _cooldownTimer?.cancel();
     _cooldown = true;
     notifyListeners();
@@ -77,13 +78,23 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     return true;
   }
 
-  void receive(Object owner, String emoteId) {
+  void receive(Object owner, String emoteId, {bool forceActive = false}) {
     if (!identical(_owner, owner) ||
-        !_matchActive ||
+        (!forceActive && !_matchActive) ||
         _muted ||
         !onlineDuelEmoteCatalogIds.contains(emoteId)) {
       return;
     }
+    _present(owner: owner, emoteId: emoteId, forceActive: forceActive);
+  }
+
+  void _present({
+    required Object? owner,
+    required String emoteId,
+    required bool forceActive,
+  }) {
+    if (!identical(_owner, owner)) return;
+    if (forceActive) _matchActive = true;
     _incomingTimer?.cancel();
     _incomingEmoteId = emoteId;
     notifyListeners();

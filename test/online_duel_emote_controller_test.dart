@@ -83,6 +83,65 @@ void main() {
       await controller.dispose();
     }
   });
+
+  test('server ack shows the sent emote as local delivery feedback', () async {
+    final transport = FakeOnlineDuelTransport();
+    final controller = OnlineDuelController(transport)..start();
+    transport.emit(_event('snapshot', _snapshot(youSeat: 'A')));
+    await pumpEventQueue();
+
+    transport.emit(
+      _event('emote_ack', <String, dynamic>{'seat': 'A', 'emoteId': 'gg'}),
+    );
+    await pumpEventQueue();
+
+    expect(OnlineDuelEmoteHub.instance.incomingEmoteId, 'gg');
+
+    await controller.dispose();
+  });
+
+  test('successful hub send immediately presents the sent emote', () {
+    final hub = OnlineDuelEmoteHub();
+    final owner = hub.attach(sender: (_) => true);
+    hub.setMatchActive(owner, true);
+
+    expect(hub.send('fire'), isTrue);
+
+    expect(hub.incomingEmoteId, 'fire');
+
+    hub.detach(owner);
+  });
+
+  test('forced receive presents emote even before active flag catches up', () {
+    final hub = OnlineDuelEmoteHub();
+    final owner = hub.attach(sender: (_) => true);
+
+    hub.receive(owner, 'gg', forceActive: true);
+
+    expect(hub.visible, isTrue);
+    expect(hub.incomingEmoteId, 'gg');
+
+    hub.detach(owner);
+  });
+
+  test('emotes remain sendable while an open socket is resyncing', () async {
+    final transport = FakeOnlineDuelTransport();
+    final controller = OnlineDuelController(transport)..start();
+    transport.emit(_event('snapshot', _snapshot()));
+    await pumpEventQueue();
+    transport.sent.clear();
+
+    transport.emitConnectionState(OnlineDuelConnectionState.resyncing);
+    await pumpEventQueue();
+
+    expect(controller.sendEmote('fire'), isTrue);
+    expect(
+      transport.sent.where((message) => message['type'] == 'emote'),
+      isNotEmpty,
+    );
+
+    await controller.dispose();
+  });
 }
 
 OnlineDuelEvent _event(

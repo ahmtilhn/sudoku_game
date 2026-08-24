@@ -35,7 +35,8 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   void initState() {
     super.initState();
     _profile =
-        RankIdentityService.instance.current.value ?? buildRankIdentityFallback();
+        RankIdentityService.instance.current.value ??
+        buildRankIdentityFallback();
     unawaited(_load());
   }
 

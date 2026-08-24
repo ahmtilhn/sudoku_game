@@ -242,6 +242,8 @@ class SocialApiClient {
   );
   static const String productionSocialBackendUrl =
       'https://sudoku-duel-social-production.ilhanahmet246.workers.dev';
+  static const String stagingSocialBackendUrl =
+      'https://sudoku-duel-social-staging.ilhanahmet246.workers.dev';
   static const String defaultSocialBackendUrl = productionSocialBackendUrl;
 
   static const Duration _requestTimeout = Duration(seconds: 15);
@@ -263,6 +265,8 @@ class SocialApiClient {
 
     final selected = configured.isNotEmpty
         ? configured
+        : debugMode
+        ? stagingSocialBackendUrl
         : productionSocialBackendUrl;
 
     return _withoutTrailingSlashes(selected);
