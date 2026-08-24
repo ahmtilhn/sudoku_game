@@ -26,32 +26,53 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
   Timer? _timer;
   bool _loading = true;
   bool _busy = false;
+  bool _openingRoom = false;
   String? _error;
 
-  int get _secondsLeft => _invitation == null
-      ? 0
-      : _invitation!.expiresAt
-          .difference(DateTime.now())
-          .inSeconds
-          .clamp(0, 10);
+  int get _secondsLeft {
+    final invitation = _invitation;
+    if (invitation == null) return 0;
+    return invitation.expiresAt
+        .difference(DateTime.now())
+        .inSeconds
+        .clamp(0, 10);
+  }
+
+  bool get _canRespond {
+    final invitation = _invitation;
+    return invitation != null &&
+        !invitation.isSender &&
+        invitation.status == 'pending' &&
+        _secondsLeft > 0 &&
+        !_busy &&
+        !_openingRoom;
+  }
 
   @override
   void initState() {
     super.initState();
     unawaited(_load());
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      if (_secondsLeft <= 0) {
-        _timer?.cancel();
-      }
-      setState(() {});
-    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  void _startClock() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_secondsLeft <= 0) {
+        _timer?.cancel();
+        if (_invitation?.status == 'pending') {
+          setState(() => _error = context.tr('challenge_timed_out'));
+        }
+        return;
+      }
+      setState(() {});
+    });
   }
 
   Future<void> _load() async {
@@ -77,10 +98,21 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
         return;
       }
       setState(() => _invitation = invitation);
+
       if (invitation.status == 'accepted' &&
           invitation.roomId?.isNotEmpty == true) {
         await _openRoom(invitation.roomId!);
+        return;
       }
+      if (invitation.status != 'pending' || _secondsLeft <= 0) {
+        setState(() => _error = context.tr('challenge_timed_out'));
+        return;
+      }
+      if (invitation.isSender) {
+        setState(() => _error = context.tr('try_again'));
+        return;
+      }
+      _startClock();
     } on EconomyApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
@@ -94,7 +126,7 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
 
   Future<void> _respond(bool accept) async {
     final invitation = _invitation;
-    if (invitation == null || _busy || _secondsLeft <= 0) return;
+    if (invitation == null || !_canRespond) return;
     setState(() {
       _busy = true;
       _error = null;
@@ -115,10 +147,12 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
         return;
       }
 
+      // Accept writes the room in the same authoritative backend operation, but
+      // keep a short recovery poll for network retries / older Worker versions.
       for (var attempt = 0; attempt < 12; attempt++) {
         await Future<void>.delayed(const Duration(milliseconds: 500));
         final values = await _economy.loadRematches();
-        if (!mounted) return;
+        if (!mounted || _openingRoom) return;
         RematchInvitation? current;
         for (final item in values) {
           if (item.id == invitation.id) {
@@ -133,23 +167,30 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
           await _openRoom(current.roomId!);
           return;
         }
-        if (current.status == 'declined' || current.status == 'expired') {
+        if (current.status == 'declined' ||
+            current.status == 'expired' ||
+            current.status == 'insufficient_coins') {
           break;
         }
       }
-      if (mounted) setState(() => _error = context.tr('rematch_could_not_start'));
+      if (mounted) {
+        setState(() => _error = context.tr('rematch_could_not_start'));
+      }
     } on EconomyApiException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } catch (_) {
-      if (mounted) setState(() => _error = context.tr('rematch_could_not_start'));
+      if (mounted) {
+        setState(() => _error = context.tr('rematch_could_not_start'));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _openRoom(String roomId) async {
+    if (_openingRoom || !mounted) return;
+    _openingRoom = true;
     _timer?.cancel();
-    if (!mounted) return;
     await Navigator.of(context).pushReplacement<void, void>(
       MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
     );
@@ -181,9 +222,12 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                                 Text(
                                   invitation == null
                                       ? context.tr('challenge_timed_out')
-                                      : context.tr('wants_to_play_again', <Object>[
-                                          invitation.sender.displayName,
-                                        ]),
+                                      : context.tr(
+                                          'wants_to_play_again',
+                                          <Object>[
+                                            invitation.sender.displayName,
+                                          ],
+                                        ),
                                   textAlign: TextAlign.center,
                                   style: Theme.of(context)
                                       .textTheme
@@ -216,21 +260,17 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                                 ],
                                 const SizedBox(height: 18),
                                 FilledButton.icon(
-                                  onPressed: invitation == null ||
-                                          _busy ||
-                                          _secondsLeft <= 0
-                                      ? null
-                                      : () => _respond(true),
+                                  onPressed: _canRespond
+                                      ? () => _respond(true)
+                                      : null,
                                   icon: const Icon(Icons.check_rounded),
                                   label: Text(context.tr('accept')),
                                 ),
                                 const SizedBox(height: 8),
                                 TextButton(
-                                  onPressed: invitation == null ||
-                                          _busy ||
-                                          _secondsLeft <= 0
-                                      ? null
-                                      : () => _respond(false),
+                                  onPressed: _canRespond
+                                      ? () => _respond(false)
+                                      : null,
                                   child: Text(context.tr('decline')),
                                 ),
                               ],
