@@ -406,6 +406,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                     enabled: !inputLocked,
                     onNumber: _enterNumber,
                     onErase: () => setState(() => _selectedIndex = null),
+                    showErase: false,
                   ),
                 ),
               ),

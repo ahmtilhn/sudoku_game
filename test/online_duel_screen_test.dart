@@ -192,6 +192,16 @@ void main() {
     expect(numberButton.onPressed, isNull);
   });
 
+  testWidgets('online number pad hides erase action', (tester) async {
+    await _pumpOnlineDuel(tester, size: const Size(390, 844), status: 'active');
+
+    expect(find.byKey(const ValueKey<String>('action-erase')), findsNothing);
+    expect(find.byKey(const ValueKey<String>('number-1')), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
   testWidgets('incoming opponent emote is visible during active duel', (
     tester,
   ) async {

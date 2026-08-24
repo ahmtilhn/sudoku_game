@@ -66,6 +66,7 @@ class NumberPad extends StatelessWidget {
     this.onHint,
     this.hintCount,
     this.enabled = true,
+    this.showErase = true,
   });
 
   final int maxValue;
@@ -78,6 +79,7 @@ class NumberPad extends StatelessWidget {
   final VoidCallback? onHint;
   final int? hintCount;
   final bool enabled;
+  final bool showErase;
 
   @override
   Widget build(BuildContext context) {
@@ -149,12 +151,13 @@ class NumberPad extends StatelessWidget {
                 spacing: 4,
                 runSpacing: 4,
                 children: [
-                  _ActionButton(
-                    buttonKey: const ValueKey<String>('action-erase'),
-                    icon: Icons.backspace_outlined,
-                    label: context.tr('erase'),
-                    onPressed: enabled ? onErase : null,
-                  ),
+                  if (showErase)
+                    _ActionButton(
+                      buttonKey: const ValueKey<String>('action-erase'),
+                      icon: Icons.backspace_outlined,
+                      label: context.tr('erase'),
+                      onPressed: enabled ? onErase : null,
+                    ),
                   if (onToggleNotes != null)
                     _ActionButton(
                       buttonKey: const ValueKey<String>('action-notes'),

@@ -95,6 +95,7 @@ class OnlineDuelController with WidgetsBindingObserver {
       'value': value,
     });
     _transport.send(_pendingMoveEnvelope!);
+    _applyOptimisticMove(current, cellIndex, value);
     return true;
   }
 
@@ -176,19 +177,6 @@ class OnlineDuelController with WidgetsBindingObserver {
       return;
     }
     if (event.type == 'emote_ack') {
-      final session = _emoteSession;
-      final actorSeat = _seat(event.payload['seat']?.toString());
-      final emoteId = event.payload['emoteId']?.toString();
-      if (current != null &&
-          session != null &&
-          actorSeat == current.youSeat &&
-          emoteId != null) {
-        OnlineDuelEmoteHub.instance.receive(
-          session,
-          emoteId,
-          forceActive: true,
-        );
-      }
       return;
     }
     if (event.type == 'emote_rejected') {
@@ -358,6 +346,17 @@ class OnlineDuelController with WidgetsBindingObserver {
       unawaited(_platformLeaderboardMirror.mirrorFinalRatings(snapshot));
       unawaited(_platformGameStatsMirror.mirrorFinalStats(snapshot));
     }
+  }
+
+  void _applyOptimisticMove(
+    OnlineDuelSnapshot snapshot,
+    int cellIndex,
+    int value,
+  ) {
+    final board = List<int>.from(snapshot.board)..[cellIndex] = value;
+    final optimistic = snapshot.copyWith(board: board);
+    _snapshot = optimistic;
+    _snapshots.add(optimistic);
   }
 
   void _applyPartialState(OnlineDuelEvent event) {

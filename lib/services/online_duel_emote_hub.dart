@@ -67,7 +67,6 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     final sender = _sender;
     if (sender == null || !sender(emoteId)) return false;
 
-    _present(owner: _owner, emoteId: emoteId, forceActive: true);
     _cooldownTimer?.cancel();
     _cooldown = true;
     notifyListeners();

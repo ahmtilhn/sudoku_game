@@ -21,6 +21,9 @@ void main() {
     }
 
     expect(source, contains('buyConsumable(String productId)'));
+    expect(source, contains('if (Platform.isAndroid) await _recoverAndroidConsumables();'));
+    expect(source, contains('started = await _startCoinPurchase(details);'));
+    expect(source, contains('final recoveredStart = await _startCoinPurchase(details);'));
     expect(source, contains('autoConsume: Platform.isIOS'));
     expect(source, contains('_recoverAndroidConsumables()'));
     expect(source, contains('queryPastPurchases()'));

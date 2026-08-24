@@ -14,11 +14,11 @@ import {
 } from '../src/rank_progression';
 
 describe('visible rank progression', () => {
-  it('keeps unplayed accounts out of the public RP leaderboard', () => {
+  it('keeps unplayed accounts out while showing every ranked player', () => {
     const source = readFileSync('src/rank_progression.ts', 'utf8');
 
     expect(source).toContain('WHERE rp.ranked_games > 0');
-    expect(source).toContain('AND (COALESCE(p.discoverable, 1) = 1 OR p.id = ?)');
+    expect(source).not.toContain('COALESCE(p.discoverable, 1)');
   });
 
   it('starts at Bronze III and advances every 300 RP through Master I', () => {

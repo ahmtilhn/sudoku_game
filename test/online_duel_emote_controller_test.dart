@@ -84,7 +84,7 @@ void main() {
     }
   });
 
-  test('server ack shows the sent emote as local delivery feedback', () async {
+  test('server ack does not show the sent emote locally', () async {
     final transport = FakeOnlineDuelTransport();
     final controller = OnlineDuelController(transport)..start();
     transport.emit(_event('snapshot', _snapshot(youSeat: 'A')));
@@ -95,19 +95,20 @@ void main() {
     );
     await pumpEventQueue();
 
-    expect(OnlineDuelEmoteHub.instance.incomingEmoteId, 'gg');
+    expect(OnlineDuelEmoteHub.instance.incomingEmoteId, isNull);
 
     await controller.dispose();
   });
 
-  test('successful hub send immediately presents the sent emote', () {
+  test('successful hub send does not present the sent emote locally', () {
     final hub = OnlineDuelEmoteHub();
     final owner = hub.attach(sender: (_) => true);
     hub.setMatchActive(owner, true);
 
     expect(hub.send('fire'), isTrue);
 
-    expect(hub.incomingEmoteId, 'fire');
+    expect(hub.incomingEmoteId, isNull);
+    expect(hub.onCooldown, isTrue);
 
     hub.detach(owner);
   });

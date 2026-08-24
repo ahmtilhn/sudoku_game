@@ -48,6 +48,22 @@ void main() {
     },
   );
 
+  test('local move appears immediately while waiting for server result', () async {
+    final transport = FakeOnlineDuelTransport();
+    final controller = OnlineDuelController(transport)..start();
+    transport.emit(_event('snapshot', _snapshot()));
+    await pumpEventQueue();
+
+    expect(controller.move(2, 3), isTrue);
+    await pumpEventQueue();
+
+    expect(controller.current?.board[2], 3);
+    expect(controller.pendingMove, isTrue);
+    expect(controller.move(3, 4), isFalse);
+    expect(transport.sent.where((m) => m['type'] == 'move'), hasLength(1));
+    await controller.dispose();
+  });
+
   test('move accepted updates the local board from server event', () async {
     final transport = FakeOnlineDuelTransport();
     final controller = OnlineDuelController(transport)..start();

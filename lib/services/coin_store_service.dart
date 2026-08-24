@@ -145,12 +145,12 @@ class CoinStoreService extends ChangeNotifier {
     EconomyService.instance.setPurchaseProcessing(true);
     notifyListeners();
     try {
-      final started = await _store.buyConsumable(
-        purchaseParam: PurchaseParam(productDetails: details),
-        // iOS consumables must auto-consume. Android stays manual: the token is
-        // first verified/granted by the backend, then explicitly consumed below.
-        autoConsume: Platform.isIOS,
-      );
+      if (Platform.isAndroid) await _recoverAndroidConsumables();
+      var started = await _startCoinPurchase(details);
+      if (!started && Platform.isAndroid) {
+        await _recoverAndroidConsumables();
+        started = await _startCoinPurchase(details);
+      }
       if (!started) {
         pendingProductId = null;
         EconomyService.instance.setPurchaseProcessing(false);
@@ -158,12 +158,30 @@ class CoinStoreService extends ChangeNotifier {
       }
       return started;
     } catch (_) {
+      if (Platform.isAndroid) {
+        try {
+          await _recoverAndroidConsumables();
+          final recoveredStart = await _startCoinPurchase(details);
+          if (recoveredStart) return true;
+        } catch (_) {
+          // Fall through to the user-facing purchase-start error below.
+        }
+      }
       pendingProductId = null;
       error = 'The purchase could not be started.';
       EconomyService.instance.setPurchaseProcessing(false);
       notifyListeners();
       return false;
     }
+  }
+
+  Future<bool> _startCoinPurchase(ProductDetails details) {
+    return _store.buyConsumable(
+      purchaseParam: PurchaseParam(productDetails: details),
+      // iOS consumables must auto-consume. Android stays manual: the token is
+      // first verified/granted by the backend, then explicitly consumed below.
+      autoConsume: Platform.isIOS,
+    );
   }
 
   Future<bool> buyNonConsumable(String productId) async {

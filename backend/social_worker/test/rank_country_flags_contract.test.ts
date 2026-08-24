@@ -36,7 +36,7 @@ describe('ranked country flags', () => {
   it('keeps flag ordering aligned with the visible RP ladder', () => {
     expect(source).toContain('FROM player_rank_progression rp');
     expect(source).toContain('WHERE rp.ranked_games > 0');
-    expect(source).toContain('AND (COALESCE(p.discoverable, 1) = 1 OR p.id = ?)');
+    expect(source).not.toContain('COALESCE(p.discoverable, 1)');
     expect(source).toContain(
       'ORDER BY rp.rank_points DESC, rp.ranked_games DESC, rp.updated_at ASC, rp.player_id ASC',
     );

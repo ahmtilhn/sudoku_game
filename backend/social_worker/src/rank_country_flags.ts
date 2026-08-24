@@ -138,11 +138,10 @@ async function leaderboardCountryFlags(
      JOIN players p ON p.id = rp.player_id
      LEFT JOIN player_country_preferences cp ON cp.player_id = p.id
      WHERE rp.ranked_games > 0
-       AND (COALESCE(p.discoverable, 1) = 1 OR p.id = ?)
      ORDER BY rp.rank_points DESC, rp.ranked_games DESC, rp.updated_at ASC, rp.player_id ASC
      LIMIT ?`,
   )
-    .bind(viewerId, limit)
+    .bind(limit)
     .all<Record<string, unknown>>();
 
   return {
