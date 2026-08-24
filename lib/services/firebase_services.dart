@@ -46,31 +46,45 @@ class FirebaseServices {
     bool forceRefresh = false,
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    await ensureAppCheckReady().timeout(timeout);
+    try {
+      await ensureAppCheckReady().timeout(timeout);
 
-    var token = await FirebaseAppCheck.instance
-        .getToken(forceRefresh)
-        .timeout(timeout);
+      var token = await FirebaseAppCheck.instance
+          .getToken(forceRefresh)
+          .timeout(timeout);
 
-    // A newly activated native provider can briefly have no cached token.
-    // Retry exactly once with a forced refresh instead of failing every
-    // authenticated client at the same startup boundary.
-    if ((token == null || token.isEmpty) && !forceRefresh) {
-      token = await FirebaseAppCheck.instance.getToken(true).timeout(timeout);
+      // A newly activated native provider can briefly have no cached token.
+      // Retry exactly once with a forced refresh instead of failing every
+      // authenticated client at the same startup boundary.
+      if ((token == null || token.isEmpty) && !forceRefresh) {
+        token = await FirebaseAppCheck.instance.getToken(true).timeout(timeout);
+      }
+
+      if (token == null || token.isEmpty) {
+        throw StateError('Firebase App Check token is unavailable.');
+      }
+
+      return token;
+    } catch (error) {
+      // The production Worker currently runs App Check in monitor-only mode
+      // (REQUIRE_APP_CHECK=false) while Play Integrity / App Attest rollout is
+      // being repaired. Do not block authenticated Economy/reward traffic on
+      // the client before the server has a chance to apply its deployment
+      // policy. A valid token is still attached whenever one is available.
+      debugPrint(
+        'Firebase App Check unavailable; continuing without client-side block: '
+        '${error.runtimeType}',
+      );
+      return '';
     }
-
-    if (token == null || token.isEmpty) {
-      throw StateError('Firebase App Check token is unavailable.');
-    }
-
-    return token;
   }
 
   Future<String?> tryGetAppCheckToken({
     Duration timeout = const Duration(seconds: 15),
   }) async {
     try {
-      return await requireAppCheckToken(timeout: timeout);
+      final token = await requireAppCheckToken(timeout: timeout);
+      return token.isEmpty ? null : token;
     } catch (error) {
       debugPrint('Firebase App Check token unavailable: ${error.runtimeType}');
       return null;
@@ -101,9 +115,9 @@ class FirebaseServices {
     final initialized = await FirebaseRuntimeConfig.initializeIfConfigured();
     if (!initialized) return;
 
-    // App Check is a required prerequisite for authenticated production
-    // backend traffic. If activation fails, initialization must remain
-    // retryable instead of being marked successful.
+    // App Check activation is attempted eagerly so healthy installations keep
+    // sending attestation tokens, but monitor-only backend deployments must not
+    // make the rest of Firebase initialization permanently fail.
     await ensureAppCheckReady();
 
     await _loadPrivacyPreferences();
