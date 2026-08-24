@@ -36,6 +36,14 @@ describe('rank-aware production GameRoom', () => {
     expect(wrapper).toContain('this.rankState.getWebSockets()');
   });
 
+  it('delivers accepted emotes only to the opponent socket', () => {
+    expect(wrapper).toContain('const [targetPlayerId] = this.rankState.getTags(target)');
+    expect(wrapper).toContain(
+      'const targetSeat = this.emoteSeatForPlayer(duel, targetPlayerId)',
+    );
+    expect(wrapper).toContain('if (!targetSeat || targetSeat === seat) continue;');
+  });
+
   it('only reconciles after an authoritative rated ranked settlement exists', () => {
     expect(wrapper).toContain("match.mode !== 'ranked'");
     expect(wrapper).toContain('Number(match.rated) !== 1');
