@@ -1,4 +1,5 @@
-import legacyWorker, { GameRoom } from './entry';
+import legacyWorker from './entry';
+import { GameRoom } from './rank_aware_game_room';
 import {
   MatchmakingQueue,
   handleVariantMatchmakingRequest,
