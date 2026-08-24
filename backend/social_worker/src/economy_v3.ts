@@ -24,6 +24,7 @@ import {
   purchaseHint,
 } from './economy_v3_career_hints';
 import { normalizeVariant } from './economy_v3_policy';
+import { claimPlayReward, normalizePlayDifficulty } from './economy_v3_play';
 import {
   confirmDuelRecovery,
   dismissDuelRecovery,
@@ -112,6 +113,24 @@ export async function handleEconomyV3Request(
         200,
         await claimCareerReward(env, playerId, {
           level: positiveInt(body.level, 'level'),
+          variant,
+        }),
+      );
+    }
+    if (url.pathname === '/v1/economy/v3/play/claim' && request.method === 'POST') {
+      const body = await readJson(request);
+      let variant: 'classic9' | 'classic16';
+      try {
+        variant = normalizeVariant(body.variant);
+      } catch {
+        throw new EconomyV3Error(400, 'Invalid Sudoku variant.', 'invalid_variant');
+      }
+      return json(
+        env,
+        200,
+        await claimPlayReward(env, playerId, {
+          puzzleId: requiredString(body.puzzleId, 'puzzleId', 192),
+          difficulty: normalizePlayDifficulty(body.difficulty),
           variant,
         }),
       );
