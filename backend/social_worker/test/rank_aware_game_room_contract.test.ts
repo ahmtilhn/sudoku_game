@@ -29,7 +29,7 @@ describe('rank-aware production GameRoom', () => {
   it('keeps emotes ephemeral, whitelisted and server rate limited', () => {
     expect(wrapper).toContain('const DUEL_EMOTE_IDS = new Set([');
     expect(wrapper).toContain('const DUEL_EMOTE_COOLDOWN_MS = 3_000');
-    expect(wrapper).toContain("String(duel.status ?? '') !== 'active'");
+    expect(wrapper).toContain("duel.status !== 'active'");
     expect(wrapper).toContain("'invalid_emote'");
     expect(wrapper).toContain("'emote_cooldown'");
     expect(wrapper).toContain("'duelEmoteCooldowns'");
