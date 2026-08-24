@@ -12,7 +12,9 @@ import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/push_notification_service.dart';
+import '../../services/social_api_client.dart';
 import '../../widgets/duel_asset_icon.dart';
+import '../duel/pre_match_ready_screen.dart';
 import '../game/game_screen.dart';
 import '../game/hint_economy.dart';
 import 'challenge_invitation_screen.dart';
@@ -32,6 +34,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
   final PushNotificationService _push = PushNotificationService.instance;
   final GameSessionStore _sessions = GameSessionStore.instance;
   final EconomyService _economy = EconomyService.instance;
+  final SocialApiClient _social = SocialApiClient.instance;
 
   ActiveGameSessionMetadata? _activeSession;
   bool _openingChallenge = false;
@@ -146,6 +149,26 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
     setState(() => _openingChallenge = true);
     _push.openedChallengeId.value = null;
     try {
+      final challenge = await _loadPushChallenge(challengeId);
+      if (!mounted || challenge == null) return;
+
+      final roomId = challenge.roomId;
+      if (challenge.status == 'accepted' && roomId?.isNotEmpty == true) {
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => PreMatchReadyScreen(roomId: roomId!),
+          ),
+        );
+        return;
+      }
+
+      if (!challengePushCanOpen(challenge, DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('challenge_timed_out'))),
+        );
+        return;
+      }
+
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) => ChallengeInvitationScreen(challengeId: challengeId),
@@ -157,6 +180,28 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
         unawaited(_sessions.latest());
         if (_push.openedChallengeId.value != null) _scheduleChallengeOpen();
       }
+    }
+  }
+
+  Future<SocialChallenge?> _loadPushChallenge(String challengeId) async {
+    try {
+      return await _social.loadChallenge(challengeId);
+    } on SocialApiException catch (error) {
+      if (!mounted) return null;
+      final message = error.statusCode == 404 || error.statusCode == 409
+          ? context.tr('challenge_timed_out')
+          : error.message;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+      return null;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('try_again_when_connected'))),
+        );
+      }
+      return null;
     }
   }
 
@@ -242,6 +287,14 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
       debugPrint('Platform first-grid achievement unlock failed: $error');
     }
   }
+}
+
+@visibleForTesting
+bool challengePushCanOpen(SocialChallenge challenge, DateTime now) {
+  if (challenge.status == 'accepted') {
+    return challenge.roomId?.isNotEmpty == true;
+  }
+  return challenge.status == 'pending' && challenge.expiresAt.isAfter(now);
 }
 
 class _ActiveCareerSessionCard extends StatelessWidget {
