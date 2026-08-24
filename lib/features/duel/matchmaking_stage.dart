@@ -647,7 +647,7 @@ class _RankLine extends StatelessWidget {
         const SizedBox(width: 5),
         Flexible(
           child: Text(
-            text == null || text.isEmpty ? context.tr('elo_unknown') : text,
+            text == null || text.isEmpty ? context.tr('rank') : text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -688,7 +688,7 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _Stat(
             value: player.rating?.toString() ?? '—',
-            label: context.tr('rating'),
+            label: 'RP',
             accent: const Color(0xFFB29AFF),
           ),
         ),
@@ -706,7 +706,7 @@ class _UnknownStatsRow extends StatelessWidget {
       children: [
         Expanded(child: _Stat(value: '—', label: context.tr('match_type'))),
         Expanded(child: _Stat(value: '—', label: context.tr('win_rate'))),
-        Expanded(child: _Stat(value: '—', label: context.tr('rating'))),
+        const Expanded(child: _Stat(value: '—', label: 'RP')),
       ],
     );
   }
