@@ -127,25 +127,47 @@ void main() {
     );
   });
 
-  test('career Coin sync repairs a missed sequential claim without double grant', () {
-    final sync = File(
-      'lib/services/career_reward_sync_service.dart',
-    ).readAsStringSync();
-    final economyV3 = File(
-      'lib/services/economy_v3_service.dart',
+  test('legacy daily x2 waits for AdMob server-side verification', () {
+    final economy = File(
+      'lib/services/economy_service.dart',
     ).readAsStringSync();
 
-    expect(sync, contains("_economy.errorCode != 'career_sequence_gap'"));
-    expect(sync, contains('for (var level = 1; level <= completedLevel; level++)'));
-    expect(sync, contains('_lastSyncedLevel[variant.id] = level'));
+    expect(economy, contains('_confirmRewardAfterSsv'));
+    expect(economy, contains("exception.code == 'reward_waiting_for_ssv'"));
+    expect(economy, contains('const attempts = 8'));
+    expect(economy, contains('Duration(seconds: 1)'));
     expect(
-      sync,
-      contains('Preserve the existing migration behavior'),
-      reason: 'old local career progress must not be bulk-granted accidentally',
+      economy,
+      isNot(contains('EconomyV3ApiClient.instance.confirmDailyDouble(\n')),
     );
-    expect(economyV3, contains('String? get errorCode => _errorCode;'));
-    expect(economyV3, contains('_errorCode = error.code;'));
   });
+
+  test(
+    'career Coin sync repairs a missed sequential claim without double grant',
+    () {
+      final sync = File(
+        'lib/services/career_reward_sync_service.dart',
+      ).readAsStringSync();
+      final economyV3 = File(
+        'lib/services/economy_v3_service.dart',
+      ).readAsStringSync();
+
+      expect(sync, contains("_economy.errorCode != 'career_sequence_gap'"));
+      expect(
+        sync,
+        contains('for (var level = 1; level <= completedLevel; level++)'),
+      );
+      expect(sync, contains('_lastSyncedLevel[variant.id] = level'));
+      expect(
+        sync,
+        contains('Preserve the existing migration behavior'),
+        reason:
+            'old local career progress must not be bulk-granted accidentally',
+      );
+      expect(economyV3, contains('String? get errorCode => _errorCode;'));
+      expect(economyV3, contains('_errorCode = error.code;'));
+    },
+  );
 
   test('career completion rewards are unlimited and never daily-capped', () {
     final policy = File(
@@ -162,7 +184,7 @@ void main() {
     ).readAsStringSync();
 
     expect(policy, contains('CAREER_DAILY_COIN_CAP: null = null'));
-    expect(career, contains('final amount = requested;'));
+    expect(career, contains('const amount = requested;'));
     expect(career, contains("rewardPolicy: 'uncapped'"));
     expect(career, contains('capped: false'));
     expect(career, isNot(contains('Math.min(requested, remaining)')));
@@ -175,20 +197,23 @@ void main() {
     expect(api, contains('final bool careerUnlimited;'));
   });
 
-  test('career claim tolerates missing App Check only in monitor mode path', () {
-    final api = File(
-      'lib/services/economy_v3_api_client.dart',
-    ).readAsStringSync();
+  test(
+    'career claim tolerates missing App Check only in monitor mode path',
+    () {
+      final api = File(
+        'lib/services/economy_v3_api_client.dart',
+      ).readAsStringSync();
 
-    expect(api, contains("'/v1/economy/v3/career/claim'"));
-    expect(api, contains('allowMissingAppCheck: true'));
-    expect(api, contains('tryGetAppCheckToken('));
-    expect(
-      api,
-      contains('bool allowMissingAppCheck = false'),
-      reason: 'all other Economy V3 routes remain strict by default',
-    );
-  });
+      expect(api, contains("'/v1/economy/v3/career/claim'"));
+      expect(api, contains('allowMissingAppCheck: true'));
+      expect(api, contains('tryGetAppCheckToken('));
+      expect(
+        api,
+        contains('bool allowMissingAppCheck = false'),
+        reason: 'all other Economy V3 routes remain strict by default',
+      );
+    },
+  );
 
   test('active Coin balance and spend surfaces use the current Coin artwork', () {
     final sources = <String, String>{

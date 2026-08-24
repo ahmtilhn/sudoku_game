@@ -8,7 +8,8 @@ import 'ads_service.dart';
 import 'economy_api_client.dart';
 import 'economy_v3_api_client.dart';
 
-int positiveCoinDelta(int before, int after) => after > before ? after - before : 0;
+int positiveCoinDelta(int before, int after) =>
+    after > before ? after - before : 0;
 
 class EconomyService extends ChangeNotifier {
   EconomyService._();
@@ -123,8 +124,8 @@ class EconomyService extends ChangeNotifier {
         verificationToken: prepared.token,
       );
       if (!earned) return false;
-      final result = await EconomyV3ApiClient.instance.confirmDailyDouble(
-        prepared.token,
+      final result = await _confirmRewardAfterSsv(
+        () => EconomyV3ApiClient.instance.confirmDailyDouble(prepared.token),
       );
       await refresh(showLoading: false);
       _syncAdEntitlement();
@@ -147,6 +148,22 @@ class EconomyService extends ChangeNotifier {
   Future<int> claimCareerRewardedInterstitialCoins() async => 0;
 
   Future<bool> claimCareerRewardedInterstitial() async => false;
+
+  Future<EconomyV3ClaimResult> _confirmRewardAfterSsv(
+    Future<EconomyV3ClaimResult> Function() confirm,
+  ) async {
+    const attempts = 8;
+    for (var attempt = 0; attempt < attempts; attempt++) {
+      try {
+        return await confirm();
+      } on EconomyApiException catch (exception) {
+        final waiting = exception.code == 'reward_waiting_for_ssv';
+        if (!waiting || attempt == attempts - 1) rethrow;
+        await Future<void>.delayed(const Duration(seconds: 1));
+      }
+    }
+    throw StateError('Reward confirmation retry exhausted.');
+  }
 
   Future<bool> spendCareerContinue() async {
     if (debugUnlimitedCoinsEnabled) {
@@ -230,23 +247,24 @@ class EconomyService extends ChangeNotifier {
     EconomyApiException? settlementError;
     for (var attempt = 0; attempt < 8; attempt++) {
       try {
-        final invitation = await EconomyApiClient.instance.createRematch(matchId);
+        final invitation = await EconomyApiClient.instance.createRematch(
+          matchId,
+        );
         await refresh(showLoading: false);
         return invitation;
       } on EconomyApiException catch (exception) {
         final waitingForMatchSettlement =
             exception.statusCode == 409 &&
-            exception.message.toLowerCase().contains('match has not finished yet');
+            exception.message.toLowerCase().contains(
+              'match has not finished yet',
+            );
         if (!waitingForMatchSettlement || attempt == 7) rethrow;
         settlementError = exception;
         await Future<void>.delayed(const Duration(milliseconds: 150));
       }
     }
     throw settlementError ??
-        const EconomyApiException(
-          409,
-          'The match has not finished yet.',
-        );
+        const EconomyApiException(409, 'The match has not finished yet.');
   }
 
   Future<List<RematchInvitation>> loadRematches() {
