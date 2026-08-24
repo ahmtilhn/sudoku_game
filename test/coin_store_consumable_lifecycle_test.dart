@@ -21,9 +21,17 @@ void main() {
     }
 
     expect(source, contains('buyConsumable(String productId)'));
-    expect(source, contains('if (Platform.isAndroid) await _recoverAndroidConsumables();'));
+    expect(source, isNot(contains('_purchaseAccountBlocker')));
+    expect(source, isNot(contains('connectPlayGamesAccount()')));
+    expect(
+      source,
+      contains('if (Platform.isAndroid) await _recoverAndroidConsumables();'),
+    );
     expect(source, contains('started = await _startCoinPurchase(details);'));
-    expect(source, contains('final recoveredStart = await _startCoinPurchase(details);'));
+    expect(
+      source,
+      contains('final recoveredStart = await _startCoinPurchase(details);'),
+    );
     expect(source, contains('autoConsume: Platform.isIOS'));
     expect(source, contains('_recoverAndroidConsumables()'));
     expect(source, contains('queryPastPurchases()'));
@@ -32,10 +40,7 @@ void main() {
     expect(source, contains('BillingResponse.itemNotOwned'));
     expect(source, contains("exception.code == 'purchase_replayed'"));
     expect(source, contains('throw _CoinConsumptionException'));
-    expect(
-      source,
-      contains('Intentionally do not complete the purchase.'),
-    );
+    expect(source, contains('Intentionally do not complete the purchase.'));
   });
 
   test('no-ads remains a non-consumable entitlement', () {
@@ -55,10 +60,7 @@ void main() {
     ).readAsStringSync();
 
     expect(source, contains('onBuy: () => _store.buy(product.id)'));
-    expect(
-      source,
-      contains('onBuy: () => _store.buyNonConsumable('),
-    );
+    expect(source, contains('onBuy: () => _store.buyNonConsumable('));
     expect(source, contains('CoinStoreService.noAdsProductId'));
   });
 }

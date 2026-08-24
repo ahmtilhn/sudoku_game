@@ -139,7 +139,6 @@ class CoinStoreService extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-
     pendingProductId = productId;
     error = null;
     EconomyService.instance.setPurchaseProcessing(true);
@@ -193,7 +192,6 @@ class CoinStoreService extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-
     pendingProductId = productId;
     error = null;
     EconomyService.instance.setPurchaseProcessing(true);

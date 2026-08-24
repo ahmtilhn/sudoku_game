@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 import { handleAdMobSsv, isAdMobSsvPath } from '../src/admob_ssv';
 import {
@@ -53,6 +54,13 @@ describe('production purchase verification routing', () => {
       status: 405,
       code: 'method_not_allowed',
     });
+  });
+
+  it('does not put the old protected-account gate before store verification', () => {
+    const source = readFileSync('src/entry.ts', 'utf8');
+
+    expect(source).not.toContain('assertProtectedPurchaseAccount(request, env)');
+    expect(source).toContain('verifyAndGrantProductionPurchase(request, env)');
   });
 });
 

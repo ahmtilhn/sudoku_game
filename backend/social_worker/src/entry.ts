@@ -8,8 +8,6 @@ import {
 } from './account_deletion';
 import {
   AccountProtectionError,
-  assertProtectedPurchaseAccount,
-  isPurchaseVerificationPath,
 } from './account_protection_gate';
 import { runRetentionCleanup } from './cost_retention';
 import {
@@ -96,10 +94,6 @@ export default {
 
       if (isAccountDeletionPath(url.pathname)) {
         return json(env, 200, await deletePlayerAccountData(request, env));
-      }
-
-      if (isPurchaseVerificationPath(url.pathname)) {
-        await assertProtectedPurchaseAccount(request, env);
       }
 
       if (
