@@ -37,6 +37,10 @@ import {
   isRankCountryFlagRoute,
   type RankCountryFlagEnv,
 } from './rank_country_flags';
+import {
+  handleRematchResponseNotificationRequest,
+  isRematchResponseRoute,
+} from './rematch_response_notifications';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
 
 export { GameRoom, MatchmakingQueue };
@@ -171,6 +175,18 @@ export default {
       isFriendNotificationRoute(url.pathname)
     ) {
       return handleFriendNotificationRequest(
+        request,
+        env,
+        ctx,
+        (forwarded, forwardedEnv, forwardedCtx) =>
+          legacyWorker.fetch(forwarded, forwardedEnv as never, forwardedCtx),
+      );
+    }
+    if (
+      request.method === 'POST' &&
+      isRematchResponseRoute(url.pathname)
+    ) {
+      return handleRematchResponseNotificationRequest(
         request,
         env,
         ctx,
