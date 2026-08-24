@@ -29,4 +29,41 @@ void main() {
     expect(destination.id, 'classic16:room-123');
     expect(destination.payload, 'room:classic16:room-123');
   });
+
+  test('rematch push opens the rematch invitation destination', () {
+    final destination = parsePushNotificationDestination(<String, dynamic>{
+      'type': 'rematch_invitation',
+      'rematchId': 'rematch-123',
+      'previousMatchId': 'match-9',
+    });
+
+    expect(destination, isNotNull);
+    expect(destination!.type, PushNotificationDestinationType.rematch);
+    expect(destination.id, 'rematch-123');
+    expect(destination.payload, 'rematch:rematch-123');
+  });
+
+  test('friend request push opens the social destination', () {
+    final destination = parsePushNotificationDestination(<String, dynamic>{
+      'type': 'friend_request',
+      'requesterPublicId': 'PLAYER1234',
+    });
+
+    expect(destination, isNotNull);
+    expect(destination!.type, PushNotificationDestinationType.social);
+    expect(destination.id, 'PLAYER1234');
+    expect(destination.payload, 'social:PLAYER1234');
+  });
+
+  test('friend response push opens the social destination', () {
+    final destination = parsePushNotificationDestination(<String, dynamic>{
+      'type': 'friend_response',
+      'status': 'accepted',
+      'playerPublicId': 'PLAYER5678',
+    });
+
+    expect(destination, isNotNull);
+    expect(destination!.type, PushNotificationDestinationType.social);
+    expect(destination.id, 'PLAYER5678');
+  });
 }
