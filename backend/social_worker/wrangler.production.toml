@@ -11,7 +11,7 @@ ALLOWED_APP_CHECK_APP_IDS = "1:31445697560:android:ed951eabf51d75800b2f6d,1:3144
 # Temporarily monitor App Check failures without blocking authenticated online
 # traffic while Play Integrity release tokens are being repaired in Firebase.
 REQUIRE_APP_CHECK = "false"
-BUILD_COMMIT = "d3fcf8a49ca94f364f03d6a15f9417b41ee67061"
+BUILD_COMMIT = "cdce8c1114b32313bab68eb63d2fb5e6d519173a"
 ENVIRONMENT = "production"
 ALLOW_TEST_PURCHASE_GRANTS = "false"
 DEBUG_UNLIMITED_COINS = "false"
