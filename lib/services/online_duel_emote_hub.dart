@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 @immutable
@@ -83,9 +82,9 @@ typedef OnlineDuelEmoteSender = bool Function(String emoteId);
 
 /// UI-facing, match-scoped bridge for lightweight online duel emotes.
 ///
-/// The authoritative game state remains in [OnlineDuelController]. This hub is
-/// intentionally ephemeral: it only owns presentation state, local mute state,
-/// and client-side cooldown protection.
+/// The authoritative game state stays in the online duel controller. This hub
+/// intentionally owns only presentation state, local mute state, and
+/// client-side cooldown protection.
 class OnlineDuelEmoteHub extends ChangeNotifier {
   OnlineDuelEmoteHub();
 
