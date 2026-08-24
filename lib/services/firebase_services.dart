@@ -15,6 +15,7 @@ class FirebaseServices {
 
   static const String _analyticsEnabledKey = 'analytics_collection_enabled_v1';
   static const String _crashReportingEnabledKey = 'crash_reporting_enabled_v1';
+  static const Duration _appCheckRetryCooldown = Duration(minutes: 1);
 
   final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
   final ValueNotifier<bool> analyticsEnabled = ValueNotifier<bool>(false);
@@ -22,8 +23,10 @@ class FirebaseServices {
 
   Future<void>? _initialization;
   Future<void>? _appCheckInitialization;
+  DateTime? _appCheckRetryAfter;
   bool _initialized = false;
   bool _appCheckActivated = false;
+  bool _appCheckUnavailableLogged = false;
 
   bool get initialized => _initialized;
   bool get appCheckActivated => _appCheckActivated;
@@ -46,6 +49,11 @@ class FirebaseServices {
     bool forceRefresh = false,
     Duration timeout = const Duration(seconds: 15),
   }) async {
+    final retryAfter = _appCheckRetryAfter;
+    if (retryAfter != null && DateTime.now().isBefore(retryAfter)) {
+      return '';
+    }
+
     try {
       await ensureAppCheckReady().timeout(timeout);
 
@@ -61,17 +69,24 @@ class FirebaseServices {
         throw StateError('Firebase App Check token is unavailable.');
       }
 
+      _appCheckRetryAfter = null;
+      _appCheckUnavailableLogged = false;
       return token;
     } catch (error) {
       // The production Worker currently runs App Check in monitor-only mode
       // (REQUIRE_APP_CHECK=false) while Play Integrity / App Attest rollout is
       // being repaired. Do not block authenticated Economy/reward traffic on
       // the client before the server has a chance to apply its deployment
-      // policy. A valid token is still attached whenever one is available.
-      debugPrint(
-        'Firebase App Check unavailable; continuing without client-side block: '
-        '${error.runtimeType}',
-      );
+      // policy. Retry at a controlled cadence instead of reconnect loops
+      // repeatedly re-running attestation and flooding debug output.
+      _appCheckRetryAfter = DateTime.now().add(_appCheckRetryCooldown);
+      if (!_appCheckUnavailableLogged) {
+        _appCheckUnavailableLogged = true;
+        debugPrint(
+          'Firebase App Check unavailable; continuing without client-side block: '
+          '${error.runtimeType}',
+        );
+      }
       return '';
     }
   }
