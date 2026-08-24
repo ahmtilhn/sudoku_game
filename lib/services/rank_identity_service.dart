@@ -308,38 +308,57 @@ class RankIdentityService {
     );
   }
 
-  /// Reads the additive visible-RP settlement after the authoritative online
-  /// match has already finished. A short retry handles the tiny window between
-  /// the room settlement and the derived RP reconciliation without delaying
-  /// or changing the online match itself.
+  /// Reads the derived visible-RP settlement after the authoritative online
+  /// match has finished. Rank settlement is deliberately additive, so tolerate
+  /// the short propagation/reconciliation window instead of presenting a
+  /// finished ranked match as a permanent zero-RP result.
   Future<RankMatchResult> loadMatchResult(String matchId) async {
     RankMatchResult? latest;
-    for (var attempt = 0; attempt < 5; attempt++) {
-      latest = RankMatchResult.fromJson(
-        await _request(
-          'GET',
-          '/v1/me/rank-match-result/${Uri.encodeComponent(matchId)}',
-        ),
-      );
-      if (!latest.rated || latest.settled) return latest;
-      await Future<void>.delayed(const Duration(milliseconds: 180));
-    }
-    return latest ??
-        RankMatchResult(
-          matchId: matchId,
-          rated: true,
-          settled: false,
-          rpBefore: 0,
-          rpAfter: 0,
-          rpDelta: 0,
-          rankBeforeName: 'Bronze III',
-          rankAfterName: 'Bronze III',
-          rankUp: false,
-          rewardCoins: 0,
-          rewards: const <RankMatchReward>[],
-          abandonmentPenalty: 0,
-          repeatPercent: 100,
+    RankIdentityException? lastTransientError;
+    const maxAttempts = 16;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        latest = RankMatchResult.fromJson(
+          await _request(
+            'GET',
+            '/v1/me/rank-match-result/${Uri.encodeComponent(matchId)}',
+          ),
         );
+        lastTransientError = null;
+        if (!latest.rated || latest.settled) return latest;
+      } on RankIdentityException catch (error) {
+        final transient =
+            error.statusCode == 0 ||
+            error.statusCode == 429 ||
+            error.statusCode >= 500;
+        if (!transient || attempt == maxAttempts - 1) rethrow;
+        lastTransientError = error;
+      }
+
+      if (attempt < maxAttempts - 1) {
+        final delayMs = 220 + (attempt.clamp(0, 6) * 45);
+        await Future<void>.delayed(Duration(milliseconds: delayMs));
+      }
+    }
+
+    if (latest != null) return latest;
+    if (lastTransientError != null) throw lastTransientError;
+    return RankMatchResult(
+      matchId: matchId,
+      rated: true,
+      settled: false,
+      rpBefore: 0,
+      rpAfter: 0,
+      rpDelta: 0,
+      rankBeforeName: 'Bronze III',
+      rankAfterName: 'Bronze III',
+      rankUp: false,
+      rewardCoins: 0,
+      rewards: const <RankMatchReward>[],
+      abandonmentPenalty: 0,
+      repeatPercent: 100,
+    );
   }
 
   Future<Map<String, dynamic>> _request(
