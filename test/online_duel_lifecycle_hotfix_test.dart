@@ -35,6 +35,16 @@ void main() {
     );
   });
 
+  test('result sheet is resilient while waiting for settlement', () {
+    final source = File(
+      'lib/features/duel/online_duel_screen.dart',
+    ).readAsStringSync();
+    expect(source, contains('_settlementWaitMatchId'));
+    expect(source, contains('_settlementWaitMatchId != snapshot.matchId'));
+    expect(source, contains('Result economy refresh unavailable'));
+    expect(source, contains('showModalBottomSheet<String>'));
+  });
+
   test('arena identity and score layout uses inward large score placement', () {
     final source = File(
       'lib/features/duel/online_duel_screen.dart',
@@ -60,5 +70,11 @@ void main() {
     expect(legacy, isNot(contains('OnlineDuelScreen(roomId: roomId)')));
     expect(modern, contains('Future<void> _openRoom(String roomId)'));
     expect(waiting, contains('unawaited(_openRoom(roomId))'));
+  });
+
+  test('rematch acceptance creates a fresh ready-room id', () {
+    final main = File('backend/social_worker/src/main.ts').readAsStringSync();
+    expect(main, contains('roomIdForVariant(variant, crypto.randomUUID())'));
+    expect(main, contains('markRematchStatus(env, invitation.id, \'accepted\', roomId)'));
   });
 }

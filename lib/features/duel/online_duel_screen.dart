@@ -52,6 +52,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   Timer? _resultSettlementTimer;
   Timer? _disconnectEscapeTimer;
   String? _shownResultFor;
+  String? _settlementWaitMatchId;
   int _resultSettlementAttempts = 0;
   bool _forfeiting = false;
   bool _localConnectionInterrupted = false;
@@ -86,6 +87,13 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         if (!mounted) return;
         final previous = _snapshot;
         final previousLocalTurn = _snapshot?.isLocalTurn ?? false;
+        if (previous != null && previous.matchId != snapshot.matchId) {
+          _resultSettlementTimer?.cancel();
+          _resultSettlementTimer = null;
+          _settlementWaitMatchId = null;
+          _resultSettlementAttempts = 0;
+          _shownResultFor = null;
+        }
         _markProgress(previous, snapshot);
         setState(() {
           _snapshot = snapshot;
@@ -294,6 +302,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
 
   void _showResultOnce(OnlineDuelSnapshot snapshot) {
     if (!snapshot.isFinished || _shownResultFor == snapshot.matchId) return;
+    if (_settlementWaitMatchId != snapshot.matchId) {
+      _resultSettlementTimer?.cancel();
+      _resultSettlementTimer = null;
+      _settlementWaitMatchId = snapshot.matchId;
+      _resultSettlementAttempts = 0;
+    }
     final needsSettlement =
         (snapshot.status == OnlineDuelStatus.completed ||
             snapshot.status == OnlineDuelStatus.forfeited) &&
@@ -313,7 +327,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     _shownResultFor = snapshot.matchId;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      await EconomyService.instance.refresh(showLoading: false);
+      try {
+        await EconomyService.instance.refresh(showLoading: false);
+      } catch (error) {
+        debugPrint('Result economy refresh unavailable: $error');
+      }
       if (!mounted) return;
       final action = await showModalBottomSheet<String>(
         context: context,

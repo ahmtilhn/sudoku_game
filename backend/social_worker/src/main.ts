@@ -312,7 +312,7 @@ async function handleEconomyRoute(
       }
 
       const variant = normalizeDuelVariant(invitation.variant, 'classic9');
-      const roomId = roomIdForVariant(variant);
+      const roomId = roomIdForVariant(variant, crypto.randomUUID());
       const matchId = crypto.randomUUID();
       const funded: FundedMatchInput = {
         matchId,
