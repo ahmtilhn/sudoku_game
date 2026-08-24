@@ -10,31 +10,25 @@ import 'economy_service.dart';
 
 enum GameInterstitialContext { careerWin, careerLoss, practice, normalPlay }
 
-/// Central gate for non-rewarded, post-result interstitials.
+/// Central gate for forced, non-rewarded post-result interstitials.
 ///
-/// Rules:
-/// - every second eligible result per context;
-/// - at least four minutes between any two forced interstitials;
-/// - never load/show for No Ads;
-/// - only runs after gameplay has ended, before the result surface opens.
+/// Every eligible offline result attempts to show an interstitial. Online Duel
+/// never calls this service. No Ads entitlement remains the only product-level
+/// suppression rule.
 class GameInterstitialService {
   GameInterstitialService._();
 
   static final GameInterstitialService instance = GameInterstitialService._();
 
-  static const Duration _globalCooldown = Duration(minutes: 4);
   static const String _androidTestId =
       'ca-app-pub-3940256099942544/1033173712';
   static const String _iosTestId =
       'ca-app-pub-3940256099942544/4411468910';
 
   final AdsService _ads = AdsService.instance;
-  final Map<GameInterstitialContext, int> _eligibleResults =
-      <GameInterstitialContext, int>{};
 
   InterstitialAd? _loadedAd;
   Completer<void>? _loadCompleter;
-  DateTime? _lastShownAt;
   bool _showing = false;
 
   bool get _supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
@@ -56,30 +50,15 @@ class GameInterstitialService {
     return kReleaseMode ? '' : _iosTestId;
   }
 
-  /// Records an eligible natural transition and, when the frequency gate is
-  /// reached, waits until the interstitial is dismissed before returning.
   Future<bool> recordAndMaybeShow(GameInterstitialContext context) async {
-    // Career progress is written locally first. Drain the V3 reward sync and
-    // refresh the wallet before any early return so the result sheet observes
-    // the authoritative Career Coin grant even for No Ads / odd ad counters.
+    // Career progress is written locally first. Drain the V3 reward sync before
+    // reading the result balance, independently from whether an ad can load.
     if (context == GameInterstitialContext.careerWin) {
       await CareerRewardSyncService.instance.waitForIdle();
       await EconomyService.instance.refresh(showLoading: false);
     }
 
-    if (_ads.noAds || !_supported) return false;
-
-    final count = (_eligibleResults[context] ?? 0) + 1;
-    _eligibleResults[context] = count;
-    if (count.isOdd) return false;
-
-    final lastShownAt = _lastShownAt;
-    if (lastShownAt != null &&
-        DateTime.now().difference(lastShownAt) < _globalCooldown) {
-      return false;
-    }
-    if (_showing) return false;
-
+    if (_ads.noAds || !_supported || _showing) return false;
     if (!AdsService.instance.adsAvailable.value) {
       await AdsService.instance.initialize();
     }
@@ -104,9 +83,6 @@ class GameInterstitialService {
     }
 
     ad.fullScreenContentCallback = FullScreenContentCallback<InterstitialAd>(
-      onAdShowedFullScreenContent: (_) {
-        _lastShownAt = DateTime.now();
-      },
       onAdFailedToShowFullScreenContent: (failedAd, error) {
         debugPrint('Post-game interstitial failed to show: $error');
         failedAd.dispose();
