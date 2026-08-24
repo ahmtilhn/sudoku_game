@@ -44,6 +44,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
     _push.openedChallengeId.addListener(_scheduleChallengeOpen);
     _sessions.activeSession.addListener(_onActiveSessionChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncAutomaticSocialUiState();
       _scheduleChallengeOpen();
       unawaited(_sessions.latest());
     });
@@ -51,6 +52,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
 
   @override
   void dispose() {
+    _push.setAutomaticSocialUiAllowed(false);
     _push.openedChallengeId.removeListener(_scheduleChallengeOpen);
     _sessions.activeSession.removeListener(_onActiveSessionChanged);
     super.dispose();
@@ -59,6 +61,8 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
   @override
   Widget build(BuildContext context) {
     final routeIsCurrent = ModalRoute.of(context)?.isCurrent ?? false;
+    _push.setAutomaticSocialUiAllowed(routeIsCurrent);
+
     final pendingChallenge = _push.openedChallengeId.value?.isNotEmpty == true;
     if (routeIsCurrent && pendingChallenge && !_openingChallenge) {
       _scheduleChallengeOpen();
@@ -102,6 +106,13 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
           ),
         ),
       ],
+    );
+  }
+
+  void _syncAutomaticSocialUiState() {
+    if (!mounted) return;
+    _push.setAutomaticSocialUiAllowed(
+      ModalRoute.of(context)?.isCurrent ?? false,
     );
   }
 
