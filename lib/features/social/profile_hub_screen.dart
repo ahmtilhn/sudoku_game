@@ -11,11 +11,12 @@ import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/in_page_header.dart';
 import '../duel/leaderboards_screen.dart';
+import 'emote_loadout_screen.dart';
 import 'platform_services_screen.dart';
 import 'profile_customization_screen.dart';
 import 'rank_identity_summary_card.dart';
 
-enum _ProfileTab { customize, leaderboards, platform }
+enum _ProfileTab { customize, emotes, leaderboards, platform }
 
 class ProfileHubScreen extends StatefulWidget {
   const ProfileHubScreen({super.key});
@@ -93,6 +94,8 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         refreshAfter: true,
       );
 
+  Future<void> _openEmotes() => _open(const EmoteLoadoutScreen());
+
   @override
   Widget build(BuildContext context) {
     final tabs = _tabs(context);
@@ -165,6 +168,15 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         accent: const Color(0xFF66C7FF),
         metric: '96 avatars',
         onOpen: _openCustomization,
+      ),
+      _ProfileTabData(
+        tab: _ProfileTab.emotes,
+        asset: DuelAsset.homeDuelEmblem,
+        title: 'Emotes',
+        subtitle: 'Choose and order your 8 quick duel emotes',
+        accent: const Color(0xFFFFC94D),
+        metric: '8 slots',
+        onOpen: _openEmotes,
       ),
       _ProfileTabData(
         tab: _ProfileTab.leaderboards,
