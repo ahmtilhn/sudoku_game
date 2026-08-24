@@ -318,7 +318,7 @@ class OnlineDuelController with WidgetsBindingObserver {
       timeouts: _seatIntMap(event.payload['timeouts']) ?? snapshot.timeouts,
       winnerSeat: _seat(event.payload['winnerSeat']?.toString()),
       finishReason: event.payload['finishReason']?.toString(),
-      rating: const <OnlineDuelSeat, OnlineDuelRatingChange>{},
+      rating: null,
       revision: event.revision,
       serverTime: event.serverTime,
     );
