@@ -3,6 +3,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { AppCheckError, verifyAppCheckRequest } from './app_check';
 import {
   EconomyError,
+  MAX_RATED_PAIR_MATCHES_24H,
   coinBalance,
   createFundedMatch,
   ensureStarterGrant,
@@ -40,6 +41,7 @@ const ACTIVE_MATCH_STATUSES =
   "'waiting', 'ready_window', 'countdown', 'active', 'paused'";
 const QUEUE_STALE_AFTER_MS = 2 * 60 * 1000;
 const MATCH_LOBBY_STALE_AFTER_MS = LOBBY_DEADLINE_MS;
+const RANKED_PAIR_WINDOW_MS = 24 * 60 * 60 * 1000;
 const DIFFICULTY_ORDER = ['beginner', 'easy', 'medium', 'hard', 'expert'];
 const MATCHMAKING_5_SECONDS_MS = 5_000;
 const MATCHMAKING_10_SECONDS_MS = 10_000;
@@ -171,10 +173,37 @@ export class MatchmakingQueue {
     }
     try {
       const url = new URL(request.url);
+      const body = await readJsonObject(request);
+
+      // Legacy rematch acceptance serializes funding through this same Durable
+      // Object. entry_v2 exports this class in production, so /fund must remain
+      // compatible even though ranked queue joins are variant-aware now.
+      if (url.pathname === '/fund') {
+        const mode = requiredInternalString(body.mode, 'mode');
+        if (mode !== 'friendly' && mode !== 'ranked') {
+          throw new EconomyError(400, 'Invalid match mode.', 'invalid_mode');
+        }
+        const input: FundedMatchInput = {
+          matchId: requiredInternalString(body.matchId, 'matchId'),
+          roomId: requiredInternalString(body.roomId, 'roomId'),
+          challengeId:
+            typeof body.challengeId === 'string' && body.challengeId.trim()
+              ? body.challengeId.trim()
+              : null,
+          mode,
+          difficulty: requiredDifficulty(body.difficulty),
+          variant: normalizeDuelVariant(body.variant, 'classic9'),
+          playerAId: requiredInternalString(body.playerAId, 'playerAId'),
+          playerBId: requiredInternalString(body.playerBId, 'playerBId'),
+          now: requiredInternalString(body.now, 'now'),
+        };
+        await createFundedMatch(this.env, input);
+        return internalJson(201, { ok: true, roomId: input.roomId });
+      }
+
       if (url.pathname !== '/join') {
         return internalJson(404, { error: 'Coordinator route not found.' });
       }
-      const body = await readJsonObject(request);
       const playerId = requiredInternalString(body.playerId, 'playerId');
       const difficulty = requiredDifficulty(body.difficulty);
       const variant = normalizeDuelVariant(body.variant, 'classic9');
@@ -190,16 +219,17 @@ export class MatchmakingQueue {
       });
       return internalJson(result.status === 'matched' ? 201 : 200, result);
     } catch (error) {
+      const normalized = normalizeFundingError(error);
       if (
-        error instanceof MatchmakingHttpError ||
-        error instanceof EconomyError
+        normalized instanceof MatchmakingHttpError ||
+        normalized instanceof EconomyError
       ) {
-        return internalJson(error.status, {
-          error: error.message,
-          code: error instanceof EconomyError ? error.code : undefined,
+        return internalJson(normalized.status, {
+          error: normalized.message,
+          code: normalized instanceof EconomyError ? normalized.code : undefined,
         });
       }
-      console.error('Variant matchmaking coordinator failed', error);
+      console.error('Variant matchmaking coordinator failed', normalized);
       return internalJson(500, {
         error: 'Matchmaking is temporarily unavailable.',
       });
@@ -222,12 +252,11 @@ async function coordinateRankedMatch(
     `SELECT room_id, difficulty, variant, board_size, cell_count
      FROM matches
      WHERE (player_a_id = ? OR player_b_id = ?)
-       AND variant = ?
        AND status IN (${ACTIVE_MATCH_STATUSES})
       ORDER BY created_at DESC
       LIMIT 1`,
   )
-    .bind(input.playerId, input.playerId, input.variant)
+    .bind(input.playerId, input.playerId)
     .first<{
       room_id: string;
       difficulty: string;
@@ -264,6 +293,7 @@ async function coordinateRankedMatch(
   }
 
   const staleBefore = new Date(nowMs - QUEUE_STALE_AFTER_MS).toISOString();
+  const rankedPairCutoff = new Date(nowMs - RANKED_PAIR_WINDOW_MS).toISOString();
   await env.DB.prepare(
     `DELETE FROM ranked_queue
      WHERE room_id IS NOT NULL OR updated_at < ?`,
@@ -332,6 +362,18 @@ async function coordinateRankedMatch(
              AND b.player_high_id = CASE WHEN q.player_id < ? THEN ? ELSE q.player_id END
              AND b.status = 'blocked'
          )
+         AND (
+           SELECT COUNT(*)
+           FROM matches recent
+           WHERE recent.mode = 'ranked'
+             AND recent.rated = 1
+             AND recent.finished_at IS NOT NULL
+             AND recent.finished_at >= ?
+             AND (
+               (recent.player_a_id = q.player_id AND recent.player_b_id = ?)
+               OR (recent.player_a_id = ? AND recent.player_b_id = q.player_id)
+             )
+         ) < ?
        ORDER BY
          CASE WHEN q.difficulty = ? THEN 0 ELSE 1 END,
          ABS(q.rating - ?),
@@ -354,6 +396,10 @@ async function coordinateRankedMatch(
         input.playerId,
         input.playerId,
         input.playerId,
+        rankedPairCutoff,
+        input.playerId,
+        input.playerId,
+        MAX_RATED_PAIR_MATCHES_24H,
         input.difficulty,
         input.rating,
       )
@@ -414,21 +460,25 @@ async function coordinateRankedMatch(
 
   const roomId = roomIdForVariant(input.variant);
   const matchId = crypto.randomUUID();
-  await createVariantFundedMatch(
-    env,
-    {
-      matchId,
-      roomId,
-      challengeId: null,
-      mode: 'ranked',
-      difficulty: matchDifficulty,
-      variant: input.variant,
-      playerAId: opponent.player_id,
-      playerBId: input.playerId,
-      now,
-    },
-    input.variant,
-  );
+  try {
+    await createVariantFundedMatch(
+      env,
+      {
+        matchId,
+        roomId,
+        challengeId: null,
+        mode: 'ranked',
+        difficulty: matchDifficulty,
+        variant: input.variant,
+        playerAId: opponent.player_id,
+        playerBId: input.playerId,
+        now,
+      },
+      input.variant,
+    );
+  } catch (error) {
+    throw normalizeFundingError(error);
+  }
 
   return {
     status: 'matched',
@@ -616,6 +666,35 @@ function requiredInternalString(value: unknown, field: string): string {
   return clean;
 }
 
+function normalizeFundingError(error: unknown): unknown {
+  if (error instanceof EconomyError || error instanceof MatchmakingHttpError) {
+    return error;
+  }
+  const message = String(error);
+  if (message.includes('active_match_conflict')) {
+    return new EconomyError(
+      409,
+      'Finish or cancel the active online match first.',
+      'active_match_conflict',
+    );
+  }
+  if (message.includes('ranked_pair_limit')) {
+    return new EconomyError(
+      409,
+      'Ranked rematch limit reached for this opponent. Find a different ranked opponent.',
+      'ranked_pair_limit',
+    );
+  }
+  if (
+    message.includes('negative_coin_balance') ||
+    message.includes('coin_debit_balance_invariant') ||
+    message.includes('match_entry_balance_invariant')
+  ) {
+    return new EconomyError(409, 'Not enough Coins.', 'insufficient_coins');
+  }
+  return error;
+}
+
 class MatchmakingHttpError extends Error {
   constructor(
     readonly status: number,
@@ -642,18 +721,19 @@ function routeError(env: VariantMatchmakingEnv, error: unknown): Response {
   if (error instanceof AppCheckError) {
     return json(env, 403, { error: error.code, code: error.code });
   }
-  if (error instanceof EconomyError) {
-    return json(env, error.status, { error: error.message, code: error.code });
+  const normalized = normalizeFundingError(error);
+  if (normalized instanceof EconomyError) {
+    return json(env, normalized.status, { error: normalized.message, code: normalized.code });
   }
-  if (error instanceof MatchmakingHttpError) {
-    return json(env, error.status, { error: error.message });
+  if (normalized instanceof MatchmakingHttpError) {
+    return json(env, normalized.status, { error: normalized.message });
   }
-  const message = error instanceof Error ? error.message : '';
+  const message = normalized instanceof Error ? normalized.message : '';
   const unauthorized =
     message.includes('bearer') ||
     message.includes('Firebase') ||
     message.includes('identity');
-  console.error('Variant matchmaking route failed', error);
+  console.error('Variant matchmaking route failed', normalized);
   return json(env, unauthorized ? 401 : 503, {
     error: unauthorized
       ? 'The player session is unavailable.'
