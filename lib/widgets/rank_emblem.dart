@@ -55,7 +55,10 @@ class RankEmblem extends StatelessWidget {
   Widget build(BuildContext context) {
     final tier = rankTierForKey(rankKey);
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-    final decodedSize = (size * devicePixelRatio).ceil().clamp(64, 512);
+    final decodedSize = (size * devicePixelRatio)
+        .ceil()
+        .clamp(64, 512)
+        .toInt();
 
     return SizedBox.square(
       dimension: size,
