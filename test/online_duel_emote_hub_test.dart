@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sudoku_game/services/online_duel_emote_hub.dart';
 
@@ -15,7 +16,7 @@ void main() {
 
     expect(hub.send('laugh'), isTrue);
     expect(sent, <String>['laugh']);
-    expect(hub.outgoingEmoteId, 'laugh');
+    expect(hub.incomingEmoteId, isNull);
     expect(hub.onCooldown, isTrue);
     expect(hub.send('fire'), isFalse);
     expect(hub.send('not-allowed'), isFalse);
@@ -53,6 +54,30 @@ void main() {
 
     expect(hub.send('smile'), isFalse);
     expect(sent, isEmpty);
+
+    hub.detach(owner);
+  });
+
+  testWidgets('emote portal cannot outlive the duel dock on teardown', (
+    tester,
+  ) async {
+    final hub = OnlineDuelEmoteHub.instance;
+    final owner = hub.attach(sender: (_) => true);
+    hub.setMatchActive(owner, true);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: OnlineDuelEmoteDock(child: SizedBox(width: 200, height: 80)),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byIcon(Icons.add_reaction_outlined), findsOneWidget);
+
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
 
     hub.detach(owner);
   });
