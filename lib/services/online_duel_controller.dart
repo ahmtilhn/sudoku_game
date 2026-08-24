@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import '../core/app_messenger.dart';
+import 'online_duel_emote_hub.dart';
 import 'online_duel_models.dart';
 import 'online_duel_transport.dart';
 import 'platform_game_stats_service.dart';
@@ -32,6 +33,7 @@ class OnlineDuelController with WidgetsBindingObserver {
   StreamSubscription<OnlineDuelConnectionState>? _connectionSubscription;
   OnlineDuelSnapshot? _snapshot;
   Map<String, Object?>? _pendingMoveEnvelope;
+  Object? _emoteSession;
   bool _pendingMove = false;
   bool _started = false;
   bool _observerRegistered = false;
@@ -48,6 +50,7 @@ class OnlineDuelController with WidgetsBindingObserver {
   void start() {
     if (_started) return;
     _started = true;
+    _emoteSession = OnlineDuelEmoteHub.instance.attach(sender: sendEmote);
     final binding = lifecycleBinding ?? _tryResolveWidgetsBinding();
     if (binding != null) {
       _observerBinding = binding;
@@ -98,6 +101,19 @@ class OnlineDuelController with WidgetsBindingObserver {
     return true;
   }
 
+  bool sendEmote(String emoteId) {
+    final current = _snapshot;
+    if (current == null ||
+        current.status != OnlineDuelStatus.active ||
+        current.isFinished ||
+        !onlineDuelBasicEmoteIds.contains(emoteId) ||
+        _transport.connectionState != OnlineDuelConnectionState.connected) {
+      return false;
+    }
+    _send('emote', <String, Object?>{'emoteId': emoteId});
+    return true;
+  }
+
   void forfeit() => _send('forfeit');
 
   void requestSnapshot() => _send('request_snapshot');
@@ -107,6 +123,11 @@ class OnlineDuelController with WidgetsBindingObserver {
       _observerBinding?.removeObserver(this);
       _observerBinding = null;
       _observerRegistered = false;
+    }
+    final emoteSession = _emoteSession;
+    _emoteSession = null;
+    if (emoteSession != null) {
+      OnlineDuelEmoteHub.instance.detach(emoteSession);
     }
     await _subscription?.cancel();
     await _connectionSubscription?.cancel();
@@ -118,6 +139,16 @@ class OnlineDuelController with WidgetsBindingObserver {
 
   void _handleConnectionState(OnlineDuelConnectionState state) {
     AppMessenger.showOnlineConnectionState(state);
+    final session = _emoteSession;
+    final snapshot = _snapshot;
+    if (session != null && snapshot != null) {
+      OnlineDuelEmoteHub.instance.setMatchActive(
+        session,
+        state == OnlineDuelConnectionState.connected &&
+            snapshot.status == OnlineDuelStatus.active &&
+            !snapshot.isFinished,
+      );
+    }
     if (state == OnlineDuelConnectionState.resyncing) {
       final pendingMove = _pendingMoveEnvelope;
       if (pendingMove != null) {
@@ -129,6 +160,32 @@ class OnlineDuelController with WidgetsBindingObserver {
 
   void _handleEvent(OnlineDuelEvent event) {
     final current = _snapshot;
+    if (event.type == 'emote') {
+      final session = _emoteSession;
+      final actorSeat = _seat(event.payload['seat']?.toString());
+      final emoteId = event.payload['emoteId']?.toString();
+      if (current != null &&
+          session != null &&
+          actorSeat != null &&
+          actorSeat != current.youSeat &&
+          emoteId != null) {
+        OnlineDuelEmoteHub.instance.receive(session, emoteId);
+      }
+      return;
+    }
+    if (event.type == 'emote_rejected') {
+      final session = _emoteSession;
+      final actorSeat = _seat(event.payload['seat']?.toString());
+      if (current != null &&
+          session != null &&
+          actorSeat == current.youSeat) {
+        OnlineDuelEmoteHub.instance.serverRejected(
+          session,
+          event.payload['reason']?.toString() ?? 'emote_rejected',
+        );
+      }
+      return;
+    }
     if (current != null &&
         event.revision < current.revision &&
         event.type != 'protocol_error') {
@@ -266,6 +323,7 @@ class OnlineDuelController with WidgetsBindingObserver {
       serverTime: event.serverTime,
     );
     _snapshot = terminal;
+    _syncEmoteAvailability(terminal);
     _snapshots.add(terminal);
   }
 
@@ -274,6 +332,7 @@ class OnlineDuelController with WidgetsBindingObserver {
     final snapshot = OnlineDuelSnapshot.fromJson(payload);
     final previousMatchId = _snapshot?.matchId;
     _snapshot = snapshot;
+    _syncEmoteAvailability(snapshot);
     if (previousMatchId != null && previousMatchId != snapshot.matchId) {
       _feedback.add(OnlineDuelFeedback.matchChanged());
     }
@@ -307,7 +366,19 @@ class OnlineDuelController with WidgetsBindingObserver {
       revision: event.revision,
       serverTime: event.serverTime,
     );
+    _syncEmoteAvailability(_snapshot!);
     _snapshots.add(_snapshot!);
+  }
+
+  void _syncEmoteAvailability(OnlineDuelSnapshot snapshot) {
+    final session = _emoteSession;
+    if (session == null) return;
+    OnlineDuelEmoteHub.instance.setMatchActive(
+      session,
+      _transport.connectionState == OnlineDuelConnectionState.connected &&
+          snapshot.status == OnlineDuelStatus.active &&
+          !snapshot.isFinished,
+    );
   }
 
   void _send(String type, [Map<String, Object?> payload = const {}]) {
