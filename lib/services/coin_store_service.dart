@@ -5,6 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart'
+    as storekit;
+import 'package:in_app_purchase_storekit/store_kit_2_wrappers.dart'
+    as storekit2;
 
 import 'economy_api_client.dart';
 import 'economy_service.dart';
@@ -89,6 +93,9 @@ class CoinStoreService extends ChangeNotifier {
     if (Platform.isAndroid && available) {
       await _recoverAndroidConsumables();
     }
+    if (Platform.isIOS && available) {
+      await _recoverIosUnfinishedTransactions();
+    }
   }
 
   Future<void> refreshProducts() async {
@@ -145,9 +152,14 @@ class CoinStoreService extends ChangeNotifier {
     notifyListeners();
     try {
       if (Platform.isAndroid) await _recoverAndroidConsumables();
+      if (Platform.isIOS) await _recoverIosUnfinishedTransactions();
       var started = await _startCoinPurchase(details);
       if (!started && Platform.isAndroid) {
         await _recoverAndroidConsumables();
+        started = await _startCoinPurchase(details);
+      }
+      if (!started && Platform.isIOS) {
+        await _recoverIosUnfinishedTransactions();
         started = await _startCoinPurchase(details);
       }
       if (!started) {
@@ -166,12 +178,62 @@ class CoinStoreService extends ChangeNotifier {
           // Fall through to the user-facing purchase-start error below.
         }
       }
+      if (Platform.isIOS) {
+        try {
+          await _recoverIosUnfinishedTransactions();
+          final recoveredStart = await _startCoinPurchase(details);
+          if (recoveredStart) return true;
+        } catch (_) {
+          // Fall through to the user-facing purchase-start error below.
+        }
+      }
       pendingProductId = null;
       error = 'The purchase could not be started.';
       EconomyService.instance.setPurchaseProcessing(false);
       notifyListeners();
       return false;
     }
+  }
+
+  Future<void> _recoverIosUnfinishedTransactions() async {
+    try {
+      final transactions =
+          await storekit2.SK2Transaction.unfinishedTransactions();
+      final pendingPurchases = transactions
+          .where((transaction) => productIds.contains(transaction.productId))
+          .where((transaction) => transaction.id.trim().isNotEmpty)
+          .map(_purchaseDetailsFromStoreKit2Transaction)
+          .toList(growable: false);
+      if (pendingPurchases.isEmpty) return;
+
+      debugPrint(
+        'Recovering ${pendingPurchases.length} unfinished App Store purchase(s).',
+      );
+      await _handlePurchases(pendingPurchases);
+    } catch (recoveryError) {
+      // Recovery is best-effort. StoreKit can still redeliver the same
+      // transaction through purchaseStream while the app is running.
+      debugPrint(
+        'App Store unfinished purchase recovery failed: $recoveryError',
+      );
+    }
+  }
+
+  PurchaseDetails _purchaseDetailsFromStoreKit2Transaction(
+    storekit2.SK2Transaction transaction,
+  ) {
+    return storekit.SK2PurchaseDetails(
+      productID: transaction.productId,
+      purchaseID: transaction.id,
+      verificationData: PurchaseVerificationData(
+        localVerificationData: transaction.jsonRepresentation ?? '',
+        serverVerificationData: transaction.receiptData ?? transaction.id,
+        source: storekit.kIAPSource,
+      ),
+      transactionDate: transaction.purchaseDate,
+      status: PurchaseStatus.purchased,
+      appAccountToken: transaction.appAccountToken,
+    );
   }
 
   Future<bool> _startCoinPurchase(ProductDetails details) {
@@ -341,8 +403,7 @@ class CoinStoreService extends ChangeNotifier {
         notifyListeners();
 
         try {
-          final verificationData =
-              purchase.verificationData.serverVerificationData;
+          final verificationData = _verificationDataForServer(purchase);
           final fallbackTransaction =
               '${purchase.productID}:${purchase.transactionDate ?? DateTime.now().millisecondsSinceEpoch}:$verificationData';
           final transactionId = purchase.purchaseID?.trim().isNotEmpty == true
@@ -406,6 +467,25 @@ class CoinStoreService extends ChangeNotifier {
 
   int coinAmount(String productId) {
     return int.tryParse(productId.replaceFirst('coins_', '')) ?? 0;
+  }
+
+  String _verificationDataForServer(PurchaseDetails purchase) {
+    final serverData = purchase.verificationData.serverVerificationData.trim();
+    if (!Platform.isIOS || _looksLikeCompactJws(serverData)) {
+      return serverData;
+    }
+
+    // StoreKit 1 exposes the app receipt instead of a StoreKit 2 transaction
+    // JWS. The backend can verify App Store purchases from the transaction ID,
+    // so avoid sending a large receipt blob that may exceed request limits.
+    final purchaseId = purchase.purchaseID?.trim();
+    if (purchaseId != null && purchaseId.isNotEmpty) return purchaseId;
+    return serverData;
+  }
+
+  bool _looksLikeCompactJws(String value) {
+    final parts = value.split('.');
+    return parts.length == 3 && parts.every((part) => part.isNotEmpty);
   }
 
   Future<void> disposeService() async {

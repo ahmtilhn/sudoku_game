@@ -131,9 +131,10 @@ export async function verifyAndGrantProductionPurchase(
 
   await verifyAppCheckRequest(request, env);
   const player = await authenticatePlayer(request, env);
-  const input = await readPurchaseInput(request);
   const pathname = new URL(request.url).pathname;
-  const verified = pathname.includes('/google/')
+  const platform = pathname.includes('/google/') ? 'android' : 'ios';
+  const input = await readPurchaseInput(request, platform);
+  const verified = platform === 'android'
     ? await verifyGooglePlayPurchaseOrEmergencyGrant(env, input)
     : await verifyAppStorePurchase(env, input);
 
@@ -334,7 +335,10 @@ async function authenticatePlayer(
   return player;
 }
 
-async function readPurchaseInput(request: Request): Promise<PurchaseInput> {
+async function readPurchaseInput(
+  request: Request,
+  platform: 'android' | 'ios',
+): Promise<PurchaseInput> {
   let body: Record<string, unknown>;
   try {
     const parsed = await request.json();
@@ -350,7 +354,7 @@ async function readPurchaseInput(request: Request): Promise<PurchaseInput> {
     body.verificationData,
     'verificationData',
     1,
-    24_000,
+    platform === 'ios' ? 128_000 : 24_000,
   );
   if (!COIN_PRODUCTS[productId] && !isNoAdsProductId(productId)) {
     throw new ProductionVerificationError(400, 'Unknown store product.', 'unknown_product');
@@ -479,12 +483,9 @@ async function verifyAppStorePurchase(
     env.APPLE_ROOT_CERTIFICATES_PEM,
     'Trusted Apple root certificates are not configured.',
   );
-  const clientPayload = decodeUntrustedStoreKitJws(
-    input.verificationData,
-    'client transaction',
-  );
+  const clientPayload = tryDecodeUntrustedStoreKitJws(input.verificationData);
   const requestedTransactionId =
-    stringOrNull(clientPayload.transactionId) ?? input.transactionId;
+    stringOrNull(clientPayload?.transactionId) ?? input.transactionId;
   if (!requestedTransactionId) {
     throw new ProductionVerificationError(
       400,
@@ -967,19 +968,12 @@ async function touchLifecycleFailure(
   });
 }
 
-function decodeUntrustedStoreKitJws(
-  value: string,
-  label: string,
-): Record<string, unknown> {
+function tryDecodeUntrustedStoreKitJws(value: string): Record<string, unknown> | null {
   try {
     const payload = decodeJwt(value);
     return payload as Record<string, unknown>;
   } catch {
-    throw new ProductionVerificationError(
-      400,
-      `The ${label} is not a valid StoreKit 2 signed transaction.`,
-      'invalid_apple_transaction',
-    );
+    return null;
   }
 }
 

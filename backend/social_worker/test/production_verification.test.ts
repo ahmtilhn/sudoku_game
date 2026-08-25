@@ -87,6 +87,24 @@ describe('production purchase verification routing', () => {
     expect(source).toContain('return false;');
     expect(source).toContain('purchase_replayed');
   });
+
+  it('keeps App Store receipt fallback compatible with server verification', () => {
+    const source = readFileSync(
+      'src/production_purchase_verification_v2.ts',
+      'utf8',
+    );
+
+    expect(source).toContain('tryDecodeUntrustedStoreKitJws(input.verificationData)');
+    expect(source).toContain(
+      'stringOrNull(clientPayload?.transactionId) ?? input.transactionId',
+    );
+    expect(source).toContain('inApps/v1/transactions/');
+    expect(source).toContain('verificationData: signedTransactionInfo');
+    expect(source).toContain('128_000');
+    expect(source).not.toContain(
+      'The client transaction is not a valid StoreKit 2 signed transaction.',
+    );
+  });
 });
 
 describe('AdMob SSV routing', () => {

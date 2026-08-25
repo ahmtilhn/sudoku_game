@@ -44,6 +44,46 @@ void main() {
     expect(source, contains('Intentionally do not complete the purchase.'));
   });
 
+  test(
+    'iOS recovers unfinished StoreKit purchases without touching Android',
+    () {
+      final source = File(
+        'lib/services/coin_store_service.dart',
+      ).readAsStringSync();
+
+      expect(
+        source,
+        contains(
+          "package:in_app_purchase_storekit/in_app_purchase_storekit.dart",
+        ),
+      );
+      expect(source, contains('if (Platform.isIOS && available)'));
+      expect(
+        source,
+        contains(
+          'if (Platform.isIOS) await _recoverIosUnfinishedTransactions();',
+        ),
+      );
+      expect(source, contains('_recoverIosUnfinishedTransactions()'));
+      expect(source, contains('SK2Transaction'));
+      expect(source, contains('unfinishedTransactions()'));
+      expect(source, contains('SK2PurchaseDetails'));
+      expect(source, contains('_purchaseDetailsFromStoreKit2Transaction'));
+      expect(source, contains('App Store unfinished purchase recovery failed'));
+    },
+  );
+
+  test('iOS sends compact verification data for StoreKit receipt fallback', () {
+    final source = File(
+      'lib/services/coin_store_service.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_verificationDataForServer(purchase)'));
+    expect(source, contains('_looksLikeCompactJws(serverData)'));
+    expect(source, contains('StoreKit 1 exposes the app receipt'));
+    expect(source, contains('return purchaseId;'));
+  });
+
   test('no-ads remains a non-consumable entitlement', () {
     final source = File(
       'lib/services/coin_store_service.dart',
