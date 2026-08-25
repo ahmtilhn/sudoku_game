@@ -34,6 +34,9 @@ class WalletSnapshot {
     required this.dailyAdAmount,
     required this.dailyAdAvailable,
     this.nextDailyResetAt,
+    this.purchaseGranted = false,
+    this.androidConsumptionHandledByServer = false,
+    this.androidAcknowledgementHandledByServer = false,
   });
 
   final int balance;
@@ -47,6 +50,9 @@ class WalletSnapshot {
   final int dailyAdAmount;
   final bool dailyAdAvailable;
   final DateTime? nextDailyResetAt;
+  final bool purchaseGranted;
+  final bool androidConsumptionHandledByServer;
+  final bool androidAcknowledgementHandledByServer;
 
   int get entryFee => entryFeeForDifficulty('beginner');
   int get winnerPot => winnerPotForDifficulty('beginner');
@@ -100,6 +106,11 @@ class WalletSnapshot {
       nextDailyResetAt: DateTime.tryParse(
         json['nextDailyResetAt']?.toString() ?? '',
       ),
+      purchaseGranted: json['purchaseGranted'] == true,
+      androidConsumptionHandledByServer:
+          json['androidConsumptionHandledByServer'] == true,
+      androidAcknowledgementHandledByServer:
+          json['androidAcknowledgementHandledByServer'] == true,
     );
   }
 }

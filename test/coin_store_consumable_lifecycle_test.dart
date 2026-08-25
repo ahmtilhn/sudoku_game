@@ -39,6 +39,7 @@ void main() {
     expect(source, contains('BillingResponse.ok'));
     expect(source, contains('BillingResponse.itemNotOwned'));
     expect(source, contains("exception.code == 'purchase_replayed'"));
+    expect(source, contains('!snapshot.androidConsumptionHandledByServer'));
     expect(source, contains('throw _CoinConsumptionException'));
     expect(source, contains('Intentionally do not complete the purchase.'));
   });

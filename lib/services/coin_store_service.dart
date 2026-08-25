@@ -355,7 +355,9 @@ class CoinStoreService extends ChangeNotifier {
             verificationData: verificationData,
           );
 
-          if (Platform.isAndroid && !isNoAds) {
+          if (Platform.isAndroid &&
+              !isNoAds &&
+              !snapshot.androidConsumptionHandledByServer) {
             // Do not swallow consumption failures. A verified Coin token must be
             // consumed before completing the transaction, otherwise Play keeps
             // the product owned and blocks the next purchase of the same pack.

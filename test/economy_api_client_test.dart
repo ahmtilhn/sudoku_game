@@ -19,6 +19,9 @@ void main() {
       'dailyLogin': <String, dynamic>{'amount': 50, 'available': true},
       'dailyRewardedAd': <String, dynamic>{'amount': 50, 'available': false},
       'nextDailyResetAt': '2026-07-28T00:00:00.000Z',
+      'purchaseGranted': true,
+      'androidConsumptionHandledByServer': true,
+      'androidAcknowledgementHandledByServer': false,
     });
 
     expect(wallet.balance, 1000);
@@ -30,6 +33,9 @@ void main() {
     expect(wallet.noAds, isTrue);
     expect(wallet.dailyLoginAvailable, isTrue);
     expect(wallet.dailyAdAvailable, isFalse);
+    expect(wallet.purchaseGranted, isTrue);
+    expect(wallet.androidConsumptionHandledByServer, isTrue);
+    expect(wallet.androidAcknowledgementHandledByServer, isFalse);
   });
 
   test('exactly 100 Coin remains eligible for online play', () {

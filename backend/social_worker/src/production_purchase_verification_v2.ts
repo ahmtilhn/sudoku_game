@@ -688,55 +688,70 @@ async function grantCoinPurchase(
   }
   const now = new Date().toISOString();
   const idempotencyKey = `store_purchase:${purchase.platform}:${purchase.transactionId}`;
-  await env.DB.batch([
-    env.DB.prepare(
-      `INSERT INTO purchase_grants (
-         id, player_id, platform, product_id, transaction_id,
-         verification_hash, coins, status, purchased_at, granted_at,
-         updated_at, store_environment, store_order_id, verification_source,
-         acknowledge_status
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, 'verified', ?, ?, ?, ?, ?, ?, 'not_required')`,
-    ).bind(
-      crypto.randomUUID(),
-      playerId,
-      purchase.platform,
-      purchase.productId,
+  try {
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO purchase_grants (
+           id, player_id, platform, product_id, transaction_id,
+           verification_hash, coins, status, purchased_at, granted_at,
+           updated_at, store_environment, store_order_id, verification_source,
+           acknowledge_status
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, 'verified', ?, ?, ?, ?, ?, ?, 'not_required')`,
+      ).bind(
+        crypto.randomUUID(),
+        playerId,
+        purchase.platform,
+        purchase.productId,
+        purchase.transactionId,
+        verificationHash,
+        amount,
+        purchase.purchasedAt,
+        now,
+        now,
+        purchase.storeEnvironment,
+        purchase.storeOrderId,
+        purchase.verificationSource,
+      ),
+      env.DB.prepare(
+        `UPDATE players SET online_coins = online_coins + ?, updated_at = ?
+         WHERE id = ?`,
+      ).bind(amount, now, playerId),
+      env.DB.prepare(
+        `INSERT INTO coin_ledger (
+           id, player_id, amount, balance_after, reason,
+           reference_type, reference_id, idempotency_key, metadata_json, created_at
+         ) VALUES (?, ?, ?, (SELECT online_coins FROM players WHERE id = ?),
+                   'store_purchase', 'purchase', ?, ?, ?, ?)`,
+      ).bind(
+        crypto.randomUUID(),
+        playerId,
+        amount,
+        playerId,
+        purchase.transactionId,
+        idempotencyKey,
+        JSON.stringify({
+          productId: purchase.productId,
+          platform: purchase.platform,
+          storeEnvironment: purchase.storeEnvironment,
+          verificationSource: purchase.verificationSource,
+        }),
+        now,
+      ),
+    ]);
+  } catch (error) {
+    if (!isPurchaseUniqueConstraintError(error)) throw error;
+    const existing = await findExistingPurchase(
+      env,
       purchase.transactionId,
       verificationHash,
-      amount,
-      purchase.purchasedAt,
-      now,
-      now,
-      purchase.storeEnvironment,
-      purchase.storeOrderId,
-      purchase.verificationSource,
-    ),
-    env.DB.prepare(
-      `UPDATE players SET online_coins = online_coins + ?, updated_at = ?
-       WHERE id = ?`,
-    ).bind(amount, now, playerId),
-    env.DB.prepare(
-      `INSERT INTO coin_ledger (
-         id, player_id, amount, balance_after, reason,
-         reference_type, reference_id, idempotency_key, metadata_json, created_at
-       ) VALUES (?, ?, ?, (SELECT online_coins FROM players WHERE id = ?),
-                 'store_purchase', 'purchase', ?, ?, ?, ?)`,
-    ).bind(
-      crypto.randomUUID(),
-      playerId,
-      amount,
-      playerId,
-      purchase.transactionId,
-      idempotencyKey,
-      JSON.stringify({
-        productId: purchase.productId,
-        platform: purchase.platform,
-        storeEnvironment: purchase.storeEnvironment,
-        verificationSource: purchase.verificationSource,
-      }),
-      now,
-    ),
-  ]);
+    );
+    if (existing?.player_id === playerId) return false;
+    throw new ProductionVerificationError(
+      409,
+      'This store transaction has already been used by another player.',
+      'purchase_replayed',
+    );
+  }
   return true;
 }
 
@@ -1032,4 +1047,10 @@ async function safeResponseText(response: Response): Promise<string> {
 function errorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   return message.length > 500 ? message.slice(0, 500) : message;
+}
+
+function isPurchaseUniqueConstraintError(error: unknown): boolean {
+  return /unique constraint failed: purchase_grants\.(transaction_id|verification_hash)/i.test(
+    errorMessage(error),
+  );
 }

@@ -62,6 +62,31 @@ describe('production purchase verification routing', () => {
     expect(source).not.toContain('assertProtectedPurchaseAccount(request, env)');
     expect(source).toContain('verifyAndGrantProductionPurchase(request, env)');
   });
+
+  it('returns a wallet-shaped purchase response with lifecycle flags', () => {
+    const source = readFileSync('src/entry.ts', 'utf8');
+
+    expect(source).toContain("new URL('/v1/me/wallet', request.url)");
+    expect(source).toContain('purchaseGranted: verification.granted');
+    expect(source).toContain(
+      'androidConsumptionHandledByServer: verification.consumed === true',
+    );
+    expect(source).toContain(
+      'androidAcknowledgementHandledByServer:',
+    );
+  });
+
+  it('treats duplicate transaction insert races as idempotent replay', () => {
+    const source = readFileSync(
+      'src/production_purchase_verification_v2.ts',
+      'utf8',
+    );
+
+    expect(source).toContain('isPurchaseUniqueConstraintError(error)');
+    expect(source).toContain('existing?.player_id === playerId');
+    expect(source).toContain('return false;');
+    expect(source).toContain('purchase_replayed');
+  });
 });
 
 describe('AdMob SSV routing', () => {
