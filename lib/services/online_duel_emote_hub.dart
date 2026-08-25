@@ -236,10 +236,10 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
                   emoteId: _hub.incomingEmoteId,
                   accent: Theme.of(context).colorScheme.tertiary,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 _EmoteRoundButton(
                   hub: _hub,
-                  dimension: 46,
+                  dimension: 50,
                   onTap: () => _openPicker(context),
                 ),
               ],
@@ -278,10 +278,10 @@ class OnlineDuelInlineEmoteSurface extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             OnlineDuelEmoteBubble(emoteId: hub.incomingEmoteId, accent: color),
-            SizedBox(height: compact ? 3 : 6),
+            SizedBox(height: compact ? 2 : 4),
             _EmoteRoundButton(
               hub: hub,
-              dimension: compact ? 42 : 46,
+              dimension: compact ? 48 : 50,
               onTap: () => showOnlineDuelEmotePicker(context, hub),
             ),
           ],
@@ -297,96 +297,172 @@ Future<void> showOnlineDuelEmotePicker(
 ) {
   final loadout = OnlineDuelEmoteLoadoutService.instance;
   unawaited(loadout.initialize());
-  final listenable = Listenable.merge(<Listenable>[hub, loadout]);
+  final wide = MediaQuery.sizeOf(context).width >= 760;
+
+  if (wide) {
+    return showDialog<void>(
+      context: context,
+      useRootNavigator: true,
+      barrierColor: Colors.black.withValues(alpha: .18),
+      builder: (dialogContext) => SafeArea(
+        child: Align(
+          alignment: Alignment.bottomRight,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 92),
+            child: Material(
+              color: Colors.transparent,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 370),
+                child: _QuickEmotePickerPanel(
+                  hub: hub,
+                  loadout: loadout,
+                  onSent: () => Navigator.of(dialogContext).pop(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   return showModalBottomSheet<void>(
     context: context,
     useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    showDragHandle: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: .32),
     builder: (sheetContext) => SafeArea(
       top: false,
-      child: AnimatedBuilder(
-        animation: listenable,
-        builder: (context, _) {
-          return LayoutBuilder(
-            builder: (context, _) {
-              final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
-              final equipped = loadout.selectedEmotes.isEmpty
-                  ? onlineDuelEmotesForIds(onlineDuelDefaultEmoteIds)
-                  : loadout.selectedEmotes;
-              return ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxHeight),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Quick Emotes',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                            TextButton.icon(
-                              onPressed: hub.toggleMute,
-                              icon: Icon(
-                                hub.muted
-                                    ? Icons.volume_off_rounded
-                                    : Icons.volume_up_rounded,
-                                size: 18,
-                              ),
-                              label: Text(hub.muted ? 'Unmute' : 'Mute'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 4,
-                          mainAxisSpacing: 8,
-                          crossAxisSpacing: 8,
-                          childAspectRatio: 1.05,
-                          children: [
-                            for (final emote in equipped)
-                              _EmotePickerButton(
-                                emote: emote,
-                                enabled: hub.canSend,
-                                onTap: () {
-                                  if (hub.send(emote.id)) {
-                                    Navigator.of(sheetContext).pop();
-                                  }
-                                },
-                              ),
-                          ],
-                        ),
-                        if (hub.onCooldown) ...[
-                          const SizedBox(height: 10),
-                          Text(
-                            'Emotes have a short cooldown to prevent spam.',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+        child: _QuickEmotePickerPanel(
+          hub: hub,
+          loadout: loadout,
+          onSent: () => Navigator.of(sheetContext).pop(),
+        ),
       ),
     ),
   );
+}
+
+class _QuickEmotePickerPanel extends StatelessWidget {
+  const _QuickEmotePickerPanel({
+    required this.hub,
+    required this.loadout,
+    required this.onSent,
+  });
+
+  final OnlineDuelEmoteHub hub;
+  final OnlineDuelEmoteLoadoutService loadout;
+  final VoidCallback onSent;
+
+  @override
+  Widget build(BuildContext context) {
+    final listenable = Listenable.merge(<Listenable>[hub, loadout]);
+    final scheme = Theme.of(context).colorScheme;
+
+    return AnimatedBuilder(
+      animation: listenable,
+      builder: (context, _) {
+        final equipped = loadout.selectedEmotes.isEmpty
+            ? onlineDuelEmotesForIds(onlineDuelDefaultEmoteIds)
+            : loadout.selectedEmotes;
+        return Material(
+          elevation: 18,
+          color: const Color(0xFF121D24).withValues(alpha: .99),
+          borderRadius: BorderRadius.circular(22),
+          clipBehavior: Clip.antiAlias,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white.withValues(alpha: .085)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .30),
+                  blurRadius: 28,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .18),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'QUICK EMOTES',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .66),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.15,
+                        ),
+                      ),
+                      const Spacer(),
+                      Semantics(
+                        button: true,
+                        label: hub.muted
+                            ? 'Unmute opponent emotes'
+                            : 'Mute opponent emotes',
+                        child: IconButton(
+                          tooltip: hub.muted ? 'Unmute' : 'Mute',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: hub.toggleMute,
+                          icon: Icon(
+                            hub.muted
+                                ? Icons.volume_off_rounded
+                                : Icons.volume_up_rounded,
+                            color: hub.muted
+                                ? scheme.error
+                                : Colors.white.withValues(alpha: .72),
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: equipped.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          mainAxisSpacing: 8,
+                          crossAxisSpacing: 8,
+                          childAspectRatio: 1,
+                        ),
+                    itemBuilder: (context, index) {
+                      final emote = equipped[index];
+                      return _EmotePickerButton(
+                        emote: emote,
+                        enabled: hub.canSend,
+                        onTap: () {
+                          if (hub.send(emote.id)) onSent();
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _EmoteRoundButton extends StatelessWidget {
@@ -402,45 +478,81 @@ class _EmoteRoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       label: 'Open emotes',
       child: Material(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: .96),
-        elevation: 8,
-        shape: const CircleBorder(),
+        color: Colors.transparent,
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: onTap,
-          child: SizedBox.square(
-            dimension: dimension,
+          child: Ink(
+            width: dimension,
+            height: dimension,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF263947), Color(0xFF17252E)],
+              ),
+              border: Border.all(
+                color: scheme.tertiary.withValues(alpha: .42),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .32),
+                  blurRadius: 14,
+                  offset: const Offset(0, 7),
+                ),
+                BoxShadow(
+                  color: scheme.tertiary.withValues(alpha: .09),
+                  blurRadius: 12,
+                ),
+              ],
+            ),
             child: Stack(
               alignment: Alignment.center,
               children: [
                 Icon(
-                  hub.muted
-                      ? Icons.chat_bubble_outline_rounded
-                      : Icons.add_reaction_outlined,
-                  size: 23,
+                  Icons.add_reaction_outlined,
+                  size: 24,
+                  color: hub.onCooldown
+                      ? Colors.white.withValues(alpha: .46)
+                      : const Color(0xFFFFD66B),
                 ),
                 if (hub.onCooldown)
                   Positioned.fill(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Theme.of(context).colorScheme.primary,
-                      backgroundColor: Colors.transparent,
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: scheme.primary,
+                        backgroundColor: Colors.transparent,
+                      ),
                     ),
                   ),
                 if (hub.muted)
                   Positioned(
-                    right: 7,
-                    bottom: 7,
-                    child: Icon(
-                      Icons.volume_off_rounded,
-                      size: 12,
-                      color: Theme.of(context).colorScheme.error,
+                    right: 5,
+                    bottom: 5,
+                    child: Container(
+                      width: 17,
+                      height: 17,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF18242B),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .12),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.volume_off_rounded,
+                        size: 10,
+                        color: scheme.error,
+                      ),
                     ),
                   ),
               ],
@@ -465,38 +577,34 @@ class _EmotePickerButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
       enabled: enabled,
       label: emote.label,
-      child: Material(
-        color: scheme.surfaceContainerHighest.withValues(
-          alpha: enabled ? 1 : .5,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: enabled ? onTap : null,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              OnlineDuelEmoteVisual(
-                emote: emote,
-                size: 30,
-                color: enabled ? scheme.primary : scheme.onSurfaceVariant,
-              ),
-              const SizedBox(height: 5),
-              Text(
-                emote.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 120),
+        opacity: enabled ? 1 : .42,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: enabled ? onTap : null,
+            child: Ink(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .045),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .07),
                 ),
               ),
-            ],
+              child: Center(
+                child: OnlineDuelEmoteVisual(
+                  emote: emote,
+                  size: 50,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -517,38 +625,51 @@ class OnlineDuelEmoteBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final emote = onlineDuelEmoteById(emoteId);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 170),
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: ScaleTransition(scale: animation, child: child),
-      ),
+      duration: reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 170),
+      transitionBuilder: (child, animation) {
+        if (reduceMotion) return FadeTransition(opacity: animation, child: child);
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: .86, end: 1).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+            ),
+            child: child,
+          ),
+        );
+      },
       child: emote == null
           ? const SizedBox.shrink()
-          : Container(
+          : SizedBox(
               key: ValueKey<String>('duel-emote-${emote.id}-$accent'),
-              margin: const EdgeInsets.only(bottom: 5),
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: .98),
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(color: accent.withValues(alpha: .72)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: .24),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
+              width: 76,
+              height: 76,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: .24),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                    BoxShadow(
+                      color: accent.withValues(alpha: .10),
+                      blurRadius: 16,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: OnlineDuelEmoteVisual(
+                    emote: emote,
+                    size: 70,
+                    color: accent,
                   ),
-                ],
-              ),
-              alignment: Alignment.center,
-              child: OnlineDuelEmoteVisual(
-                emote: emote,
-                size: 42,
-                color: accent,
+                ),
               ),
             ),
     );
