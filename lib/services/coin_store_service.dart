@@ -21,8 +21,10 @@ class CoinStoreService extends ChangeNotifier {
   static const String androidNoAdsProductId = 'no_ads';
   static const String iosNoAdsProductId = 'sudoku_duel_no_ads';
 
+  static bool get isAppleStorePlatform => Platform.isIOS || Platform.isMacOS;
+
   static String get noAdsProductId =>
-      Platform.isIOS ? iosNoAdsProductId : androidNoAdsProductId;
+      isAppleStorePlatform ? iosNoAdsProductId : androidNoAdsProductId;
 
   static const Set<String> coinProductIds = <String>{
     'coins_100',
@@ -93,7 +95,7 @@ class CoinStoreService extends ChangeNotifier {
     if (Platform.isAndroid && available) {
       await _recoverAndroidConsumables();
     }
-    if (Platform.isIOS && available) {
+    if (isAppleStorePlatform && available) {
       await _recoverIosUnfinishedTransactions();
     }
   }
@@ -152,13 +154,13 @@ class CoinStoreService extends ChangeNotifier {
     notifyListeners();
     try {
       if (Platform.isAndroid) await _recoverAndroidConsumables();
-      if (Platform.isIOS) await _recoverIosUnfinishedTransactions();
+      if (isAppleStorePlatform) await _recoverIosUnfinishedTransactions();
       var started = await _startCoinPurchase(details);
       if (!started && Platform.isAndroid) {
         await _recoverAndroidConsumables();
         started = await _startCoinPurchase(details);
       }
-      if (!started && Platform.isIOS) {
+      if (!started && isAppleStorePlatform) {
         await _recoverIosUnfinishedTransactions();
         started = await _startCoinPurchase(details);
       }
@@ -178,7 +180,7 @@ class CoinStoreService extends ChangeNotifier {
           // Fall through to the user-facing purchase-start error below.
         }
       }
-      if (Platform.isIOS) {
+      if (isAppleStorePlatform) {
         try {
           await _recoverIosUnfinishedTransactions();
           final recoveredStart = await _startCoinPurchase(details);
@@ -239,9 +241,9 @@ class CoinStoreService extends ChangeNotifier {
   Future<bool> _startCoinPurchase(ProductDetails details) {
     return _store.buyConsumable(
       purchaseParam: PurchaseParam(productDetails: details),
-      // iOS consumables must auto-consume. Android stays manual: the token is
+      // Apple consumables must auto-consume. Android stays manual: the token is
       // first verified/granted by the backend, then explicitly consumed below.
-      autoConsume: Platform.isIOS,
+      autoConsume: isAppleStorePlatform,
     );
   }
 
@@ -410,7 +412,7 @@ class CoinStoreService extends ChangeNotifier {
               ? purchase.purchaseID!.trim()
               : fallbackTransaction;
           final snapshot = await EconomyApiClient.instance.verifyPurchase(
-            platform: Platform.isIOS ? 'ios' : 'android',
+            platform: isAppleStorePlatform ? 'ios' : 'android',
             productId: purchase.productID,
             transactionId: transactionId,
             verificationData: verificationData,
@@ -471,7 +473,7 @@ class CoinStoreService extends ChangeNotifier {
 
   String _verificationDataForServer(PurchaseDetails purchase) {
     final serverData = purchase.verificationData.serverVerificationData.trim();
-    if (!Platform.isIOS || _looksLikeCompactJws(serverData)) {
+    if (!isAppleStorePlatform || _looksLikeCompactJws(serverData)) {
       return serverData;
     }
 

@@ -32,7 +32,9 @@ void main() {
       source,
       contains('final recoveredStart = await _startCoinPurchase(details);'),
     );
-    expect(source, contains('autoConsume: Platform.isIOS'));
+    expect(source, contains('isAppleStorePlatform'));
+    expect(source, contains('Platform.isIOS || Platform.isMacOS'));
+    expect(source, contains('autoConsume: isAppleStorePlatform'));
     expect(source, contains('_recoverAndroidConsumables()'));
     expect(source, contains('queryPastPurchases()'));
     expect(source, contains('_consumeAndroidCoinPurchase(purchase)'));
@@ -57,11 +59,11 @@ void main() {
           "package:in_app_purchase_storekit/in_app_purchase_storekit.dart",
         ),
       );
-      expect(source, contains('if (Platform.isIOS && available)'));
+      expect(source, contains('if (isAppleStorePlatform && available)'));
       expect(
         source,
         contains(
-          'if (Platform.isIOS) await _recoverIosUnfinishedTransactions();',
+          'if (isAppleStorePlatform) await _recoverIosUnfinishedTransactions();',
         ),
       );
       expect(source, contains('_recoverIosUnfinishedTransactions()'));
@@ -80,6 +82,7 @@ void main() {
 
     expect(source, contains('_verificationDataForServer(purchase)'));
     expect(source, contains('_looksLikeCompactJws(serverData)'));
+    expect(source, contains('!isAppleStorePlatform'));
     expect(source, contains('StoreKit 1 exposes the app receipt'));
     expect(source, contains('return purchaseId;'));
   });
@@ -93,6 +96,22 @@ void main() {
     expect(source, contains("iosNoAdsProductId = 'sudoku_duel_no_ads'"));
     expect(source, contains('buyNonConsumable(String productId)'));
     expect(source, contains('_store.buyNonConsumable('));
+  });
+
+  test('macOS bundle id stays aligned with App Store verification', () {
+    final macosConfig = File(
+      'macos/Runner/Configs/AppInfo.xcconfig',
+    ).readAsStringSync();
+    final workerConfig = File(
+      'backend/social_worker/wrangler.production.toml',
+    ).readAsStringSync();
+
+    expect(
+      macosConfig,
+      contains('PRODUCT_BUNDLE_IDENTIFIER = com.devovia.sudokuduel'),
+    );
+    expect(workerConfig, contains('APPLE_BUNDLE_ID = "com.devovia.sudokuduel"'));
+    expect(macosConfig, isNot(contains('com.example.sudokuGame')));
   });
 
   test('coin store screen routes coin packs through consumable buy flow', () {
