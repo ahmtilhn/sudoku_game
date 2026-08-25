@@ -57,11 +57,29 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
     }
   }
 
+  void _reorder(int oldIndex, int targetIndex) {
+    final count = _loadout.selectedCount;
+    if (oldIndex < 0 || oldIndex >= count || count <= 1) return;
+
+    final int newIndex;
+    if (targetIndex >= count) {
+      newIndex = count;
+    } else if (targetIndex > oldIndex) {
+      newIndex = targetIndex + 1;
+    } else {
+      newIndex = targetIndex;
+    }
+    unawaited(_loadout.reorder(oldIndex, newIndex));
+  }
+
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(message),
+      ),
+    );
   }
 
   List<OnlineDuelEmoteDefinition> get _visibleEmotes {
@@ -96,12 +114,13 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
                 animation: _loadout,
                 builder: (context, _) {
                   return ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 30),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
                     children: [
                       InPageHeader(
                         title: 'Emotes',
                         actions: [
-                          TextButton.icon(
+                          IconButton(
+                            tooltip: 'Restore default emotes',
                             onPressed: _loading
                                 ? null
                                 : () async {
@@ -110,44 +129,36 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
                                       _showMessage('Default emotes restored.');
                                     }
                                   },
-                            icon: const Icon(
-                              Icons.restart_alt_rounded,
-                              size: 19,
-                            ),
-                            label: const Text('Reset'),
+                            icon: const Icon(Icons.restart_alt_rounded),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      _LoadoutSummaryCard(
-                        selectedCount: _loadout.selectedCount,
-                        loading: _loading,
-                      ),
                       if (_error != null) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         _InlineNotice(message: _error!),
                       ],
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
                       _SectionTitle(
+                        eyebrow: 'YOUR LOADOUT',
                         title: 'Quick Emotes',
                         subtitle:
-                            'These are the emotes shown during online duels. Drag to change their order.',
-                        trailing: '${_loadout.selectedCount}/8',
+                            'The same 4 × 2 layout is used when you open emotes during a duel. Hold and drag to reorder.',
+                        trailing:
+                            '${_loadout.selectedCount}/${OnlineDuelEmoteLoadoutService.maxSlots}',
                       ),
-                      const SizedBox(height: 9),
-                      _SelectedEmoteRail(
+                      const SizedBox(height: 11),
+                      _QuickLoadoutGrid(
                         emotes: _loadout.selectedEmotes,
-                        onReorder: (oldIndex, newIndex) =>
-                            unawaited(_loadout.reorder(oldIndex, newIndex)),
-                        onRemove: (emote) => unawaited(_toggle(emote)),
+                        onMove: _reorder,
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 22),
                       const _SectionTitle(
-                        title: 'Emote Collection',
+                        eyebrow: 'COLLECTION',
+                        title: 'Choose your reactions',
                         subtitle:
-                            'Tap an emote to equip or remove it from your 8 quick slots.',
+                            'Tap a card to equip it. Tap an equipped card again to remove it from your quick slots.',
                       ),
-                      const SizedBox(height: 9),
+                      const SizedBox(height: 10),
                       _FilterBar(
                         selected: _filter,
                         onSelected: (filter) =>
@@ -173,7 +184,7 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
                                   crossAxisCount: columns,
                                   mainAxisSpacing: 9,
                                   crossAxisSpacing: 9,
-                                  childAspectRatio: .88,
+                                  childAspectRatio: .90,
                                 ),
                             itemCount: emotes.length,
                             itemBuilder: (context, index) {
@@ -200,101 +211,15 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
   }
 }
 
-class _LoadoutSummaryCard extends StatelessWidget {
-  const _LoadoutSummaryCard({
-    required this.selectedCount,
-    required this.loading,
-  });
-
-  final int selectedCount;
-  final bool loading;
-
-  @override
-  Widget build(BuildContext context) {
-    const accent = Color(0xFF66C7FF);
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .20),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: .075)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: .10),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: accent.withValues(alpha: .18)),
-            ),
-            alignment: Alignment.center,
-            child: loading
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(
-                    Icons.add_reaction_rounded,
-                    color: accent,
-                    size: 27,
-                  ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Duel Emote Loadout',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  'Pick the reactions and taunts you want available in Ready, live matches and result screens.',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .58),
-                    fontSize: 12,
-                    height: 1.35,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: .10),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              '$selectedCount/8',
-              style: const TextStyle(
-                color: accent,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({
+    required this.eyebrow,
     required this.title,
     required this.subtitle,
     this.trailing,
   });
 
+  final String eyebrow;
   final String title;
   final String subtitle;
   final String? trailing;
@@ -302,25 +227,36 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
+                eyebrow,
+                style: TextStyle(
+                  color: const Color(0xFF66C7FF).withValues(alpha: .86),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.25,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
                 title,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.w900,
+                  letterSpacing: -.2,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: .50),
+                  color: Colors.white.withValues(alpha: .52),
                   fontSize: 11,
                   height: 1.35,
                   fontWeight: FontWeight.w700,
@@ -330,13 +266,23 @@ class _SectionTitle extends StatelessWidget {
           ),
         ),
         if (trailing != null) ...[
-          const SizedBox(width: 10),
-          Text(
-            trailing!,
-            style: const TextStyle(
-              color: Color(0xFF66C7FF),
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF66C7FF).withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: const Color(0xFF66C7FF).withValues(alpha: .18),
+              ),
+            ),
+            child: Text(
+              trailing!,
+              style: const TextStyle(
+                color: Color(0xFF8ED8FF),
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -345,117 +291,210 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _SelectedEmoteRail extends StatelessWidget {
-  const _SelectedEmoteRail({
-    required this.emotes,
-    required this.onReorder,
-    required this.onRemove,
-  });
+class _QuickLoadoutGrid extends StatelessWidget {
+  const _QuickLoadoutGrid({required this.emotes, required this.onMove});
 
   final List<OnlineDuelEmoteDefinition> emotes;
-  final void Function(int oldIndex, int newIndex) onReorder;
-  final ValueChanged<OnlineDuelEmoteDefinition> onRemove;
+  final void Function(int oldIndex, int targetIndex) onMove;
 
   @override
   Widget build(BuildContext context) {
-    if (emotes.isEmpty) return const SizedBox.shrink();
     return Container(
-      height: 108,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .13),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: .055)),
+        color: Colors.black.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: .065)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .14),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      child: ReorderableListView.builder(
-        scrollDirection: Axis.horizontal,
-        buildDefaultDragHandles: false,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        itemCount: emotes.length,
-        onReorderItem: onReorder,
-        proxyDecorator: (child, index, animation) => Material(
-          color: Colors.transparent,
-          elevation: 8,
-          borderRadius: BorderRadius.circular(14),
-          child: child,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: OnlineDuelEmoteLoadoutService.maxSlots,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: .94,
         ),
         itemBuilder: (context, index) {
-          final emote = emotes[index];
-          return ReorderableDragStartListener(
-            key: ValueKey<String>('equipped-${emote.id}'),
+          final emote = index < emotes.length ? emotes[index] : null;
+          return _LoadoutDropSlot(
             index: index,
-            child: Container(
-              width: 88,
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.fromLTRB(7, 6, 7, 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF66C7FF).withValues(alpha: .09),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: const Color(0xFF66C7FF).withValues(alpha: .26),
-                ),
-              ),
-              child: Stack(
-                children: [
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      OnlineDuelEmoteVisual(
-                        emote: emote,
-                        size: 42,
-                        color: const Color(0xFF66C7FF),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        emote.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .78),
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    child: Container(
-                      width: 19,
-                      height: 19,
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF66C7FF),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        '${index + 1}',
-                        style: const TextStyle(
-                          color: Color(0xFF071015),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: -5,
-                    top: -5,
-                    child: IconButton(
-                      tooltip: 'Remove ${emote.label}',
-                      onPressed: () => onRemove(emote),
-                      visualDensity: VisualDensity.compact,
-                      iconSize: 15,
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            emote: emote,
+            onMove: onMove,
           );
         },
+      ),
+    );
+  }
+}
+
+class _LoadoutDropSlot extends StatelessWidget {
+  const _LoadoutDropSlot({
+    required this.index,
+    required this.emote,
+    required this.onMove,
+  });
+
+  final int index;
+  final OnlineDuelEmoteDefinition? emote;
+  final void Function(int oldIndex, int targetIndex) onMove;
+
+  @override
+  Widget build(BuildContext context) {
+    return DragTarget<int>(
+      onWillAcceptWithDetails: (details) => details.data != index,
+      onAcceptWithDetails: (details) => onMove(details.data, index),
+      builder: (context, candidateData, rejectedData) {
+        final highlighted = candidateData.isNotEmpty;
+        final card = _QuickSlotCard(
+          index: index,
+          emote: emote,
+          highlighted: highlighted,
+        );
+        if (emote == null) return card;
+
+        return LongPressDraggable<int>(
+          data: index,
+          maxSimultaneousDrags: 1,
+          feedback: Material(
+            color: Colors.transparent,
+            child: SizedBox(
+              width: 84,
+              height: 88,
+              child: _QuickSlotCard(
+                index: index,
+                emote: emote,
+                highlighted: true,
+              ),
+            ),
+          ),
+          childWhenDragging: Opacity(opacity: .24, child: card),
+          child: card,
+        );
+      },
+    );
+  }
+}
+
+class _QuickSlotCard extends StatelessWidget {
+  const _QuickSlotCard({
+    required this.index,
+    required this.emote,
+    required this.highlighted,
+  });
+
+  final int index;
+  final OnlineDuelEmoteDefinition? emote;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = Color(0xFF66C7FF);
+    final value = emote;
+    return Semantics(
+      label: value == null
+          ? 'Empty quick emote slot ${index + 1}'
+          : '${value.label}, quick emote slot ${index + 1}',
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.fromLTRB(6, 7, 6, 6),
+        decoration: BoxDecoration(
+          color: highlighted
+              ? accent.withValues(alpha: .15)
+              : value == null
+              ? Colors.white.withValues(alpha: .025)
+              : const Color(0xFF152631).withValues(alpha: .92),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: highlighted
+                ? accent.withValues(alpha: .62)
+                : value == null
+                ? Colors.white.withValues(alpha: .055)
+                : accent.withValues(alpha: .20),
+            width: highlighted ? 1.5 : 1,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: value == null
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add_rounded,
+                          size: 25,
+                          color: Colors.white.withValues(alpha: .22),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Empty',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .28),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        OnlineDuelEmoteVisual(
+                          emote: value,
+                          size: 55,
+                          color: accent,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          value.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: .75),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+            Positioned(
+              left: 0,
+              top: 0,
+              child: Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: value == null
+                      ? Colors.white.withValues(alpha: .07)
+                      : accent,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    color: value == null
+                        ? Colors.white.withValues(alpha: .38)
+                        : const Color(0xFF071015),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -469,31 +508,35 @@ class _FilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 7,
-      runSpacing: 7,
-      children: [
-        _FilterChipButton(
-          label: 'All',
-          selected: selected == _EmoteFilter.all,
-          onTap: () => onSelected(_EmoteFilter.all),
-        ),
-        _FilterChipButton(
-          label: 'Reactions',
-          selected: selected == _EmoteFilter.reactions,
-          onTap: () => onSelected(_EmoteFilter.reactions),
-        ),
-        _FilterChipButton(
-          label: 'Taunts',
-          selected: selected == _EmoteFilter.taunts,
-          onTap: () => onSelected(_EmoteFilter.taunts),
-        ),
-        _FilterChipButton(
-          label: 'Status',
-          selected: selected == _EmoteFilter.status,
-          onTap: () => onSelected(_EmoteFilter.status),
-        ),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _FilterChipButton(
+            label: 'All',
+            selected: selected == _EmoteFilter.all,
+            onTap: () => onSelected(_EmoteFilter.all),
+          ),
+          const SizedBox(width: 7),
+          _FilterChipButton(
+            label: 'Reactions',
+            selected: selected == _EmoteFilter.reactions,
+            onTap: () => onSelected(_EmoteFilter.reactions),
+          ),
+          const SizedBox(width: 7),
+          _FilterChipButton(
+            label: 'Taunts',
+            selected: selected == _EmoteFilter.taunts,
+            onTap: () => onSelected(_EmoteFilter.taunts),
+          ),
+          const SizedBox(width: 7),
+          _FilterChipButton(
+            label: 'Status',
+            selected: selected == _EmoteFilter.status,
+            onTap: () => onSelected(_EmoteFilter.status),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -516,17 +559,18 @@ class _FilterChipButton extends StatelessWidget {
       selected: selected,
       onSelected: (_) => onTap(),
       label: Text(label),
+      showCheckmark: false,
       labelStyle: TextStyle(
         color: selected ? Colors.white : Colors.white.withValues(alpha: .60),
         fontSize: 11,
         fontWeight: FontWeight.w800,
       ),
       backgroundColor: Colors.black.withValues(alpha: .16),
-      selectedColor: accent.withValues(alpha: .18),
+      selectedColor: accent.withValues(alpha: .17),
       side: BorderSide(
         color: selected
             ? accent.withValues(alpha: .42)
-            : Colors.white.withValues(alpha: .06),
+            : Colors.white.withValues(alpha: .065),
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
     );
@@ -557,14 +601,14 @@ class _CollectionEmoteCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(17),
           child: Ink(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.fromLTRB(7, 7, 7, 8),
             decoration: BoxDecoration(
               color: selected
-                  ? accent.withValues(alpha: .10)
+                  ? accent.withValues(alpha: .095)
                   : Colors.black.withValues(alpha: .14),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(17),
               border: Border.all(
                 color: selected
                     ? accent.withValues(alpha: .48)
@@ -581,14 +625,14 @@ class _CollectionEmoteCard extends StatelessWidget {
                       child: Center(
                         child: OnlineDuelEmoteVisual(
                           emote: emote,
-                          size: 46,
+                          size: 58,
                           color: selected
                               ? accent
-                              : Colors.white.withValues(alpha: .72),
+                              : Colors.white.withValues(alpha: .76),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       emote.label,
                       maxLines: 1,
@@ -604,38 +648,28 @@ class _CollectionEmoteCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 140),
-                    child: selected
-                        ? Container(
-                            key: ValueKey<int>(slot),
-                            width: 22,
-                            height: 22,
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: accent,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              '$slot',
-                              style: const TextStyle(
-                                color: Color(0xFF071015),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          )
-                        : Icon(
-                            Icons.add_circle_outline_rounded,
-                            key: const ValueKey<String>('add'),
-                            size: 21,
-                            color: Colors.white.withValues(alpha: .34),
-                          ),
+                if (selected)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        color: accent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '$slot',
+                        style: const TextStyle(
+                          color: Color(0xFF071015),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
               ],
             ),
           ),
