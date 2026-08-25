@@ -313,24 +313,29 @@ class _QuickLoadoutGrid extends StatelessWidget {
           ),
         ],
       ),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: OnlineDuelEmoteLoadoutService.maxSlots,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: .94,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 430),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: OnlineDuelEmoteLoadoutService.maxSlots,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 1,
+            ),
+            itemBuilder: (context, index) {
+              final emote = index < emotes.length ? emotes[index] : null;
+              return _LoadoutDropSlot(
+                index: index,
+                emote: emote,
+                onMove: onMove,
+              );
+            },
+          ),
         ),
-        itemBuilder: (context, index) {
-          final emote = index < emotes.length ? emotes[index] : null;
-          return _LoadoutDropSlot(
-            index: index,
-            emote: emote,
-            onMove: onMove,
-          );
-        },
       ),
     );
   }
@@ -366,9 +371,8 @@ class _LoadoutDropSlot extends StatelessWidget {
           maxSimultaneousDrags: 1,
           feedback: Material(
             color: Colors.transparent,
-            child: SizedBox(
-              width: 84,
-              height: 88,
+            child: SizedBox.square(
+              dimension: 82,
               child: _QuickSlotCard(
                 index: index,
                 emote: emote,
@@ -405,7 +409,7 @@ class _QuickSlotCard extends StatelessWidget {
           : '${value.label}, quick emote slot ${index + 1}',
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
-        padding: const EdgeInsets.fromLTRB(6, 7, 6, 6),
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: highlighted
               ? accent.withValues(alpha: .15)
@@ -426,46 +430,15 @@ class _QuickSlotCard extends StatelessWidget {
           children: [
             Center(
               child: value == null
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.add_rounded,
-                          size: 25,
-                          color: Colors.white.withValues(alpha: .22),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Empty',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .28),
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
+                  ? Icon(
+                      Icons.add_rounded,
+                      size: 25,
+                      color: Colors.white.withValues(alpha: .22),
                     )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        OnlineDuelEmoteVisual(
-                          emote: value,
-                          size: 55,
-                          color: accent,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          value.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .75),
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
+                  : OnlineDuelEmoteVisual(
+                      emote: value,
+                      size: 50,
+                      color: accent,
                     ),
             ),
             Positioned(
