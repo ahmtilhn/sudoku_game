@@ -83,7 +83,10 @@ void main() {
     expect(source, contains('_verificationDataForServer(purchase)'));
     expect(source, contains('if (serverData.isNotEmpty) return serverData;'));
     expect(source, contains('_transactionIdForServer('));
-    expect(source, contains("return 'storekit:${purchase.productID}:$timestamp:'"));
+    expect(
+      source,
+      contains(r"return 'storekit:${purchase.productID}:$timestamp:'"),
+    );
     expect(source, contains('_stableVerificationHash(verificationData)'));
     expect(backend, contains('tryDecodeUntrustedStoreKitJws(input.verificationData)'));
     expect(backend, contains('inApps/v1/transactions/'));
