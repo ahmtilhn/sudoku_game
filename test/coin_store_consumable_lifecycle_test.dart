@@ -34,6 +34,7 @@ void main() {
     );
     expect(source, contains('isAppleStorePlatform'));
     expect(source, contains('Platform.isIOS || Platform.isMacOS'));
+    expect(source, contains('isStoreKit2PurchaseMode'));
     expect(source, contains('autoConsume: isAppleStorePlatform'));
     expect(source, contains('_recoverAndroidConsumables()'));
     expect(source, contains('queryPastPurchases()'));
@@ -47,7 +48,7 @@ void main() {
   });
 
   test(
-    'iOS recovers unfinished StoreKit purchases without touching Android',
+    'iOS recovers unfinished StoreKit 2 purchases without touching Android',
     () {
       final source = File(
         'lib/services/coin_store_service.dart',
@@ -63,9 +64,11 @@ void main() {
       expect(
         source,
         contains(
-          'if (isAppleStorePlatform) await _recoverIosUnfinishedTransactions();',
+          'if (isAppleStorePlatform) await _recoverAppleUnfinishedTransactions();',
         ),
       );
+      expect(source, contains('if (!isStoreKit2PurchaseMode) return;'));
+      expect(source, contains('const Duration(seconds: 4)'));
       expect(source, contains('_recoverIosUnfinishedTransactions()'));
       expect(source, contains('SK2Transaction'));
       expect(source, contains('unfinishedTransactions()'));
@@ -86,6 +89,25 @@ void main() {
     expect(source, contains('StoreKit 1 exposes the app receipt'));
     expect(source, contains('return purchaseId;'));
   });
+
+  test(
+    'Apple payment sheet uses StoreKit 1 before InAppPurchase is created',
+    () {
+      final source = File('lib/main.dart').readAsStringSync();
+
+      expect(source, contains('_configureApplePurchaseQueue()'));
+      expect(
+        source.indexOf('await _configureApplePurchaseQueue();'),
+        lessThan(source.indexOf('CoinStoreService.instance.initialize')),
+      );
+      expect(
+        source,
+        contains('InAppPurchaseStoreKitPlatform.enableStoreKit1()'),
+      );
+      expect(source, contains('defaultTargetPlatform == TargetPlatform.iOS'));
+      expect(source, contains('defaultTargetPlatform == TargetPlatform.macOS'));
+    },
+  );
 
   test('no-ads remains a non-consumable entitlement', () {
     final source = File(
@@ -110,7 +132,10 @@ void main() {
       macosConfig,
       contains('PRODUCT_BUNDLE_IDENTIFIER = com.devovia.sudokuduel'),
     );
-    expect(workerConfig, contains('APPLE_BUNDLE_ID = "com.devovia.sudokuduel"'));
+    expect(
+      workerConfig,
+      contains('APPLE_BUNDLE_ID = "com.devovia.sudokuduel"'),
+    );
     expect(macosConfig, isNot(contains('com.example.sudokuGame')));
   });
 

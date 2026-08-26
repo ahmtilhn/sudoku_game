@@ -1,7 +1,11 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 
 import 'app.dart';
 import 'data/local_progress_store.dart';
@@ -21,6 +25,7 @@ import 'services/reminder_notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _configureApplePurchaseQueue();
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.portraitUp,
   ]);
@@ -93,6 +98,28 @@ Future<void> main() async {
       ),
     );
   });
+}
+
+Future<void> _configureApplePurchaseQueue() async {
+  if (kIsWeb) return;
+  final isAppleTarget =
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
+  if (!isAppleTarget) return;
+
+  try {
+    final storeKit2StillEnabled =
+        await InAppPurchaseStoreKitPlatform.enableStoreKit1().timeout(
+          const Duration(seconds: 3),
+        );
+    debugPrint(
+      'Coin Store Apple purchase mode: '
+      '${storeKit2StillEnabled ? 'StoreKit 2' : 'StoreKit 1'}.',
+    );
+  } catch (error, stackTrace) {
+    debugPrint('Coin Store Apple purchase mode configuration failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 }
 
 Future<void> _initializeGooglePlayGames() async {

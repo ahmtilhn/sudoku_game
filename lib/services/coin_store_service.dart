@@ -22,6 +22,9 @@ class CoinStoreService extends ChangeNotifier {
   static const String iosNoAdsProductId = 'sudoku_duel_no_ads';
 
   static bool get isAppleStorePlatform => Platform.isIOS || Platform.isMacOS;
+  static bool get isStoreKit2PurchaseMode =>
+      isAppleStorePlatform &&
+      storekit.InAppPurchaseStoreKitPlatform.isStoreKit2Enabled;
 
   static String get noAdsProductId =>
       isAppleStorePlatform ? iosNoAdsProductId : androidNoAdsProductId;
@@ -96,7 +99,7 @@ class CoinStoreService extends ChangeNotifier {
       await _recoverAndroidConsumables();
     }
     if (isAppleStorePlatform && available) {
-      await _recoverIosUnfinishedTransactions();
+      await _recoverAppleUnfinishedTransactions();
     }
   }
 
@@ -125,6 +128,11 @@ class CoinStoreService extends ChangeNotifier {
       } else if (response.notFoundIDs.isNotEmpty) {
         error = 'Some Coin products are not available in this test store.';
       }
+      debugPrint(
+        'Coin Store products refreshed: platform=$_purchasePlatformForLog '
+        'available=$available found=${products.map((p) => p.id).join(',')} '
+        'missing=${response.notFoundIDs.join(',')}',
+      );
     } catch (_) {
       available = false;
       products = const <ProductDetails>[];
@@ -154,14 +162,18 @@ class CoinStoreService extends ChangeNotifier {
     notifyListeners();
     try {
       if (Platform.isAndroid) await _recoverAndroidConsumables();
-      if (isAppleStorePlatform) await _recoverIosUnfinishedTransactions();
+      if (isAppleStorePlatform) await _recoverAppleUnfinishedTransactions();
+      debugPrint(
+        'Coin Store starting purchase: platform=$_purchasePlatformForLog '
+        'productId=$productId',
+      );
       var started = await _startCoinPurchase(details);
       if (!started && Platform.isAndroid) {
         await _recoverAndroidConsumables();
         started = await _startCoinPurchase(details);
       }
       if (!started && isAppleStorePlatform) {
-        await _recoverIosUnfinishedTransactions();
+        await _recoverAppleUnfinishedTransactions();
         started = await _startCoinPurchase(details);
       }
       if (!started) {
@@ -170,7 +182,12 @@ class CoinStoreService extends ChangeNotifier {
         notifyListeners();
       }
       return started;
-    } catch (_) {
+    } catch (startError, stackTrace) {
+      debugPrint(
+        'Coin Store purchase start failed: platform=$_purchasePlatformForLog '
+        'productId=$productId error=$startError',
+      );
+      debugPrintStack(stackTrace: stackTrace);
       if (Platform.isAndroid) {
         try {
           await _recoverAndroidConsumables();
@@ -182,7 +199,7 @@ class CoinStoreService extends ChangeNotifier {
       }
       if (isAppleStorePlatform) {
         try {
-          await _recoverIosUnfinishedTransactions();
+          await _recoverAppleUnfinishedTransactions();
           final recoveredStart = await _startCoinPurchase(details);
           if (recoveredStart) return true;
         } catch (_) {
@@ -236,6 +253,19 @@ class CoinStoreService extends ChangeNotifier {
       status: PurchaseStatus.purchased,
       appAccountToken: transaction.appAccountToken,
     );
+  }
+
+  Future<void> _recoverAppleUnfinishedTransactions() async {
+    if (!isStoreKit2PurchaseMode) return;
+    try {
+      await _recoverIosUnfinishedTransactions().timeout(
+        const Duration(seconds: 4),
+      );
+    } on TimeoutException {
+      debugPrint(
+        'App Store unfinished purchase recovery timed out; continuing purchase.',
+      );
+    }
   }
 
   Future<bool> _startCoinPurchase(ProductDetails details) {
@@ -369,6 +399,12 @@ class CoinStoreService extends ChangeNotifier {
     for (final purchase in purchases) {
       if (!productIds.contains(purchase.productID)) continue;
       final isNoAds = purchase.productID == noAdsProductId;
+      debugPrint(
+        'Coin Store purchase update: platform=$_purchasePlatformForLog '
+        'productId=${purchase.productID} status=${purchase.status.name} '
+        'pendingComplete=${purchase.pendingCompletePurchase} '
+        'purchaseIdPresent=${purchase.purchaseID?.trim().isNotEmpty == true}',
+      );
       if (purchase.status == PurchaseStatus.pending) {
         pendingProductId = purchase.productID;
         EconomyService.instance.setPurchaseProcessing(true);
@@ -411,6 +447,12 @@ class CoinStoreService extends ChangeNotifier {
           final transactionId = purchase.purchaseID?.trim().isNotEmpty == true
               ? purchase.purchaseID!.trim()
               : fallbackTransaction;
+          debugPrint(
+            'Coin Store verifying purchase: platform=$_purchasePlatformForLog '
+            'productId=${purchase.productID} '
+            'transactionIdPresent=${transactionId.trim().isNotEmpty} '
+            'verification=${_verificationDataKind(verificationData)}',
+          );
           final snapshot = await EconomyApiClient.instance.verifyPurchase(
             platform: isAppleStorePlatform ? 'ios' : 'android',
             productId: purchase.productID,
@@ -453,6 +495,11 @@ class CoinStoreService extends ChangeNotifier {
           }
           error = exception.message;
           EconomyService.instance.reportError(exception.message);
+          debugPrint(
+            'Coin Store server verification failed: '
+            'status=${exception.statusCode} code=${exception.code} '
+            'message=${exception.message}',
+          );
           // Keep the transaction pending when server verification is unavailable
           // so the SDK can redeliver it after the backend is fixed.
         } catch (_) {
@@ -483,6 +530,19 @@ class CoinStoreService extends ChangeNotifier {
     final purchaseId = purchase.purchaseID?.trim();
     if (purchaseId != null && purchaseId.isNotEmpty) return purchaseId;
     return serverData;
+  }
+
+  String get _purchasePlatformForLog {
+    if (Platform.isAndroid) return 'android';
+    if (isAppleStorePlatform) {
+      return isStoreKit2PurchaseMode ? 'apple_storekit2' : 'apple_storekit1';
+    }
+    return Platform.operatingSystem;
+  }
+
+  String _verificationDataKind(String value) {
+    if (_looksLikeCompactJws(value)) return 'compact_jws(${value.length})';
+    return 'opaque(${value.length})';
   }
 
   bool _looksLikeCompactJws(String value) {
