@@ -518,7 +518,14 @@ async function verifyAppStorePurchase(
     headers: { authorization: `Bearer ${token}`, accept: 'application/json' },
   });
   let expectedEnvironment: 'production' | 'sandbox' = 'production';
-  if (!response.ok && (response.status === 404 || response.status === 400)) {
+  if (
+    !response.ok &&
+    (
+      response.status === 400 ||
+      response.status === 401 ||
+      response.status === 404
+    )
+  ) {
     const sandboxUrl =
       'https://api.storekit-sandbox.apple.com/inApps/v1/transactions/' +
       encodeURIComponent(requestedTransactionId);
