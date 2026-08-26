@@ -1,0 +1,90 @@
+name: iOS Coin Purchase CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/main.dart'
+      - 'lib/services/coin_store_service.dart'
+      - 'lib/services/economy_api_client.dart'
+      - 'backend/social_worker/src/production_purchase_verification_v2.ts'
+      - 'backend/social_worker/src/apple_jws_verifier.ts'
+      - 'backend/social_worker/test/production_verification.test.ts'
+      - 'test/coin_store_consumable_lifecycle_test.dart'
+      - 'ios/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/ios-coin-purchase-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-coin-purchase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter-purchase-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze purchase service
+        run: dart analyze lib/services/coin_store_service.dart
+
+      - name: Analyze Apple startup configuration
+        run: dart analyze lib/main.dart
+
+      - name: Run Coin purchase lifecycle regression tests
+        run: flutter test test/coin_store_consumable_lifecycle_test.dart --reporter expanded
+
+  apple-verifier-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend/social_worker
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/social_worker/package-lock.json
+
+      - name: Install Worker dependencies
+        run: npm ci
+
+      - name: Type-check production purchase verifier
+        run: npm run typecheck
+
+      - name: Run App Store verification regression tests
+        run: npx vitest run test/production_verification.test.ts
+
+  ios-no-codesign-build:
+    runs-on: macos-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+
+      - name: Build iOS without signing
+        run: flutter build ios --debug --no-codesign
