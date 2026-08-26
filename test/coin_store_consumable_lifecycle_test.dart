@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('coin packs remain consumable and recover owned Google Play tokens', () {
+  test('coin packs remain consumable and preserve Google Play lifecycle', () {
     final source = File(
       'lib/services/coin_store_service.dart',
     ).readAsStringSync();
@@ -27,15 +27,7 @@ void main() {
       source,
       contains('if (Platform.isAndroid) await _recoverAndroidConsumables();'),
     );
-    expect(source, contains('started = await _startCoinPurchase(details);'));
-    expect(
-      source,
-      contains('final recoveredStart = await _startCoinPurchase(details);'),
-    );
-    expect(source, contains('isAppleStorePlatform'));
-    expect(source, contains('Platform.isIOS || Platform.isMacOS'));
-    expect(source, contains('isStoreKit2PurchaseMode'));
-    expect(source, contains('autoConsume: isAppleStorePlatform'));
+    expect(source, contains('_startCoinPurchase(details)'));
     expect(source, contains('_recoverAndroidConsumables()'));
     expect(source, contains('queryPastPurchases()'));
     expect(source, contains('_consumeAndroidCoinPurchase(purchase)'));
@@ -44,93 +36,81 @@ void main() {
     expect(source, contains("exception.code == 'purchase_replayed'"));
     expect(source, contains('!snapshot.androidConsumptionHandledByServer'));
     expect(source, contains('throw _CoinConsumptionException'));
-    expect(source, contains('Intentionally do not complete the purchase.'));
-    expect(
-      source,
-      contains('Coin Store Apple purchase is pending server verification'),
-    );
-    expect(
-      source,
-      contains(
-        'Do not complete the App Store transaction or surface this as a',
-      ),
-    );
   });
 
-  test(
-    'iOS recovers unfinished StoreKit 2 purchases without touching Android',
-    () {
-      final source = File(
-        'lib/services/coin_store_service.dart',
-      ).readAsStringSync();
+  test('iOS stays on StoreKit 2 and never forces the legacy StoreKit 1 path', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final storeSource = File(
+      'lib/services/coin_store_service.dart',
+    ).readAsStringSync();
+    final projectSource = File(
+      'ios/Runner.xcodeproj/project.pbxproj',
+    ).readAsStringSync();
 
-      expect(
-        source,
-        contains(
-          "package:in_app_purchase_storekit/in_app_purchase_storekit.dart",
-        ),
-      );
-      expect(source, contains('if (isAppleStorePlatform && available)'));
-      expect(
-        source,
-        contains(
-          'if (isAppleStorePlatform) await _recoverAppleUnfinishedTransactions();',
-        ),
-      );
-      expect(source, contains('if (!isStoreKit2PurchaseMode) return;'));
-      expect(source, contains('const Duration(seconds: 4)'));
-      expect(source, contains('_recoverIosUnfinishedTransactions()'));
-      expect(source, contains('SK2Transaction'));
-      expect(source, contains('unfinishedTransactions()'));
-      expect(source, contains('SK2PurchaseDetails'));
-      expect(source, contains('_purchaseDetailsFromStoreKit2Transaction'));
-      expect(source, contains('App Store unfinished purchase recovery failed'));
-    },
-  );
+    expect(mainSource, isNot(contains('enableStoreKit1')));
+    expect(mainSource, isNot(contains('_configureApplePurchaseQueue')));
+    expect(storeSource, contains('isStoreKit2PurchaseMode'));
+    expect(storeSource, contains('SK2Transaction.unfinishedTransactions()'));
+    expect(storeSource, contains('SK2PurchaseDetails'));
+    expect(storeSource, contains('transaction.receiptData ?? transaction.id'));
+    expect(projectSource, contains('IPHONEOS_DEPLOYMENT_TARGET = 15.0;'));
+  });
 
-  test('iOS keeps StoreKit receipt verification data off transaction id', () {
+  test('iOS recovers unfinished purchases before allowing another charge', () {
     final source = File(
       'lib/services/coin_store_service.dart',
     ).readAsStringSync();
 
-    expect(source, contains('_verificationDataForServer(purchase)'));
-    expect(source, contains('_transactionIdForServer('));
-    expect(source, contains('_looksLikeCompactJws(serverData)'));
-    expect(source, contains('!isAppleStorePlatform'));
-    expect(source, contains('StoreKit 1 exposes the app receipt'));
-    expect(source, contains('return purchaseId;'));
-    expect(source, contains(r"'receipt:${purchase.productID}:$timestamp:'"));
-    expect(source, contains('_stableVerificationHash(verificationData)'));
-    expect(
-      source,
-      isNot(
-        contains(
-          r'${purchase.productID}:${purchase.transactionDate ?? DateTime.now().millisecondsSinceEpoch}:$verificationData',
-        ),
-      ),
-    );
+    expect(source, contains('_recoverAppleUnfinishedTransactions('));
+    expect(source, contains('onlyProductId: productId'));
+    expect(source, contains('recovered.contains(productId)'));
+    expect(source, contains('_applePendingVerificationTransactions'));
+    expect(source, contains('_finishedAppleTransactionKeys'));
+    expect(source, contains('_appleTransactionKey(purchase)'));
+    expect(source, contains('_enqueuePurchases(purchases)'));
+    expect(source, contains('storekit_duplicate_product_object'));
+    expect(source, contains('No new charge was started.'));
   });
 
-  test(
-    'Apple payment sheet uses StoreKit 1 before InAppPurchase is created',
-    () {
-      final source = File('lib/main.dart').readAsStringSync();
+  test('iOS sends StoreKit 2 JWS data unchanged to the production verifier', () {
+    final source = File(
+      'lib/services/coin_store_service.dart',
+    ).readAsStringSync();
+    final backend = File(
+      'backend/social_worker/src/production_purchase_verification_v2.ts',
+    ).readAsStringSync();
 
-      expect(source, contains('_configureApplePurchaseQueue()'));
-      expect(
-        source.indexOf('await _configureApplePurchaseQueue();'),
-        lessThan(source.indexOf('CoinStoreService.instance.initialize')),
-      );
-      expect(
-        source,
-        contains('InAppPurchaseStoreKitPlatform.enableStoreKit1()'),
-      );
-      expect(source, contains('defaultTargetPlatform == TargetPlatform.iOS'));
-      expect(source, contains('defaultTargetPlatform == TargetPlatform.macOS'));
-    },
-  );
+    expect(source, contains('_verificationDataForServer(purchase)'));
+    expect(source, contains('if (serverData.isNotEmpty) return serverData;'));
+    expect(source, contains('_transactionIdForServer('));
+    expect(source, contains("return 'storekit:${purchase.productID}:$timestamp:'"));
+    expect(source, contains('_stableVerificationHash(verificationData)'));
+    expect(backend, contains('tryDecodeUntrustedStoreKitJws(input.verificationData)'));
+    expect(backend, contains('inApps/v1/transactions/'));
+    expect(backend, contains('verifyAppleStoreKitJws(signedTransactionInfo'));
+    expect(backend, contains('expectedBundleId: bundleId'));
+    expect(backend, contains("verificationSource: 'app_store_server_api_verified_jws'"));
+  });
 
-  test('no-ads remains a non-consumable entitlement', () {
+  test('iOS preserves charged transactions on transient server failures', () {
+    final source = File(
+      'lib/services/coin_store_service.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('_handleAppleVerificationFailure('));
+    expect(source, contains('_isPermanentAppleVerificationFailure'));
+    expect(source, contains('_permanentAppleVerificationCodes'));
+    expect(source, contains('_markAppleVerificationPending(purchase)'));
+    expect(source, contains('_completePurchaseSafely(purchase)'));
+    expect(source, contains('_AppleCompletionException'));
+    expect(
+      source,
+      contains('Your purchase was credited, but App Store finalization is still'),
+    );
+    expect(source, contains("code == 'purchase_replayed'"));
+  });
+
+  test('no-ads remains a non-consumable entitlement with Apple recovery', () {
     final source = File(
       'lib/services/coin_store_service.dart',
     ).readAsStringSync();
@@ -139,9 +119,13 @@ void main() {
     expect(source, contains("iosNoAdsProductId = 'sudoku_duel_no_ads'"));
     expect(source, contains('buyNonConsumable(String productId)'));
     expect(source, contains('_store.buyNonConsumable('));
+    expect(source, contains('onlyProductId: productId'));
   });
 
-  test('macOS bundle id stays aligned with App Store verification', () {
+  test('Apple bundle ids stay aligned with production verification', () {
+    final iosProject = File(
+      'ios/Runner.xcodeproj/project.pbxproj',
+    ).readAsStringSync();
     final macosConfig = File(
       'macos/Runner/Configs/AppInfo.xcconfig',
     ).readAsStringSync();
@@ -149,6 +133,10 @@ void main() {
       'backend/social_worker/wrangler.production.toml',
     ).readAsStringSync();
 
+    expect(
+      iosProject,
+      contains('PRODUCT_BUNDLE_IDENTIFIER = com.devovia.sudokuduel;'),
+    );
     expect(
       macosConfig,
       contains('PRODUCT_BUNDLE_IDENTIFIER = com.devovia.sudokuduel'),
@@ -160,7 +148,7 @@ void main() {
     expect(macosConfig, isNot(contains('com.example.sudokuGame')));
   });
 
-  test('coin store screen routes coin packs through consumable buy flow', () {
+  test('coin store screen routes products through the correct purchase APIs', () {
     final source = File(
       'lib/features/economy/coin_store_screen.dart',
     ).readAsStringSync();
