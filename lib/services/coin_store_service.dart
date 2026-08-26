@@ -442,11 +442,10 @@ class CoinStoreService extends ChangeNotifier {
 
         try {
           final verificationData = _verificationDataForServer(purchase);
-          final fallbackTransaction =
-              '${purchase.productID}:${purchase.transactionDate ?? DateTime.now().millisecondsSinceEpoch}:$verificationData';
-          final transactionId = purchase.purchaseID?.trim().isNotEmpty == true
-              ? purchase.purchaseID!.trim()
-              : fallbackTransaction;
+          final transactionId = _transactionIdForServer(
+            purchase,
+            verificationData,
+          );
           debugPrint(
             'Coin Store verifying purchase: platform=$_purchasePlatformForLog '
             'productId=${purchase.productID} '
@@ -493,6 +492,18 @@ class CoinStoreService extends ChangeNotifier {
             error = null;
             continue;
           }
+          if (isAppleStorePlatform) {
+            error = null;
+            debugPrint(
+              'Coin Store Apple purchase is pending server verification: '
+              'status=${exception.statusCode} code=${exception.code} '
+              'message=${exception.message}',
+            );
+            // Do not complete the App Store transaction or surface this as a
+            // payment failure. StoreKit will redeliver it after the backend can
+            // verify the receipt, and the purchase can then grant the wallet.
+            continue;
+          }
           error = exception.message;
           EconomyService.instance.reportError(exception.message);
           debugPrint(
@@ -502,7 +513,15 @@ class CoinStoreService extends ChangeNotifier {
           );
           // Keep the transaction pending when server verification is unavailable
           // so the SDK can redeliver it after the backend is fixed.
-        } catch (_) {
+        } catch (verificationError) {
+          if (isAppleStorePlatform) {
+            error = null;
+            debugPrint(
+              'Coin Store Apple purchase verification is pending: '
+              '$verificationError',
+            );
+            continue;
+          }
           error = 'The purchase is pending server verification.';
           EconomyService.instance.reportError(error!);
         } finally {
@@ -525,11 +544,37 @@ class CoinStoreService extends ChangeNotifier {
     }
 
     // StoreKit 1 exposes the app receipt instead of a StoreKit 2 transaction
-    // JWS. The backend can verify App Store purchases from the transaction ID,
-    // so avoid sending a large receipt blob that may exceed request limits.
+    // JWS. Keep that receipt as verification data; transactionId is bounded
+    // separately so the backend request stays small and deterministic.
     final purchaseId = purchase.purchaseID?.trim();
     if (purchaseId != null && purchaseId.isNotEmpty) return purchaseId;
     return serverData;
+  }
+
+  String _transactionIdForServer(
+    PurchaseDetails purchase,
+    String verificationData,
+  ) {
+    final purchaseId = purchase.purchaseID?.trim();
+    if (purchaseId != null && purchaseId.isNotEmpty) return purchaseId;
+
+    final timestamp =
+        purchase.transactionDate ??
+        DateTime.now().millisecondsSinceEpoch.toString();
+    if (isAppleStorePlatform) {
+      return 'receipt:${purchase.productID}:$timestamp:'
+          '${_stableVerificationHash(verificationData)}';
+    }
+    return '${purchase.productID}:$timestamp:${_stableVerificationHash(verificationData)}';
+  }
+
+  String _stableVerificationHash(String value) {
+    var hash = 0xcbf29ce484222325;
+    for (var index = 0; index < value.length; index++) {
+      hash ^= value.codeUnitAt(index);
+      hash = (hash * 0x100000001b3) & 0xffffffffffffffff;
+    }
+    return hash.toRadixString(16).padLeft(16, '0');
   }
 
   String get _purchasePlatformForLog {

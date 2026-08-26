@@ -100,6 +100,12 @@ describe('production purchase verification routing', () => {
     );
     expect(source).toContain('inApps/v1/transactions/');
     expect(source).toContain('verificationData: signedTransactionInfo');
+    expect(source).toContain('verifyAppStoreReceiptFallback');
+    expect(source).toContain('https://buy.itunes.apple.com/verifyReceipt');
+    expect(source).toContain('https://sandbox.itunes.apple.com/verifyReceipt');
+    expect(source).toContain("verificationSource: 'app_store_verify_receipt'");
+    expect(source).toContain('receipt.in_app');
+    expect(source).toContain('receiptTransactionMatches');
     expect(source).toContain('128_000');
     expect(source).not.toContain(
       'The client transaction is not a valid StoreKit 2 signed transaction.',

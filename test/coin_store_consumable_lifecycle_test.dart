@@ -45,6 +45,16 @@ void main() {
     expect(source, contains('!snapshot.androidConsumptionHandledByServer'));
     expect(source, contains('throw _CoinConsumptionException'));
     expect(source, contains('Intentionally do not complete the purchase.'));
+    expect(
+      source,
+      contains('Coin Store Apple purchase is pending server verification'),
+    );
+    expect(
+      source,
+      contains(
+        'Do not complete the App Store transaction or surface this as a',
+      ),
+    );
   });
 
   test(
@@ -78,16 +88,27 @@ void main() {
     },
   );
 
-  test('iOS sends compact verification data for StoreKit receipt fallback', () {
+  test('iOS keeps StoreKit receipt verification data off transaction id', () {
     final source = File(
       'lib/services/coin_store_service.dart',
     ).readAsStringSync();
 
     expect(source, contains('_verificationDataForServer(purchase)'));
+    expect(source, contains('_transactionIdForServer('));
     expect(source, contains('_looksLikeCompactJws(serverData)'));
     expect(source, contains('!isAppleStorePlatform'));
     expect(source, contains('StoreKit 1 exposes the app receipt'));
     expect(source, contains('return purchaseId;'));
+    expect(source, contains(r"'receipt:${purchase.productID}:$timestamp:'"));
+    expect(source, contains('_stableVerificationHash(verificationData)'));
+    expect(
+      source,
+      isNot(
+        contains(
+          r'${purchase.productID}:${purchase.transactionDate ?? DateTime.now().millisecondsSinceEpoch}:$verificationData',
+        ),
+      ),
+    );
   });
 
   test(

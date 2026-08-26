@@ -479,10 +479,6 @@ async function verifyAppStorePurchase(
     env.APPLE_BUNDLE_ID,
     'Apple bundle ID is not configured.',
   );
-  const rootCertificates = requireEnv(
-    env.APPLE_ROOT_CERTIFICATES_PEM,
-    'Trusted Apple root certificates are not configured.',
-  );
   const clientPayload = tryDecodeUntrustedStoreKitJws(input.verificationData);
   const requestedTransactionId =
     stringOrNull(clientPayload?.transactionId) ?? input.transactionId;
@@ -494,7 +490,27 @@ async function verifyAppStorePurchase(
     );
   }
 
-  const token = await appStoreApiToken(env, bundleId);
+  const directReceiptFallback = await verifyAppStoreReceiptFallback(
+    env,
+    input,
+    bundleId,
+    requestedTransactionId,
+  );
+  if (directReceiptFallback) return directReceiptFallback;
+
+  let token: string;
+  try {
+    token = await appStoreApiToken(env, bundleId);
+  } catch (error) {
+    const receiptFallback = await verifyAppStoreReceiptFallback(
+      env,
+      input,
+      bundleId,
+      requestedTransactionId,
+    );
+    if (receiptFallback) return receiptFallback;
+    throw error;
+  }
   const productionUrl =
     'https://api.storekit.apple.com/inApps/v1/transactions/' +
     encodeURIComponent(requestedTransactionId);
@@ -512,6 +528,14 @@ async function verifyAppStorePurchase(
     expectedEnvironment = 'sandbox';
   }
   if (!response.ok) {
+    const receiptFallback = await verifyAppStoreReceiptFallback(
+      env,
+      input,
+      bundleId,
+      requestedTransactionId,
+    );
+    if (receiptFallback) return receiptFallback;
+
     const message = await safeResponseText(response);
     throw new ProductionVerificationError(
       response.status === 404 ? 404 : 502,
@@ -530,6 +554,10 @@ async function verifyAppStorePurchase(
 
   let payload: Record<string, unknown>;
   try {
+    const rootCertificates = requireEnv(
+      env.APPLE_ROOT_CERTIFICATES_PEM,
+      'Trusted Apple root certificates are not configured.',
+    );
     payload = await verifyAppleStoreKitJws(signedTransactionInfo, {
       trustedRootCertificatesPem: rootCertificates,
       expectedBundleId: bundleId,
@@ -602,6 +630,186 @@ async function verifyAppStorePurchase(
     verificationSource: 'app_store_server_api_verified_jws',
     productType: isNoAdsProductId(productId) ? 'non_consumable' : 'consumable',
   };
+}
+
+async function verifyAppStoreReceiptFallback(
+  env: ProductionPurchaseEnv,
+  input: PurchaseInput,
+  bundleId: string,
+  requestedTransactionId: string,
+): Promise<VerifiedPurchase | null> {
+  if (!looksLikeAppStoreReceipt(input.verificationData)) return null;
+
+  let receiptResponse = await fetchAppStoreReceipt(
+    'https://buy.itunes.apple.com/verifyReceipt',
+    input.verificationData,
+  );
+  let receiptBody = await parseAppStoreReceiptResponse(receiptResponse);
+  let storeEnvironment = receiptEnvironment(receiptBody) ?? 'production';
+
+  if (receiptStatus(receiptBody) === 21007) {
+    receiptResponse = await fetchAppStoreReceipt(
+      'https://sandbox.itunes.apple.com/verifyReceipt',
+      input.verificationData,
+    );
+    receiptBody = await parseAppStoreReceiptResponse(receiptResponse);
+    storeEnvironment = receiptEnvironment(receiptBody) ?? 'sandbox';
+  } else if (receiptStatus(receiptBody) === 21008) {
+    receiptResponse = await fetchAppStoreReceipt(
+      'https://buy.itunes.apple.com/verifyReceipt',
+      input.verificationData,
+    );
+    receiptBody = await parseAppStoreReceiptResponse(receiptResponse);
+    storeEnvironment = receiptEnvironment(receiptBody) ?? 'production';
+  }
+
+  if (receiptStatus(receiptBody) !== 0) {
+    throw new ProductionVerificationError(
+      409,
+      `The App Store receipt could not verify this purchase. status=${receiptStatus(receiptBody)}`,
+      'apple_receipt_verification_failed',
+    );
+  }
+
+  const receipt = asObject(receiptBody.receipt);
+  const receiptBundleId = stringOrNull(receipt?.bundle_id);
+  if (receiptBundleId !== bundleId) {
+    throw new ProductionVerificationError(
+      409,
+      'The App Store receipt bundle does not match this app.',
+      'bundle_mismatch',
+    );
+  }
+
+  const inAppPurchases = Array.isArray(receipt?.in_app)
+    ? receipt.in_app.map(asObject).filter((item): item is Record<string, unknown> => !!item)
+    : [];
+  const matchingProduct = inAppPurchases.filter(
+    (item) => stringOrNull(item.product_id) === input.productId,
+  );
+  const selected =
+    matchingProduct.find((item) => receiptTransactionMatches(item, requestedTransactionId)) ??
+    matchingProduct.sort((a, b) => receiptPurchaseTime(b) - receiptPurchaseTime(a))[0];
+
+  if (!selected) {
+    throw new ProductionVerificationError(
+      409,
+      'The App Store receipt does not contain the requested product.',
+      'product_mismatch',
+    );
+  }
+
+  const transactionId = stringOrNull(selected.transaction_id);
+  if (!transactionId) {
+    throw new ProductionVerificationError(
+      400,
+      'The App Store receipt transaction identifier is missing.',
+      'transaction_id_missing',
+    );
+  }
+  if (
+    selected.cancellation_date != null ||
+    selected.cancellation_date_ms != null ||
+    selected.cancellation_reason != null
+  ) {
+    throw new ProductionVerificationError(
+      409,
+      'This App Store transaction has been revoked.',
+      'purchase_revoked',
+    );
+  }
+  const ownership = stringOrNull(selected.in_app_ownership_type);
+  if (ownership && ownership !== 'PURCHASED') {
+    throw new ProductionVerificationError(
+      409,
+      'This App Store transaction is not owned by the current purchaser.',
+      'purchase_not_owned',
+    );
+  }
+
+  const purchaseDate = receiptPurchaseTime(selected);
+  return {
+    platform: 'ios',
+    productId: input.productId,
+    transactionId,
+    verificationData: input.verificationData,
+    purchasedAt: Number.isFinite(purchaseDate) && purchaseDate > 0
+      ? new Date(purchaseDate).toISOString()
+      : null,
+    storeEnvironment,
+    storeOrderId: stringOrNull(selected.original_transaction_id),
+    verificationSource: 'app_store_verify_receipt',
+    productType: isNoAdsProductId(input.productId) ? 'non_consumable' : 'consumable',
+  };
+}
+
+async function fetchAppStoreReceipt(
+  url: string,
+  receiptData: string,
+): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      'receipt-data': receiptData,
+      'exclude-old-transactions': false,
+    }),
+  });
+}
+
+async function parseAppStoreReceiptResponse(
+  response: Response,
+): Promise<Record<string, unknown>> {
+  if (!response.ok) {
+    const message = await safeResponseText(response);
+    throw new ProductionVerificationError(
+      502,
+      `The App Store receipt endpoint did not respond successfully.${message ? ` ${message}` : ''}`,
+      'apple_receipt_verification_failed',
+    );
+  }
+  const body = await response.json();
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw new ProductionVerificationError(
+      502,
+      'The App Store receipt endpoint returned an invalid response.',
+      'apple_receipt_verification_failed',
+    );
+  }
+  return body as Record<string, unknown>;
+}
+
+function looksLikeAppStoreReceipt(value: string): boolean {
+  const clean = value.trim();
+  return clean.length >= 100 && /^[A-Za-z0-9+/=]+$/.test(clean);
+}
+
+function receiptStatus(body: Record<string, unknown>): number {
+  const status = Number(body.status);
+  return Number.isFinite(status) ? status : -1;
+}
+
+function receiptEnvironment(body: Record<string, unknown>): string | null {
+  const value = stringOrNull(body.environment)?.toLowerCase();
+  if (!value) return null;
+  return value === 'sandbox' ? 'sandbox' : 'production';
+}
+
+function receiptTransactionMatches(
+  item: Record<string, unknown>,
+  transactionId: string,
+): boolean {
+  return (
+    stringOrNull(item.transaction_id) === transactionId ||
+    stringOrNull(item.original_transaction_id) === transactionId
+  );
+}
+
+function receiptPurchaseTime(item: Record<string, unknown>): number {
+  return Number(stringOrNull(item.purchase_date_ms) ?? 0);
 }
 
 async function appStoreApiToken(
