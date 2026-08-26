@@ -27,6 +27,12 @@ class AdsService {
       'ca-app-pub-3940256099942544/1712485313';
   static const String _iosRewardedInterstitialTestId =
       'ca-app-pub-3940256099942544/6978759866';
+  static const String _appEnvironment = String.fromEnvironment(
+    'APP_ENVIRONMENT',
+    defaultValue: '',
+  );
+  static const bool _internalTesting = bool.fromEnvironment('INTERNAL_TESTING');
+  static const bool _forceTestAds = bool.fromEnvironment('ADMOB_USE_TEST_ADS');
 
   final ValueNotifier<bool> adsAvailable = ValueNotifier<bool>(false);
   final ValueNotifier<bool> privacyOptionsRequired = ValueNotifier<bool>(false);
@@ -40,6 +46,13 @@ class AdsService {
   bool _noAds = false;
 
   bool get _supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  bool get _useTestAds =>
+      !kReleaseMode ||
+      _internalTesting ||
+      _forceTestAds ||
+      _appEnvironment == 'staging' ||
+      _appEnvironment == 'development' ||
+      _appEnvironment == 'test';
   bool get noAds => _noAds;
 
   void setNoAds(bool value) {
@@ -58,7 +71,7 @@ class AdsService {
         defaultValue: '',
       );
       if (overrideId.isNotEmpty) return overrideId;
-      return kReleaseMode
+      return !_useTestAds
           ? _androidRewardedProductionId
           : _androidRewardedTestId;
     }
@@ -68,7 +81,7 @@ class AdsService {
       defaultValue: '',
     );
     if (overrideId.isNotEmpty) return overrideId;
-    return kReleaseMode ? _iosRewardedProductionId : _iosRewardedTestId;
+    return !_useTestAds ? _iosRewardedProductionId : _iosRewardedTestId;
   }
 
   String get _rewardedInterstitialAdUnitId {
@@ -78,7 +91,7 @@ class AdsService {
         defaultValue: '',
       );
       if (overrideId.isNotEmpty) return overrideId;
-      return kReleaseMode
+      return !_useTestAds
           ? _androidRewardedInterstitialProductionId
           : _androidRewardedInterstitialTestId;
     }
@@ -88,23 +101,38 @@ class AdsService {
       defaultValue: '',
     );
     if (overrideId.isNotEmpty) return overrideId;
-    return kReleaseMode
+    return !_useTestAds
         ? _iosRewardedInterstitialProductionId
         : _iosRewardedInterstitialTestId;
   }
 
   Future<void> initialize() async {
-    if (_noAds || !_supported || _initializing || _mobileAdsInitialized) return;
+    if (_noAds || !_supported || _initializing || _mobileAdsInitialized) {
+      _logInitializationSkipped();
+      return;
+    }
     _initializing = true;
     final completed = Completer<void>();
+    debugPrint(
+      'Ads initialization starting: platform=$_platformForLog, '
+      'release=$kReleaseMode, environment=$_appEnvironmentOrDefault, '
+      'testAds=$_useTestAds, rewarded=${_unitForLog(_rewardedAdUnitId)}, '
+      'rewardedInterstitial=${_unitForLog(_rewardedInterstitialAdUnitId)}.',
+    );
 
     void finish() {
       if (!completed.isCompleted) completed.complete();
     }
 
     Future<void> continueAfterConsent() async {
+      final consentStatus = await _safeConsentStatus();
       await _updatePrivacyOptionsRequirement();
-      final canRequest = await ConsentInformation.instance.canRequestAds();
+      final canRequest = await _safeCanRequestAds();
+      debugPrint(
+        'Ads consent resolved: platform=$_platformForLog, '
+        'status=$consentStatus, canRequestAds=$canRequest, '
+        'privacyOptionsRequired=${privacyOptionsRequired.value}.',
+      );
       if (!canRequest) {
         adsAvailable.value = false;
         finish();
@@ -112,32 +140,56 @@ class AdsService {
       }
 
       await _requestTrackingAuthorizationIfNeeded();
-      await MobileAds.instance.initialize();
+      final status = await MobileAds.instance.initialize();
       _mobileAdsInitialized = true;
       adsAvailable.value = true;
+      debugPrint(
+        'Ads SDK initialized: platform=$_platformForLog, '
+        'adapters=${_adapterStatusSummary(status)}.',
+      );
       unawaited(_loadRewardedAd());
       unawaited(_loadRewardedInterstitialAd());
       finish();
     }
 
     final parameters = ConsentRequestParameters();
-    ConsentInformation.instance.requestConsentInfoUpdate(
-      parameters,
-      () {
-        unawaited(() async {
-          await ConsentForm.loadAndShowConsentFormIfRequired((formError) {
-            if (formError != null) {
-              debugPrint('UMP consent form error: ${formError.message}');
+    try {
+      ConsentInformation.instance.requestConsentInfoUpdate(
+        parameters,
+        () {
+          unawaited(() async {
+            try {
+              await ConsentForm.loadAndShowConsentFormIfRequired((formError) {
+                if (formError != null) {
+                  debugPrint('UMP consent form error: ${formError.message}');
+                }
+              });
+              await continueAfterConsent();
+            } catch (error, stackTrace) {
+              debugPrint('Ads consent flow failed: $error');
+              debugPrintStack(stackTrace: stackTrace);
+              finish();
             }
-          });
-          await continueAfterConsent();
-        }());
-      },
-      (error) {
-        debugPrint('UMP consent update error: ${error.message}');
-        unawaited(continueAfterConsent());
-      },
-    );
+          }());
+        },
+        (error) {
+          debugPrint('UMP consent update error: ${error.message}');
+          unawaited(() async {
+            try {
+              await continueAfterConsent();
+            } catch (innerError, stackTrace) {
+              debugPrint('Ads fallback consent flow failed: $innerError');
+              debugPrintStack(stackTrace: stackTrace);
+              finish();
+            }
+          }());
+        },
+      );
+    } catch (error, stackTrace) {
+      debugPrint('UMP consent update threw: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      finish();
+    }
 
     try {
       await completed.future.timeout(const Duration(seconds: 45));
@@ -155,7 +207,17 @@ class AdsService {
 
     if (_rewardedAd == null) await _loadRewardedAd();
     final ad = _rewardedAd;
-    if (ad == null) return false;
+    if (ad == null) {
+      if (Platform.isIOS) {
+        debugPrint(
+          'Rewarded ad unavailable on iOS; trying rewarded interstitial '
+          'fallback.',
+        );
+        return showRewardedInterstitial(verificationToken: verificationToken);
+      }
+      debugPrint('Rewarded ad unavailable after load attempt.');
+      return false;
+    }
 
     _rewardedAd = null;
     await _setServerSideOptions(ad, verificationToken);
@@ -210,7 +272,10 @@ class AdsService {
       await _loadRewardedInterstitialAd();
     }
     final ad = _rewardedInterstitialAd;
-    if (ad == null) return false;
+    if (ad == null) {
+      debugPrint('Rewarded interstitial unavailable after load attempt.');
+      return false;
+    }
 
     _rewardedInterstitialAd = null;
     await _setServerSideOptions(ad, verificationToken);
@@ -299,30 +364,43 @@ class AdsService {
     final completer = Completer<void>();
     _rewardedLoadCompleter = completer;
 
-    await RewardedAd.load(
-      adUnitId: _rewardedAdUnitId,
-      request: const AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          if (_noAds) {
-            ad.dispose();
-            if (!completer.isCompleted) completer.complete();
-            return;
-          }
-          _rewardedAd = ad;
-          if (!completer.isCompleted) completer.complete();
-        },
-        onAdFailedToLoad: (error) {
-          debugPrint('Rewarded ad failed to load: $error');
-          if (!completer.isCompleted) completer.complete();
-        },
-      ),
-    );
-
     try {
+      debugPrint(
+        'Rewarded ad loading: unit=${_unitForLog(_rewardedAdUnitId)}.',
+      );
+      await RewardedAd.load(
+        adUnitId: _rewardedAdUnitId,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            if (_noAds) {
+              ad.dispose();
+              if (!completer.isCompleted) completer.complete();
+              return;
+            }
+            _rewardedAd = ad;
+            debugPrint(
+              'Rewarded ad loaded: unit=${_unitForLog(ad.adUnitId)}, '
+              'response=${_responseInfoForLog(ad.responseInfo)}.',
+            );
+            if (!completer.isCompleted) completer.complete();
+          },
+          onAdFailedToLoad: (error) {
+            debugPrint(
+              'Rewarded ad failed to load: '
+              '${_loadErrorForLog(error)}.',
+            );
+            if (!completer.isCompleted) completer.complete();
+          },
+        ),
+      );
       await completer.future.timeout(const Duration(seconds: 30));
     } on TimeoutException {
       debugPrint('Rewarded ad load timed out.');
+    } catch (error, stackTrace) {
+      debugPrint('Rewarded ad load threw: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!completer.isCompleted) completer.complete();
     } finally {
       if (identical(_rewardedLoadCompleter, completer)) {
         _rewardedLoadCompleter = null;
@@ -348,30 +426,45 @@ class AdsService {
     final completer = Completer<void>();
     _rewardedInterstitialLoadCompleter = completer;
 
-    await RewardedInterstitialAd.load(
-      adUnitId: _rewardedInterstitialAdUnitId,
-      request: const AdRequest(),
-      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          if (_noAds) {
-            ad.dispose();
-            if (!completer.isCompleted) completer.complete();
-            return;
-          }
-          _rewardedInterstitialAd = ad;
-          if (!completer.isCompleted) completer.complete();
-        },
-        onAdFailedToLoad: (error) {
-          debugPrint('Rewarded interstitial failed to load: $error');
-          if (!completer.isCompleted) completer.complete();
-        },
-      ),
-    );
-
     try {
+      debugPrint(
+        'Rewarded interstitial loading: '
+        'unit=${_unitForLog(_rewardedInterstitialAdUnitId)}.',
+      );
+      await RewardedInterstitialAd.load(
+        adUnitId: _rewardedInterstitialAdUnitId,
+        request: const AdRequest(),
+        rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            if (_noAds) {
+              ad.dispose();
+              if (!completer.isCompleted) completer.complete();
+              return;
+            }
+            _rewardedInterstitialAd = ad;
+            debugPrint(
+              'Rewarded interstitial loaded: '
+              'unit=${_unitForLog(ad.adUnitId)}, '
+              'response=${_responseInfoForLog(ad.responseInfo)}.',
+            );
+            if (!completer.isCompleted) completer.complete();
+          },
+          onAdFailedToLoad: (error) {
+            debugPrint(
+              'Rewarded interstitial failed to load: '
+              '${_loadErrorForLog(error)}.',
+            );
+            if (!completer.isCompleted) completer.complete();
+          },
+        ),
+      );
       await completer.future.timeout(const Duration(seconds: 30));
     } on TimeoutException {
       debugPrint('Rewarded interstitial load timed out.');
+    } catch (error, stackTrace) {
+      debugPrint('Rewarded interstitial load threw: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!completer.isCompleted) completer.complete();
     } finally {
       if (identical(_rewardedInterstitialLoadCompleter, completer)) {
         _rewardedInterstitialLoadCompleter = null;
@@ -380,18 +473,32 @@ class AdsService {
   }
 
   Future<void> _updatePrivacyOptionsRequirement() async {
-    final status = await ConsentInformation.instance
-        .getPrivacyOptionsRequirementStatus();
-    privacyOptionsRequired.value =
-        status == PrivacyOptionsRequirementStatus.required;
+    try {
+      final status = await ConsentInformation.instance
+          .getPrivacyOptionsRequirementStatus();
+      privacyOptionsRequired.value =
+          status == PrivacyOptionsRequirementStatus.required;
+    } catch (error, stackTrace) {
+      debugPrint('UMP privacy requirement lookup failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      privacyOptionsRequired.value = false;
+    }
   }
 
   Future<void> _requestTrackingAuthorizationIfNeeded() async {
     if (!Platform.isIOS) return;
-    final current = await AppTrackingTransparency.trackingAuthorizationStatus;
-    if (current == TrackingStatus.notDetermined) {
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      await AppTrackingTransparency.requestTrackingAuthorization();
+    try {
+      final current = await AppTrackingTransparency.trackingAuthorizationStatus;
+      debugPrint('ATT status before ads: $current.');
+      if (current == TrackingStatus.notDetermined) {
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        final updated =
+            await AppTrackingTransparency.requestTrackingAuthorization();
+        debugPrint('ATT status after request: $updated.');
+      }
+    } catch (error, stackTrace) {
+      debugPrint('ATT request skipped after plugin error: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
   }
 
@@ -402,5 +509,83 @@ class AdsService {
     _rewardedInterstitialAd = null;
     await rewarded?.dispose();
     await interstitial?.dispose();
+  }
+
+  Future<ConsentStatus> _safeConsentStatus() async {
+    try {
+      return ConsentInformation.instance.getConsentStatus();
+    } catch (error, stackTrace) {
+      debugPrint('UMP consent status lookup failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return ConsentStatus.unknown;
+    }
+  }
+
+  Future<bool> _safeCanRequestAds() async {
+    try {
+      return ConsentInformation.instance.canRequestAds();
+    } catch (error, stackTrace) {
+      debugPrint('UMP canRequestAds lookup failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return false;
+    }
+  }
+
+  void _logInitializationSkipped() {
+    if (!_supported) {
+      debugPrint('Ads initialization skipped: unsupported platform.');
+    } else if (_noAds) {
+      debugPrint('Ads initialization skipped: no-ads entitlement active.');
+    } else if (_initializing) {
+      debugPrint('Ads initialization skipped: already initializing.');
+    } else if (_mobileAdsInitialized) {
+      debugPrint('Ads initialization skipped: SDK already initialized.');
+    }
+  }
+
+  String get _platformForLog {
+    if (Platform.isAndroid) return 'android';
+    if (Platform.isIOS) return 'ios';
+    return Platform.operatingSystem;
+  }
+
+  String get _appEnvironmentOrDefault => _appEnvironment.isEmpty
+      ? (kReleaseMode ? 'release' : 'debug')
+      : _appEnvironment;
+
+  String _unitForLog(String adUnitId) {
+    final value = adUnitId.trim();
+    if (value.isEmpty) return 'empty';
+    final type = value.contains('3940256099942544') ? 'test' : 'production';
+    final slash = value.lastIndexOf('/');
+    final tail = slash == -1 ? value : value.substring(slash + 1);
+    final compactTail = tail.length <= 4
+        ? tail
+        : tail.substring(tail.length - 4);
+    return '$type:...$compactTail';
+  }
+
+  String _loadErrorForLog(LoadAdError error) {
+    return 'code=${error.code}, domain=${error.domain}, '
+        'message=${error.message}, '
+        'response=${_responseInfoForLog(error.responseInfo)}';
+  }
+
+  String _responseInfoForLog(ResponseInfo? info) {
+    if (info == null) return 'none';
+    return 'responseId=${info.responseId ?? 'none'}, '
+        'adapter=${info.mediationAdapterClassName ?? 'none'}, '
+        'loadedAdapter=${info.loadedAdapterResponseInfo?.adapterClassName ?? 'none'}, '
+        'adapterCount=${info.adapterResponses?.length ?? 0}';
+  }
+
+  String _adapterStatusSummary(InitializationStatus status) {
+    if (status.adapterStatuses.isEmpty) return 'none';
+    return status.adapterStatuses.entries
+        .map(
+          (entry) =>
+              '${entry.key}:${entry.value.state.name}/${entry.value.description}',
+        )
+        .join(', ');
   }
 }

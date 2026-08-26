@@ -20,10 +20,8 @@ class GameInterstitialService {
 
   static final GameInterstitialService instance = GameInterstitialService._();
 
-  static const String _androidTestId =
-      'ca-app-pub-3940256099942544/1033173712';
-  static const String _iosTestId =
-      'ca-app-pub-3940256099942544/4411468910';
+  static const String _androidTestId = 'ca-app-pub-3940256099942544/1033173712';
+  static const String _iosTestId = 'ca-app-pub-3940256099942544/4411468910';
 
   final AdsService _ads = AdsService.instance;
 
@@ -64,6 +62,9 @@ class GameInterstitialService {
     }
     if (_ads.noAds || !AdsService.instance.adsAvailable.value) return false;
     if (_adUnitId.isEmpty) {
+      if (Platform.isIOS) {
+        return _tryIosRewardedInterstitialFallback('missing-interstitial-id');
+      }
       debugPrint(
         'Post-game interstitial is not configured for this release build. '
         'Set ADMOB_ANDROID_INTERSTITIAL_ID / ADMOB_IOS_INTERSTITIAL_ID.',
@@ -73,7 +74,12 @@ class GameInterstitialService {
 
     if (_loadedAd == null) await _load();
     final ad = _loadedAd;
-    if (ad == null || _ads.noAds) return false;
+    if (ad == null || _ads.noAds) {
+      if (ad == null && Platform.isIOS) {
+        return _tryIosRewardedInterstitialFallback('interstitial-not-loaded');
+      }
+      return false;
+    }
     _loadedAd = null;
     _showing = true;
 
@@ -132,31 +138,79 @@ class GameInterstitialService {
 
     final completer = Completer<void>();
     _loadCompleter = completer;
-    InterstitialAd.load(
-      adUnitId: _adUnitId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          if (_ads.noAds) {
-            ad.dispose();
-          } else {
-            _loadedAd = ad;
-          }
-          if (!completer.isCompleted) completer.complete();
-        },
-        onAdFailedToLoad: (error) {
-          debugPrint('Post-game interstitial failed to load: $error');
-          if (!completer.isCompleted) completer.complete();
-        },
-      ),
-    );
-
     try {
+      debugPrint(
+        'Post-game interstitial loading: unit=${_unitForLog(_adUnitId)}.',
+      );
+      await InterstitialAd.load(
+        adUnitId: _adUnitId,
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            if (_ads.noAds) {
+              ad.dispose();
+            } else {
+              _loadedAd = ad;
+            }
+            debugPrint(
+              'Post-game interstitial loaded: unit=${_unitForLog(ad.adUnitId)}, '
+              'response=${_responseInfoForLog(ad.responseInfo)}.',
+            );
+            if (!completer.isCompleted) completer.complete();
+          },
+          onAdFailedToLoad: (error) {
+            debugPrint(
+              'Post-game interstitial failed to load: '
+              '${_loadErrorForLog(error)}.',
+            );
+            if (!completer.isCompleted) completer.complete();
+          },
+        ),
+      );
       await completer.future.timeout(const Duration(seconds: 30));
     } on TimeoutException {
       debugPrint('Post-game interstitial load timed out.');
+    } catch (error, stackTrace) {
+      debugPrint('Post-game interstitial load threw: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!completer.isCompleted) completer.complete();
     } finally {
       if (identical(_loadCompleter, completer)) _loadCompleter = null;
     }
+  }
+
+  Future<bool> _tryIosRewardedInterstitialFallback(String reason) async {
+    if (!Platform.isIOS || _ads.noAds) return false;
+    debugPrint(
+      'Post-game iOS interstitial fallback: reason=$reason, '
+      'using rewarded interstitial unit.',
+    );
+    return _ads.showRewardedInterstitial();
+  }
+
+  String _unitForLog(String adUnitId) {
+    final value = adUnitId.trim();
+    if (value.isEmpty) return 'empty';
+    final type = value.contains('3940256099942544') ? 'test' : 'production';
+    final slash = value.lastIndexOf('/');
+    final tail = slash == -1 ? value : value.substring(slash + 1);
+    final compactTail = tail.length <= 4
+        ? tail
+        : tail.substring(tail.length - 4);
+    return '$type:...$compactTail';
+  }
+
+  String _loadErrorForLog(LoadAdError error) {
+    return 'code=${error.code}, domain=${error.domain}, '
+        'message=${error.message}, '
+        'response=${_responseInfoForLog(error.responseInfo)}';
+  }
+
+  String _responseInfoForLog(ResponseInfo? info) {
+    if (info == null) return 'none';
+    return 'responseId=${info.responseId ?? 'none'}, '
+        'adapter=${info.mediationAdapterClassName ?? 'none'}, '
+        'loadedAdapter=${info.loadedAdapterResponseInfo?.adapterClassName ?? 'none'}, '
+        'adapterCount=${info.adapterResponses?.length ?? 0}';
   }
 }
