@@ -32,7 +32,9 @@ type ParsedCertificate = {
 };
 
 const OID_SHA256_WITH_RSA = '1.2.840.113549.1.1.11';
+const OID_SHA384_WITH_RSA = '1.2.840.113549.1.1.12';
 const OID_ECDSA_WITH_SHA256 = '1.2.840.10045.4.3.2';
+const OID_ECDSA_WITH_SHA384 = '1.2.840.10045.4.3.3';
 
 export async function verifyAppleStoreKitJws(
   value: string,
@@ -148,13 +150,14 @@ async function assertAnchoredToTrustedRoot(
   now: Date,
 ): Promise<void> {
   for (const root of trustedRoots) {
-    assertCertificateTime(root, now);
-    if (equalBytes(chainTail.der, root.der)) return;
     try {
+      assertCertificateTime(root, now);
+      if (equalBytes(chainTail.der, root.der)) return;
       await verifyCertificateSignature(chainTail, root);
       return;
     } catch {
-      // Try the next explicitly trusted Apple root.
+      // An expired, incompatible, or non-matching root must not prevent
+      // trying the remaining explicitly trusted Apple roots.
     }
   }
   throw new AppleJwsVerificationError(
@@ -170,25 +173,41 @@ async function verifyCertificateSignature(
   let algorithm: AlgorithmIdentifier | EcdsaParams;
   let signature = certificate.signature;
 
-  if (certificate.signatureAlgorithmOid === OID_SHA256_WITH_RSA) {
+  if (
+    certificate.signatureAlgorithmOid === OID_SHA256_WITH_RSA ||
+    certificate.signatureAlgorithmOid === OID_SHA384_WITH_RSA
+  ) {
+    const hash =
+      certificate.signatureAlgorithmOid === OID_SHA384_WITH_RSA
+        ? 'SHA-384'
+        : 'SHA-256';
     key = await crypto.subtle.importKey(
       'spki',
       toArrayBuffer(issuer.subjectPublicKeyInfo),
-      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      { name: 'RSASSA-PKCS1-v1_5', hash },
       false,
       ['verify'],
     );
     algorithm = { name: 'RSASSA-PKCS1-v1_5' };
-  } else if (certificate.signatureAlgorithmOid === OID_ECDSA_WITH_SHA256) {
+  } else if (
+    certificate.signatureAlgorithmOid === OID_ECDSA_WITH_SHA256 ||
+    certificate.signatureAlgorithmOid === OID_ECDSA_WITH_SHA384
+  ) {
+    const usesSha384 =
+      certificate.signatureAlgorithmOid === OID_ECDSA_WITH_SHA384;
+    const namedCurve = usesSha384 ? 'P-384' : 'P-256';
+    const hash = usesSha384 ? 'SHA-384' : 'SHA-256';
+    const signatureWidth = usesSha384 ? 48 : 32;
+
     key = await crypto.subtle.importKey(
       'spki',
       toArrayBuffer(issuer.subjectPublicKeyInfo),
-      { name: 'ECDSA', namedCurve: 'P-256' },
+      { name: 'ECDSA', namedCurve },
       false,
       ['verify'],
     );
-    algorithm = { name: 'ECDSA', hash: 'SHA-256' };
-    signature = ecdsaDerToRaw(signature, 32);
+    algorithm = { name: 'ECDSA', hash };
+    signature = ecdsaDerToRaw(signature, signatureWidth);
   } else {
     throw new AppleJwsVerificationError(
       `Unsupported Apple certificate signature algorithm: ${certificate.signatureAlgorithmOid}`,
