@@ -23,8 +23,8 @@ class ProfileCustomizationScreen extends StatefulWidget {
 class _ProfileCustomizationScreenState
     extends State<ProfileCustomizationScreen> {
   // Titles stay implemented and can be re-enabled later without rebuilding the
-  // tab. Keeping the flag here also keeps _TitleTab referenced for the analyzer.
-  static const bool _showTitles = false;
+  // tab. A getter keeps the hidden branch analyzer-visible without dead code.
+  static bool get _showTitles => false;
 
   late RankIdentityProfile _profile;
   bool _hydrating = false;
@@ -216,29 +216,29 @@ class _ProfileCustomizationScreenState
                                 color: Colors.white.withValues(alpha: .06),
                               ),
                             ),
-                            child: const TabBar(
+                            child: TabBar(
                               isScrollable: false,
                               tabAlignment: TabAlignment.fill,
                               labelPadding: EdgeInsets.zero,
                               tabs: [
-                                Tab(
+                                const Tab(
                                   icon: Icon(Icons.face_rounded),
                                   text: 'Avatars',
                                 ),
-                                Tab(
+                                const Tab(
                                   icon: Icon(Icons.shield_rounded),
                                   text: 'Frames',
                                 ),
-                                Tab(
+                                const Tab(
                                   icon: Icon(Icons.workspace_premium_rounded),
                                   text: 'Badges',
                                 ),
                                 if (_showTitles)
-                                  Tab(
+                                  const Tab(
                                     icon: Icon(Icons.title_rounded),
                                     text: 'Titles',
                                   ),
-                                Tab(
+                                const Tab(
                                   icon: Icon(Icons.public_rounded),
                                   text: 'Country',
                                 ),
