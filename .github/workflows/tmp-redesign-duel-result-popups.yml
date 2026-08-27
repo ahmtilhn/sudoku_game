@@ -1,0 +1,733 @@
+name: Temporary responsive duel result popup redesign
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-redesign-duel-result-popups.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Replace win/loss result presentation
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/features/duel/online_duel_screen.dart')
+          source = path.read_text()
+          start = source.index('class _ResultCard extends StatelessWidget {')
+          end = source.index('class _ResultRankPanel extends StatelessWidget {', start)
+          replacement = r'''class _ResultCard extends StatelessWidget {
+  const _ResultCard({
+    required this.title,
+    required this.subtitle,
+    required this.won,
+    required this.draw,
+    required this.localPlayer,
+    required this.opponent,
+    required this.localScore,
+    required this.opponentScore,
+    required this.metrics,
+    required this.rankResult,
+    required this.rankLoading,
+    required this.showRank,
+    required this.statusMessage,
+    required this.invitation,
+    required this.invitationSeconds,
+    required this.canPlay,
+    required this.busy,
+    required this.onInvitationDecline,
+    required this.onInvitationAccept,
+    required this.onNewMatch,
+    required this.onRematch,
+    required this.onAddFriend,
+    required this.onMenu,
+    required this.onStore,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool won;
+  final bool draw;
+  final OnlineDuelPlayer localPlayer;
+  final OnlineDuelPlayer opponent;
+  final int localScore;
+  final int opponentScore;
+  final List<_ResultMetric> metrics;
+  final RankMatchResult? rankResult;
+  final bool rankLoading;
+  final bool showRank;
+  final String? statusMessage;
+  final RematchInvitation? invitation;
+  final int invitationSeconds;
+  final bool canPlay;
+  final bool busy;
+  final VoidCallback? onInvitationDecline;
+  final VoidCallback? onInvitationAccept;
+  final VoidCallback onNewMatch;
+  final VoidCallback onRematch;
+  final VoidCallback? onAddFriend;
+  final VoidCallback onMenu;
+  final VoidCallback onStore;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewport = MediaQuery.sizeOf(context);
+        final compact = constraints.maxWidth < 390 || viewport.height < 760;
+        final veryNarrow = constraints.maxWidth < 350;
+        final accent = draw
+            ? const Color(0xFF8DA2BE)
+            : won
+            ? const Color(0xFF29D398)
+            : const Color(0xFFFF6B62);
+        final accent2 = draw
+            ? const Color(0xFF66C7FF)
+            : won
+            ? const Color(0xFFFFC94D)
+            : const Color(0xFFFFA45B);
+        final surfaceTop = won
+            ? const Color(0xFF132C2B)
+            : draw
+            ? const Color(0xFF17283B)
+            : const Color(0xFF2A1B26);
+        final surfaceBottom = const Color(0xFF0D1824);
+        final cardPadding = compact ? 12.0 : 16.0;
+        final gap = compact ? 8.0 : 10.0;
+        final primaryHeight = compact ? 44.0 : 48.0;
+        final secondaryHeight = compact ? 42.0 : 46.0;
+
+        return TweenAnimationBuilder<double>(
+          tween: Tween(begin: .985, end: 1),
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          builder: (context, scale, child) => Transform.scale(
+            scale: scale,
+            alignment: Alignment.bottomCenter,
+            child: child,
+          ),
+          child: Container(
+            padding: EdgeInsets.fromLTRB(
+              cardPadding,
+              compact ? 12 : 16,
+              cardPadding,
+              compact ? 12 : 14,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [surfaceTop, surfaceBottom],
+              ),
+              borderRadius: BorderRadius.circular(compact ? 20 : 24),
+              border: Border.all(color: accent.withValues(alpha: .42)),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: won ? .13 : .09),
+                  blurRadius: compact ? 18 : 28,
+                  spreadRadius: -6,
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .45),
+                  blurRadius: 30,
+                  offset: const Offset(0, 18),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(99),
+                    gradient: LinearGradient(colors: [accent, accent2]),
+                  ),
+                ),
+                SizedBox(height: compact ? 9 : 12),
+                _ResultHero(
+                  title: title,
+                  subtitle: subtitle,
+                  won: won,
+                  draw: draw,
+                  compact: compact,
+                  accent: accent,
+                  accent2: accent2,
+                ),
+                SizedBox(height: gap),
+                _ResultPlayers(
+                  localPlayer: localPlayer,
+                  opponent: opponent,
+                  localScore: localScore,
+                  opponentScore: opponentScore,
+                  won: won,
+                  draw: draw,
+                  compact: compact,
+                ),
+                SizedBox(height: gap),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compact ? 8 : 10,
+                    vertical: compact ? 5 : 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .04),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: .075),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      for (final metric in metrics)
+                        _ResultMetricRow(metric: metric, compact: compact),
+                    ],
+                  ),
+                ),
+                if (showRank) ...[
+                  SizedBox(height: gap),
+                  _ResultRankPanel(result: rankResult, loading: rankLoading),
+                ],
+                if (statusMessage != null) ...[
+                  SizedBox(height: compact ? 7 : 9),
+                  Text(
+                    statusMessage!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: compact ? 10 : 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+                if (invitation != null && invitation!.status == 'pending') ...[
+                  SizedBox(height: gap),
+                  _InlineRematch(
+                    invitation: invitation!,
+                    seconds: invitationSeconds,
+                    busy: busy,
+                    canPlay: canPlay,
+                    onDecline: onInvitationDecline,
+                    onAccept: onInvitationAccept,
+                  ),
+                ],
+                SizedBox(height: compact ? 10 : 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: primaryHeight,
+                  child: FilledButton.icon(
+                    onPressed: busy || !canPlay ? null : onNewMatch,
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    label: Text(
+                      context.tr('find_new_match'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: won
+                          ? const Color(0xFF20A968)
+                          : const Color(0xFF2374B8),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 7),
+                SizedBox(
+                  width: double.infinity,
+                  height: secondaryHeight,
+                  child: OutlinedButton.icon(
+                    onPressed:
+                        busy || !canPlay || invitation?.status == 'pending'
+                        ? null
+                        : onRematch,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(
+                      context.tr('challenge_again'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: accent.withValues(alpha: .42)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 7),
+                if (veryNarrow)
+                  Column(
+                    children: [
+                      _ResultSmallAction(
+                        height: secondaryHeight,
+                        onPressed: busy ? null : onAddFriend,
+                        icon: Icons.person_add_alt_1_rounded,
+                        label: context.tr('add_friend'),
+                      ),
+                      const SizedBox(height: 7),
+                      _ResultSmallAction(
+                        height: secondaryHeight,
+                        onPressed: busy ? null : onMenu,
+                        icon: Icons.home_outlined,
+                        label: context.tr('main_menu'),
+                      ),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ResultSmallAction(
+                          height: secondaryHeight,
+                          onPressed: busy ? null : onAddFriend,
+                          icon: Icons.person_add_alt_1_rounded,
+                          label: context.tr('add_friend'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _ResultSmallAction(
+                          height: secondaryHeight,
+                          onPressed: busy ? null : onMenu,
+                          icon: Icons.home_outlined,
+                          label: context.tr('main_menu'),
+                        ),
+                      ),
+                    ],
+                  ),
+                if (!canPlay) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: busy ? null : onStore,
+                      icon: const Icon(Icons.storefront_outlined),
+                      label: Text(context.tr('open_coin_store')),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ResultHero extends StatelessWidget {
+  const _ResultHero({
+    required this.title,
+    required this.subtitle,
+    required this.won,
+    required this.draw,
+    required this.compact,
+    required this.accent,
+    required this.accent2,
+  });
+
+  final String title;
+  final String subtitle;
+  final bool won;
+  final bool draw;
+  final bool compact;
+  final Color accent;
+  final Color accent2;
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = draw
+        ? Icons.handshake_outlined
+        : won
+        ? Icons.emoji_events_rounded
+        : Icons.shield_outlined;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: compact ? 48 : 56,
+          height: compact ? 48 : 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                accent2.withValues(alpha: .24),
+                accent.withValues(alpha: .07),
+              ],
+            ),
+            border: Border.all(color: accent2.withValues(alpha: .45)),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, color: accent2, size: compact ? 27 : 31),
+        ),
+        SizedBox(height: compact ? 6 : 8),
+        Text(
+          title.toUpperCase(),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: accent,
+            fontSize: compact ? 24 : 29,
+            height: 1,
+            fontWeight: FontWeight.w900,
+            letterSpacing: .65,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .68),
+            fontSize: compact ? 10 : 12,
+            height: 1.25,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResultPlayers extends StatelessWidget {
+  const _ResultPlayers({
+    required this.localPlayer,
+    required this.opponent,
+    required this.localScore,
+    required this.opponentScore,
+    required this.won,
+    required this.draw,
+    required this.compact,
+  });
+
+  final OnlineDuelPlayer localPlayer;
+  final OnlineDuelPlayer opponent;
+  final int localScore;
+  final int opponentScore;
+  final bool won;
+  final bool draw;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final localAccent = draw
+        ? const Color(0xFF8DA2BE)
+        : won
+        ? const Color(0xFF29D398)
+        : const Color(0xFFFF7D73);
+    final opponentAccent = draw
+        ? const Color(0xFF8DA2BE)
+        : won
+        ? const Color(0xFF66C7FF)
+        : const Color(0xFF29D398);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _ResultPlayer(
+            player: localPlayer,
+            score: localScore,
+            accent: localAccent,
+            compact: compact,
+            highlighted: !draw && won,
+          ),
+        ),
+        SizedBox(width: compact ? 6 : 8),
+        Center(
+          child: Container(
+            width: compact ? 30 : 34,
+            height: compact ? 30 : 34,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF0E1B28),
+              border: Border.all(
+                color: const Color(0xFFFFC94D).withValues(alpha: .34),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              'VS',
+              style: TextStyle(
+                color: const Color(0xFFFFC94D),
+                fontSize: compact ? 9 : 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: compact ? 6 : 8),
+        Expanded(
+          child: _ResultPlayer(
+            player: opponent,
+            score: opponentScore,
+            accent: opponentAccent,
+            compact: compact,
+            highlighted: !draw && !won,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResultPlayer extends StatelessWidget {
+  const _ResultPlayer({
+    required this.player,
+    required this.score,
+    required this.accent,
+    required this.compact,
+    required this.highlighted,
+  });
+
+  final OnlineDuelPlayer player;
+  final int score;
+  final Color accent;
+  final bool compact;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(minHeight: compact ? 94 : 108),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 9,
+        vertical: compact ? 8 : 10,
+      ),
+      decoration: BoxDecoration(
+        color: highlighted
+            ? accent.withValues(alpha: .10)
+            : Colors.white.withValues(alpha: .035),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: accent.withValues(alpha: highlighted ? .55 : .18),
+          width: highlighted ? 1.4 : 1,
+        ),
+        boxShadow: highlighted
+            ? [
+                BoxShadow(
+                  color: accent.withValues(alpha: .11),
+                  blurRadius: 16,
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: accent, width: 1.7),
+                ),
+                child: PlayerAvatar(
+                  displayName: player.displayName,
+                  avatarKey: player.avatarKey,
+                  radius: compact ? 16 : 19,
+                  semanticLabel: player.displayName,
+                ),
+              ),
+              if (highlighted)
+                Positioned(
+                  right: -4,
+                  top: -5,
+                  child: Icon(
+                    Icons.workspace_premium_rounded,
+                    color: const Color(0xFFFFC94D),
+                    size: compact ? 15 : 17,
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: compact ? 5 : 7),
+          Text(
+            player.displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: compact ? 10 : 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '$score',
+            style: TextStyle(
+              color: accent,
+              fontSize: compact ? 13 : 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if (player.username.isNotEmpty)
+            Text(
+              '@${player.username}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .45),
+                fontSize: compact ? 8 : 9,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultMetricRow extends StatelessWidget {
+  const _ResultMetricRow({required this.metric, required this.compact});
+
+  final _ResultMetric metric;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: compact ? 3 : 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: compact ? 44 : 50,
+            child: Text(
+              metric.localValue,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: const Color(0xFF29D398),
+                fontWeight: FontWeight.w900,
+                fontSize: compact ? 10 : 12,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  metric.icon,
+                  color: const Color(0xFFFFC94D),
+                  size: compact ? 13 : 15,
+                ),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    metric.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .72),
+                      fontSize: compact ? 9 : 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: compact ? 44 : 50,
+            child: Text(
+              metric.opponentValue,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                color: const Color(0xFF66C7FF),
+                fontWeight: FontWeight.w900,
+                fontSize: compact ? 10 : 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultSmallAction extends StatelessWidget {
+  const _ResultSmallAction({
+    required this.height,
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+
+  final double height;
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: height,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 17),
+        label: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+  }
+}
+
+'''
+          path.write_text(source[:start] + replacement + source[end:])
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+      - run: dart format lib/features/duel/online_duel_screen.dart
+      - run: flutter analyze --fatal-infos lib/features/duel/online_duel_screen.dart
+
+      - name: Commit result UI directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
+          git add lib/features/duel/online_duel_screen.dart
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --cached --quiet; then
+            echo 'No changes required.'
+            exit 0
+          fi
+          git commit -m 'Redesign responsive online duel result popups'
+          git push origin HEAD:main
