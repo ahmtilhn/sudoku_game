@@ -441,6 +441,13 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
               actionBusy: _leaving || _connecting,
               onReady: _leaving ? null : _ready,
               onLeave: _leaving ? null : _confirmCancelAndLeave,
+              floatingControl: _showReadyEmotes
+                  ? const OnlineDuelInlineEmoteSurface(
+                      key: ValueKey<String>('opponent-found-emotes'),
+                      compact: true,
+                      accent: Color(0xFFFFC94D),
+                    )
+                  : null,
             )
           : _ReadyArenaStage(
               currentPlayer: currentPlayer,
@@ -550,6 +557,7 @@ class _OpponentFoundStage extends StatelessWidget {
     required this.actionBusy,
     required this.onReady,
     required this.onLeave,
+    this.floatingControl,
   });
 
   final MatchmakingVisualPlayer currentPlayer;
@@ -559,6 +567,7 @@ class _OpponentFoundStage extends StatelessWidget {
   final bool actionBusy;
   final VoidCallback? onReady;
   final VoidCallback? onLeave;
+  final Widget? floatingControl;
 
   @override
   Widget build(BuildContext context) {
@@ -670,9 +679,13 @@ class _OpponentFoundStage extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 8 * scale),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: _ReadyOptionsButton(onLeave: onLeave),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            ?floatingControl,
+                            const Spacer(),
+                            _ReadyOptionsButton(onLeave: onLeave),
+                          ],
                         ),
                       ],
                     ),
@@ -750,10 +763,7 @@ class _FoundHeader extends StatelessWidget {
                   color: const Color(0xFF29D398).withValues(alpha: .25),
                 ),
               ),
-              child: const Icon(
-                Icons.check_rounded,
-                color: Color(0xFF29D398),
-              ),
+              child: const Icon(Icons.check_rounded, color: Color(0xFF29D398)),
             ),
           ),
         ],
@@ -939,10 +949,7 @@ class _FoundPlayerCard extends StatelessWidget {
               width: 1.35,
             ),
             boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: .14),
-                blurRadius: 20,
-              ),
+              BoxShadow(color: accent.withValues(alpha: .14), blurRadius: 20),
               BoxShadow(
                 color: Colors.black.withValues(alpha: .34),
                 blurRadius: 22,
@@ -989,7 +996,13 @@ class _FoundPlayerCard extends StatelessWidget {
                     semanticLabel: player.displayName,
                   ),
                 ),
-                SizedBox(height: veryDense ? 5 : dense ? 7 : 10 * scale),
+                SizedBox(
+                  height: veryDense
+                      ? 5
+                      : dense
+                      ? 7
+                      : 10 * scale,
+                ),
                 Text(
                   player.displayName,
                   maxLines: 1,
@@ -1055,7 +1068,13 @@ class _FoundPlayerCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Divider(color: accent.withValues(alpha: .28), height: 1),
-                SizedBox(height: veryDense ? 5 : dense ? 7 : 10 * scale),
+                SizedBox(
+                  height: veryDense
+                      ? 5
+                      : dense
+                      ? 7
+                      : 10 * scale,
+                ),
                 Row(
                   children: [
                     Expanded(
@@ -1437,7 +1456,8 @@ class _ReadyArenaStage extends StatelessWidget {
                               width: 56,
                               height: 56,
                               child: Center(
-                                child: floatingControl ?? const SizedBox.shrink(),
+                                child:
+                                    floatingControl ?? const SizedBox.shrink(),
                               ),
                             ),
                             const Spacer(),
@@ -1689,8 +1709,9 @@ class _MiniPlayerHeader extends StatelessWidget {
     final info = Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment:
-            alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: alignEnd
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Text(
             name,
@@ -1758,10 +1779,9 @@ class _ReadyVersusArena extends StatelessWidget {
         final cardWidth = ((constraints.maxWidth - gap) / 2)
             .clamp(118.0, 232.0)
             .toDouble();
-        final visualHeight = math.min(
-          constraints.maxHeight,
-          390 * scale,
-        ).toDouble();
+        final visualHeight = math
+            .min(constraints.maxHeight, 390 * scale)
+            .toDouble();
 
         return Center(
           child: SizedBox(
@@ -1858,9 +1878,7 @@ class _ReadyPlayerCard extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final dense = constraints.maxHeight < 300;
-        final radius = dense
-            ? 27.0
-            : (34 * scale).clamp(30.0, 38.0).toDouble();
+        final radius = dense ? 27.0 : (34 * scale).clamp(30.0, 38.0).toDouble();
         return Container(
           padding: EdgeInsets.fromLTRB(
             (10 * scale).clamp(8.0, 12.0).toDouble(),

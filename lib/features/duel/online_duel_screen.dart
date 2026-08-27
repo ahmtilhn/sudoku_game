@@ -390,21 +390,29 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             },
         pageBuilder: (dialogContext, animation, secondaryAnimation) {
           final media = MediaQuery.of(dialogContext);
-          final availableHeight =
-              media.size.height - media.padding.top - media.padding.bottom - 16;
-          return SafeArea(
-            minimum: const EdgeInsets.all(8),
+          final safeEdge = media.viewPadding.top > media.viewPadding.bottom
+              ? media.viewPadding.top
+              : media.viewPadding.bottom;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(8, safeEdge + 8, 8, safeEdge + 8),
             child: Material(
               type: MaterialType.transparency,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: availableHeight.clamp(0.0, 800.0).toDouble(),
-                    child: _OnlineResultSheet(snapshot: snapshot),
-                  ),
-                ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final dialogHeight = constraints.maxHeight
+                      .clamp(0.0, 800.0)
+                      .toDouble();
+                  return Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: dialogHeight,
+                        child: _OnlineResultSheet(snapshot: snapshot),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           );
