@@ -46,6 +46,7 @@ flutter:
     - assets/frames/
     - assets/rank/
     - assets/profile/
+    - assets/profilecustomization/
     - assets/puzzles/
     - assets/cards/
     - assets/logo/
