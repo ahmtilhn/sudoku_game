@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/tmp-run-result-ui-patch.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
