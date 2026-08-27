@@ -671,7 +671,7 @@ class _ConnectingMatchLayout extends StatelessWidget {
                   final size = mathMin(
                     constraints.maxWidth,
                     constraints.maxHeight,
-                  ).clamp(280.0, 720.0);
+                  ).clamp(280.0, 720.0).toDouble();
                   return SizedBox.square(
                     dimension: size,
                     child: Opacity(
@@ -865,12 +865,19 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
         invitationSeconds: seconds,
         canPlay: canPlay,
         busy: _busy,
-        onInvitationDecline: invite == null ? null : () => _respond(invite, false),
-        onInvitationAccept: invite == null ? null : () => _respond(invite, true),
+        onInvitationDecline: invite == null
+            ? null
+            : () => _respond(invite, false),
+        onInvitationAccept: invite == null
+            ? null
+            : () => _respond(invite, true),
         onNewMatch: () => Navigator.of(context).pop('new_match'),
         onRematch: _createRematch,
         onAddFriend: _canAddFriend ? _addFriend : null,
         onMenu: () => Navigator.of(context).pop('menu'),
+        onStore: () => Navigator.of(context).push<void>(
+          MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
+        ),
       ),
     );
   }
@@ -1082,6 +1089,7 @@ class _ResultCard extends StatelessWidget {
     required this.onRematch,
     required this.onAddFriend,
     required this.onMenu,
+    required this.onStore,
   });
 
   final String title;
@@ -1107,6 +1115,7 @@ class _ResultCard extends StatelessWidget {
   final VoidCallback onRematch;
   final VoidCallback? onAddFriend;
   final VoidCallback onMenu;
+  final VoidCallback onStore;
 
   @override
   Widget build(BuildContext context) {
@@ -1272,6 +1281,14 @@ class _ResultCard extends StatelessWidget {
               ),
             ],
           ),
+          if (!canPlay) ...[
+            const SizedBox(height: 9),
+            OutlinedButton.icon(
+              onPressed: busy ? null : onStore,
+              icon: const Icon(Icons.storefront_outlined),
+              label: Text(context.tr('open_coin_store')),
+            ),
+          ],
         ],
       ),
     );
@@ -1608,6 +1625,31 @@ class _ResultRankPanel extends StatelessWidget {
                 ),
             ],
           ),
+          if (value.abandonmentPenalty > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Includes -${value.abandonmentPenalty} RP leave penalty.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .46),
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ] else if (value.repeatPercent < 100 && value.rpDelta > 0) ...[
+            const SizedBox(height: 6),
+            Text(
+              value.repeatPercent == 0
+                  ? 'Repeat-opponent protection: no farmable RP this match.'
+                  : 'Repeat-opponent protection reduced positive RP.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .46),
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1795,7 +1837,7 @@ class _ArenaMatchLayout extends StatelessWidget {
                     final boardSize = mathMin(
                       constraints.maxWidth,
                       constraints.maxHeight,
-                    ).clamp(290.0, 720.0);
+                    ).clamp(290.0, 720.0).toDouble();
                     return Align(
                       alignment: Alignment.topCenter,
                       child: SizedBox.square(
@@ -2180,6 +2222,11 @@ class _HeaderPlayer extends StatelessWidget {
         : const Color(0xFFFFC94D);
     final name = local ? context.tr('you') : player.displayName;
     final score = snapshot.scores[seat] ?? 0;
+    final secondary = player.username.isNotEmpty
+        ? '@${player.username}'
+        : snapshot.mode == 'ranked'
+        ? 'RANKED'
+        : 'DUEL';
 
     final avatar = Container(
       padding: const EdgeInsets.all(2),
@@ -2218,12 +2265,12 @@ class _HeaderPlayer extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Bronze III',
+            secondary,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFFC3A8FF),
-              fontSize: 9,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .54),
+              fontSize: 8,
               fontWeight: FontWeight.w800,
             ),
           ),
