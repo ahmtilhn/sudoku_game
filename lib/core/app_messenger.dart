@@ -149,161 +149,116 @@ class _OnlineReconnectPresentationState
     final progress = (_seconds / _visualCountdownSeconds)
         .clamp(0.0, 1.0)
         .toDouble();
+
     return Positioned.fill(
       child: Material(
-        color: Colors.black.withValues(alpha: .58),
+        color: Colors.black.withValues(alpha: .64),
         child: SafeArea(
           child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 340),
-              child: Container(
-                margin: const EdgeInsets.all(22),
-                padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFF17283B), Color(0xFF0B1722)],
-                  ),
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(
-                    color: const Color(0xFFFF6C61).withValues(alpha: .46),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: .42),
-                      blurRadius: 32,
-                      offset: const Offset(0, 18),
-                    ),
-                    BoxShadow(
-                      color: const Color(
-                        0xFFFF6C61,
-                      ).withValues(alpha: .10),
-                      blurRadius: 26,
-                    ),
-                  ],
+            child: Container(
+              width: 268,
+              padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF1B2B40), Color(0xFF101C2B)],
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: const Color(0xFFFF6C61).withValues(alpha: .10),
-                        border: Border.all(
-                          color: const Color(
-                            0xFFFF6C61,
-                          ).withValues(alpha: .32),
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.wifi_off_rounded,
-                        color: Color(0xFFFF7A70),
-                        size: 27,
-                      ),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: const Color(0xFFFF655B).withValues(alpha: .42),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .48),
+                    blurRadius: 32,
+                    offset: const Offset(0, 18),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.wifi_off_rounded,
+                    color: Color(0xFFFF655B),
+                    size: 38,
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Connection lost',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'CONNECTION LOST',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: .55,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    SizedBox.square(
-                      dimension: 112,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          CircularProgressIndicator(
-                            value: expiredVisualCountdown ? null : progress,
-                            strokeWidth: 7,
-                            backgroundColor: Colors.white.withValues(alpha: .10),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Color(0xFFFF6C61),
-                            ),
+                  ),
+                  const SizedBox(height: 18),
+                  SizedBox.square(
+                    dimension: 102,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CircularProgressIndicator(
+                          value: expiredVisualCountdown ? null : progress,
+                          strokeWidth: 7,
+                          backgroundColor: Colors.white.withValues(alpha: .10),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFFFF655B),
                           ),
-                          Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
+                        ),
+                        Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                expiredVisualCountdown ? '…' : '$_seconds',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 35,
+                                  height: 1,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              if (!expiredVisualCountdown)
                                 Text(
-                                  expiredVisualCountdown ? '…' : '$_seconds',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 36,
-                                    height: 1,
-                                    fontWeight: FontWeight.w900,
+                                  's',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: .52),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
                                   ),
                                 ),
-                                if (!expiredVisualCountdown)
-                                  Text(
-                                    's',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: .55),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      expiredVisualCountdown
-                          ? 'Still reconnecting…'
-                          : 'Reconnecting…',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Keep the game open while we restore the duel.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .58),
-                        fontSize: 12,
-                        height: 1.35,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox.square(
-                          dimension: 13,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFF29D398),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Match state is protected',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .48),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    expiredVisualCountdown
+                        ? 'Still reconnecting…'
+                        : 'Reconnecting…',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Keep the game open while we restore the duel.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .60),
+                      fontSize: 11,
+                      height: 1.35,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
