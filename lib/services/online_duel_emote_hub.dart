@@ -218,10 +218,60 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
   }
 
   Widget _buildOverlay(BuildContext overlayContext) {
-    final bottomPadding = MediaQuery.viewPaddingOf(overlayContext).bottom;
+    final viewPadding = MediaQuery.viewPaddingOf(overlayContext);
+    if (widget.compact) {
+      return Stack(
+        children: [
+          Positioned(
+            left: 10,
+            right: 10,
+            bottom: viewPadding.bottom + 122,
+            child: Material(
+              type: MaterialType.transparency,
+              child: AnimatedBuilder(
+                animation: _hub,
+                builder: (context, _) {
+                  if (!_hub.visible) return const SizedBox.shrink();
+                  return _CompactDuelControlBar(
+                    hub: _hub,
+                    onEmotes: () => _openPicker(context),
+                    onOptions: () => _openMatchOptions(context),
+                  );
+                },
+              ),
+            ),
+          ),
+          Positioned(
+            top: viewPadding.top + 82,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: Material(
+                type: MaterialType.transparency,
+                child: AnimatedBuilder(
+                  animation: _hub,
+                  builder: (context, _) {
+                    if (!_hub.visible || _hub.incomingEmoteId == null) {
+                      return const SizedBox.shrink();
+                    }
+                    return Center(
+                      child: _OpponentEmotePresentation(
+                        emoteId: _hub.incomingEmoteId,
+                        accent: Theme.of(context).colorScheme.tertiary,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Positioned(
       right: 12,
-      bottom: bottomPadding + (widget.compact ? 118 : 138),
+      bottom: viewPadding.bottom + 138,
       child: Material(
         type: MaterialType.transparency,
         child: AnimatedBuilder(
@@ -252,6 +302,240 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
 
   Future<void> _openPicker(BuildContext context) async {
     await showOnlineDuelEmotePicker(context, _hub);
+  }
+
+  Future<void> _openMatchOptions(BuildContext context) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: .42),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+          child: Material(
+            color: const Color(0xFF101D27),
+            borderRadius: BorderRadius.circular(22),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .18),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'MATCH OPTIONS',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: _hub.muted ? 'Unmute' : 'Mute',
+                        onPressed: _hub.toggleMute,
+                        icon: Icon(
+                          _hub.muted
+                              ? Icons.volume_off_rounded
+                              : Icons.volume_up_rounded,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.flag_rounded,
+                      color: Color(0xFFFF8C88),
+                    ),
+                    title: const Text(
+                      'Forfeit match',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: const Text('A confirmation is required.'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.of(sheetContext).pop('forfeit'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (action != 'forfeit' || !mounted) return;
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    if (!mounted) return;
+    await Navigator.of(context).maybePop();
+  }
+}
+
+class _CompactDuelControlBar extends StatelessWidget {
+  const _CompactDuelControlBar({
+    required this.hub,
+    required this.onEmotes,
+    required this.onOptions,
+  });
+
+  final OnlineDuelEmoteHub hub;
+  final VoidCallback onEmotes;
+  final VoidCallback onOptions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111D29).withValues(alpha: .985),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .075)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .32),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: const BoxDecoration(
+              color: Color(0xFF29D398),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'DUEL CONTROLS',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .55),
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: .9,
+              ),
+            ),
+          ),
+          _CompactRoundControl(
+            tooltip: 'Emotes',
+            onTap: onEmotes,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  Icons.add_reaction_outlined,
+                  color: hub.onCooldown
+                      ? Colors.white38
+                      : const Color(0xFFFFD66B),
+                  size: 23,
+                ),
+                if (hub.onCooldown)
+                  const SizedBox.square(
+                    dimension: 34,
+                    child: CircularProgressIndicator(strokeWidth: 1.8),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _CompactRoundControl(
+            tooltip: 'Match options',
+            onTap: onOptions,
+            child: const Icon(
+              Icons.more_horiz_rounded,
+              color: Color(0xFFFFD66B),
+              size: 25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactRoundControl extends StatelessWidget {
+  const _CompactRoundControl({
+    required this.tooltip,
+    required this.onTap,
+    required this.child,
+  });
+
+  final String tooltip;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: const Color(0xFF1A2A37),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox.square(dimension: 39, child: Center(child: child)),
+        ),
+      ),
+    );
+  }
+}
+
+class _OpponentEmotePresentation extends StatelessWidget {
+  const _OpponentEmotePresentation({required this.emoteId, required this.accent});
+
+  final String? emoteId;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(9, 5, 10, 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1722).withValues(alpha: .96),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: .30)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: .30), blurRadius: 16),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          OnlineDuelEmoteBubble(emoteId: emoteId, accent: accent),
+          const SizedBox(width: 2),
+          Text(
+            'OPPONENT',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .68),
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .9,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
