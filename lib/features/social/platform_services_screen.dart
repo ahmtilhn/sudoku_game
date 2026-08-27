@@ -19,10 +19,9 @@ class PlatformServicesScreen extends StatefulWidget {
 }
 
 class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
-  static const String _iconRoot =
-      'assets/googleplayGameCenterleaderboardicon';
-
+  static const _iconRoot = 'assets/googleplayGameCenterleaderboardicon';
   final PlatformGameServices _games = PlatformGameServices.instance;
+
   bool _busy = false;
   String? _error;
 
@@ -41,11 +40,11 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
 
   Future<void> _refreshPlatformState() async {
     try {
-      if (!await _games.isConfigured()) return;
-      await _games.refreshAuthentication();
+      if (await _games.isConfigured()) {
+        await _games.refreshAuthentication();
+      }
     } catch (_) {
-      // Platform connection is informational here. Each feature still runs the
-      // normal interactive authentication flow when the user opens it.
+      // Native platform state is informative only on this page.
     }
   }
 
@@ -62,6 +61,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
       _busy = true;
       _error = null;
     });
+
     try {
       if (!await _authenticate()) {
         throw const PlatformGameServicesException(
@@ -69,8 +69,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
           'Platform authentication could not be completed.',
         );
       }
-      final opened = await action();
-      if (!opened) {
+      if (!await action()) {
         throw const PlatformGameServicesException(
           'unavailable',
           'The requested platform screen is not available.',
@@ -97,32 +96,32 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final difficultyItems = <_DifficultyLeaderboardData>[
-      _DifficultyLeaderboardData(
+    final difficulties = <_LeaderboardItem>[
+      _LeaderboardItem(
         title: context.tr('difficulty_beginner'),
         asset: '$_iconRoot/beginner.png',
         accent: const Color(0xFF61D987),
         scope: PlatformLeaderboardScope.beginner,
       ),
-      _DifficultyLeaderboardData(
+      _LeaderboardItem(
         title: context.tr('difficulty_easy'),
         asset: '$_iconRoot/easy.png',
         accent: const Color(0xFF66C7FF),
         scope: PlatformLeaderboardScope.easy,
       ),
-      _DifficultyLeaderboardData(
+      _LeaderboardItem(
         title: context.tr('difficulty_medium'),
         asset: '$_iconRoot/medium.png',
         accent: const Color(0xFFFFC94D),
         scope: PlatformLeaderboardScope.medium,
       ),
-      _DifficultyLeaderboardData(
+      _LeaderboardItem(
         title: context.tr('difficulty_hard'),
         asset: '$_iconRoot/hard.png',
         accent: const Color(0xFFFF8A4C),
         scope: PlatformLeaderboardScope.hard,
       ),
-      _DifficultyLeaderboardData(
+      _LeaderboardItem(
         title: context.tr('difficulty_expert'),
         asset: '$_iconRoot/expert.png',
         accent: const Color(0xFFB7A9FF),
@@ -144,8 +143,8 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   const SizedBox(height: 8),
                   ValueListenableBuilder<bool>(
                     valueListenable: _games.authenticated,
-                    builder: (context, connected, _) => _PlatformStatusCard(
-                      platformTitle: _platformTitle,
+                    builder: (_, connected, _) => _PlatformStatusCard(
+                      title: _platformTitle,
                       logoAsset: _platformLogo,
                       connected: connected,
                     ),
@@ -159,7 +158,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   ],
                   if (_error != null) ...[
                     const SizedBox(height: 10),
-                    _PlatformErrorCard(
+                    _ErrorCard(
                       title: context.tr('online_account_unavailable'),
                       message: _error!,
                     ),
@@ -170,20 +169,20 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .58),
                       fontSize: 12,
-                      height: 1,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.25,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  _FeaturedLeaderboardCard(
+                  _LeaderboardCard(
                     title: context.tr('global_elo'),
                     subtitle: 'Compete with the best players worldwide',
+                    accent: const Color(0xFF35D2FF),
+                    featured: true,
                     icon: const DuelAssetIcon(
                       DuelAsset.leaderboardCrownPro,
                       size: 70,
                     ),
-                    accent: const Color(0xFF35D2FF),
                     onTap: _busy
                         ? null
                         : () => _run(
@@ -193,30 +192,37 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                           ),
                   ),
                   const SizedBox(height: 9),
-                  for (var index = 0; index < difficultyItems.length; index++) ...[
-                    _DifficultyLeaderboardCard(
-                      data: difficultyItems[index],
+                  for (var i = 0; i < difficulties.length; i++) ...[
+                    _LeaderboardCard(
+                      title: difficulties[i].title,
+                      accent: difficulties[i].accent,
+                      icon: _AssetIcon(
+                        asset: difficulties[i].asset,
+                        size: 43,
+                      ),
                       onTap: _busy
                           ? null
                           : () => _run(
                               () => PlatformLeaderboardService.instance.show(
-                                difficultyItems[index].scope,
+                                difficulties[i].scope,
                               ),
                             ),
                     ),
-                    if (index != difficultyItems.length - 1)
+                    if (i != difficulties.length - 1)
                       const SizedBox(height: 7),
                   ],
                   const SizedBox(height: 14),
-                  _FeaturedLeaderboardCard(
+                  _LeaderboardCard(
                     title: context.tr('achievement_showcase'),
                     subtitle: 'View your highlights and milestones',
-                    icon: const _PlatformLeaderboardAsset(
-                      asset: '$_iconRoot/achievement.png',
+                    accent: const Color(0xFFB78BFF),
+                    featured: true,
+                    compactFeatured: true,
+                    icon: const _AssetIcon(
+                      asset:
+                          'assets/googleplayGameCenterleaderboardicon/achievement.png',
                       size: 60,
                     ),
-                    accent: const Color(0xFFB78BFF),
-                    compact: true,
                     onTap: _busy ? null : () => _run(_games.showAchievements),
                   ),
                 ],
@@ -229,8 +235,8 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
   }
 }
 
-class _DifficultyLeaderboardData {
-  const _DifficultyLeaderboardData({
+class _LeaderboardItem {
+  const _LeaderboardItem({
     required this.title,
     required this.asset,
     required this.accent,
@@ -245,12 +251,12 @@ class _DifficultyLeaderboardData {
 
 class _PlatformStatusCard extends StatelessWidget {
   const _PlatformStatusCard({
-    required this.platformTitle,
+    required this.title,
     required this.logoAsset,
     required this.connected,
   });
 
-  final String platformTitle;
+  final String title;
   final String logoAsset;
   final bool connected;
 
@@ -261,20 +267,13 @@ class _PlatformStatusCard extends StatelessWidget {
         : const Color(0xFF7F8F9A);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.all(13),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1B26).withValues(alpha: .82),
+        color: const Color(0xFF0D1B26).withValues(alpha: .84),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: const Color(0xFF66C7FF).withValues(alpha: .24),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF07111A).withValues(alpha: .24),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
       ),
       child: Row(
         children: [
@@ -289,7 +288,6 @@ class _PlatformStatusCard extends StatelessWidget {
               errorBuilder: (_, _, _) => Icon(
                 Icons.sports_esports_rounded,
                 color: accent,
-                size: 28,
               ),
             ),
           ),
@@ -299,7 +297,7 @@ class _PlatformStatusCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  platformTitle,
+                  title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -322,7 +320,6 @@ class _PlatformStatusCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
           Container(
             width: 30,
             height: 30,
@@ -330,7 +327,7 @@ class _PlatformStatusCard extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: accent.withValues(alpha: .10),
-              border: Border.all(color: accent.withValues(alpha: .78)),
+              border: Border.all(color: accent.withValues(alpha: .70)),
             ),
             child: Icon(
               connected ? Icons.check_rounded : Icons.more_horiz_rounded,
@@ -344,26 +341,30 @@ class _PlatformStatusCard extends StatelessWidget {
   }
 }
 
-class _FeaturedLeaderboardCard extends StatelessWidget {
-  const _FeaturedLeaderboardCard({
+class _LeaderboardCard extends StatelessWidget {
+  const _LeaderboardCard({
     required this.title,
-    required this.subtitle,
-    required this.icon,
     required this.accent,
+    required this.icon,
     required this.onTap,
-    this.compact = false,
+    this.subtitle,
+    this.featured = false,
+    this.compactFeatured = false,
   });
 
   final String title;
-  final String subtitle;
-  final Widget icon;
+  final String? subtitle;
   final Color accent;
+  final Widget icon;
   final VoidCallback? onTap;
-  final bool compact;
+  final bool featured;
+  final bool compactFeatured;
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(17);
+    final radius = BorderRadius.circular(featured ? 17 : 15);
+    final height = featured ? (compactFeatured ? 86.0 : 102.0) : 60.0;
+    final iconBox = featured ? (compactFeatured ? 66.0 : 78.0) : 46.0;
 
     return Material(
       color: Colors.transparent,
@@ -371,137 +372,84 @@ class _FeaturedLeaderboardCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: radius,
         child: Ink(
-          padding: EdgeInsets.fromLTRB(
-            12,
-            compact ? 10 : 12,
-            11,
-            compact ? 10 : 12,
-          ),
+          height: height,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
+            color: featured
+                ? null
+                : const Color(0xFF0C1820).withValues(alpha: .88),
+            gradient: featured
+                ? LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      accent.withValues(alpha: .14),
+                      const Color(0xFF0B1721).withValues(alpha: .93),
+                      const Color(0xFF09141D).withValues(alpha: .96),
+                    ],
+                  )
+                : null,
             borderRadius: radius,
-            border: Border.all(color: accent.withValues(alpha: .56)),
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                accent.withValues(alpha: .14),
-                const Color(0xFF0B1721).withValues(alpha: .93),
-                const Color(0xFF09141D).withValues(alpha: .96),
-              ],
+            border: Border.all(
+              color: accent.withValues(alpha: featured ? .52 : .22),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: .08),
-                blurRadius: 18,
-                offset: const Offset(0, 7),
-              ),
-            ],
           ),
           child: Row(
             children: [
               SizedBox(
-                width: compact ? 66 : 78,
-                height: compact ? 66 : 78,
+                width: iconBox,
+                height: iconBox,
                 child: Center(child: icon),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: featured ? 10 : 12),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: .96),
-                        fontSize: compact ? 16 : 18,
+                        color: Colors.white,
+                        fontSize: featured ? 18 : 16,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .58),
-                        fontSize: 11,
-                        height: 1.25,
-                        fontWeight: FontWeight.w700,
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .58),
+                          fontSize: 11,
+                          height: 1.25,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(width: 9),
-              _ChevronBubble(accent: accent),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DifficultyLeaderboardCard extends StatelessWidget {
-  const _DifficultyLeaderboardCard({required this.data, required this.onTap});
-
-  final _DifficultyLeaderboardData data;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(15);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: radius,
-        child: Ink(
-          height: 60,
-          padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0C1820).withValues(alpha: .88),
-            borderRadius: radius,
-            border: Border.all(
-              color: data.accent.withValues(alpha: .22),
-            ),
-          ),
-          child: Row(
-            children: [
+              const SizedBox(width: 8),
               Container(
-                width: 46,
-                height: 46,
+                width: featured ? 32 : 28,
+                height: featured ? 32 : 28,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: data.accent.withValues(alpha: .08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: data.accent.withValues(alpha: .14),
-                  ),
+                  shape: BoxShape.circle,
+                  color: accent.withValues(alpha: .09),
+                  border: Border.all(color: accent.withValues(alpha: .14)),
                 ),
-                child: _PlatformLeaderboardAsset(
-                  asset: data.asset,
-                  size: 43,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  data.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w850,
-                  ),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white.withValues(alpha: .78),
+                  size: featured ? 22 : 20,
                 ),
               ),
-              const SizedBox(width: 8),
-              _ChevronBubble(accent: data.accent, small: true),
             ],
           ),
         ),
@@ -510,8 +458,8 @@ class _DifficultyLeaderboardCard extends StatelessWidget {
   }
 }
 
-class _PlatformLeaderboardAsset extends StatelessWidget {
-  const _PlatformLeaderboardAsset({required this.asset, required this.size});
+class _AssetIcon extends StatelessWidget {
+  const _AssetIcon({required this.asset, required this.size});
 
   final String asset;
   final double size;
@@ -532,35 +480,8 @@ class _PlatformLeaderboardAsset extends StatelessWidget {
   }
 }
 
-class _ChevronBubble extends StatelessWidget {
-  const _ChevronBubble({required this.accent, this.small = false});
-
-  final Color accent;
-  final bool small;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = small ? 28.0 : 32.0;
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: accent.withValues(alpha: .09),
-        border: Border.all(color: accent.withValues(alpha: .14)),
-      ),
-      child: Icon(
-        Icons.chevron_right_rounded,
-        color: Colors.white.withValues(alpha: .78),
-        size: small ? 20 : 22,
-      ),
-    );
-  }
-}
-
-class _PlatformErrorCard extends StatelessWidget {
-  const _PlatformErrorCard({required this.title, required this.message});
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({required this.title, required this.message});
 
   final String title;
   final String message;
@@ -605,7 +526,7 @@ class _PlatformErrorCard extends StatelessWidget {
                     color: Colors.white.withValues(alpha: .62),
                     fontSize: 11,
                     height: 1.3,
-                    fontWeight: FontWeight.w650,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
