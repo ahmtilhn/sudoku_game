@@ -1,4 +1,4 @@
-﻿name: sudoku_game
+name: sudoku_game
 description: A professional Sudoku career and online duel game built with Flutter.
 publish_to: 'none'
 version: 1.0.0+75
@@ -48,6 +48,7 @@ flutter:
     - assets/profile/
     - assets/profilecustomization/
     - assets/ELO_rating_icons/
+    - assets/googleplayGameCenterleaderboardicon/
     - assets/puzzles/
     - assets/cards/
     - assets/logo/
