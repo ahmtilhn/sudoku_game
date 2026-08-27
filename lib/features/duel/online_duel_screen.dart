@@ -375,8 +375,13 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         useSafeArea: true,
         backgroundColor: Colors.transparent,
         barrierColor: Colors.black.withValues(alpha: .56),
-        constraints: const BoxConstraints(maxWidth: 560),
-        builder: (sheetContext) => _OnlineResultSheet(snapshot: snapshot),
+        constraints: const BoxConstraints(maxWidth: 460),
+        builder: (sheetContext) => FractionallySizedBox(
+          heightFactor: MediaQuery.sizeOf(sheetContext).height < 720
+              ? .98
+              : .94,
+          child: _OnlineResultSheet(snapshot: snapshot),
+        ),
       );
       if (!mounted || action == null) return;
       if (action.startsWith('rematch:')) {
@@ -1095,6 +1100,8 @@ class _ResultCard extends StatelessWidget {
     required this.onStore,
   });
 
+  static const _cupAsset = 'assets/ELO_rating_icons/cup.png';
+
   final String title;
   final String subtitle;
   final bool won;
@@ -1122,105 +1129,55 @@ class _ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = draw
-        ? const Color(0xFF8DA2BE)
-        : won
-        ? const Color(0xFF29D398)
-        : const Color(0xFFFF6B62);
-    final accent2 = draw
-        ? const Color(0xFF66C7FF)
-        : won
-        ? const Color(0xFFFFC94D)
-        : const Color(0xFFFFA45B);
     final viewport = MediaQuery.sizeOf(context);
-    final compact = viewport.width < 390 || viewport.height < 760;
-    final surfaceTop = draw
-        ? const Color(0xFF17283B)
+    final compact = viewport.width < 380 || viewport.height < 760;
+    final accent = draw
+        ? const Color(0xFF9AA9BA)
         : won
-        ? const Color(0xFF132C2B)
-        : const Color(0xFF2A1B26);
+        ? const Color(0xFF38E09E)
+        : const Color(0xFFFF6B62);
+    final headline = title.trim().endsWith('!')
+        ? title.toUpperCase()
+        : '${title.toUpperCase()}!';
 
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.fromLTRB(
-        compact ? 12 : 16,
-        compact ? 12 : 16,
-        compact ? 12 : 16,
-        compact ? 11 : 14,
+        compact ? 10 : 12,
+        compact ? 8 : 10,
+        compact ? 10 : 12,
+        compact ? 10 : 12,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [surfaceTop, const Color(0xFF101C2B)],
+          colors: [Color(0xFF102237), Color(0xFF0A1624)],
         ),
-        borderRadius: BorderRadius.circular(compact ? 20 : 24),
-        border: Border.all(color: accent.withValues(alpha: .42)),
+        borderRadius: BorderRadius.circular(compact ? 20 : 23),
+        border: Border.all(
+          color: const Color(0xFF5C8FB8).withValues(alpha: .36),
+        ),
         boxShadow: [
           BoxShadow(
-            color: accent.withValues(alpha: .10),
-            blurRadius: compact ? 18 : 28,
-            spreadRadius: -5,
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .42),
-            blurRadius: 30,
-            offset: const Offset(0, 18),
+            color: Colors.black.withValues(alpha: .46),
+            blurRadius: 28,
+            offset: const Offset(0, 15),
           ),
         ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 42,
-            height: 4,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(99),
-              gradient: LinearGradient(colors: [accent, accent2]),
-            ),
+          _ResultHero(
+            asset: _cupAsset,
+            title: headline,
+            subtitle: subtitle,
+            accent: accent,
+            compact: compact,
+            muted: !draw && !won,
           ),
-          SizedBox(height: compact ? 9 : 12),
-          Container(
-            width: compact ? 48 : 56,
-            height: compact ? 48 : 56,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: accent.withValues(alpha: .07),
-              border: Border.all(color: accent2.withValues(alpha: .45)),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              draw
-                  ? Icons.handshake_outlined
-                  : won
-                  ? Icons.emoji_events_rounded
-                  : Icons.shield_outlined,
-              color: accent2,
-              size: compact ? 27 : 31,
-            ),
-          ),
-          SizedBox(height: compact ? 6 : 8),
-          Text(
-            title.toUpperCase(),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: accent,
-              fontSize: compact ? 24 : 28,
-              fontWeight: FontWeight.w900,
-              letterSpacing: .6,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .76),
-              fontSize: compact ? 10 : 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 7 : 9),
           _ResultPlayers(
             localPlayer: localPlayer,
             opponent: opponent,
@@ -1228,39 +1185,35 @@ class _ResultCard extends StatelessWidget {
             opponentScore: opponentScore,
             won: won,
             draw: draw,
+            compact: compact,
           ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .045),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: .08)),
-            ),
-            child: Column(
-              children: [
-                for (final metric in metrics) _ResultMetricRow(metric: metric),
-              ],
-            ),
+          SizedBox(height: compact ? 7 : 9),
+          _ResultStatsTable(
+            metrics: metrics,
+            won: won,
+            draw: draw,
+            compact: compact,
           ),
           if (showRank) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: compact ? 7 : 9),
             _ResultRankPanel(result: rankResult, loading: rankLoading),
           ],
           if (statusMessage != null) ...[
-            const SizedBox(height: 9),
+            SizedBox(height: compact ? 6 : 8),
             Text(
               statusMessage!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF29D398),
-                fontSize: 11,
+              style: TextStyle(
+                color: accent,
+                fontSize: compact ? 9 : 10,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ],
           if (invitation != null && invitation!.status == 'pending') ...[
-            const SizedBox(height: 10),
+            SizedBox(height: compact ? 7 : 9),
             _InlineRematch(
               invitation: invitation!,
               seconds: invitationSeconds,
@@ -1270,79 +1223,162 @@ class _ResultCard extends StatelessWidget {
               onAccept: onInvitationAccept,
             ),
           ],
-          SizedBox(height: compact ? 10 : 12),
-          SizedBox(
-            width: double.infinity,
-            height: compact ? 44 : 48,
-            child: FilledButton.icon(
-              onPressed: busy || !canPlay ? null : onNewMatch,
-              icon: const Icon(Icons.arrow_forward_rounded),
-              label: Text(
-                context.tr('find_new_match'),
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: won
-                    ? const Color(0xFF20A968)
-                    : const Color(0xFF2374B8),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(13),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
+          SizedBox(height: compact ? 8 : 10),
           SizedBox(
             width: double.infinity,
             height: compact ? 42 : 46,
-            child: OutlinedButton.icon(
-              onPressed: busy || !canPlay || invitation?.status == 'pending'
-                  ? null
-                  : onRematch,
-              icon: const Icon(Icons.refresh_rounded),
-              label: Text(
-                context.tr('challenge_again'),
-                style: const TextStyle(fontWeight: FontWeight.w900),
+            child: FilledButton(
+              onPressed: busy || !canPlay ? null : onNewMatch,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF20B875),
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: const Color(
+                  0xFF20B875,
+                ).withValues(alpha: .26),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+              ),
+              child: _ResultButtonLabel(
+                icon: Icons.swap_horiz_rounded,
+                label: context.tr('find_new_match'),
+                compact: compact,
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: double.infinity,
+            height: compact ? 40 : 44,
+            child: OutlinedButton(
+              onPressed: busy || !canPlay || invitation?.status == 'pending'
+                  ? null
+                  : onRematch,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: BorderSide(
+                  color: const Color(0xFF83B5D8).withValues(alpha: .42),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+              ),
+              child: _ResultButtonLabel(
+                icon: Icons.refresh_rounded,
+                label: context.tr('challenge_again'),
+                compact: compact,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
           Row(
             children: [
               Expanded(
-                child: SizedBox(
-                  height: compact ? 40 : 44,
-                  child: OutlinedButton.icon(
-                    onPressed: busy ? null : onAddFriend,
-                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                    label: Text(context.tr('add_friend')),
-                  ),
+                child: _ResultFooterAction(
+                  height: compact ? 38 : 42,
+                  icon: Icons.person_add_alt_1_rounded,
+                  label: context.tr('add_friend'),
+                  onPressed: busy ? null : onAddFriend,
+                  compact: compact,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
-                child: SizedBox(
-                  height: compact ? 40 : 44,
-                  child: OutlinedButton.icon(
-                    onPressed: busy ? null : onMenu,
-                    icon: const Icon(Icons.home_outlined, size: 18),
-                    label: Text(context.tr('main_menu')),
-                  ),
+                child: _ResultFooterAction(
+                  height: compact ? 38 : 42,
+                  icon: Icons.home_outlined,
+                  label: context.tr('main_menu'),
+                  onPressed: busy ? null : onMenu,
+                  compact: compact,
                 ),
               ),
             ],
           ),
           if (!canPlay) ...[
-            const SizedBox(height: 9),
-            OutlinedButton.icon(
-              onPressed: busy ? null : onStore,
-              icon: const Icon(Icons.storefront_outlined),
-              label: Text(context.tr('open_coin_store')),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              height: compact ? 38 : 42,
+              child: OutlinedButton(
+                onPressed: busy ? null : onStore,
+                child: _ResultButtonLabel(
+                  icon: Icons.storefront_outlined,
+                  label: context.tr('open_coin_store'),
+                  compact: compact,
+                ),
+              ),
             ),
           ],
         ],
       ),
+    );
+  }
+}
+
+class _ResultHero extends StatelessWidget {
+  const _ResultHero({
+    required this.asset,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    required this.compact,
+    required this.muted,
+  });
+
+  final String asset;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final bool compact;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Opacity(
+          opacity: muted ? .78 : 1,
+          child: Image.asset(
+            asset,
+            width: compact ? 62 : 72,
+            height: compact ? 62 : 72,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
+        Transform.translate(
+          offset: const Offset(0, -3),
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: accent,
+              fontSize: compact ? 25 : 29,
+              height: 1,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .2,
+              shadows: [
+                Shadow(color: accent.withValues(alpha: .25), blurRadius: 12),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .88),
+            fontSize: compact ? 10 : 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1355,6 +1391,7 @@ class _ResultPlayers extends StatelessWidget {
     required this.opponentScore,
     required this.won,
     required this.draw,
+    required this.compact,
   });
 
   final OnlineDuelPlayer localPlayer;
@@ -1363,153 +1400,281 @@ class _ResultPlayers extends StatelessWidget {
   final int opponentScore;
   final bool won;
   final bool draw;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 390;
     final localAccent = draw
-        ? const Color(0xFF8DA2BE)
+        ? const Color(0xFF9AA9BA)
         : won
-        ? const Color(0xFF29D398)
-        : const Color(0xFFFF7D73);
+        ? const Color(0xFF38E09E)
+        : const Color(0xFFFF746C);
     final opponentAccent = draw
-        ? const Color(0xFF8DA2BE)
+        ? const Color(0xFF9AA9BA)
         : won
-        ? const Color(0xFF66C7FF)
-        : const Color(0xFF29D398);
-    return Container(
-      padding: EdgeInsets.all(compact ? 8 : 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF213047),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _ResultPlayer(
-              player: localPlayer,
-              score: localScore,
-              accent: localAccent,
-            ),
+        ? const Color(0xFF79C8FF)
+        : const Color(0xFF38E09E);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: _ResultPlayerPanel(
+            player: opponent,
+            score: opponentScore,
+            accent: opponentAccent,
+            compact: compact,
+            isLocal: false,
           ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 7),
+        ),
+        SizedBox(width: compact ? 5 : 7),
+        Center(
+          child: Container(
+            width: compact ? 30 : 34,
+            height: compact ? 30 : 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF0B1826),
+              border: Border.all(
+                color: const Color(0xFFFFC94D).withValues(alpha: .50),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFFC94D).withValues(alpha: .10),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
             child: Text(
               'VS',
               style: TextStyle(
-                color: Color(0xFFFFC94D),
+                color: const Color(0xFFFFC94D),
+                fontSize: compact ? 10 : 11,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ),
-          Expanded(
-            child: _ResultPlayer(
-              player: opponent,
-              score: opponentScore,
-              accent: opponentAccent,
-              alignEnd: true,
-            ),
+        ),
+        SizedBox(width: compact ? 5 : 7),
+        Expanded(
+          child: _ResultPlayerPanel(
+            player: localPlayer,
+            score: localScore,
+            accent: localAccent,
+            compact: compact,
+            isLocal: true,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _ResultPlayer extends StatelessWidget {
-  const _ResultPlayer({
+class _ResultPlayerPanel extends StatelessWidget {
+  const _ResultPlayerPanel({
     required this.player,
     required this.score,
     required this.accent,
-    this.alignEnd = false,
+    required this.compact,
+    required this.isLocal,
   });
 
   final OnlineDuelPlayer player;
   final int score;
   final Color accent;
-  final bool alignEnd;
+  final bool compact;
+  final bool isLocal;
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 390;
+    final name = isLocal ? context.tr('you') : player.displayName;
+    final username = player.username.isEmpty ? '' : '@${player.username}';
     final avatar = Container(
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(1.5),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: accent, width: 2),
+        border: Border.all(color: accent.withValues(alpha: .92), width: 1.4),
+        boxShadow: [
+          BoxShadow(color: accent.withValues(alpha: .13), blurRadius: 10),
+        ],
       ),
       child: PlayerAvatar(
         displayName: player.displayName,
         avatarKey: player.avatarKey,
-        radius: compact ? 16 : 18,
+        radius: compact ? 18 : 21,
         semanticLabel: player.displayName,
       ),
     );
-    final info = Expanded(
+
+    return Container(
+      constraints: BoxConstraints(minHeight: compact ? 73 : 82),
+      padding: EdgeInsets.fromLTRB(
+        compact ? 6 : 8,
+        compact ? 7 : 8,
+        compact ? 6 : 8,
+        compact ? 5 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF14263A).withValues(alpha: .92),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withValues(alpha: .24)),
+      ),
       child: Column(
-        crossAxisAlignment: alignEnd
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            player.displayName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: compact ? 10 : 11,
-              fontWeight: FontWeight.w900,
-            ),
+          Row(
+            textDirection: isLocal ? TextDirection.rtl : TextDirection.ltr,
+            children: [
+              avatar,
+              SizedBox(width: compact ? 5 : 7),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: isLocal
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: compact ? 10 : 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (username.isNotEmpty)
+                      Text(
+                        username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .50),
+                          fontSize: compact ? 7.5 : 8.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          SizedBox(height: compact ? 2 : 3),
           Text(
             '$score',
             style: TextStyle(
               color: accent,
-              fontSize: compact ? 13 : 14,
+              fontSize: compact ? 16 : 18,
+              height: 1,
               fontWeight: FontWeight.w900,
-            ),
-          ),
-          Text(
-            player.username.isEmpty ? '' : '@${player.username}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .52),
-              fontSize: compact ? 8 : 9,
-              fontWeight: FontWeight.w700,
             ),
           ),
         ],
       ),
     );
-    return Row(
-      textDirection: alignEnd ? TextDirection.rtl : TextDirection.ltr,
-      children: [avatar, const SizedBox(width: 7), info],
+  }
+}
+
+class _ResultStatsTable extends StatelessWidget {
+  const _ResultStatsTable({
+    required this.metrics,
+    required this.won,
+    required this.draw,
+    required this.compact,
+  });
+
+  final List<_ResultMetric> metrics;
+  final bool won;
+  final bool draw;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: compact ? 3 : 4,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F2031).withValues(alpha: .94),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF6B9BBD).withValues(alpha: .18),
+        ),
+      ),
+      child: Column(
+        children: [
+          for (var index = 0; index < metrics.length; index++) ...[
+            _ResultMetricRow(
+              metric: metrics[index],
+              won: won,
+              draw: draw,
+              compact: compact,
+            ),
+            if (index != metrics.length - 1)
+              Divider(
+                height: 1,
+                thickness: .6,
+                color: Colors.white.withValues(alpha: .075),
+              ),
+          ],
+        ],
+      ),
     );
   }
 }
 
 class _ResultMetricRow extends StatelessWidget {
-  const _ResultMetricRow({required this.metric});
+  const _ResultMetricRow({
+    required this.metric,
+    required this.won,
+    required this.draw,
+    required this.compact,
+  });
 
   final _ResultMetric metric;
+  final bool won;
+  final bool draw;
+  final bool compact;
+
+  Color _valueColor(String value, Color fallback) {
+    final trimmed = value.trim();
+    if (trimmed.startsWith('+')) return const Color(0xFF38E09E);
+    if (trimmed.startsWith('-')) return const Color(0xFFFF6B62);
+    if (trimmed.toUpperCase().contains('N/A')) {
+      return const Color(0xFF8E9EAD);
+    }
+    return fallback;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 390;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    final localAccent = draw
+        ? const Color(0xFFD6E0E8)
+        : won
+        ? const Color(0xFF38E09E)
+        : const Color(0xFFFF746C);
+    final opponentAccent = draw
+        ? const Color(0xFFD6E0E8)
+        : won
+        ? const Color(0xFFD6E0E8)
+        : const Color(0xFF38E09E);
+
+    return SizedBox(
+      height: compact ? 25 : 29,
       child: Row(
         children: [
           SizedBox(
-            width: compact ? 44 : 50,
+            width: compact ? 46 : 52,
             child: Text(
-              metric.localValue,
+              metric.opponentValue,
+              textAlign: TextAlign.left,
+              maxLines: 1,
               style: TextStyle(
-                color: Color(0xFF29D398),
+                color: _valueColor(metric.opponentValue, opponentAccent),
+                fontSize: compact ? 10 : 11,
                 fontWeight: FontWeight.w900,
-                fontSize: compact ? 10 : 12,
               ),
             ),
           ),
@@ -1517,8 +1682,12 @@ class _ResultMetricRow extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(metric.icon, color: const Color(0xFFFFC94D), size: 15),
-                const SizedBox(width: 6),
+                Icon(
+                  metric.icon,
+                  color: const Color(0xFFFFC94D),
+                  size: compact ? 13 : 14,
+                ),
+                const SizedBox(width: 5),
                 Flexible(
                   child: Text(
                     metric.label,
@@ -1526,8 +1695,8 @@ class _ResultMetricRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: .78),
-                      fontSize: compact ? 9 : 10,
+                      color: Colors.white.withValues(alpha: .84),
+                      fontSize: compact ? 8.5 : 9.5,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -1536,14 +1705,15 @@ class _ResultMetricRow extends StatelessWidget {
             ),
           ),
           SizedBox(
-            width: compact ? 44 : 50,
+            width: compact ? 46 : 52,
             child: Text(
-              metric.opponentValue,
-              textAlign: TextAlign.end,
+              metric.localValue,
+              textAlign: TextAlign.right,
+              maxLines: 1,
               style: TextStyle(
-                color: Color(0xFF66C7FF),
+                color: _valueColor(metric.localValue, localAccent),
+                fontSize: compact ? 10 : 11,
                 fontWeight: FontWeight.w900,
-                fontSize: compact ? 10 : 12,
               ),
             ),
           ),
@@ -1556,15 +1726,26 @@ class _ResultMetricRow extends StatelessWidget {
 class _ResultRankPanel extends StatelessWidget {
   const _ResultRankPanel({required this.result, required this.loading});
 
+  static const _cupAsset = 'assets/ELO_rating_icons/cup.png';
+
   final RankMatchResult? result;
   final bool loading;
 
   @override
   Widget build(BuildContext context) {
+    final compact =
+        MediaQuery.sizeOf(context).width < 380 ||
+        MediaQuery.sizeOf(context).height < 760;
+
     if (loading) {
-      return const SizedBox(
-        height: 46,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      return Container(
+        height: compact ? 68 : 76,
+        decoration: _panelDecoration(),
+        alignment: Alignment.center,
+        child: const SizedBox.square(
+          dimension: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
       );
     }
 
@@ -1572,20 +1753,27 @@ class _ResultRankPanel extends StatelessWidget {
     if (value == null || !value.rated || !value.settled) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: .045),
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: Colors.white.withValues(alpha: .08)),
-        ),
-        child: Text(
-          'Rank Points will update automatically.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: .60),
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-          ),
+        padding: EdgeInsets.all(compact ? 9 : 11),
+        decoration: _panelDecoration(),
+        child: Row(
+          children: [
+            Image.asset(
+              _cupAsset,
+              width: compact ? 22 : 25,
+              height: compact ? 22 : 25,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Rank Points will update automatically.',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .65),
+                  fontSize: compact ? 9 : 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -1604,34 +1792,38 @@ class _ResultRankPanel extends StatelessWidget {
               .clamp(0.0, 1.0)
               .toDouble();
     final deltaColor = value.rpDelta >= 0
-        ? const Color(0xFF29D398)
+        ? const Color(0xFF38E09E)
         : const Color(0xFFFF6B62);
+    final pointsToNext = next == null
+        ? null
+        : (next.minPoints - value.rpAfter).clamp(0, next.minPoints);
 
     return Container(
-      padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .045),
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(
-          color: const Color(0xFF29D398).withValues(alpha: .18),
-        ),
+      padding: EdgeInsets.fromLTRB(
+        compact ? 9 : 11,
+        compact ? 8 : 9,
+        compact ? 9 : 11,
+        compact ? 7 : 8,
       ),
+      decoration: _panelDecoration(),
       child: Column(
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.workspace_premium_rounded,
-                color: Color(0xFFFFC94D),
-                size: 18,
+              Image.asset(
+                _cupAsset,
+                width: compact ? 22 : 25,
+                height: compact ? 22 : 25,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
               ),
               const SizedBox(width: 7),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Rank Points',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: compact ? 10 : 11,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -1640,20 +1832,20 @@ class _ResultRankPanel extends StatelessWidget {
                 '${value.rpDelta >= 0 ? '+' : ''}${value.rpDelta} RP',
                 style: TextStyle(
                   color: deltaColor,
-                  fontSize: 13,
+                  fontSize: compact ? 12 : 13,
                   fontWeight: FontWeight.w900,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 7),
+          SizedBox(height: compact ? 5 : 7),
           Row(
             children: [
               Text(
                 '${value.rpBefore}',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: .52),
-                  fontSize: 10,
+                  color: Colors.white.withValues(alpha: .58),
+                  fontSize: compact ? 8.5 : 9.5,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -1663,7 +1855,7 @@ class _ResultRankPanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(99),
                   child: LinearProgressIndicator(
                     value: progress,
-                    minHeight: 8,
+                    minHeight: compact ? 7 : 8,
                     backgroundColor: Colors.white.withValues(alpha: .10),
                     valueColor: AlwaysStoppedAnimation<Color>(deltaColor),
                   ),
@@ -1672,64 +1864,145 @@ class _ResultRankPanel extends StatelessWidget {
               const SizedBox(width: 7),
               Text(
                 '${value.rpAfter} RP',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: compact ? 9.5 : 10.5,
                   fontWeight: FontWeight.w900,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: compact ? 4 : 5),
           Row(
             children: [
               Expanded(
                 child: Text(
                   value.rankAfterName,
-                  style: const TextStyle(
-                    color: Color(0xFF8ED8FF),
-                    fontSize: 10,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFFC9A9FF),
+                    fontSize: compact ? 8.5 : 9.5,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-              if (next != null)
-                Text(
-                  '${next.minPoints - value.rpAfter} RP to ${next.label}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .48),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
+              if (next != null && pointsToNext != null)
+                Flexible(
+                  child: Text(
+                    '$pointsToNext RP to ${next.label}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .48),
+                      fontSize: compact ? 7.5 : 8.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
             ],
           ),
           if (value.abandonmentPenalty > 0) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               'Includes -${value.abandonmentPenalty} RP leave penalty.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .46),
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-              ),
+              style: _noticeStyle(compact),
             ),
           ] else if (value.repeatPercent < 100 && value.rpDelta > 0) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               value.repeatPercent == 0
                   ? 'Repeat-opponent protection: no farmable RP this match.'
                   : 'Repeat-opponent protection reduced positive RP.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .46),
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-              ),
+              style: _noticeStyle(compact),
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  BoxDecoration _panelDecoration() => BoxDecoration(
+    color: const Color(0xFF0F2031).withValues(alpha: .96),
+    borderRadius: BorderRadius.circular(12),
+    border: Border.all(color: const Color(0xFFFFC94D).withValues(alpha: .24)),
+  );
+
+  TextStyle _noticeStyle(bool compact) => TextStyle(
+    color: Colors.white.withValues(alpha: .43),
+    fontSize: compact ? 7.2 : 8.2,
+    fontWeight: FontWeight.w700,
+  );
+}
+
+class _ResultButtonLabel extends StatelessWidget {
+  const _ResultButtonLabel({
+    required this.icon,
+    required this.label,
+    required this.compact,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: compact ? 16 : 17),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: compact ? 10 : 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResultFooterAction extends StatelessWidget {
+  const _ResultFooterAction({
+    required this.height,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    required this.compact,
+  });
+
+  final double height;
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: BorderSide(
+            color: const Color(0xFF83B5D8).withValues(alpha: .34),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: _ResultButtonLabel(icon: icon, label: label, compact: compact),
       ),
     );
   }
