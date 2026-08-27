@@ -367,21 +367,48 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         }),
       );
       if (!mounted) return;
-      final action = await showModalBottomSheet<String>(
+      final action = await showGeneralDialog<String>(
         context: context,
-        isDismissible: false,
-        enableDrag: false,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: Colors.transparent,
-        barrierColor: Colors.black.withValues(alpha: .56),
-        constraints: const BoxConstraints(maxWidth: 460),
-        builder: (sheetContext) => FractionallySizedBox(
-          heightFactor: MediaQuery.sizeOf(sheetContext).height < 720
-              ? .98
-              : .94,
-          child: _OnlineResultSheet(snapshot: snapshot),
-        ),
+        barrierDismissible: false,
+        barrierLabel: 'Duel result',
+        barrierColor: Colors.black.withValues(alpha: .68),
+        transitionDuration: const Duration(milliseconds: 220),
+        transitionBuilder:
+            (dialogContext, animation, secondaryAnimation, child) {
+              final curved = CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+                reverseCurve: Curves.easeInCubic,
+              );
+              return FadeTransition(
+                opacity: curved,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: .97, end: 1).animate(curved),
+                  child: child,
+                ),
+              );
+            },
+        pageBuilder: (dialogContext, animation, secondaryAnimation) {
+          final media = MediaQuery.of(dialogContext);
+          final availableHeight =
+              media.size.height - media.padding.top - media.padding.bottom - 16;
+          return SafeArea(
+            minimum: const EdgeInsets.all(8),
+            child: Material(
+              type: MaterialType.transparency,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: availableHeight.clamp(0.0, 900.0).toDouble(),
+                    child: _OnlineResultSheet(snapshot: snapshot),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       );
       if (!mounted || action == null) return;
       if (action.startsWith('rematch:')) {
@@ -1431,54 +1458,54 @@ class _ResultPlayers extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-        Expanded(
-          child: _ResultPlayerPanel(
-            player: opponent,
-            score: opponentScore,
-            accent: opponentAccent,
-            compact: compact,
-            isLocal: false,
+          Expanded(
+            child: _ResultPlayerPanel(
+              player: opponent,
+              score: opponentScore,
+              accent: opponentAccent,
+              compact: compact,
+              isLocal: false,
+            ),
           ),
-        ),
-        SizedBox(width: compact ? 5 : 7),
-        Center(
-          child: Container(
-            width: compact ? 30 : 34,
-            height: compact ? 30 : 34,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF0B1826),
-              border: Border.all(
-                color: const Color(0xFFFFC94D).withValues(alpha: .50),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFFC94D).withValues(alpha: .10),
-                  blurRadius: 10,
+          SizedBox(width: compact ? 5 : 7),
+          Center(
+            child: Container(
+              width: compact ? 30 : 34,
+              height: compact ? 30 : 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF0B1826),
+                border: Border.all(
+                  color: const Color(0xFFFFC94D).withValues(alpha: .50),
                 ),
-              ],
-            ),
-            child: Text(
-              'VS',
-              style: TextStyle(
-                color: const Color(0xFFFFC94D),
-                fontSize: compact ? 10 : 11,
-                fontWeight: FontWeight.w900,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFFC94D).withValues(alpha: .10),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Text(
+                'VS',
+                style: TextStyle(
+                  color: const Color(0xFFFFC94D),
+                  fontSize: compact ? 10 : 11,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ),
-        ),
-        SizedBox(width: compact ? 5 : 7),
-        Expanded(
-          child: _ResultPlayerPanel(
-            player: localPlayer,
-            score: localScore,
-            accent: localAccent,
-            compact: compact,
-            isLocal: true,
+          SizedBox(width: compact ? 5 : 7),
+          Expanded(
+            child: _ResultPlayerPanel(
+              player: localPlayer,
+              score: localScore,
+              accent: localAccent,
+              compact: compact,
+              isLocal: true,
+            ),
           ),
-        ),
         ],
       ),
     );
