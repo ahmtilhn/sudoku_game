@@ -64,8 +64,10 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
             displayName: initial.displayName,
             avatarKey: initial.avatarKey,
             remoteApprovedImageUrl: initial.remoteApprovedImageUrl,
+            rankLabel: initial.rankLabel,
             gamesPlayed: initial.gamesPlayed,
             winRate: initial.winRate,
+            rating: initial.rating,
           );
     unawaited(_loadProfile());
     unawaited(_connect());
@@ -100,7 +102,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         );
       });
     } catch (_) {
-      // The room snapshot is authoritative and provides a safe identity fallback.
+      // Room identity remains usable if the optional rank read fails.
     }
   }
 
@@ -119,7 +121,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
       if (!mounted || _handedOff) return;
       setState(() => _opponentPublicProfile = exact);
     } catch (_) {
-      // Private/non-discoverable profiles intentionally keep RP stats hidden.
+      // Private/non-discoverable profiles intentionally keep public stats hidden.
     }
   }
 
@@ -289,6 +291,30 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     Navigator.of(context).pop();
   }
 
+  Future<void> _confirmCancelAndLeave() async {
+    if (_leaving || _handedOff || !mounted) return;
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Leave ready room?'),
+        content: const Text(
+          'You will leave this duel room. The match will not start from this screen.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(context.tr('stay')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Leave room'),
+          ),
+        ],
+      ),
+    );
+    if (leave == true && mounted) await _cancelAndLeave();
+  }
+
   void _ready() {
     if (_readyPressed || _controller == null || !_readyStage) return;
     _autoReadyTimer?.cancel();
@@ -394,7 +420,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     return PopScope(
       canPop: _handedOff || _allowPop,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(_cancelAndLeave());
+        if (!didPop) unawaited(_confirmCancelAndLeave());
       },
       child: _ReadyArenaStage(
         currentPlayer: _currentVisualPlayer(context),
@@ -408,7 +434,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         actionIcon: action.icon,
         actionBusy: _leaving || _connecting || action.busy,
         onAction: _leaving ? null : action.onPressed,
-        onClose: _leaving ? null : _cancelAndLeave,
+        onLeave: _leaving ? null : _confirmCancelAndLeave,
         floatingControl: _showReadyEmotes
             ? const OnlineDuelInlineEmoteSurface(
                 key: ValueKey<String>('ready-screen-emotes'),
@@ -506,7 +532,7 @@ class _ReadyArenaStage extends StatelessWidget {
     required this.actionIcon,
     required this.actionBusy,
     required this.onAction,
-    required this.onClose,
+    required this.onLeave,
     required this.floatingControl,
   });
 
@@ -519,19 +545,19 @@ class _ReadyArenaStage extends StatelessWidget {
   final IconData actionIcon;
   final bool actionBusy;
   final VoidCallback? onAction;
-  final VoidCallback? onClose;
+  final VoidCallback? onLeave;
   final Widget? floatingControl;
 
   @override
   Widget build(BuildContext context) {
     final readyCount = (currentReady ? 1 : 0) + (opponentReady ? 1 : 0);
     final bothReady = readyCount == 2;
-    final statusTitle = bothReady
+    final title = bothReady
         ? context.tr('everyone_ready_starting')
         : currentReady
         ? context.tr('waiting_opponent_ready')
         : 'Waiting for both players to confirm';
-    final statusSubtitle = bothReady
+    final subtitle = bothReady
         ? '2/2 players ready'
         : currentReady
         ? '$readyCount/2 players ready'
@@ -575,8 +601,8 @@ class _ReadyArenaStage extends StatelessWidget {
                         ),
                         SizedBox(height: compact ? 7 : 10),
                         _ReadyStatusCard(
-                          title: statusTitle,
-                          subtitle: statusSubtitle,
+                          title: title,
+                          subtitle: subtitle,
                           readyCount: readyCount,
                         ),
                         SizedBox(height: compact ? 8 : 11),
@@ -584,7 +610,6 @@ class _ReadyArenaStage extends StatelessWidget {
                           width: double.infinity,
                           height: compact ? 58 : 66,
                           child: FilledButton.icon(
-                            key: const ValueKey<String>('prematch-ready-action'),
                             onPressed: actionBusy ? null : onAction,
                             icon: actionBusy
                                 ? const SizedBox.square(
@@ -643,26 +668,7 @@ class _ReadyArenaStage extends StatelessWidget {
                               ),
                             ),
                             const Spacer(),
-                            SizedBox(
-                              width: 58,
-                              height: 58,
-                              child: IconButton(
-                                tooltip: context.tr('cancel'),
-                                onPressed: onClose,
-                                style: IconButton.styleFrom(
-                                  backgroundColor: const Color(0xD8142430),
-                                  foregroundColor: const Color(0xFFFFC94D),
-                                  side: BorderSide(
-                                    color: const Color(0xFFFFC94D)
-                                        .withValues(alpha: .44),
-                                  ),
-                                ),
-                                icon: const Icon(
-                                  Icons.tune_rounded,
-                                  size: 25,
-                                ),
-                              ),
-                            ),
+                            _ReadyOptionsButton(onLeave: onLeave),
                           ],
                         ),
                       ],
@@ -673,6 +679,96 @@ class _ReadyArenaStage extends StatelessWidget {
             },
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ReadyOptionsButton extends StatelessWidget {
+  const _ReadyOptionsButton({required this.onLeave});
+
+  final VoidCallback? onLeave;
+
+  Future<void> _open(BuildContext context) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: .46),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Material(
+            color: const Color(0xFF101D27),
+            borderRadius: BorderRadius.circular(22),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .18),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'READY ROOM OPTIONS',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: .8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.logout_rounded,
+                      color: Color(0xFFFF8C88),
+                    ),
+                    title: const Text(
+                      'Leave ready room',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: const Text('A confirmation is required.'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: onLeave == null
+                        ? null
+                        : () => Navigator.of(sheetContext).pop('leave'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (action == 'leave') onLeave?.call();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 58,
+      height: 58,
+      child: IconButton(
+        tooltip: 'Ready room options',
+        onPressed: () => _open(context),
+        style: IconButton.styleFrom(
+          backgroundColor: const Color(0xD8142430),
+          foregroundColor: const Color(0xFFFFC94D),
+          side: BorderSide(
+            color: const Color(0xFFFFC94D).withValues(alpha: .44),
+          ),
+        ),
+        icon: const Icon(Icons.tune_rounded, size: 25),
       ),
     );
   }
@@ -722,12 +818,6 @@ class _ReadyDuelHeader extends StatelessWidget {
                 color: const Color(0xFF29D398).withValues(alpha: .72),
                 width: 2,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF29D398).withValues(alpha: .18),
-                  blurRadius: 16,
-                ),
-              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -785,7 +875,9 @@ class _MiniPlayerHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = player;
-    final name = p?.displayName.isNotEmpty == true ? p!.displayName : fallbackName;
+    final name = p?.displayName.isNotEmpty == true
+        ? p!.displayName
+        : fallbackName;
     final avatar = p == null
         ? Container(
             width: 43,
@@ -795,16 +887,16 @@ class _MiniPlayerHeader extends StatelessWidget {
               color: const Color(0xFF122236),
               border: Border.all(color: accent.withValues(alpha: .56)),
             ),
-            child: const Icon(Icons.person_outline_rounded, color: Colors.white54),
+            child: const Icon(
+              Icons.person_outline_rounded,
+              color: Colors.white54,
+            ),
           )
         : Container(
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: accent, width: ready ? 2 : 1),
-              boxShadow: ready
-                  ? [BoxShadow(color: accent.withValues(alpha: .28), blurRadius: 10)]
-                  : null,
             ),
             child: PlayerAvatar(
               displayName: p.displayName,
@@ -816,7 +908,8 @@ class _MiniPlayerHeader extends StatelessWidget {
     final info = Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Text(
             name,
@@ -882,41 +975,31 @@ class _ReadyVersusArena extends StatelessWidget {
       clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _ReadyArenaPainter(),
-          ),
-        ),
+        Positioned.fill(child: CustomPaint(painter: _ReadyArenaPainter())),
         Row(
           children: [
             Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: FractionallySizedBox(
-                  widthFactor: .92,
-                  heightFactor: compact ? .86 : .88,
-                  child: _ReadyPlayerCard(
-                    player: opponent,
-                    ready: opponentReady,
-                    accent: const Color(0xFF3AA9FF),
-                    placeholderLabel: context.tr('connecting_players'),
-                  ),
+              child: FractionallySizedBox(
+                widthFactor: .92,
+                heightFactor: compact ? .86 : .88,
+                child: _ReadyPlayerCard(
+                  player: opponent,
+                  ready: opponentReady,
+                  accent: const Color(0xFF3AA9FF),
+                  placeholderLabel: context.tr('connecting_players'),
                 ),
               ),
             ),
             const SizedBox(width: 40),
             Expanded(
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: FractionallySizedBox(
-                  widthFactor: .92,
-                  heightFactor: compact ? .86 : .88,
-                  child: _ReadyPlayerCard(
-                    player: currentPlayer,
-                    ready: currentReady,
-                    accent: const Color(0xFFFFC94D),
-                    placeholderLabel: context.tr('you'),
-                  ),
+              child: FractionallySizedBox(
+                widthFactor: .92,
+                heightFactor: compact ? .86 : .88,
+                child: _ReadyPlayerCard(
+                  player: currentPlayer,
+                  ready: currentReady,
+                  accent: const Color(0xFFFFC94D),
+                  placeholderLabel: context.tr('you'),
                 ),
               ),
             ),
@@ -925,6 +1008,7 @@ class _ReadyVersusArena extends StatelessWidget {
         Container(
           width: compact ? 58 : 66,
           height: compact ? 58 : 66,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0xFF16263A),
@@ -934,18 +1018,17 @@ class _ReadyVersusArena extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF3AA9FF).withValues(alpha: .34),
+                color: const Color(0xFF3AA9FF).withValues(alpha: .30),
                 blurRadius: 20,
                 offset: const Offset(-8, 0),
               ),
               BoxShadow(
-                color: const Color(0xFFFFC94D).withValues(alpha: .30),
+                color: const Color(0xFFFFC94D).withValues(alpha: .26),
                 blurRadius: 20,
                 offset: const Offset(8, 0),
               ),
             ],
           ),
-          alignment: Alignment.center,
           child: const Icon(
             Icons.shield_rounded,
             color: Color(0xFFFFC94D),
@@ -974,7 +1057,7 @@ class _ReadyPlayerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = player;
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 18, 14, 16),
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
@@ -988,11 +1071,6 @@ class _ReadyPlayerCard extends StatelessWidget {
             color: accent.withValues(alpha: ready ? .27 : .14),
             blurRadius: ready ? 24 : 16,
           ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .33),
-            blurRadius: 22,
-            offset: const Offset(0, 12),
-          ),
         ],
       ),
       child: p == null
@@ -1000,30 +1078,40 @@ class _ReadyPlayerCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 82,
-                  height: 82,
+                  width: 78,
+                  height: 78,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: const Color(0xFF102139),
-                    border: Border.all(color: accent.withValues(alpha: .60), width: 2),
+                    border: Border.all(
+                      color: accent.withValues(alpha: .60),
+                      width: 2,
+                    ),
                   ),
-                  child: const Icon(Icons.person_search_rounded, color: Colors.white54, size: 42),
+                  child: const Icon(
+                    Icons.person_search_rounded,
+                    color: Colors.white54,
+                    size: 40,
+                  ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 Text(
                   placeholderLabel,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 16,
+                    fontSize: 15,
                   ),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.4, color: accent),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    color: accent,
+                  ),
                 ),
               ],
             )
@@ -1035,7 +1123,10 @@ class _ReadyPlayerCard extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: accent, width: 2.2),
                     boxShadow: [
-                      BoxShadow(color: accent.withValues(alpha: .28), blurRadius: 18),
+                      BoxShadow(
+                        color: accent.withValues(alpha: .28),
+                        blurRadius: 18,
+                      ),
                     ],
                   ),
                   child: PlayerAvatar(
@@ -1045,25 +1136,25 @@ class _ReadyPlayerCard extends StatelessWidget {
                     semanticLabel: p.displayName,
                   ),
                 ),
-                const SizedBox(height: 13),
+                const SizedBox(height: 12),
                 Text(
                   p.displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: 6),
                 Text(
                   p.rankLabel ?? '—',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFFC3A8FF),
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -1072,23 +1163,38 @@ class _ReadyPlayerCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: _ReadyStat(value: '${p.gamesPlayed ?? 0}', label: 'Matches')),
+                    Expanded(
+                      child: _ReadyStat(
+                        value: '${p.gamesPlayed ?? 0}',
+                        label: 'Matches',
+                      ),
+                    ),
                     Expanded(
                       child: _ReadyStat(
                         value: '${(((p.winRate ?? 0) * 100).round())}%',
                         label: 'Win rate',
                       ),
                     ),
-                    Expanded(child: _ReadyStat(value: '${p.rating ?? 0}', label: 'RP', accent: true)),
+                    Expanded(
+                      child: _ReadyStat(
+                        value: '${p.rating ?? 0}',
+                        label: 'RP',
+                        accent: true,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 11),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      ready ? Icons.check_circle_rounded : Icons.link_rounded,
-                      color: ready ? const Color(0xFF29D398) : const Color(0xFF66C7FF),
+                      ready
+                          ? Icons.check_circle_rounded
+                          : Icons.link_rounded,
+                      color: ready
+                          ? const Color(0xFF29D398)
+                          : const Color(0xFF66C7FF),
                       size: 16,
                     ),
                     const SizedBox(width: 6),
@@ -1096,7 +1202,7 @@ class _ReadyPlayerCard extends StatelessWidget {
                       ready ? context.tr('ready') : context.tr('connected'),
                       style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1109,7 +1215,11 @@ class _ReadyPlayerCard extends StatelessWidget {
 }
 
 class _ReadyStat extends StatelessWidget {
-  const _ReadyStat({required this.value, required this.label, this.accent = false});
+  const _ReadyStat({
+    required this.value,
+    required this.label,
+    this.accent = false,
+  });
 
   final String value;
   final String label;
@@ -1123,7 +1233,7 @@ class _ReadyStat extends StatelessWidget {
           value,
           style: TextStyle(
             color: accent ? const Color(0xFFC3A8FF) : Colors.white,
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -1157,7 +1267,7 @@ class _ReadyStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
         color: const Color(0xD9102030),
         borderRadius: BorderRadius.circular(22),
@@ -1171,9 +1281,15 @@ class _ReadyStatusCard extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: const Color(0xFF122C44),
-              border: Border.all(color: const Color(0xFF66C7FF).withValues(alpha: .42)),
+              border: Border.all(
+                color: const Color(0xFF66C7FF).withValues(alpha: .42),
+              ),
             ),
-            child: const Icon(Icons.group_rounded, color: Colors.white, size: 24),
+            child: const Icon(
+              Icons.group_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 11),
           Expanded(
@@ -1208,15 +1324,10 @@ class _ReadyStatusCard extends StatelessWidget {
             width: 10,
             height: 10,
             decoration: BoxDecoration(
-              color: readyCount == 2 ? const Color(0xFF29D398) : const Color(0xFFFFC94D),
+              color: readyCount == 2
+                  ? const Color(0xFF29D398)
+                  : const Color(0xFFFFC94D),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: (readyCount == 2 ? const Color(0xFF29D398) : const Color(0xFFFFC94D))
-                      .withValues(alpha: .34),
-                  blurRadius: 9,
-                ),
-              ],
             ),
           ),
         ],
