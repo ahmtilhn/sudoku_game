@@ -159,7 +159,7 @@ class _ProfileCustomizationScreenState
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 860),
               child: DefaultTabController(
-                length: 5,
+                length: 4,
                 child: Column(
                   children: [
                     Padding(
@@ -229,10 +229,6 @@ class _ProfileCustomizationScreenState
                                   text: 'Badges',
                                 ),
                                 Tab(
-                                  icon: Icon(Icons.title_rounded),
-                                  text: 'Titles',
-                                ),
-                                Tab(
                                   icon: Icon(Icons.public_rounded),
                                   text: 'Country',
                                 ),
@@ -263,12 +259,6 @@ class _ProfileCustomizationScreenState
                             avatarKey: _avatarKey,
                             selectedAchievementIds: _achievementIds,
                             onToggle: _toggleDecoration,
-                          ),
-                          _TitleTab(
-                            profile: _profile,
-                            selectedKey: _titleKey,
-                            onSelected: (key) =>
-                                setState(() => _titleKey = key),
                           ),
                           _CountryTab(
                             countryCode: _countryCode,
@@ -788,6 +778,8 @@ class _DecorationTab extends StatelessWidget {
   }
 }
 
+// Kept intentionally for future re-enablement. Titles remain supported by the
+// profile model and save flow, but the user-facing tab is hidden for now.
 class _TitleTab extends StatelessWidget {
   const _TitleTab({
     required this.profile,
