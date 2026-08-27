@@ -91,6 +91,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         },
         child: MatchmakingStage(
           currentPlayer: _currentVisualPlayer(context),
+          difficultyLabel: context.strings.difficultyLabel(_difficulty),
           actionLabel: context.tr('cancel_search'),
           actionIcon: Icons.close_rounded,
           actionBusy: _cancelling,
