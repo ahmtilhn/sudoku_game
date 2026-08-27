@@ -1,5 +1,6 @@
 name: Temporary result dialog fix
 
+# trigger: bounded dialog validation
 on:
   push:
     branches: [main]
