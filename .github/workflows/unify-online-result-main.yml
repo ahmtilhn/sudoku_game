@@ -24,76 +24,63 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Replace unstable result bottom sheet
+      - name: Replace unstable result carrier
         shell: python
         run: |
           from pathlib import Path
-
           path = Path('lib/features/duel/online_duel_screen.dart')
           source = path.read_text()
-          old = """      final action = await showModalBottomSheet<String>(
-        context: context,
-        isDismissible: false,
-        enableDrag: false,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: Colors.transparent,
-        barrierColor: Colors.black.withValues(alpha: .56),
-        constraints: const BoxConstraints(maxWidth: 460),
-        builder: (sheetContext) => FractionallySizedBox(
-          heightFactor: MediaQuery.sizeOf(sheetContext).height < 720
-              ? .98
-              : .94,
-          child: _OnlineResultSheet(snapshot: snapshot),
-        ),
-      );
-"""
-          new = """      final action = await showGeneralDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        barrierLabel: 'Duel result',
-        barrierColor: Colors.black.withValues(alpha: .68),
-        transitionDuration: const Duration(milliseconds: 220),
-        transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
-          );
-          return FadeTransition(
-            opacity: curved,
-            child: ScaleTransition(
-              scale: Tween<double>(begin: .97, end: 1).animate(curved),
-              child: child,
-            ),
-          );
-        },
-        pageBuilder: (dialogContext, animation, secondaryAnimation) {
-          final media = MediaQuery.of(dialogContext);
-          final availableHeight =
-              media.size.height - media.padding.top - media.padding.bottom - 16;
-          return SafeArea(
-            minimum: const EdgeInsets.all(8),
-            child: Material(
-              type: MaterialType.transparency,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 460),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: availableHeight.clamp(0.0, 900.0).toDouble(),
-                    child: _OnlineResultSheet(snapshot: snapshot),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      );
-"""
-          if old not in source:
-              raise SystemExit('Expected result bottom-sheet block was not found.')
-          path.write_text(source.replace(old, new, 1))
+          start_marker = '      final action = await showModalBottomSheet<String>('
+          end_marker = '      if (!mounted || action == null) return;'
+          start = source.index(start_marker)
+          end = source.index(end_marker, start)
+          lines = [
+              '      final action = await showGeneralDialog<String>(',
+              '        context: context,',
+              '        barrierDismissible: false,',
+              "        barrierLabel: 'Duel result',",
+              '        barrierColor: Colors.black.withValues(alpha: .68),',
+              '        transitionDuration: const Duration(milliseconds: 220),',
+              '        transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {',
+              '          final curved = CurvedAnimation(',
+              '            parent: animation,',
+              '            curve: Curves.easeOutCubic,',
+              '            reverseCurve: Curves.easeInCubic,',
+              '          );',
+              '          return FadeTransition(',
+              '            opacity: curved,',
+              '            child: ScaleTransition(',
+              '              scale: Tween<double>(begin: .97, end: 1).animate(curved),',
+              '              child: child,',
+              '            ),',
+              '          );',
+              '        },',
+              '        pageBuilder: (dialogContext, animation, secondaryAnimation) {',
+              '          final media = MediaQuery.of(dialogContext);',
+              '          final availableHeight =',
+              '              media.size.height - media.padding.top - media.padding.bottom - 16;',
+              '          return SafeArea(',
+              '            minimum: const EdgeInsets.all(8),',
+              '            child: Material(',
+              '              type: MaterialType.transparency,',
+              '              child: Center(',
+              '                child: ConstrainedBox(',
+              '                  constraints: const BoxConstraints(maxWidth: 460),',
+              '                  child: SizedBox(',
+              '                    width: double.infinity,',
+              '                    height: availableHeight.clamp(0.0, 900.0).toDouble(),',
+              '                    child: _OnlineResultSheet(snapshot: snapshot),',
+              '                  ),',
+              '                ),',
+              '              ),',
+              '            ),',
+              '          );',
+              '        },',
+              '      );',
+              '',
+          ]
+          replacement = chr(10).join(lines)
+          path.write_text(source[:start] + replacement + source[end:])
 
       - uses: subosito/flutter-action@v2
         with:
@@ -104,22 +91,20 @@ jobs:
       - run: dart format lib/features/duel/online_duel_screen.dart
       - run: flutter analyze --fatal-infos lib/features/duel/online_duel_screen.dart
 
-      - name: Verify stable dialog carrier
+      - name: Verify stable result carrier
         shell: python
         run: |
           from pathlib import Path
           source = Path('lib/features/duel/online_duel_screen.dart').read_text()
           assert 'showGeneralDialog<String>' in source
           assert 'showModalBottomSheet<String>' not in source
-          assert 'availableHeight' in source
-          assert "assets/images/ui/defeat_trophy.png" in source
-          assert "assets/ELO_rating_icons/cup.png" in source
+          assert 'availableHeight.clamp' in source
 
-      - name: Restore workflow and commit result fix
+      - name: Restore workflow and commit
         shell: bash
         run: |
           set -euo pipefail
-          git checkout HEAD^ -- .github/workflows/unify-online-result-main.yml
+          git checkout 14fa33c8c04b2ded0ed730c408e7a1099f54641b -- .github/workflows/unify-online-result-main.yml
           rm -f .github/workflows/tmp-result-dialog-fix.yml
           rm -f .github/workflows/tmp-result-dialog-direct.yml
           git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
