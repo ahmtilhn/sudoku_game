@@ -139,11 +139,11 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
                       profile: _profile,
                       leaderboardRank: _board?.currentRank,
                     ),
-                    const SizedBox(height: 20),
-                    const _SectionTitle(
-                      titleKey: 'global_rp_leaderboard',
-                      subtitle:
-                          'Visible RP determines your displayed rank. Matchmaking skill stays hidden.',
+                    const SizedBox(height: 14),
+                    const _RankInfoCard(),
+                    const SizedBox(height: 14),
+                    _LeaderboardSectionTitle(
+                      title: context.tr('global_rp_leaderboard'),
                     ),
                     const SizedBox(height: 10),
                     if (_board == null && _loading)
@@ -167,38 +167,13 @@ class _LeaderboardsScreenState extends State<LeaderboardsScreen> {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.titleKey, required this.subtitle});
-
-  final String titleKey;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          context.tr(titleKey),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          subtitle,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: .56),
-            fontSize: 12,
-            height: 1.35,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
+Color _rankAccent(String rankKey) {
+  final key = rankKey.toLowerCase();
+  if (key.startsWith('silver')) return const Color(0xFFB9CAD8);
+  if (key.startsWith('gold')) return const Color(0xFFFFC84D);
+  if (key.startsWith('platinum')) return const Color(0xFF63DCF3);
+  if (key.startsWith('master')) return const Color(0xFFC587FF);
+  return const Color(0xFFE49555);
 }
 
 class _CurrentRankCard extends StatelessWidget {
@@ -209,122 +184,265 @@ class _CurrentRankCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = _rankAccent(profile.rankKey);
     final globalRank = leaderboardRank == null ? '—' : '#$leaderboardRank';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .22),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .24),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              PlayerAvatar(
-                displayName: profile.displayName,
-                avatarKey: profile.avatarKey,
-                radius: 39,
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 380;
+        final avatarRadius = compact ? 39.0 : 45.0;
+        return Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accent.withValues(alpha: .13),
+                const Color(0xFF111D23).withValues(alpha: .94),
+                const Color(0xFF091218).withValues(alpha: .96),
+              ],
+              stops: const [0, .38, 1],
+            ),
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: accent.withValues(alpha: .58), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: accent.withValues(alpha: .12),
+                blurRadius: 26,
+                spreadRadius: -8,
+                offset: const Offset(0, 10),
               ),
-              const SizedBox(width: 15),
-              Expanded(
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .28),
+                blurRadius: 24,
+                offset: const Offset(0, 13),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -54,
+                top: -64,
+                child: Container(
+                  width: 170,
+                  height: 170,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: accent.withValues(alpha: .10),
+                        blurRadius: 70,
+                        spreadRadius: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  compact ? 13 : 16,
+                  15,
+                  compact ? 13 : 16,
+                  14,
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      profile.rankName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 23,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: accent.withValues(alpha: .18),
+                                blurRadius: 22,
+                                spreadRadius: -4,
+                              ),
+                            ],
+                          ),
+                          child: PlayerAvatar(
+                            displayName: profile.displayName,
+                            avatarKey: profile.avatarKey,
+                            radius: avatarRadius,
+                          ),
+                        ),
+                        SizedBox(width: compact ? 11 : 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                profile.rankName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: compact ? 20 : 24,
+                                  height: 1.05,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -.3,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${profile.rankPoints} RP',
+                                style: const TextStyle(
+                                  color: Color(0xFF66C7FF),
+                                  fontSize: 31,
+                                  height: 1,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -.6,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _GlobalRankPill(label: globalRank, accent: accent),
+                      ],
                     ),
-                    Text(
-                      '${profile.rankPoints} RP',
-                      style: const TextStyle(
-                        color: Color(0xFF66C7FF),
-                        fontSize: 28,
-                        height: 1,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    const SizedBox(height: 15),
+                    _PremiumProgressBar(
+                      value: profile.progress.clamp(0.0, 1.0).toDouble(),
+                      accent: accent,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(
+                          profile.divisionSize == null
+                              ? '${profile.pointsInDivision} RP above Master I'
+                              : '${profile.pointsInDivision}/${profile.divisionSize} RP',
+                          style: _mutedRankStyle(),
+                        ),
+                        const Spacer(),
+                        Flexible(
+                          child: Text(
+                            profile.nextRankName == null
+                                ? 'Top rank'
+                                : '${profile.pointsToNext ?? 0} RP to ${profile.nextRankName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: _mutedRankStyle(),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              _GlobalRankPill(label: globalRank),
             ],
           ),
-          const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: profile.progress.clamp(0.0, 1.0).toDouble(),
-              minHeight: 9,
-              backgroundColor: Colors.white.withValues(alpha: .08),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF66C7FF),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Text(
-                profile.divisionSize == null
-                    ? '${profile.pointsInDivision} RP above Master I'
-                    : '${profile.pointsInDivision}/${profile.divisionSize} RP',
-                style: _mutedStyle(),
-              ),
-              const Spacer(),
-              Flexible(
-                child: Text(
-                  profile.nextRankName == null
-                      ? 'Top rank'
-                      : '${profile.pointsToNext ?? 0} RP to ${profile.nextRankName}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.end,
-                  style: _mutedStyle(),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  TextStyle _mutedStyle() => TextStyle(
-    color: Colors.white.withValues(alpha: .58),
+  TextStyle _mutedRankStyle() => TextStyle(
+    color: Colors.white.withValues(alpha: .62),
     fontSize: 11,
     fontWeight: FontWeight.w800,
   );
 }
 
+class _PremiumProgressBar extends StatelessWidget {
+  const _PremiumProgressBar({required this.value, required this.accent});
+
+  final double value;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: Colors.white.withValues(alpha: .075),
+            border: Border.all(color: Colors.white.withValues(alpha: .035)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 8,
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation<Color>(accent),
+            ),
+          ),
+        ),
+        Positioned(
+          left: -1,
+          child: _ProgressDiamond(accent: accent),
+        ),
+        Positioned(
+          right: -1,
+          child: _ProgressDiamond(accent: accent),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProgressDiamond extends StatelessWidget {
+  const _ProgressDiamond({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: .785398,
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          color: accent,
+          borderRadius: BorderRadius.circular(1.5),
+          boxShadow: [
+            BoxShadow(color: accent.withValues(alpha: .70), blurRadius: 7),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _GlobalRankPill extends StatelessWidget {
-  const _GlobalRankPill({required this.label});
+  const _GlobalRankPill({required this.label, required this.accent});
 
   final String label;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      constraints: const BoxConstraints(minWidth: 64),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFF66C7FF).withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFF66C7FF).withValues(alpha: .20),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            accent.withValues(alpha: .17),
+            Colors.black.withValues(alpha: .18),
+          ],
         ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: .48)),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: .10),
+            blurRadius: 14,
+            spreadRadius: -4,
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -332,21 +450,125 @@ class _GlobalRankPill extends StatelessWidget {
             label,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 17,
+              fontSize: 18,
+              height: 1,
               fontWeight: FontWeight.w900,
             ),
           ),
+          const SizedBox(height: 4),
           Text(
             'GLOBAL',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: .45),
-              fontSize: 9,
+              color: Colors.white.withValues(alpha: .52),
+              fontSize: 8.5,
               fontWeight: FontWeight.w900,
-              letterSpacing: .7,
+              letterSpacing: .9,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RankInfoCard extends StatelessWidget {
+  const _RankInfoCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF071118).withValues(alpha: .58),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF66C7FF).withValues(alpha: .13)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFFFB454).withValues(alpha: .08),
+              border: Border.all(
+                color: const Color(0xFFFFB454).withValues(alpha: .65),
+              ),
+            ),
+            child: const Icon(
+              Icons.info_outline_rounded,
+              size: 18,
+              color: Color(0xFFFFC66B),
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Text(
+              'Visible RP determines your displayed rank. Matchmaking skill stays hidden.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .68),
+                fontSize: 11,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeaderboardSectionTitle extends StatelessWidget {
+  const _LeaderboardSectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final lineColor = const Color(0xFFE4A64C).withValues(alpha: .24);
+    return Row(
+      children: [
+        Expanded(child: Divider(height: 1, color: lineColor)),
+        Container(
+          width: 5,
+          height: 5,
+          margin: const EdgeInsets.only(left: 7),
+          transform: Matrix4.rotationZ(.785398),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE4A64C).withValues(alpha: .65),
+          ),
+        ),
+        Flexible(
+          flex: 4,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11),
+            child: Text(
+              title.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .74),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.0,
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: 5,
+          height: 5,
+          margin: const EdgeInsets.only(right: 7),
+          transform: Matrix4.rotationZ(.785398),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE4A64C).withValues(alpha: .65),
+          ),
+        ),
+        Expanded(child: Divider(height: 1, color: lineColor)),
+      ],
     );
   }
 }
@@ -364,29 +586,18 @@ class _LeaderboardList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .14),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: .06)),
-      ),
-      child: Column(
-        children: [
-          for (var index = 0; index < snapshot.entries.length; index++) ...[
-            _LeaderboardRow(
-              entry: snapshot.entries[index],
-              current: snapshot.entries[index].publicId == currentPublicId,
-              countryCode: countryFlags[snapshot.entries[index].publicId],
-            ),
-            if (index != snapshot.entries.length - 1)
-              Divider(
-                height: 1,
-                indent: 58,
-                color: Colors.white.withValues(alpha: .055),
-              ),
-          ],
+    return Column(
+      children: [
+        for (var index = 0; index < snapshot.entries.length; index++) ...[
+          _LeaderboardRow(
+            entry: snapshot.entries[index],
+            current: snapshot.entries[index].publicId == currentPublicId,
+            countryCode: countryFlags[snapshot.entries[index].publicId],
+          ),
+          if (index != snapshot.entries.length - 1)
+            const SizedBox(height: 6),
         ],
-      ),
+      ],
     );
   }
 }
@@ -405,29 +616,66 @@ class _LeaderboardRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final flag = countryFlagEmoji(countryCode);
+    final placementAccent = _placementAccent(entry.rank);
+    final accent = current ? const Color(0xFF35B8FF) : placementAccent;
+    final isPodium = entry.rank <= 3;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      color: current
-          ? const Color(0xFFB7A9FF).withValues(alpha: .07)
-          : Colors.transparent,
+      padding: EdgeInsets.symmetric(
+        horizontal: 11,
+        vertical: isPodium ? 9 : 8,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: current
+              ? [
+                  const Color(0xFF087CC2).withValues(alpha: .18),
+                  const Color(0xFF08141D).withValues(alpha: .76),
+                ]
+              : isPodium
+              ? [
+                  placementAccent.withValues(alpha: .10),
+                  const Color(0xFF071118).withValues(alpha: .70),
+                ]
+              : [
+                  const Color(0xFF071118).withValues(alpha: .48),
+                  Colors.black.withValues(alpha: .16),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: current
+              ? const Color(0xFF35B8FF).withValues(alpha: .86)
+              : isPodium
+              ? placementAccent.withValues(alpha: .48)
+              : Colors.white.withValues(alpha: .055),
+          width: current ? 1.2 : 1,
+        ),
+        boxShadow: [
+          if (current)
+            BoxShadow(
+              color: const Color(0xFF35B8FF).withValues(alpha: .15),
+              blurRadius: 17,
+              spreadRadius: -5,
+            )
+          else if (isPodium)
+            BoxShadow(
+              color: placementAccent.withValues(alpha: .075),
+              blurRadius: 14,
+              spreadRadius: -7,
+            ),
+        ],
+      ),
       child: Row(
         children: [
-          SizedBox(
-            width: 34,
-            child: Text(
-              '#${entry.rank}',
-              style: TextStyle(
-                color: entry.rank <= 3
-                    ? const Color(0xFFFFD86A)
-                    : Colors.white.withValues(alpha: .60),
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
+          _PlacementMark(rank: entry.rank),
+          const SizedBox(width: 7),
           PlayerAvatar(
             displayName: entry.displayName,
             avatarKey: entry.avatarKey,
-            radius: 22,
+            radius: isPodium ? 24 : 22,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -444,25 +692,31 @@ class _LeaderboardRow extends StatelessWidget {
                       ),
                       const SizedBox(width: 5),
                     ],
-                    Expanded(
+                    Flexible(
                       child: Text(
                         entry.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
+                          fontSize: 14,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
+                    if (current) ...[
+                      const SizedBox(width: 7),
+                      const _YouBadge(),
+                    ],
                   ],
                 ),
+                const SizedBox(height: 2),
                 Text(
                   '${entry.rankName} · ${(entry.winRate * 100).round()}% wins',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .46),
+                    color: Colors.white.withValues(alpha: .48),
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -471,10 +725,21 @@ class _LeaderboardRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          if (entry.rank == 1) ...[
+            const Icon(
+              Icons.emoji_events_rounded,
+              size: 16,
+              color: Color(0xFFFFC94D),
+            ),
+            const SizedBox(width: 4),
+          ],
           Text(
             '${entry.rankPoints} RP',
-            style: const TextStyle(
-              color: Color(0xFF66C7FF),
+            style: TextStyle(
+              color: entry.rank == 1
+                  ? const Color(0xFFFFC94D)
+                  : const Color(0xFF66C7FF),
+              fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -483,6 +748,92 @@ class _LeaderboardRow extends StatelessWidget {
     );
   }
 }
+
+class _PlacementMark extends StatelessWidget {
+  const _PlacementMark({required this.rank});
+
+  final int rank;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = _placementAsset(rank);
+    if (asset == null) {
+      return SizedBox(
+        width: 43,
+        child: Center(
+          child: Text(
+            '$rank',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .70),
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 43,
+      height: 43,
+      child: Image.asset(
+        asset,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, _, _) => Center(
+          child: Text(
+            '#$rank',
+            style: TextStyle(
+              color: _placementAccent(rank),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _YouBadge extends StatelessWidget {
+  const _YouBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFF35B8FF).withValues(alpha: .17),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFF35B8FF).withValues(alpha: .34),
+        ),
+      ),
+      child: const Text(
+        'YOU',
+        style: TextStyle(
+          color: Color(0xFF7ED6FF),
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .5,
+        ),
+      ),
+    );
+  }
+}
+
+String? _placementAsset(int rank) => switch (rank) {
+  1 => 'assets/ELO_rating_icons/elo_player_1.png',
+  2 => 'assets/ELO_rating_icons/elo_player_2.png',
+  3 => 'assets/ELO_rating_icons/elo_player_3.png',
+  _ => null,
+};
+
+Color _placementAccent(int rank) => switch (rank) {
+  1 => const Color(0xFFFFC94D),
+  2 => const Color(0xFFC8DAE9),
+  3 => const Color(0xFFDE854F),
+  _ => const Color(0xFF66C7FF),
+};
 
 class _BoardLoadingCard extends StatelessWidget {
   const _BoardLoadingCard();
