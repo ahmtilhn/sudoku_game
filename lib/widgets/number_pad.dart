@@ -27,25 +27,40 @@ class NumberPadDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
       elevation: compact ? 4 : 10,
-      color: Theme.of(
-        context,
-      ).colorScheme.surface.withValues(alpha: compact ? .94 : 1),
-      child: SafeArea(
-        top: false,
-        minimum: EdgeInsets.fromLTRB(
-          10,
-          compact ? 6 : 10,
-          10,
-          compact ? 8 : 12,
+      color: scheme.surface.withValues(alpha: compact ? .96 : 1),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: .055)),
+          ),
+          boxShadow: compact
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .18),
+                    blurRadius: 18,
+                    offset: const Offset(0, -6),
+                  ),
+                ],
         ),
-        child: Align(
-          alignment: Alignment.center,
-          heightFactor: 1,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: compact ? 500 : 560),
-            child: OnlineDuelEmoteDock(compact: compact, child: child),
+        child: SafeArea(
+          top: false,
+          minimum: EdgeInsets.fromLTRB(
+            10,
+            compact ? 6 : 10,
+            10,
+            compact ? 8 : 12,
+          ),
+          child: Align(
+            alignment: Alignment.center,
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: compact ? 500 : 560),
+              child: OnlineDuelEmoteDock(compact: compact, child: child),
+            ),
           ),
         ),
       ),
@@ -83,68 +98,32 @@ class NumberPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth <= 520;
         final dense = maxValue == 9;
-        final spacing = dense ? 3.0 : 4.0;
-        final oneRowWidth = constraints.maxWidth - (spacing * (maxValue - 1));
-        final oneRowButtonWidth = oneRowWidth / maxValue;
-        final minTap = dense ? 38.0 : 34.0;
-        final maxTap = dense ? 46.0 : 40.0;
-        final buttonWidth = oneRowButtonWidth >= minTap
-            ? oneRowButtonWidth.clamp(minTap, maxTap)
-            : maxTap;
-        final buttonHeight = dense ? 40.0 : 36.0;
 
         return AnimatedOpacity(
           duration: const Duration(milliseconds: 180),
-          opacity: enabled ? 1 : 0.58,
+          opacity: enabled ? 1 : 0.68,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: spacing,
-                runSpacing: dense ? 3 : 4,
-                children: [
-                  for (var value = 1; value <= maxValue; value++)
-                    Builder(
-                      builder: (context) {
-                        final isCompleted = completedValues.contains(value);
-                        return SizedBox(
-                          width: buttonWidth,
-                          height: buttonHeight,
-                          child: FilledButton.tonal(
-                            key: ValueKey<String>('number-$value'),
-                            onPressed: enabled && !isCompleted
-                                ? () => onNumber(value)
-                                : null,
-                            style: FilledButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size(minTap, buttonHeight),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              backgroundColor: scheme.secondaryContainer,
-                              foregroundColor: scheme.onSecondaryContainer,
-                            ),
-                            child: Text(
-                              '$value',
-                              style: TextStyle(
-                                fontSize: dense ? 16 : 14,
-                                fontWeight: FontWeight.w800,
-                                decoration: isCompleted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                ],
-              ),
+              if (dense)
+                _NineNumberGrid(
+                  maxWidth: constraints.maxWidth,
+                  enabled: enabled,
+                  completedValues: completedValues,
+                  onNumber: onNumber,
+                )
+              else
+                _FlexibleNumberGrid(
+                  maxWidth: constraints.maxWidth,
+                  maxValue: maxValue,
+                  enabled: enabled,
+                  completedValues: completedValues,
+                  onNumber: onNumber,
+                ),
               SizedBox(height: compact ? 5 : 8),
               Wrap(
                 alignment: WrapAlignment.center,
@@ -196,6 +175,160 @@ class NumberPad extends StatelessWidget {
   }
 }
 
+class _NineNumberGrid extends StatelessWidget {
+  const _NineNumberGrid({
+    required this.maxWidth,
+    required this.enabled,
+    required this.completedValues,
+    required this.onNumber,
+  });
+
+  final double maxWidth;
+  final bool enabled;
+  final Set<int> completedValues;
+  final ValueChanged<int> onNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    const spacing = 7.0;
+    final width = ((maxWidth - spacing * 4) / 5).clamp(48.0, 72.0);
+    final height = width.clamp(46.0, 56.0);
+
+    Widget row(List<int> values) => Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        for (var index = 0; index < values.length; index++) ...[
+          if (index > 0) const SizedBox(width: spacing),
+          _NumberButton(
+            value: values[index],
+            width: width,
+            height: height,
+            enabled: enabled,
+            completed: completedValues.contains(values[index]),
+            onTap: () => onNumber(values[index]),
+          ),
+        ],
+      ],
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        row(const [1, 2, 3, 4, 5]),
+        const SizedBox(height: 7),
+        row(const [6, 7, 8, 9]),
+      ],
+    );
+  }
+}
+
+class _FlexibleNumberGrid extends StatelessWidget {
+  const _FlexibleNumberGrid({
+    required this.maxWidth,
+    required this.maxValue,
+    required this.enabled,
+    required this.completedValues,
+    required this.onNumber,
+  });
+
+  final double maxWidth;
+  final int maxValue;
+  final bool enabled;
+  final Set<int> completedValues;
+  final ValueChanged<int> onNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    const spacing = 4.0;
+    final oneRowWidth = maxWidth - (spacing * (maxValue - 1));
+    final oneRowButtonWidth = oneRowWidth / maxValue;
+    final buttonWidth = oneRowButtonWidth >= 34
+        ? oneRowButtonWidth.clamp(34.0, 40.0)
+        : 40.0;
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: spacing,
+      runSpacing: spacing,
+      children: [
+        for (var value = 1; value <= maxValue; value++)
+          _NumberButton(
+            value: value,
+            width: buttonWidth,
+            height: 36,
+            enabled: enabled,
+            completed: completedValues.contains(value),
+            onTap: () => onNumber(value),
+            compact: true,
+          ),
+      ],
+    );
+  }
+}
+
+class _NumberButton extends StatelessWidget {
+  const _NumberButton({
+    required this.value,
+    required this.width,
+    required this.height,
+    required this.enabled,
+    required this.completed,
+    required this.onTap,
+    this.compact = false,
+  });
+
+  final int value;
+  final double width;
+  final double height;
+  final bool enabled;
+  final bool completed;
+  final VoidCallback onTap;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final active = enabled && !completed;
+    return SizedBox(
+      width: width,
+      height: height,
+      child: FilledButton.tonal(
+        key: ValueKey<String>('number-$value'),
+        onPressed: active ? onTap : null,
+        style: FilledButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: Size(width, height),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          backgroundColor: scheme.secondaryContainer.withValues(alpha: .92),
+          foregroundColor: scheme.onSecondaryContainer,
+          disabledBackgroundColor: scheme.surfaceContainerHigh.withValues(
+            alpha: .70,
+          ),
+          disabledForegroundColor: scheme.onSurface.withValues(alpha: .35),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(compact ? 12 : 15),
+            side: BorderSide(
+              color: active
+                  ? scheme.secondary.withValues(alpha: .20)
+                  : Colors.white.withValues(alpha: .035),
+            ),
+          ),
+          elevation: 0,
+        ),
+        child: Text(
+          '$value',
+          style: TextStyle(
+            fontSize: compact ? 14 : 18,
+            fontWeight: FontWeight.w900,
+            decoration: completed ? TextDecoration.lineThrough : null,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.buttonKey,
@@ -218,12 +351,21 @@ class _ActionButton extends StatelessWidget {
       key: buttonKey,
       onPressed: onPressed,
       style: TextButton.styleFrom(
+        foregroundColor: selected ? scheme.primary : scheme.onSurfaceVariant,
         backgroundColor: selected
-            ? scheme.primaryContainer
-            : Colors.transparent,
+            ? scheme.primary.withValues(alpha: .12)
+            : Colors.white.withValues(alpha: .025),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         minimumSize: const Size(42, 36),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(11),
+          side: BorderSide(
+            color: selected
+                ? scheme.primary.withValues(alpha: .26)
+                : Colors.white.withValues(alpha: .055),
+          ),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -231,7 +373,12 @@ class _ActionButton extends StatelessWidget {
           Icon(icon, size: 18),
           const SizedBox(width: 5),
           Flexible(
-            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
           ),
         ],
       ),
