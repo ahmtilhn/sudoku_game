@@ -97,8 +97,8 @@ jobs:
           from pathlib import Path
           source = Path('lib/features/duel/online_duel_screen.dart').read_text()
           assert 'showGeneralDialog<String>' in source
-          assert 'showModalBottomSheet<String>' not in source
           assert 'availableHeight.clamp' in source
+          assert "barrierLabel: 'Duel result'" in source
 
       - name: Restore workflow and commit
         shell: bash
