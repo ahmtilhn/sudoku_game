@@ -146,7 +146,9 @@ class _OnlineReconnectPresentationState
   @override
   Widget build(BuildContext context) {
     final expiredVisualCountdown = _seconds <= 0;
-    final progress = (_seconds / _visualCountdownSeconds).clamp(0.0, 1.0);
+    final progress = (_seconds / _visualCountdownSeconds)
+        .clamp(0.0, 1.0)
+        .toDouble();
     return Positioned.fill(
       child: Material(
         color: Colors.black.withValues(alpha: .58),
