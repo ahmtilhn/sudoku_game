@@ -145,7 +145,7 @@ jobs:
               '                        Row(',
               '                          crossAxisAlignment: CrossAxisAlignment.end,',
               '                          children: [',
-              '                            if (floatingControl != null) floatingControl!,',
+              '                            ?floatingControl,',
               '                            const Spacer(),',
               '                            _ReadyOptionsButton(onLeave: onLeave),',
               '                          ],',
