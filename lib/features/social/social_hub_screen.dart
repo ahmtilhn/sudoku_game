@@ -322,7 +322,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                               text:
                                   '${context.tr('challenge')} (${_incoming.length})',
                             ),
-                            Tab(text: context.tr('opponent')),
+                            Tab(text: context.tr('recent_opponents')),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -405,7 +405,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                           _requestsView(),
                           _playersView(_friends),
                           _challengesView(),
-                          _playersView(_opponents),
+                          _recentOpponentsView(),
                         ],
                       ),
               ),
@@ -446,6 +446,29 @@ class _SocialHubScreenState extends State<SocialHubScreen>
           busy: _busyId == 'challenge-${player.publicId}',
           primaryLabel: context.tr('challenge'),
           onPrimary: () => _challenge(player),
+        ),
+    ]);
+  }
+
+  Widget _recentOpponentsView() {
+    if (_opponents.isEmpty) {
+      return _Empty(message: context.tr('recent_opponents_empty_body'));
+    }
+    return _scroll([
+      for (final player in _opponents)
+        _PlayerRow(
+          player: player,
+          rank: _rankFor(player.publicId),
+          busy: _busyId == 'friend-${player.publicId}',
+          enabled:
+              player.friendshipStatus != 'accepted' &&
+              player.friendshipStatus != 'pending',
+          primaryLabel: player.friendshipStatus == 'accepted'
+              ? context.tr('friends')
+              : player.friendshipStatus == 'pending'
+              ? context.tr('friend_request_sent')
+              : context.tr('add_friend'),
+          onPrimary: () => _sendFriendRequest(player),
         ),
     ]);
   }

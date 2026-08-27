@@ -533,7 +533,11 @@ async function respondFriendRequest(
 
 async function listRecentOpponents(env: Env, current: PlayerRow): Promise<Response> {
   const rows = await env.DB.prepare(
-    `SELECT p.*, r.last_played_at
+    `SELECT p.*, r.last_played_at,
+      (SELECT f.status FROM friendships f
+       WHERE f.player_low_id = CASE WHEN p.id < ? THEN p.id ELSE ? END
+         AND f.player_high_id = CASE WHEN p.id < ? THEN ? ELSE p.id END
+       LIMIT 1) AS friendship_status
      FROM recent_opponents r
      JOIN players p ON p.id = CASE
        WHEN r.player_low_id = ? THEN r.player_high_id
@@ -542,7 +546,7 @@ async function listRecentOpponents(env: Env, current: PlayerRow): Promise<Respon
      ORDER BY r.last_played_at DESC
      LIMIT 50`,
   )
-    .bind(current.id, current.id, current.id)
+    .bind(current.id, current.id, current.id, current.id, current.id, current.id, current.id)
     .all<PlayerRow>();
   return reply(env, { players: rows.results.map(playerJson) });
 }
