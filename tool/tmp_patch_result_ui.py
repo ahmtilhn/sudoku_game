@@ -218,8 +218,8 @@ source = source.replace('      padding: const EdgeInsets.all(10),', '      paddi
 source = source.replace('              accent: const Color(0xFF29D398),', '              accent: localAccent,', 1)
 source = source.replace('              accent: const Color(0xFF66C7FF),', '              accent: opponentAccent,', 1)
 source = source.replace(
-    '            padding: EdgeInsets.symmetric(horizontal: 7),',
-    '            padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 7),',
+    '          const Padding(\n            padding: EdgeInsets.symmetric(horizontal: 7),',
+    '          Padding(\n            padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 7),',
     1,
 )
 
@@ -236,6 +236,7 @@ if old not in sub:
     raise SystemExit('result player build anchor missing')
 sub = sub.replace(old, new, 1)
 sub = sub.replace('        radius: 18,', '        radius: compact ? 16 : 18,', 1)
+sub = sub.replace('style: const TextStyle(', 'style: TextStyle(', 1)
 sub = sub.replace('              fontSize: 11,', '              fontSize: compact ? 10 : 11,', 1)
 sub = sub.replace('              fontSize: 14,', '              fontSize: compact ? 13 : 14,', 1)
 sub = sub.replace('              fontSize: 9,', '              fontSize: compact ? 8 : 9,', 1)
@@ -254,6 +255,7 @@ if old not in sub:
     raise SystemExit('metric row build anchor missing')
 sub = sub.replace(old, new, 1)
 sub = sub.replace('            width: 50,', '            width: compact ? 44 : 50,', 2)
+sub = sub.replace('style: const TextStyle(', 'style: TextStyle(', 2)
 sub = sub.replace('                fontSize: 12,', '                fontSize: compact ? 10 : 12,', 2)
 sub = sub.replace('                    fontSize: 10,', '                    fontSize: compact ? 9 : 10,', 1)
 source = source[:idx] + sub
