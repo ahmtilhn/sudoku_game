@@ -53,6 +53,23 @@ void main() {
     expect(source, contains('showModalBottomSheet<String>'));
   });
 
+  test(
+    'result actions route to main menu or online duel selection directly',
+    () {
+      final source = File(
+        'lib/features/duel/online_duel_screen.dart',
+      ).readAsStringSync();
+      expect(source, contains("action == 'new_match'"));
+      expect(source, contains('pushAndRemoveUntil<void>'));
+      expect(source, contains('const MatchmakingScreen()'));
+      expect(
+        source,
+        contains('Navigator.of(context).popUntil((route) => route.isFirst)'),
+      );
+      expect(source, isNot(contains('Navigator.of(context).pop(action)')));
+    },
+  );
+
   test('arena identity and score layout uses inward large score placement', () {
     final source = File(
       'lib/features/duel/online_duel_screen.dart',

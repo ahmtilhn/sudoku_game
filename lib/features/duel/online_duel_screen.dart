@@ -52,11 +52,14 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   Timer? _progressTimer;
   Timer? _resultSettlementTimer;
   Timer? _disconnectEscapeTimer;
+  Timer? _turnNoticeTimer;
   String? _shownResultFor;
   String? _settlementWaitMatchId;
+  OnlineDuelSeat? _turnNoticeSeat;
   int _resultSettlementAttempts = 0;
   bool _forfeiting = false;
   bool _localConnectionInterrupted = false;
+  bool _turnNoticeVisible = false;
 
   @override
   void initState() {
@@ -73,6 +76,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     _progressTimer?.cancel();
     _resultSettlementTimer?.cancel();
     _disconnectEscapeTimer?.cancel();
+    _turnNoticeTimer?.cancel();
     super.dispose();
   }
 
@@ -103,6 +107,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
           if (!snapshot.isLocalTurn) _selectedIndex = null;
           if (snapshot.isFinished) _forfeiting = false;
         });
+        _syncTurnNotice(previous, snapshot);
         _syncDisconnectEscape(snapshot);
         if (!previousLocalTurn && snapshot.isLocalTurn) {
           unawaited(HapticFeedback.mediumImpact());
@@ -160,6 +165,35 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         _loading = false;
       });
     }
+  }
+
+  void _syncTurnNotice(
+    OnlineDuelSnapshot? previous,
+    OnlineDuelSnapshot snapshot,
+  ) {
+    if (snapshot.status != OnlineDuelStatus.active || snapshot.isFinished) {
+      _turnNoticeTimer?.cancel();
+      _turnNoticeTimer = null;
+      if (_turnNoticeVisible) {
+        setState(() => _turnNoticeVisible = false);
+      }
+      return;
+    }
+
+    final changed =
+        previous?.status != OnlineDuelStatus.active ||
+        previous?.currentTurnSeat != snapshot.currentTurnSeat;
+    if (!changed) return;
+
+    _turnNoticeTimer?.cancel();
+    setState(() {
+      _turnNoticeSeat = snapshot.currentTurnSeat;
+      _turnNoticeVisible = true;
+    });
+    _turnNoticeTimer = Timer(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      setState(() => _turnNoticeVisible = false);
+    });
   }
 
   Future<void> _requestForfeit() async {
@@ -351,11 +385,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         final roomId = action.substring('rematch:'.length);
         await _handoffToRematch(roomId);
       } else if (action == 'new_match') {
-        await Navigator.of(context).pushReplacement<void, void>(
+        await Navigator.of(context).pushAndRemoveUntil<void>(
           MaterialPageRoute(builder: (_) => const MatchmakingScreen()),
+          (route) => route.isFirst,
         );
       } else if (action == 'menu') {
-        Navigator.of(context).pop(action);
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     });
   }
@@ -562,6 +597,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                 : context.tr('waiting_opponent_move'),
             onForfeit: _requestForfeit,
             forfeiting: _forfeiting,
+            turnNoticeVisible: _turnNoticeVisible,
+            turnNoticeLocal:
+                (_turnNoticeSeat ?? snapshot.currentTurnSeat) ==
+                snapshot.youSeat,
           );
         }
         return Padding(
@@ -1941,6 +1980,113 @@ class _ResultActionButton extends StatelessWidget {
   }
 }
 
+class _TurnAwareBoardFrame extends StatelessWidget {
+  const _TurnAwareBoardFrame({required this.snapshot, required this.child});
+
+  final OnlineDuelSnapshot snapshot;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          child,
+          if (!snapshot.isLocalTurn)
+            IgnorePointer(
+              child: DecoratedBox(
+                key: const ValueKey<String>('online-board-turn-dim'),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .34),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TurnNoticePill extends StatelessWidget {
+  const _TurnNoticePill({
+    required this.visible,
+    required this.localTurn,
+    required this.compact,
+  });
+
+  final bool visible;
+  final bool localTurn;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final accent = localTurn ? scheme.primary : scheme.tertiary;
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        key: const ValueKey<String>('online-board-turn-notice'),
+        opacity: visible ? 1 : 0,
+        duration: const Duration(milliseconds: 140),
+        child: Align(
+          alignment: Alignment.center,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF07111E).withValues(alpha: .90),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: accent.withValues(alpha: .86)),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: localTurn ? .32 : .24),
+                  blurRadius: 16,
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .34),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 18 : 24,
+                vertical: compact ? 7 : 9,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    localTurn
+                        ? Icons.touch_app_rounded
+                        : Icons.hourglass_top_rounded,
+                    color: accent,
+                    size: compact ? 19 : 22,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    localTurn
+                        ? context.tr('your_turn')
+                        : context.tr('opponents_turn'),
+                    key: const ValueKey<String>('online-board-turn-label'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: compact ? 17 : 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ArenaMatchLayout extends StatelessWidget {
   const _ArenaMatchLayout({
     required this.snapshot,
@@ -1949,6 +2095,8 @@ class _ArenaMatchLayout extends StatelessWidget {
     required this.statusText,
     required this.onForfeit,
     required this.forfeiting,
+    required this.turnNoticeVisible,
+    required this.turnNoticeLocal,
   });
 
   final OnlineDuelSnapshot snapshot;
@@ -1957,6 +2105,8 @@ class _ArenaMatchLayout extends StatelessWidget {
   final String statusText;
   final VoidCallback onForfeit;
   final bool forfeiting;
+  final bool turnNoticeVisible;
+  final bool turnNoticeLocal;
 
   @override
   Widget build(BuildContext context) {
@@ -1987,31 +2137,52 @@ class _ArenaMatchLayout extends StatelessWidget {
                   final historyWidth = wide ? 82.0 : 0.0;
                   final horizontalChrome =
                       railWidth + historyWidth + (wide ? 10.0 : 0.0);
+                  final noticeHeight = compact ? 40.0 : 46.0;
+                  const noticeGap = 26.0;
+                  final verticalNoticeChrome = noticeHeight + noticeGap;
                   final boardMax =
-                      constraints.maxHeight <
+                      constraints.maxHeight - verticalNoticeChrome <
                           constraints.maxWidth - horizontalChrome
-                      ? constraints.maxHeight
+                      ? constraints.maxHeight - verticalNoticeChrome
                       : constraints.maxWidth - horizontalChrome;
                   final boardSize = wide
                       ? boardMax.clamp(320.0, 760.0)
                       : boardMax.clamp(300.0, 720.0);
                   final boardWidget = Center(
-                    child: SizedBox.square(
-                      dimension: boardSize,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFF3D74B6,
-                              ).withValues(alpha: .14),
-                              blurRadius: 18,
-                            ),
-                          ],
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          height: noticeHeight,
+                          child: _TurnNoticePill(
+                            visible: turnNoticeVisible,
+                            localTurn: turnNoticeLocal,
+                            compact: compact,
+                          ),
                         ),
-                        child: board,
-                      ),
+                        const SizedBox(height: noticeGap),
+                        SizedBox.square(
+                          key: const ValueKey<String>('online-board-frame'),
+                          dimension: boardSize,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF3D74B6,
+                                  ).withValues(alpha: .14),
+                                  blurRadius: 18,
+                                ),
+                              ],
+                            ),
+                            child: _TurnAwareBoardFrame(
+                              snapshot: snapshot,
+                              child: board,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   );
                   if (!wide) return boardWidget;

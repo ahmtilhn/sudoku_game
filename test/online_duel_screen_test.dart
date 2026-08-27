@@ -108,12 +108,12 @@ void main() {
     }
   });
 
-  testWidgets('online active state has one timer no turn banner or ELO badge', (
+  testWidgets('online active state has one timer and clear turn label', (
     tester,
   ) async {
     await _pumpOnlineDuel(tester, size: const Size(390, 844), status: 'active');
 
-    expect(find.text('Your turn'), findsNothing);
+    expect(find.text('Your turn'), findsOneWidget);
     expect(find.text("Opponent's turn"), findsNothing);
     expect(find.textContaining('Move time'), findsNothing);
     expect(find.textContaining('ELO'), findsNothing);
@@ -123,6 +123,29 @@ void main() {
     expect(find.text('You'), findsWidgets);
     expect(find.text('Bob'), findsWidgets);
     expect(find.text('s'), findsOneWidget);
+    final noticeOpacity = tester.widget<AnimatedOpacity>(
+      find.byKey(const ValueKey<String>('online-board-turn-notice')),
+    );
+    expect(noticeOpacity.opacity, 1);
+    final noticeBottom = tester
+        .getBottomLeft(
+          find.byKey(const ValueKey<String>('online-board-turn-notice')),
+        )
+        .dy;
+    final boardTop = tester
+        .getTopLeft(find.byKey(const ValueKey<String>('online-board-frame')))
+        .dy;
+    expect((boardTop - noticeBottom).round(), 26);
+    expect(
+      find.byKey(const ValueKey<String>('online-board-turn-dim')),
+      findsNothing,
+    );
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 140));
+    final hiddenNoticeOpacity = tester.widget<AnimatedOpacity>(
+      find.byKey(const ValueKey<String>('online-board-turn-notice')),
+    );
+    expect(hiddenNoticeOpacity.opacity, 0);
   });
 
   testWidgets(
@@ -182,10 +205,20 @@ void main() {
     await _pumpOnlineDuel(
       tester,
       size: const Size(390, 844),
+      status: 'active',
       currentTurnSeat: 'B',
     );
 
     expect(find.byType(ColorFiltered), findsNothing);
+    expect(find.text("Opponent's turn"), findsOneWidget);
+    final noticeOpacity = tester.widget<AnimatedOpacity>(
+      find.byKey(const ValueKey<String>('online-board-turn-notice')),
+    );
+    expect(noticeOpacity.opacity, 1);
+    expect(
+      find.byKey(const ValueKey<String>('online-board-turn-dim')),
+      findsOneWidget,
+    );
     final numberButton = tester.widget<FilledButton>(
       find.byKey(const ValueKey<String>('number-1')),
     );
