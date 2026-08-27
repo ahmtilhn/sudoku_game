@@ -179,7 +179,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         title: 'Profile style',
         subtitle: 'Avatar, rank frame, badges and title',
         accent: const Color(0xFF66C7FF),
-        metric: '96 avatars',
+        metric: '40 avatars',
         onOpen: _openCustomization,
       ),
       _ProfileTabData(
@@ -383,6 +383,15 @@ class _ProfileActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fillArtwork =
+        tab.tab == _ProfileTab.customize || tab.tab == _ProfileTab.emotes;
+    final artworkBoxSize = tab.tab == _ProfileTab.leaderboards ? 54.0 : 46.0;
+    final artworkRadius = BorderRadius.circular(fillArtwork ? 13 : 14);
+    final artworkSize = fillArtwork
+        ? artworkBoxSize
+        : tab.tab == _ProfileTab.leaderboards
+        ? 48.0
+        : 31.0;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -403,15 +412,20 @@ class _ProfileActionCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: artworkBoxSize,
+                height: artworkBoxSize,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: tab.accent.withValues(alpha: .12),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: artworkRadius,
                   border: Border.all(color: tab.accent.withValues(alpha: .14)),
                 ),
-                child: DuelAssetIcon(tab.asset, size: 31),
+                clipBehavior: Clip.antiAlias,
+                child: DuelAssetIcon(
+                  tab.asset,
+                  size: artworkSize,
+                  fit: fillArtwork ? BoxFit.cover : BoxFit.contain,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
