@@ -371,7 +371,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         context: context,
         barrierDismissible: false,
         barrierLabel: 'Duel result',
-        barrierColor: Colors.black.withValues(alpha: .68),
+        barrierColor: Colors.black.withValues(alpha: .78),
         transitionDuration: const Duration(milliseconds: 220),
         transitionBuilder:
             (dialogContext, animation, secondaryAnimation, child) {
@@ -401,7 +401,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                   constraints: const BoxConstraints(maxWidth: 400),
                   child: SizedBox(
                     width: double.infinity,
-                    height: availableHeight.clamp(0.0, 820.0).toDouble(),
+                    height: availableHeight.clamp(0.0, 800.0).toDouble(),
                     child: _OnlineResultSheet(snapshot: snapshot),
                   ),
                 ),
@@ -841,81 +841,100 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
     String coinLabel(int value) =>
         '${value > 0 ? '+' : ''}${context.tr('coin_amount', <Object>[value])}';
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        8,
-        6,
-        8,
-        10 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      child: _ResultCard(
-        title: resultTitle,
-        subtitle: resultSubtitle,
-        won: won,
-        draw: draw,
-        localPlayer: you,
-        opponent: opponent,
-        localScore: localScore,
-        opponentScore: opponentScore,
-        metrics: [
-          _ResultMetric(
-            label: context.tr('correct_moves'),
-            localValue: '${snapshot.correctMoves[snapshot.youSeat] ?? 0}',
-            opponentValue: '${snapshot.correctMoves[opponentSeat] ?? 0}',
-            icon: Icons.check_rounded,
-            asset: 'assets/images/ui/check.png',
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+        const horizontalPadding = 8.0;
+        const topPadding = 6.0;
+        final bottomPadding = 10.0 + bottomInset;
+        final minContentHeight =
+            (constraints.maxHeight - topPadding - bottomPadding)
+                .clamp(0.0, double.infinity)
+                .toDouble();
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            topPadding,
+            horizontalPadding,
+            bottomPadding,
           ),
-          _ResultMetric(
-            label: context.tr('mistakes'),
-            localValue: '${snapshot.mistakes[snapshot.youSeat] ?? 0}',
-            opponentValue: '${snapshot.mistakes[opponentSeat] ?? 0}',
-            icon: Icons.close_rounded,
-            asset: 'assets/images/ui/close.png',
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: minContentHeight),
+            child: Center(
+              child: _ResultCard(
+                title: resultTitle,
+                subtitle: resultSubtitle,
+                won: won,
+                draw: draw,
+                localPlayer: you,
+                opponent: opponent,
+                localScore: localScore,
+                opponentScore: opponentScore,
+                metrics: [
+                  _ResultMetric(
+                    label: context.tr('correct_moves'),
+                    localValue:
+                        '${snapshot.correctMoves[snapshot.youSeat] ?? 0}',
+                    opponentValue:
+                        '${snapshot.correctMoves[opponentSeat] ?? 0}',
+                    icon: Icons.check_rounded,
+                    asset: 'assets/images/ui/check.png',
+                  ),
+                  _ResultMetric(
+                    label: context.tr('mistakes'),
+                    localValue: '${snapshot.mistakes[snapshot.youSeat] ?? 0}',
+                    opponentValue: '${snapshot.mistakes[opponentSeat] ?? 0}',
+                    icon: Icons.close_rounded,
+                    asset: 'assets/images/ui/close.png',
+                  ),
+                  _ResultMetric(
+                    label: context.tr('timeouts'),
+                    localValue: '${snapshot.timeouts[snapshot.youSeat] ?? 0}',
+                    opponentValue: '${snapshot.timeouts[opponentSeat] ?? 0}',
+                    icon: Icons.timer_outlined,
+                    asset: 'assets/images/ui/timer.png',
+                  ),
+                  _ResultMetric(
+                    label: context.tr('hints'),
+                    localValue: context.tr('not_available_short'),
+                    opponentValue: context.tr('not_available_short'),
+                    icon: Icons.lightbulb_outline_rounded,
+                    asset: 'assets/images/ui/lightbulb.png',
+                  ),
+                  _ResultMetric(
+                    label: context.tr('coin_result'),
+                    localValue: coinLabel(localNetCoin),
+                    opponentValue: coinLabel(opponentNetCoin),
+                    icon: Icons.monetization_on_outlined,
+                    asset: 'assets/images/ui/coin.png',
+                  ),
+                ],
+                rankResult: _rankResult,
+                rankLoading: _rankLoading && snapshot.mode == 'ranked',
+                showRank: snapshot.mode == 'ranked',
+                statusMessage: _statusMessage,
+                invitation: invite,
+                invitationSeconds: seconds,
+                canPlay: canPlay,
+                busy: _busy,
+                onInvitationDecline: invite == null
+                    ? null
+                    : () => _respond(invite, false),
+                onInvitationAccept: invite == null
+                    ? null
+                    : () => _respond(invite, true),
+                onNewMatch: () => Navigator.of(context).pop('new_match'),
+                onRematch: _createRematch,
+                onAddFriend: _canAddFriend ? _addFriend : null,
+                onMenu: () => Navigator.of(context).pop('menu'),
+                onStore: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
+                ),
+              ),
+            ),
           ),
-          _ResultMetric(
-            label: context.tr('timeouts'),
-            localValue: '${snapshot.timeouts[snapshot.youSeat] ?? 0}',
-            opponentValue: '${snapshot.timeouts[opponentSeat] ?? 0}',
-            icon: Icons.timer_outlined,
-            asset: 'assets/images/ui/timer.png',
-          ),
-          _ResultMetric(
-            label: context.tr('hints'),
-            localValue: context.tr('not_available_short'),
-            opponentValue: context.tr('not_available_short'),
-            icon: Icons.lightbulb_outline_rounded,
-            asset: 'assets/images/ui/lightbulb.png',
-          ),
-          _ResultMetric(
-            label: context.tr('coin_result'),
-            localValue: coinLabel(localNetCoin),
-            opponentValue: coinLabel(opponentNetCoin),
-            icon: Icons.monetization_on_outlined,
-            asset: 'assets/images/ui/coin.png',
-          ),
-        ],
-        rankResult: _rankResult,
-        rankLoading: _rankLoading && snapshot.mode == 'ranked',
-        showRank: snapshot.mode == 'ranked',
-        statusMessage: _statusMessage,
-        invitation: invite,
-        invitationSeconds: seconds,
-        canPlay: canPlay,
-        busy: _busy,
-        onInvitationDecline: invite == null
-            ? null
-            : () => _respond(invite, false),
-        onInvitationAccept: invite == null
-            ? null
-            : () => _respond(invite, true),
-        onNewMatch: () => Navigator.of(context).pop('new_match'),
-        onRematch: _createRematch,
-        onAddFriend: _canAddFriend ? _addFriend : null,
-        onMenu: () => Navigator.of(context).pop('menu'),
-        onStore: () => Navigator.of(context).push<void>(
-          MaterialPageRoute(builder: (_) => const CoinStoreScreen()),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -1188,14 +1207,14 @@ class _ResultCard extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [Color(0xFF102237), Color(0xFF0A1624)],
         ),
-        borderRadius: BorderRadius.circular(compact ? 18 : 20),
+        borderRadius: BorderRadius.circular(compact ? 15 : 17),
         border: Border.all(
-          color: const Color(0xFF5C8FB8).withValues(alpha: .28),
+          color: const Color(0xFF5C8FB8).withValues(alpha: .20),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: .46),
-            blurRadius: 22,
+            blurRadius: 18,
             offset: const Offset(0, 10),
           ),
         ],
@@ -1379,8 +1398,8 @@ class _ResultHero extends StatelessWidget {
           opacity: muted ? .78 : 1,
           child: Image.asset(
             asset,
-            width: compact ? 50 : 58,
-            height: compact ? 50 : 58,
+            width: compact ? 58 : 66,
+            height: compact ? 58 : 66,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),
@@ -1394,7 +1413,7 @@ class _ResultHero extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: accent,
-              fontSize: compact ? 22 : 26,
+              fontSize: compact ? 24 : 28,
               height: 1,
               fontWeight: FontWeight.w900,
               letterSpacing: .2,
