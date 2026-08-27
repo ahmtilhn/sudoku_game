@@ -617,7 +617,6 @@ class _LeaderboardRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final flag = countryFlagEmoji(countryCode);
     final placementAccent = _placementAccent(entry.rank);
-    final accent = current ? const Color(0xFF35B8FF) : placementAccent;
     final isPodium = entry.rank <= 3;
 
     return Container(
