@@ -148,18 +148,17 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
   }
 }
 
-/// Keeps the emote controls in the root overlay without manually owning an
-/// OverlayEntry. OverlayPortal guarantees the overlay child cannot outlive the
-/// duel widget that created it, which makes route teardown/forfeit safe.
 class OnlineDuelEmoteDock extends StatefulWidget {
   const OnlineDuelEmoteDock({
     super.key,
     required this.child,
     this.compact = false,
+    this.interactionEnabled,
   });
 
   final Widget child;
   final bool compact;
+  final bool? interactionEnabled;
 
   @override
   State<OnlineDuelEmoteDock> createState() => _OnlineDuelEmoteDockState();
@@ -189,9 +188,7 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
     super.dispose();
   }
 
-  void _onHubChanged() {
-    _schedulePortalSync();
-  }
+  void _onHubChanged() => _schedulePortalSync();
 
   void _schedulePortalSync() {
     if (_syncScheduled || !mounted) return;
@@ -220,29 +217,22 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
   Widget _buildOverlay(BuildContext overlayContext) {
     final viewPadding = MediaQuery.viewPaddingOf(overlayContext);
     if (widget.compact) {
+      final localTurn = widget.interactionEnabled ?? true;
       return Stack(
         children: [
           Positioned(
-            left: 10,
-            right: 10,
-            bottom: viewPadding.bottom + 122,
-            child: Material(
-              type: MaterialType.transparency,
-              child: AnimatedBuilder(
-                animation: _hub,
-                builder: (context, _) {
-                  if (!_hub.visible) return const SizedBox.shrink();
-                  return _CompactDuelControlBar(
-                    hub: _hub,
-                    onEmotes: () => _openPicker(context),
-                    onOptions: () => _openMatchOptions(context),
-                  );
-                },
+            top: viewPadding.top + 75,
+            left: 52,
+            right: 52,
+            child: IgnorePointer(
+              child: Material(
+                type: MaterialType.transparency,
+                child: _PersistentDuelTurnStrip(localTurn: localTurn),
               ),
             ),
           ),
           Positioned(
-            top: viewPadding.top + 82,
+            top: viewPadding.top + 121,
             left: 0,
             right: 0,
             child: IgnorePointer(
@@ -262,6 +252,25 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
                     );
                   },
                 ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 10,
+            right: 10,
+            bottom: viewPadding.bottom + 122,
+            child: Material(
+              type: MaterialType.transparency,
+              child: AnimatedBuilder(
+                animation: _hub,
+                builder: (context, _) {
+                  if (!_hub.visible) return const SizedBox.shrink();
+                  return _CompactDuelControlBar(
+                    hub: _hub,
+                    onEmotes: () => _openPicker(context),
+                    onOptions: () => _openMatchOptions(context),
+                  );
+                },
               ),
             ),
           ),
@@ -381,6 +390,55 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     if (!mounted) return;
     await Navigator.of(context).maybePop();
+  }
+}
+
+class _PersistentDuelTurnStrip extends StatelessWidget {
+  const _PersistentDuelTurnStrip({required this.localTurn});
+
+  final bool localTurn;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = localTurn ? const Color(0xFF29D398) : const Color(0xFFFFC94D);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1722).withValues(alpha: .96),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: .50)),
+        boxShadow: [
+          BoxShadow(color: accent.withValues(alpha: .16), blurRadius: 14),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            localTurn ? Icons.touch_app_rounded : Icons.hourglass_top_rounded,
+            color: accent,
+            size: 18,
+          ),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              localTurn ? 'YOUR TURN · Make your move' : 'OPPONENT’S TURN · Waiting…',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: .25,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
