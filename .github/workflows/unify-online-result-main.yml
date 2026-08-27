@@ -1,4 +1,4 @@
-name: Fix duel presentation details
+name: Fix ready room emote availability
 
 on:
   push:
@@ -19,141 +19,55 @@ jobs:
           ref: main
           fetch-depth: 2
 
-      - name: Patch Android result centering and pre-ready emotes
+      - name: Align ready-room emote availability with send path
         shell: python
         run: |
           from pathlib import Path
 
-          result_path = Path('lib/features/duel/online_duel_screen.dart')
-          result = result_path.read_text()
-          old = "\n".join([
-              '        pageBuilder: (dialogContext, animation, secondaryAnimation) {',
-              '          final media = MediaQuery.of(dialogContext);',
-              '          final availableHeight =',
-              '              media.size.height - media.padding.top - media.padding.bottom - 16;',
-              '          return SafeArea(',
-              '            minimum: const EdgeInsets.all(8),',
-              '            child: Material(',
-              '              type: MaterialType.transparency,',
-              '              child: Center(',
-              '                child: ConstrainedBox(',
-              '                  constraints: const BoxConstraints(maxWidth: 400),',
-              '                  child: SizedBox(',
-              '                    width: double.infinity,',
-              '                    height: availableHeight.clamp(0.0, 800.0).toDouble(),',
-              '                    child: _OnlineResultSheet(snapshot: snapshot),',
-              '                  ),',
-              '                ),',
-              '              ),',
-              '            ),',
-              '          );',
-              '        },',
-          ])
-          new = "\n".join([
-              '        pageBuilder: (dialogContext, animation, secondaryAnimation) {',
-              '          final media = MediaQuery.of(dialogContext);',
-              '          final safeEdge = media.viewPadding.top > media.viewPadding.bottom',
-              '              ? media.viewPadding.top',
-              '              : media.viewPadding.bottom;',
-              '          return Padding(',
-              '            padding: EdgeInsets.fromLTRB(8, safeEdge + 8, 8, safeEdge + 8),',
-              '            child: Material(',
-              '              type: MaterialType.transparency,',
-              '              child: LayoutBuilder(',
-              '                builder: (context, constraints) {',
-              '                  final dialogHeight = constraints.maxHeight',
-              '                      .clamp(0.0, 800.0)',
-              '                      .toDouble();',
-              '                  return Center(',
-              '                    child: ConstrainedBox(',
-              '                      constraints: const BoxConstraints(maxWidth: 400),',
-              '                      child: SizedBox(',
-              '                        width: double.infinity,',
-              '                        height: dialogHeight,',
-              '                        child: _OnlineResultSheet(snapshot: snapshot),',
-              '                      ),',
-              '                    ),',
-              '                  );',
-              '                },',
-              '              ),',
-              '            ),',
-              '          );',
-              '        },',
-          ])
-          if old not in result:
-              raise SystemExit('Result dialog carrier block not found')
-          result_path.write_text(result.replace(old, new, 1))
-
           ready_path = Path('lib/features/duel/pre_match_ready_screen.dart')
           ready = ready_path.read_text()
-          old_call = "\n".join([
-              '              onReady: _leaving ? null : _ready,',
-              '              onLeave: _leaving ? null : _confirmCancelAndLeave,',
-              '            )',
+          old = "\n".join([
+              '    return opponent != null &&',
+              '        opponent.publicId.trim().isNotEmpty &&',
+              '        status != null &&',
+              '        onlineDuelStatusAllowsEmotes(status) &&',
+              '        _connectionState == OnlineDuelConnectionState.connected;',
           ])
-          new_call = "\n".join([
-              '              onReady: _leaving ? null : _ready,',
-              '              onLeave: _leaving ? null : _confirmCancelAndLeave,',
-              '              floatingControl: _showReadyEmotes',
-              '                  ? const OnlineDuelInlineEmoteSurface(',
-              "                      key: ValueKey<String>('opponent-found-emotes'),",
-              '                      compact: true,',
-              '                      accent: Color(0xFFFFC94D),',
-              '                    )',
-              '                  : null,',
-              '            )',
+          new = "\n".join([
+              '    final connectionUsable =',
+              '        _connectionState == OnlineDuelConnectionState.connected ||',
+              '        _connectionState == OnlineDuelConnectionState.resyncing;',
+              '    return opponent != null &&',
+              '        opponent.publicId.trim().isNotEmpty &&',
+              '        status != null &&',
+              '        onlineDuelStatusAllowsEmotes(status) &&',
+              '        connectionUsable;',
           ])
-          if old_call not in ready:
-              raise SystemExit('Opponent found call block not found')
-          ready = ready.replace(old_call, new_call, 1)
+          if old not in ready:
+              raise SystemExit('Ready emote visibility block not found')
+          ready_path.write_text(ready.replace(old, new, 1))
 
-          old_ctor = "\n".join([
-              '    required this.onReady,',
-              '    required this.onLeave,',
-              '  });',
+          controller_path = Path('lib/services/online_duel_controller.dart')
+          controller = controller_path.read_text()
+          old = "\n".join([
+              '    OnlineDuelEmoteHub.instance.setMatchActive(',
+              '      session,',
+              '      _transport.connectionState == OnlineDuelConnectionState.connected &&',
+              '          onlineDuelStatusAllowsEmotes(snapshot.status),',
+              '    );',
           ])
-          new_ctor = "\n".join([
-              '    required this.onReady,',
-              '    required this.onLeave,',
-              '    this.floatingControl,',
-              '  });',
+          new = "\n".join([
+              '    final connectionState = _transport.connectionState;',
+              '    OnlineDuelEmoteHub.instance.setMatchActive(',
+              '      session,',
+              '      (connectionState == OnlineDuelConnectionState.connected ||',
+              '              connectionState == OnlineDuelConnectionState.resyncing) &&',
+              '          onlineDuelStatusAllowsEmotes(snapshot.status),',
+              '    );',
           ])
-          if old_ctor not in ready:
-              raise SystemExit('Opponent found constructor block not found')
-          ready = ready.replace(old_ctor, new_ctor, 1)
-
-          old_fields = "\n".join([
-              '  final VoidCallback? onReady;',
-              '  final VoidCallback? onLeave;',
-          ])
-          new_fields = "\n".join([
-              '  final VoidCallback? onReady;',
-              '  final VoidCallback? onLeave;',
-              '  final Widget? floatingControl;',
-          ])
-          if old_fields not in ready:
-              raise SystemExit('Opponent found fields block not found')
-          ready = ready.replace(old_fields, new_fields, 1)
-
-          old_footer = "\n".join([
-              '                        Align(',
-              '                          alignment: Alignment.centerRight,',
-              '                          child: _ReadyOptionsButton(onLeave: onLeave),',
-              '                        ),',
-          ])
-          new_footer = "\n".join([
-              '                        Row(',
-              '                          crossAxisAlignment: CrossAxisAlignment.end,',
-              '                          children: [',
-              '                            ?floatingControl,',
-              '                            const Spacer(),',
-              '                            _ReadyOptionsButton(onLeave: onLeave),',
-              '                          ],',
-              '                        ),',
-          ])
-          if old_footer not in ready:
-              raise SystemExit('Opponent found footer block not found')
-          ready_path.write_text(ready.replace(old_footer, new_footer, 1))
+          if old not in controller:
+              raise SystemExit('Controller emote availability block not found')
+          controller_path.write_text(controller.replace(old, new, 1))
 
       - uses: subosito/flutter-action@v2
         with:
@@ -161,19 +75,19 @@ jobs:
           cache: true
 
       - run: flutter pub get
-      - run: dart format lib/features/duel/online_duel_screen.dart lib/features/duel/pre_match_ready_screen.dart
-      - run: flutter analyze --fatal-infos lib/features/duel/online_duel_screen.dart lib/features/duel/pre_match_ready_screen.dart
+      - run: dart format lib/features/duel/pre_match_ready_screen.dart lib/services/online_duel_controller.dart
+      - run: flutter analyze --fatal-infos lib/features/duel/pre_match_ready_screen.dart lib/services/online_duel_controller.dart
 
       - name: Verify and commit
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "safeEdge + 8" lib/features/duel/online_duel_screen.dart
-          grep -q "opponent-found-emotes" lib/features/duel/pre_match_ready_screen.dart
+          grep -q "connectionUsable" lib/features/duel/pre_match_ready_screen.dart
+          grep -q "connectionState == OnlineDuelConnectionState.resyncing" lib/services/online_duel_controller.dart
           git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
-          git add lib/features/duel/online_duel_screen.dart lib/features/duel/pre_match_ready_screen.dart
+          git add lib/features/duel/pre_match_ready_screen.dart lib/services/online_duel_controller.dart
           git diff --cached --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Fix Android result centering and pre-ready emotes [skip ci]'
+          git commit -m 'Allow ready-room emotes while resyncing [skip ci]'
           git push origin HEAD:main
