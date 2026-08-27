@@ -725,12 +725,19 @@ class _LeaderboardRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           if (entry.rank == 1) ...[
-            const Icon(
-              Icons.emoji_events_rounded,
-              size: 16,
-              color: Color(0xFFFFC94D),
+            Image.asset(
+              'assets/ELO_rating_icons/cup.png',
+              width: 20,
+              height: 20,
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.emoji_events_rounded,
+                size: 16,
+                color: Color(0xFFFFC94D),
+              ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 5),
           ],
           Text(
             '${entry.rankPoints} RP',
