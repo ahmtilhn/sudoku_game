@@ -24,7 +24,7 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Polish result proportions
+      - name: Apply responsive result polish
         shell: python
         run: |
           from pathlib import Path
@@ -36,43 +36,8 @@ jobs:
               global source
               count = source.count(old)
               if count != 1:
-                  raise SystemExit(f'Expected one match, got {count}: {old[:80]!r}')
+                  raise SystemExit(f'Expected 1 match, got {count}: {old}')
               source = source.replace(old, new, 1)
-
-          replace_once(
-              '                  constraints: const BoxConstraints(maxWidth: 460),',
-              '                  constraints: const BoxConstraints(maxWidth: 400),',
-          )
-          replace_once(
-              '                    height: availableHeight.clamp(0.0, 900.0).toDouble(),',
-              '                    height: availableHeight.clamp(0.0, 820.0).toDouble(),',
-          )
-          replace_once(
-              '''      padding: EdgeInsets.fromLTRB(
-        12,
-        8,
-        12,
-        18 + MediaQuery.viewInsetsOf(context).bottom,
-      ),''',
-              '''      padding: EdgeInsets.fromLTRB(
-        8,
-        6,
-        8,
-        10 + MediaQuery.viewInsetsOf(context).bottom,
-      ),''',
-          )
-          replace_once(
-              '    final compact = viewport.width < 380 || viewport.height < 760;',
-              '    final compact = viewport.width < 350 || viewport.height < 700;',
-          )
-          replace_once(
-              '''    final compact =
-        MediaQuery.sizeOf(context).width < 380 ||
-        MediaQuery.sizeOf(context).height < 760;''',
-              '''    final compact =
-        MediaQuery.sizeOf(context).width < 350 ||
-        MediaQuery.sizeOf(context).height < 700;''',
-          )
 
           def edit_section(start_marker, end_marker, replacements):
               global source
@@ -81,16 +46,27 @@ jobs:
               section = source[start:end]
               for old, new in replacements:
                   if old not in section:
-                      raise SystemExit(f'Missing in {start_marker}: {old[:80]!r}')
+                      raise SystemExit(f'Missing in {start_marker}: {old}')
                   section = section.replace(old, new)
               source = source[:start] + section + source[end:]
+
+          replace_once('                  constraints: const BoxConstraints(maxWidth: 460),', '                  constraints: const BoxConstraints(maxWidth: 400),')
+          replace_once('                    height: availableHeight.clamp(0.0, 900.0).toDouble(),', '                    height: availableHeight.clamp(0.0, 820.0).toDouble(),')
+          replace_once('    final compact = viewport.width < 380 || viewport.height < 760;', '    final compact = viewport.width < 350 || viewport.height < 700;')
+
+          old_padding = "      padding: EdgeInsets.fromLTRB(\n        12,\n        8,\n        12,\n        18 + MediaQuery.viewInsetsOf(context).bottom,\n      ),"
+          new_padding = "      padding: EdgeInsets.fromLTRB(\n        8,\n        6,\n        8,\n        10 + MediaQuery.viewInsetsOf(context).bottom,\n      ),"
+          replace_once(old_padding, new_padding)
+
+          old_rank_compact = "    final compact =\n        MediaQuery.sizeOf(context).width < 380 ||\n        MediaQuery.sizeOf(context).height < 760;"
+          new_rank_compact = "    final compact =\n        MediaQuery.sizeOf(context).width < 350 ||\n        MediaQuery.sizeOf(context).height < 700;"
+          replace_once(old_rank_compact, new_rank_compact)
 
           edit_section(
               'class _ResultCard extends StatelessWidget {',
               'class _ResultHero extends StatelessWidget {',
               [
-                  ('compact ? 10 : 12,\n        compact ? 8 : 10,\n        compact ? 10 : 12,\n        compact ? 10 : 12,',
-                   'compact ? 8 : 10,\n        compact ? 6 : 8,\n        compact ? 8 : 10,\n        compact ? 8 : 10,'),
+                  ("compact ? 10 : 12,\n        compact ? 8 : 10,\n        compact ? 10 : 12,\n        compact ? 10 : 12,", "compact ? 8 : 10,\n        compact ? 6 : 8,\n        compact ? 8 : 10,\n        compact ? 8 : 10,"),
                   ('BorderRadius.circular(compact ? 20 : 23)', 'BorderRadius.circular(compact ? 18 : 20)'),
                   ('.withValues(alpha: .36)', '.withValues(alpha: .28)'),
                   ('blurRadius: 28,', 'blurRadius: 22,'),
