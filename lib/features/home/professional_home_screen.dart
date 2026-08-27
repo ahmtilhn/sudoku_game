@@ -26,7 +26,6 @@ import '../../widgets/player_avatar.dart';
 import '../career/career_hub_screen.dart';
 import '../duel/leaderboards_screen.dart';
 import '../duel/matchmaking_screen.dart';
-import '../duel/ranked_progress_screen.dart';
 import '../economy/coin_store_screen.dart';
 import '../game/enhanced_game_screen.dart';
 import '../settings/ux_settings_screen.dart';
@@ -231,7 +230,7 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
 
   Future<void> _openRankedProgress() async {
     if (!await _ensureOnlineIdentity() || !mounted) return;
-    await _open(const RankedProgressScreen());
+    await _open(const LeaderboardsScreen());
   }
 
   Future<void> _showQuickPlay() async {
