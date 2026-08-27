@@ -15,6 +15,7 @@ import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/game_interstitial_service.dart';
 import '../../services/offline_reward_service.dart';
+import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
@@ -707,14 +708,13 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   @override
   Widget build(BuildContext context) {
     final enabled = _ready && !_completed && !_paused && !_roundLost;
-    final mistakeLabel = widget.mistakeLimit == null
-        ? context.tr('mistakes_count', <Object>[_mistakes])
-        : context.tr('mistakes_limit_count', <Object>[
-            _mistakes,
-            widget.mistakeLimit!,
-          ]);
+    final difficulty = context.strings.difficultyLabel(widget.puzzle.difficulty);
+    final mistakes = widget.mistakeLimit == null
+        ? '$_mistakes'
+        : '$_mistakes/${widget.mistakeLimit!}';
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0B1215),
       bottomNavigationBar: NumberPadDock(
         child: NumberPad(
           maxValue: widget.puzzle.size,
@@ -732,100 +732,270 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
           onHint: widget.allowHints ? _hint : null,
         ),
       ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth > 760
-                ? 700.0
-                : constraints.maxWidth;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 24),
-              child: Center(
-                child: SizedBox(
-                  width: width,
-                  child: Column(
-                    children: [
-                      if (!_ready) ...[
-                        const LinearProgressIndicator(),
-                        const SizedBox(height: 12),
+      body: AppBackdrop(
+        dim: .40,
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth > 760
+                  ? 700.0
+                  : constraints.maxWidth;
+              final compact = constraints.maxHeight < 720;
+              return SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  10,
+                  compact ? 4 : 7,
+                  10,
+                  compact ? 12 : 22,
+                ),
+                child: Center(
+                  child: SizedBox(
+                    width: width,
+                    child: Column(
+                      children: [
+                        if (!_ready) ...[
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: const LinearProgressIndicator(minHeight: 3),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        InPageHeader(
+                          title: context.strings.puzzleTitle(widget.puzzle),
+                          padding: EdgeInsets.only(bottom: compact ? 6 : 9),
+                          actions: [
+                            IconButton(
+                              key: const ValueKey<String>('action-pause'),
+                              tooltip: context.tr('pause'),
+                              onPressed: enabled ? _showPauseSheet : null,
+                              style: IconButton.styleFrom(
+                                backgroundColor: const Color(
+                                  0xFF142738,
+                                ).withValues(alpha: .88),
+                                foregroundColor: Colors.white,
+                              ),
+                              icon: const Icon(Icons.pause_rounded),
+                            ),
+                          ],
+                        ),
+                        ValueListenableBuilder<int>(
+                          valueListenable: _elapsedNotifier,
+                          builder: (context, seconds, _) => _SoloGameHud(
+                            time: formatDuration(seconds),
+                            mistakes: mistakes,
+                            hints: '${widget.store.hints}',
+                            difficulty: difficulty,
+                            compact: compact,
+                          ),
+                        ),
+                        SizedBox(height: compact ? 8 : 12),
+                        _SoloBoardFrame(
+                          enabled: enabled,
+                          child: SudokuBoard(
+                            puzzle: widget.puzzle,
+                            board: _board,
+                            selectedIndex: _selectedIndex,
+                            notes: _notes,
+                            errorIndex: _errorIndex,
+                            hintedIndexes: _hintedIndexes,
+                            enabled: enabled,
+                            onCellTap: _selectCell,
+                          ),
+                        ),
                       ],
-                      InPageHeader(
-                        title: context.strings.puzzleTitle(widget.puzzle),
-                        actions: [
-                          IconButton(
-                            key: const ValueKey<String>('action-pause'),
-                            tooltip: context.tr('pause'),
-                            onPressed: enabled ? _showPauseSheet : null,
-                            icon: const Icon(Icons.pause_rounded),
-                          ),
-                          ValueListenableBuilder<int>(
-                            valueListenable: _elapsedNotifier,
-                            builder: (context, seconds, _) => Semantics(
-                              label: context.tr('time'),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
-                                child: Text(
-                                  formatDuration(seconds),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          Chip(
-                            avatar: const Icon(Icons.error_outline, size: 18),
-                            label: Text(mistakeLabel),
-                          ),
-                          Chip(
-                            avatar: const Icon(
-                              Icons.lightbulb_outline,
-                              size: 18,
-                            ),
-                            label: Text(
-                              context.tr('hints_count', <Object>[
-                                widget.store.hints,
-                              ]),
-                            ),
-                          ),
-                          Chip(
-                            avatar: const Icon(Icons.grid_4x4, size: 18),
-                            label: Text(
-                              context.strings.difficultyLabel(
-                                widget.puzzle.difficulty,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      SudokuBoard(
-                        puzzle: widget.puzzle,
-                        board: _board,
-                        selectedIndex: _selectedIndex,
-                        notes: _notes,
-                        errorIndex: _errorIndex,
-                        hintedIndexes: _hintedIndexes,
-                        enabled: enabled,
-                        onCellTap: _selectCell,
-                      ),
-                    ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SoloGameHud extends StatelessWidget {
+  const _SoloGameHud({
+    required this.time,
+    required this.mistakes,
+    required this.hints,
+    required this.difficulty,
+    required this.compact,
+  });
+
+  final String time;
+  final String mistakes;
+  final String hints;
+  final String difficulty;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 10,
+        vertical: compact ? 7 : 9,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111E29).withValues(alpha: .92),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .07)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .22),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _SoloHudStat(
+              icon: Icons.timer_outlined,
+              label: context.tr('time'),
+              value: time,
+              accent: const Color(0xFF29D398),
+            ),
+          ),
+          _SoloHudDivider(compact: compact),
+          Expanded(
+            child: _SoloHudStat(
+              icon: Icons.error_outline_rounded,
+              label: context.tr('mistakes'),
+              value: mistakes,
+              accent: const Color(0xFFFF8C88),
+            ),
+          ),
+          _SoloHudDivider(compact: compact),
+          Expanded(
+            child: _SoloHudStat(
+              icon: Icons.lightbulb_outline_rounded,
+              label: context.tr('hints'),
+              value: hints,
+              accent: const Color(0xFFFFC94D),
+            ),
+          ),
+          _SoloHudDivider(compact: compact),
+          Expanded(
+            child: _SoloHudStat(
+              icon: Icons.grid_4x4_rounded,
+              label: difficulty,
+              value: widgetSizeLabel(context),
+              accent: const Color(0xFF66C7FF),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String widgetSizeLabel(BuildContext context) => 'Sudoku';
+}
+
+class _SoloHudDivider extends StatelessWidget {
+  const _SoloHudDivider({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: compact ? 34 : 40,
+      color: Colors.white.withValues(alpha: .075),
+    );
+  }
+}
+
+class _SoloHudStat extends StatelessWidget {
+  const _SoloHudStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.accent,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: accent, size: 14),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-            );
-          },
-        ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .45),
+              fontSize: 8,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+class _SoloBoardFrame extends StatelessWidget {
+  const _SoloBoardFrame({required this.enabled, required this.child});
+
+  final bool enabled;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C1820).withValues(alpha: .90),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFF66C7FF).withValues(alpha: enabled ? .16 : .07),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF3AA9FF).withValues(alpha: enabled ? .09 : .03),
+            blurRadius: 18,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .26),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: ClipRRect(borderRadius: BorderRadius.circular(16), child: child),
     );
   }
 }
