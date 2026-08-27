@@ -92,6 +92,7 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
       final response = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
+        barrierColor: Colors.black.withValues(alpha: .60),
         builder: (_) => _RematchPushDialog(invitation: invitation!),
       );
       if (!mounted || response == null) return;
@@ -248,7 +249,7 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
                         textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
                           labelText: context.tr('display_name'),
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
                         ),
                         onChanged: (_) {
                           selectedSource = 'custom';
@@ -272,7 +273,7 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
                         decoration: InputDecoration(
                           labelText: context.tr('unique_username'),
                           helperText: context.tr('username_helper'),
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
                         ),
                         onChanged: (_) {
                           errorText = null;
@@ -423,46 +424,192 @@ class _RematchPushDialogState extends State<_RematchPushDialog> {
   @override
   Widget build(BuildContext context) {
     final seconds = (_remainingMilliseconds / 1000).ceil().clamp(0, 10);
-    return AlertDialog(
-      title: Text(context.tr('rematch_invitation_title')),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            context.tr('wants_to_play_again', <Object>[
-              widget.invitation.sender.displayName,
-            ]),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 14),
-          Text(
-            '$seconds s',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            context.tr('rematch_requires_coin', <Object>[
-              EconomyService.instance.entryFeeForDifficulty(
-                widget.invitation.difficulty,
+    final progress = (seconds / 10).clamp(0.0, 1.0).toDouble();
+    final fee = EconomyService.instance.entryFeeForDifficulty(
+      widget.invitation.difficulty,
+    );
+    final name = widget.invitation.sender.displayName;
+    final canAccept = EconomyService.instance.canEnterOnline;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 30),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 330),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF17283B), Color(0xFF0B1722)],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: const Color(0xFF66C7FF).withValues(alpha: .24),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .48),
+                blurRadius: 34,
+                offset: const Offset(0, 18),
               ),
-            ]),
+            ],
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 68,
+                height: 68,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF25445E), Color(0xFF102136)],
+                  ),
+                  border: Border.all(
+                    color: const Color(0xFFFFC94D).withValues(alpha: .68),
+                    width: 2,
+                  ),
+                ),
+                child: Text(
+                  name.isEmpty ? '?' : name.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'wants a rematch',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .66),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox.square(
+                dimension: 106,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 6,
+                      backgroundColor: Colors.white.withValues(alpha: .10),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF29D398),
+                      ),
+                    ),
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$seconds',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 38,
+                              height: 1,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            's',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .52),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 17),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFC94D).withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFFFC94D).withValues(alpha: .18),
+                  ),
+                ),
+                child: Text(
+                  '$fee Coin from each player',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFFFFD66B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                        foregroundColor: Colors.white,
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: .18),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(context.tr('decline')),
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: canAccept
+                          ? () => Navigator.of(context).pop(true)
+                          : null,
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                        backgroundColor: const Color(0xFF29D398),
+                        foregroundColor: const Color(0xFF071612),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        context.tr('accept'),
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(context.tr('decline')),
-        ),
-        FilledButton(
-          onPressed: EconomyService.instance.canEnterOnline
-              ? () => Navigator.of(context).pop(true)
-              : null,
-          child: Text(context.tr('accept')),
-        ),
-      ],
     );
   }
 }
