@@ -920,7 +920,9 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
         setState(() => _statusMessage = context.tr('rematch_waiting_room'));
         final opened = await _waitForAcceptedRematch(invitation.id);
         if (!opened && mounted) {
-          setState(() => _statusMessage = context.tr('rematch_could_not_start'));
+          setState(
+            () => _statusMessage = context.tr('rematch_could_not_start'),
+          );
         }
       } else {
         setState(() => _statusMessage = context.tr('rematch_declined'));
@@ -972,7 +974,8 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       if (relevant == null) return;
       final previousStatus = _invitation?.status;
       setState(() => _invitation = relevant);
-      if (relevant.status == 'accepted' && relevant.roomId?.isNotEmpty == true) {
+      if (relevant.status == 'accepted' &&
+          relevant.roomId?.isNotEmpty == true) {
         await _openAcceptedRoom(relevant.roomId!);
       } else if (previousStatus == 'pending' && relevant.status == 'declined') {
         setState(() => _statusMessage = context.tr('challenge_declined'));
@@ -1146,11 +1149,7 @@ class _ResultCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.shield_rounded,
-            color: Color(0xFFFFC94D),
-            size: 48,
-          ),
+          const Icon(Icons.shield_rounded, color: Color(0xFFFFC94D), size: 48),
           const SizedBox(height: 4),
           Text(
             title.toUpperCase(),
@@ -1380,7 +1379,9 @@ class _ResultPlayer extends StatelessWidget {
     );
     final info = Expanded(
       child: Column(
-        crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: alignEnd
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Text(
             player.displayName,
@@ -1520,7 +1521,9 @@ class _ResultRankPanel extends StatelessWidget {
     }
 
     final afterTier = rankTierForPoints(value.rpAfter);
-    final nextIndex = rankTierCatalog.indexWhere((tier) => tier.key == afterTier.key);
+    final nextIndex = rankTierCatalog.indexWhere(
+      (tier) => tier.key == afterTier.key,
+    );
     final next = nextIndex >= 0 && nextIndex < rankTierCatalog.length - 1
         ? rankTierCatalog[nextIndex + 1]
         : null;
@@ -1539,13 +1542,19 @@ class _ResultRankPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .045),
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFF29D398).withValues(alpha: .18)),
+        border: Border.all(
+          color: const Color(0xFF29D398).withValues(alpha: .18),
+        ),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC94D), size: 18),
+              const Icon(
+                Icons.workspace_premium_rounded,
+                color: Color(0xFFFFC94D),
+                size: 18,
+              ),
               const SizedBox(width: 7),
               const Expanded(
                 child: Text(
@@ -1712,7 +1721,9 @@ class _InlineRematch extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF223047),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF29D398).withValues(alpha: .16)),
+        border: Border.all(
+          color: const Color(0xFF29D398).withValues(alpha: .16),
+        ),
       ),
       child: Column(
         children: [
@@ -1820,6 +1831,7 @@ class _ArenaMatchLayout extends StatelessWidget {
             compact ? 4 : 7,
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _MatchHeader(snapshot: snapshot, compact: compact),
               SizedBox(height: compact ? 5 : 7),
@@ -1837,7 +1849,7 @@ class _ArenaMatchLayout extends StatelessWidget {
                     final boardSize = mathMin(
                       constraints.maxWidth,
                       constraints.maxHeight,
-                    ).clamp(290.0, 720.0).toDouble();
+                    ).clamp(0.0, 720.0).toDouble();
                     return Align(
                       alignment: Alignment.topCenter,
                       child: SizedBox.square(
@@ -1847,17 +1859,19 @@ class _ArenaMatchLayout extends StatelessWidget {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(15),
                             border: Border.all(
-                              color: (snapshot.isLocalTurn
-                                      ? const Color(0xFF29D398)
-                                      : const Color(0xFF66C7FF))
-                                  .withValues(alpha: .15),
+                              color:
+                                  (snapshot.isLocalTurn
+                                          ? const Color(0xFF29D398)
+                                          : const Color(0xFF66C7FF))
+                                      .withValues(alpha: .15),
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: (snapshot.isLocalTurn
-                                        ? const Color(0xFF29D398)
-                                        : const Color(0xFF3AA9FF))
-                                    .withValues(alpha: .10),
+                                color:
+                                    (snapshot.isLocalTurn
+                                            ? const Color(0xFF29D398)
+                                            : const Color(0xFF3AA9FF))
+                                        .withValues(alpha: .10),
                                 blurRadius: 16,
                               ),
                             ],
@@ -1946,9 +1960,7 @@ class _TurnStatusStrip extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xE60A1A24),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: accent.withValues(alpha: pulse ? .72 : .28),
-        ),
+        border: Border.all(color: accent.withValues(alpha: pulse ? .72 : .28)),
         boxShadow: pulse
             ? [BoxShadow(color: accent.withValues(alpha: .18), blurRadius: 16)]
             : null,
@@ -2153,6 +2165,7 @@ class _MatchHeader extends StatelessWidget {
     final height = compact ? 70.0 : 80.0;
     final timerSize = compact ? 55.0 : 64.0;
     return SizedBox(
+      width: double.infinity,
       height: height,
       child: Stack(
         alignment: Alignment.topCenter,
@@ -2251,7 +2264,9 @@ class _HeaderPlayer extends StatelessWidget {
     final info = Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: alignEnd
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Text(
             name,
@@ -2349,7 +2364,9 @@ class _TimerPillState extends State<_TimerPill> {
           colors: [Color(0xFF3A4960), Color(0xFF202C40)],
         ),
         border: Border.all(color: Colors.white.withValues(alpha: .28)),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: .25), blurRadius: 12)],
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: .25), blurRadius: 12),
+        ],
       ),
       child: Stack(
         fit: StackFit.expand,
