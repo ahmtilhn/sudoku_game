@@ -27,6 +27,30 @@ class NumberPadDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final screen = MediaQuery.sizeOf(context);
+    final shortScreen = screen.height < 720;
+    final veryShortScreen = screen.height < 650;
+    final horizontal = screen.width >= 600;
+    final horizontalPadding = horizontal
+        ? 18.0
+        : screen.width <= 350
+        ? 7.0
+        : 10.0;
+    final topPadding = compact
+        ? veryShortScreen
+              ? 3.0
+              : shortScreen
+              ? 4.0
+              : 6.0
+        : 10.0;
+    final bottomPadding = compact
+        ? veryShortScreen
+              ? 4.0
+              : shortScreen
+              ? 5.0
+              : 8.0
+        : 12.0;
+
     return Material(
       elevation: compact ? 4 : 10,
       color: scheme.surface.withValues(alpha: compact ? .96 : 1),
@@ -48,10 +72,10 @@ class NumberPadDock extends StatelessWidget {
         child: SafeArea(
           top: false,
           minimum: EdgeInsets.fromLTRB(
-            10,
-            compact ? 6 : 10,
-            10,
-            compact ? 8 : 12,
+            horizontalPadding,
+            topPadding,
+            horizontalPadding,
+            bottomPadding,
           ),
           child: Align(
             alignment: Alignment.center,
@@ -99,12 +123,15 @@ class NumberPad extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final screenHeight = MediaQuery.sizeOf(context).height;
         final compact = constraints.maxWidth <= 520;
         final dense = maxValue == 9;
+        final shortScreen = screenHeight < 720;
+        final veryShortScreen = screenHeight < 650;
 
         return AnimatedOpacity(
           duration: const Duration(milliseconds: 180),
-          opacity: enabled ? 1 : 0.68,
+          opacity: enabled ? 1 : 0.58,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -114,6 +141,8 @@ class NumberPad extends StatelessWidget {
                   enabled: enabled,
                   completedValues: completedValues,
                   onNumber: onNumber,
+                  shortScreen: shortScreen,
+                  veryShortScreen: veryShortScreen,
                 )
               else
                 _FlexibleNumberGrid(
@@ -123,49 +152,54 @@ class NumberPad extends StatelessWidget {
                   completedValues: completedValues,
                   onNumber: onNumber,
                 ),
-              SizedBox(height: compact ? 5 : 8),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  if (showErase)
-                    _ActionButton(
-                      buttonKey: const ValueKey<String>('action-erase'),
-                      icon: Icons.backspace_outlined,
-                      label: context.tr('erase'),
-                      onPressed: enabled ? onErase : null,
-                    ),
-                  if (onToggleNotes != null)
-                    _ActionButton(
-                      buttonKey: const ValueKey<String>('action-notes'),
-                      icon: notesEnabled
-                          ? Icons.edit_note
-                          : Icons.edit_note_outlined,
-                      label: notesEnabled
-                          ? context.tr('notes_on')
-                          : context.tr('notes'),
-                      selected: notesEnabled,
-                      onPressed: enabled ? onToggleNotes : null,
-                    ),
-                  if (onUndo != null)
-                    _ActionButton(
-                      buttonKey: const ValueKey<String>('action-undo'),
-                      icon: Icons.undo,
-                      label: context.tr('undo'),
-                      onPressed: enabled ? onUndo : null,
-                    ),
-                  if (onHint != null)
-                    _ActionButton(
-                      buttonKey: const ValueKey<String>('action-hint'),
-                      icon: Icons.lightbulb_outline,
-                      label: hintCount == null
-                          ? context.tr('hint')
-                          : '${context.tr('hint')} ($hintCount)',
-                      onPressed: enabled ? onHint : null,
-                    ),
-                ],
-              ),
+              if (showErase ||
+                  onToggleNotes != null ||
+                  onUndo != null ||
+                  onHint != null) ...[
+                SizedBox(height: veryShortScreen ? 3 : compact ? 5 : 8),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    if (showErase)
+                      _ActionButton(
+                        buttonKey: const ValueKey<String>('action-erase'),
+                        icon: Icons.backspace_outlined,
+                        label: context.tr('erase'),
+                        onPressed: enabled ? onErase : null,
+                      ),
+                    if (onToggleNotes != null)
+                      _ActionButton(
+                        buttonKey: const ValueKey<String>('action-notes'),
+                        icon: notesEnabled
+                            ? Icons.edit_note
+                            : Icons.edit_note_outlined,
+                        label: notesEnabled
+                            ? context.tr('notes_on')
+                            : context.tr('notes'),
+                        selected: notesEnabled,
+                        onPressed: enabled ? onToggleNotes : null,
+                      ),
+                    if (onUndo != null)
+                      _ActionButton(
+                        buttonKey: const ValueKey<String>('action-undo'),
+                        icon: Icons.undo,
+                        label: context.tr('undo'),
+                        onPressed: enabled ? onUndo : null,
+                      ),
+                    if (onHint != null)
+                      _ActionButton(
+                        buttonKey: const ValueKey<String>('action-hint'),
+                        icon: Icons.lightbulb_outline,
+                        label: hintCount == null
+                            ? context.tr('hint')
+                            : '${context.tr('hint')} ($hintCount)',
+                        onPressed: enabled ? onHint : null,
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         );
@@ -180,25 +214,45 @@ class _NineNumberGrid extends StatelessWidget {
     required this.enabled,
     required this.completedValues,
     required this.onNumber,
+    required this.shortScreen,
+    required this.veryShortScreen,
   });
 
   final double maxWidth;
   final bool enabled;
   final Set<int> completedValues;
   final ValueChanged<int> onNumber;
+  final bool shortScreen;
+  final bool veryShortScreen;
 
   @override
   Widget build(BuildContext context) {
-    const spacing = 7.0;
-    final width = ((maxWidth - spacing * 4) / 5).clamp(48.0, 72.0);
-    final height = width.clamp(46.0, 56.0);
+    final spacing = maxWidth <= 350 ? 5.0 : 7.0;
+    final rawWidth = (maxWidth - spacing * 4) / 5;
+    final maxButtonWidth = veryShortScreen
+        ? 58.0
+        : shortScreen
+        ? 64.0
+        : 72.0;
+    final minButtonWidth = maxWidth <= 350 ? 42.0 : 46.0;
+    final width = rawWidth.clamp(minButtonWidth, maxButtonWidth).toDouble();
+    final height = veryShortScreen
+        ? width.clamp(40.0, 45.0).toDouble()
+        : shortScreen
+        ? width.clamp(43.0, 50.0).toDouble()
+        : width.clamp(46.0, 56.0).toDouble();
+    final rowGap = veryShortScreen
+        ? 4.0
+        : shortScreen
+        ? 5.0
+        : 7.0;
 
     Widget row(List<int> values) => Row(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         for (var index = 0; index < values.length; index++) ...[
-          if (index > 0) const SizedBox(width: spacing),
+          if (index > 0) SizedBox(width: spacing),
           _NumberButton(
             value: values[index],
             width: width,
@@ -215,7 +269,7 @@ class _NineNumberGrid extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         row(const [1, 2, 3, 4, 5]),
-        const SizedBox(height: 7),
+        SizedBox(height: rowGap),
         row(const [6, 7, 8, 9]),
       ],
     );
@@ -243,7 +297,7 @@ class _FlexibleNumberGrid extends StatelessWidget {
     final oneRowWidth = maxWidth - (spacing * (maxValue - 1));
     final oneRowButtonWidth = oneRowWidth / maxValue;
     final buttonWidth = oneRowButtonWidth >= 34
-        ? oneRowButtonWidth.clamp(34.0, 40.0)
+        ? oneRowButtonWidth.clamp(34.0, 40.0).toDouble()
         : 40.0;
 
     return Wrap(
@@ -302,9 +356,9 @@ class _NumberButton extends StatelessWidget {
           backgroundColor: scheme.secondaryContainer.withValues(alpha: .92),
           foregroundColor: scheme.onSecondaryContainer,
           disabledBackgroundColor: scheme.surfaceContainerHigh.withValues(
-            alpha: .70,
+            alpha: .62,
           ),
-          disabledForegroundColor: scheme.onSurface.withValues(alpha: .35),
+          disabledForegroundColor: scheme.onSurface.withValues(alpha: .30),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(compact ? 12 : 15),
             side: BorderSide(
