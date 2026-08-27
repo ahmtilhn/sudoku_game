@@ -9,11 +9,10 @@ class RankIdentitySummaryCard extends StatelessWidget {
   const RankIdentitySummaryCard({
     super.key,
     required this.profile,
-    required this.onCustomize,
+    required VoidCallback onCustomize,
   });
 
   final RankIdentityProfile profile;
-  final VoidCallback onCustomize;
 
   @override
   Widget build(BuildContext context) {
@@ -23,21 +22,10 @@ class RankIdentitySummaryCard extends StatelessWidget {
         : ((stats.wins / stats.rankedGames) * 100).round();
     final accent = _rankAccent(profile.rankKey);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _PremiumIdentityPanel(
-          profile: profile,
-          accent: accent,
-          winRate: winRate,
-        ),
-        const SizedBox(height: 8),
-        _ProfileFooter(
-          profile: profile,
-          accent: accent,
-          onCustomize: onCustomize,
-        ),
-      ],
+    return _PremiumIdentityPanel(
+      profile: profile,
+      accent: accent,
+      winRate: winRate,
     );
   }
 }
@@ -673,66 +661,6 @@ class _MetricChip extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ProfileFooter extends StatelessWidget {
-  const _ProfileFooter({
-    required this.profile,
-    required this.accent,
-    required this.onCustomize,
-  });
-
-  final RankIdentityProfile profile;
-  final Color accent;
-  final VoidCallback onCustomize;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Row(
-            children: [
-              Icon(Icons.landscape_rounded, color: accent, size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Peak: ${profile.highestRankName} · ${profile.highestRankPoints} RP',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .66),
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        FilledButton.icon(
-          onPressed: onCustomize,
-          icon: const Icon(Icons.tune_rounded, size: 17),
-          label: const Text('Customize'),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 42),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            backgroundColor: const Color(0xFF0F3C5E),
-            foregroundColor: Colors.white,
-            side: BorderSide(color: const Color(0xFF49B9FF).withValues(alpha: .65)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(13),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
