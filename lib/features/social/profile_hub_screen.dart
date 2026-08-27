@@ -177,7 +177,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
         tab: _ProfileTab.customize,
         asset: 'assets/images/ui/profile_style.png',
         title: 'Profile style',
-        subtitle: 'Avatar, rank frame, badges and title',
+        subtitle: 'Avatar, rank frame, badges and country',
         accent: const Color(0xFF66C7FF),
         metric: '40 avatars',
         onOpen: _openCustomization,
