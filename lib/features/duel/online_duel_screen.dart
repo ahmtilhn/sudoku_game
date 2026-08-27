@@ -398,10 +398,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
               type: MaterialType.transparency,
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 460),
+                  constraints: const BoxConstraints(maxWidth: 400),
                   child: SizedBox(
                     width: double.infinity,
-                    height: availableHeight.clamp(0.0, 900.0).toDouble(),
+                    height: availableHeight.clamp(0.0, 820.0).toDouble(),
                     child: _OnlineResultSheet(snapshot: snapshot),
                   ),
                 ),
@@ -843,10 +843,10 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
-        12,
         8,
-        12,
-        18 + MediaQuery.viewInsetsOf(context).bottom,
+        6,
+        8,
+        10 + MediaQuery.viewInsetsOf(context).bottom,
       ),
       child: _ResultCard(
         title: resultTitle,
@@ -1164,7 +1164,7 @@ class _ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewport = MediaQuery.sizeOf(context);
-    final compact = viewport.width < 380 || viewport.height < 760;
+    final compact = viewport.width < 350 || viewport.height < 700;
     final accent = draw
         ? const Color(0xFF9AA9BA)
         : won
@@ -1177,10 +1177,10 @@ class _ResultCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
-        compact ? 10 : 12,
         compact ? 8 : 10,
-        compact ? 10 : 12,
-        compact ? 10 : 12,
+        compact ? 6 : 8,
+        compact ? 8 : 10,
+        compact ? 8 : 10,
       ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -1188,15 +1188,15 @@ class _ResultCard extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [Color(0xFF102237), Color(0xFF0A1624)],
         ),
-        borderRadius: BorderRadius.circular(compact ? 20 : 23),
+        borderRadius: BorderRadius.circular(compact ? 18 : 20),
         border: Border.all(
-          color: const Color(0xFF5C8FB8).withValues(alpha: .36),
+          color: const Color(0xFF5C8FB8).withValues(alpha: .28),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: .46),
-            blurRadius: 28,
-            offset: const Offset(0, 15),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -1215,7 +1215,7 @@ class _ResultCard extends StatelessWidget {
             compact: compact,
             muted: !draw && !won,
           ),
-          SizedBox(height: compact ? 7 : 9),
+          SizedBox(height: compact ? 5 : 6),
           _ResultPlayers(
             localPlayer: localPlayer,
             opponent: opponent,
@@ -1225,7 +1225,7 @@ class _ResultCard extends StatelessWidget {
             draw: draw,
             compact: compact,
           ),
-          SizedBox(height: compact ? 7 : 9),
+          SizedBox(height: compact ? 5 : 6),
           _ResultStatsTable(
             metrics: metrics,
             won: won,
@@ -1233,7 +1233,7 @@ class _ResultCard extends StatelessWidget {
             compact: compact,
           ),
           if (showRank) ...[
-            SizedBox(height: compact ? 7 : 9),
+            SizedBox(height: compact ? 5 : 6),
             _ResultRankPanel(result: rankResult, loading: rankLoading),
           ],
           if (statusMessage != null) ...[
@@ -1251,7 +1251,7 @@ class _ResultCard extends StatelessWidget {
             ),
           ],
           if (invitation != null && invitation!.status == 'pending') ...[
-            SizedBox(height: compact ? 7 : 9),
+            SizedBox(height: compact ? 5 : 6),
             _InlineRematch(
               invitation: invitation!,
               seconds: invitationSeconds,
@@ -1261,10 +1261,10 @@ class _ResultCard extends StatelessWidget {
               onAccept: onInvitationAccept,
             ),
           ],
-          SizedBox(height: compact ? 8 : 10),
+          SizedBox(height: compact ? 6 : 8),
           SizedBox(
             width: double.infinity,
-            height: compact ? 42 : 46,
+            height: compact ? 34 : 38,
             child: FilledButton(
               onPressed: busy || !canPlay ? null : onNewMatch,
               style: FilledButton.styleFrom(
@@ -1287,7 +1287,7 @@ class _ResultCard extends StatelessWidget {
           const SizedBox(height: 6),
           SizedBox(
             width: double.infinity,
-            height: compact ? 40 : 44,
+            height: compact ? 36 : 40,
             child: OutlinedButton(
               onPressed: busy || !canPlay || invitation?.status == 'pending'
                   ? null
@@ -1313,7 +1313,7 @@ class _ResultCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _ResultFooterAction(
-                  height: compact ? 38 : 42,
+                  height: compact ? 34 : 38,
                   icon: Icons.person_add_alt_1_rounded,
                   label: context.tr('add_friend'),
                   onPressed: busy ? null : onAddFriend,
@@ -1323,7 +1323,7 @@ class _ResultCard extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: _ResultFooterAction(
-                  height: compact ? 38 : 42,
+                  height: compact ? 34 : 38,
                   icon: Icons.home_outlined,
                   label: context.tr('main_menu'),
                   onPressed: busy ? null : onMenu,
@@ -1336,7 +1336,7 @@ class _ResultCard extends StatelessWidget {
             const SizedBox(height: 6),
             SizedBox(
               width: double.infinity,
-              height: compact ? 38 : 42,
+              height: compact ? 34 : 38,
               child: OutlinedButton(
                 onPressed: busy ? null : onStore,
                 child: _ResultButtonLabel(
@@ -1379,8 +1379,8 @@ class _ResultHero extends StatelessWidget {
           opacity: muted ? .78 : 1,
           child: Image.asset(
             asset,
-            width: compact ? 62 : 72,
-            height: compact ? 62 : 72,
+            width: compact ? 50 : 58,
+            height: compact ? 50 : 58,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
           ),
@@ -1394,7 +1394,7 @@ class _ResultHero extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: accent,
-              fontSize: compact ? 25 : 29,
+              fontSize: compact ? 22 : 26,
               height: 1,
               fontWeight: FontWeight.w900,
               letterSpacing: .2,
@@ -1412,7 +1412,7 @@ class _ResultHero extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white.withValues(alpha: .88),
-            fontSize: compact ? 10 : 11,
+            fontSize: compact ? 9.5 : 10.5,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -1454,7 +1454,7 @@ class _ResultPlayers extends StatelessWidget {
         : const Color(0xFF38E09E);
 
     return SizedBox(
-      height: compact ? 82 : 92,
+      height: compact ? 88 : 98,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1467,11 +1467,11 @@ class _ResultPlayers extends StatelessWidget {
               isLocal: false,
             ),
           ),
-          SizedBox(width: compact ? 5 : 7),
+          SizedBox(width: compact ? 4 : 6),
           Center(
             child: Container(
-              width: compact ? 30 : 34,
-              height: compact ? 30 : 34,
+              width: compact ? 28 : 32,
+              height: compact ? 28 : 32,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -1496,7 +1496,7 @@ class _ResultPlayers extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(width: compact ? 5 : 7),
+          SizedBox(width: compact ? 4 : 6),
           Expanded(
             child: _ResultPlayerPanel(
               player: localPlayer,
@@ -1543,7 +1543,7 @@ class _ResultPlayerPanel extends StatelessWidget {
       child: PlayerAvatar(
         displayName: player.displayName,
         avatarKey: player.avatarKey,
-        radius: compact ? 18 : 21,
+        radius: compact ? 20 : 23,
         semanticLabel: player.displayName,
       ),
     );
@@ -1581,7 +1581,7 @@ class _ResultPlayerPanel extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: compact ? 10 : 11,
+                        fontSize: compact ? 10.5 : 11.5,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -1592,7 +1592,7 @@ class _ResultPlayerPanel extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .50),
-                          fontSize: compact ? 7.5 : 8.5,
+                          fontSize: compact ? 8 : 9,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1606,7 +1606,7 @@ class _ResultPlayerPanel extends StatelessWidget {
             '$score',
             style: TextStyle(
               color: accent,
-              fontSize: compact ? 16 : 18,
+              fontSize: compact ? 17 : 19,
               height: 1,
               fontWeight: FontWeight.w900,
             ),
@@ -1635,7 +1635,7 @@ class _ResultStatsTable extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 10,
-        vertical: compact ? 3 : 4,
+        vertical: compact ? 2 : 3,
       ),
       decoration: BoxDecoration(
         color: const Color(0xFF0F2031).withValues(alpha: .94),
@@ -1703,7 +1703,7 @@ class _ResultMetricRow extends StatelessWidget {
         : const Color(0xFF38E09E);
 
     return SizedBox(
-      height: compact ? 25 : 29,
+      height: compact ? 23 : 25,
       child: Row(
         children: [
           SizedBox(
@@ -1799,8 +1799,8 @@ class _ResultRankPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final compact =
-        MediaQuery.sizeOf(context).width < 380 ||
-        MediaQuery.sizeOf(context).height < 760;
+        MediaQuery.sizeOf(context).width < 350 ||
+        MediaQuery.sizeOf(context).height < 700;
 
     if (loading) {
       return Container(

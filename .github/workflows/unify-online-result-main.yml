@@ -17,111 +17,135 @@ concurrency:
 jobs:
   update-validate-commit:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
 
-      - name: Apply responsive result polish
+      - name: Replace independent online result chrome
         shell: python
         run: |
           from pathlib import Path
 
           path = Path('lib/features/duel/online_duel_screen.dart')
           source = path.read_text()
+          import_anchor = "import '../../widgets/sudoku_board.dart';\n"
+          import_line = "import '../../widgets/ux_feedback.dart';\n"
+          if import_line not in source:
+              if import_anchor not in source:
+                  raise SystemExit('Sudoku board import anchor not found.')
+              source = source.replace(import_anchor, import_anchor + import_line, 1)
 
-          def replace_once(old, new):
-              global source
-              count = source.count(old)
-              if count != 1:
-                  raise SystemExit(f'Expected 1 match, got {count}: {old}')
-              source = source.replace(old, new, 1)
+          class_start = source.index('class _ResultShowcaseCard extends StatelessWidget {')
+          painter_start = source.index('class _ResultSurfacePainter', class_start)
+          players_start = source.index('class _ResultPlayersRow', painter_start)
 
-          def edit_section(start_marker, end_marker, replacements):
-              global source
-              start = source.index(start_marker)
-              end = source.index(end_marker, start)
-              section = source[start:end]
-              for old, new in replacements:
-                  if old not in section:
-                      raise SystemExit(f'Missing in {start_marker}: {old}')
-                  section = section.replace(old, new)
-              source = source[:start] + section + source[end:]
+          replacement = r'''class _ResultShowcaseCard extends StatelessWidget {
+  const _ResultShowcaseCard({
+    required this.title,
+    required this.subtitle,
+    required this.won,
+    required this.draw,
+    required this.localPlayer,
+    required this.opponent,
+    required this.localScore,
+    required this.opponentScore,
+    required this.localRating,
+    required this.opponentRating,
+    required this.rating,
+    required this.rows,
+    required this.footer,
+  });
 
-          replace_once('                  constraints: const BoxConstraints(maxWidth: 460),', '                  constraints: const BoxConstraints(maxWidth: 400),')
-          replace_once('                    height: availableHeight.clamp(0.0, 900.0).toDouble(),', '                    height: availableHeight.clamp(0.0, 820.0).toDouble(),')
-          replace_once('    final compact = viewport.width < 380 || viewport.height < 760;', '    final compact = viewport.width < 350 || viewport.height < 700;')
+  final String title;
+  final String subtitle;
+  final bool won;
+  final bool draw;
+  final OnlineDuelPlayer localPlayer;
+  final OnlineDuelPlayer opponent;
+  final int localScore;
+  final int opponentScore;
+  final int localRating;
+  final int opponentRating;
+  final OnlineDuelRatingChange? rating;
+  final List<_ResultMetric> rows;
+  final Widget footer;
 
-          old_padding = "      padding: EdgeInsets.fromLTRB(\n        12,\n        8,\n        12,\n        18 + MediaQuery.viewInsetsOf(context).bottom,\n      ),"
-          new_padding = "      padding: EdgeInsets.fromLTRB(\n        8,\n        6,\n        8,\n        10 + MediaQuery.viewInsetsOf(context).bottom,\n      ),"
-          replace_once(old_padding, new_padding)
+  @override
+  Widget build(BuildContext context) {
+    final accent = draw
+        ? const Color(0xFF8DA2BE)
+        : won
+            ? const Color(0xFF29D398)
+            : Theme.of(context).colorScheme.error;
+    final icon = draw
+        ? Icons.handshake_outlined
+        : won
+            ? Icons.emoji_events_rounded
+            : Icons.flag_rounded;
 
-          old_rank_compact = "    final compact =\n        MediaQuery.sizeOf(context).width < 380 ||\n        MediaQuery.sizeOf(context).height < 760;"
-          new_rank_compact = "    final compact =\n        MediaQuery.sizeOf(context).width < 350 ||\n        MediaQuery.sizeOf(context).height < 700;"
-          replace_once(old_rank_compact, new_rank_compact)
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            UxOutcomeHeader(
+              icon: icon,
+              title: title,
+              subtitle: subtitle,
+              accent: accent,
+            ),
+            const SizedBox(height: 18),
+            _ResultPlayersRow(
+              localPlayer: localPlayer,
+              opponent: opponent,
+              localScore: localScore,
+              opponentScore: opponentScore,
+              localRating: localRating,
+              opponentRating: opponentRating,
+              accent: accent,
+            ),
+            const SizedBox(height: 12),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Column(
+                  children: [for (final row in rows) _ResultCompareRow(row: row)],
+                ),
+              ),
+            ),
+            if (rating != null) ...[
+              const SizedBox(height: 12),
+              _ResultEloBar(rating: rating!, color: accent),
+            ],
+            const SizedBox(height: 4),
+            footer,
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-          edit_section(
-              'class _ResultCard extends StatelessWidget {',
-              'class _ResultHero extends StatelessWidget {',
-              [
-                  ("compact ? 10 : 12,\n        compact ? 8 : 10,\n        compact ? 10 : 12,\n        compact ? 10 : 12,", "compact ? 8 : 10,\n        compact ? 6 : 8,\n        compact ? 8 : 10,\n        compact ? 8 : 10,"),
-                  ('BorderRadius.circular(compact ? 20 : 23)', 'BorderRadius.circular(compact ? 18 : 20)'),
-                  ('.withValues(alpha: .36)', '.withValues(alpha: .28)'),
-                  ('blurRadius: 28,', 'blurRadius: 22,'),
-                  ('offset: const Offset(0, 15),', 'offset: const Offset(0, 10),'),
-                  ('SizedBox(height: compact ? 7 : 9)', 'SizedBox(height: compact ? 5 : 6)'),
-                  ('SizedBox(height: compact ? 8 : 10)', 'SizedBox(height: compact ? 6 : 8)'),
-                  ('height: compact ? 42 : 46,', 'height: compact ? 38 : 42,'),
-                  ('height: compact ? 40 : 44,', 'height: compact ? 36 : 40,'),
-                  ('height: compact ? 38 : 42,', 'height: compact ? 34 : 38,'),
-              ],
-          )
-
-          edit_section(
-              'class _ResultHero extends StatelessWidget {',
-              'class _ResultPlayers extends StatelessWidget {',
-              [
-                  ('width: compact ? 62 : 72,', 'width: compact ? 50 : 58,'),
-                  ('height: compact ? 62 : 72,', 'height: compact ? 50 : 58,'),
-                  ('fontSize: compact ? 25 : 29,', 'fontSize: compact ? 22 : 26,'),
-                  ('fontSize: compact ? 10 : 11,', 'fontSize: compact ? 9.5 : 10.5,'),
-              ],
-          )
-
-          edit_section(
-              'class _ResultPlayers extends StatelessWidget {',
-              'class _ResultPlayerPanel extends StatelessWidget {',
-              [
-                  ('height: compact ? 82 : 92,', 'height: compact ? 88 : 98,'),
-                  ('SizedBox(width: compact ? 5 : 7)', 'SizedBox(width: compact ? 4 : 6)'),
-                  ('width: compact ? 30 : 34,', 'width: compact ? 28 : 32,'),
-                  ('height: compact ? 30 : 34,', 'height: compact ? 28 : 32,'),
-              ],
-          )
-
-          edit_section(
-              'class _ResultPlayerPanel extends StatelessWidget {',
-              'class _ResultStatsTable extends StatelessWidget {',
-              [
-                  ('radius: compact ? 18 : 21,', 'radius: compact ? 20 : 23,'),
-                  ('fontSize: compact ? 10 : 11,', 'fontSize: compact ? 10.5 : 11.5,'),
-                  ('fontSize: compact ? 7.5 : 8.5,', 'fontSize: compact ? 8 : 9,'),
-                  ('fontSize: compact ? 16 : 18,', 'fontSize: compact ? 17 : 19,'),
-              ],
-          )
-
-          edit_section(
-              'class _ResultStatsTable extends StatelessWidget {',
-              'class _ResultRankPanel extends StatelessWidget {',
-              [
-                  ('vertical: compact ? 3 : 4,', 'vertical: compact ? 2 : 3,'),
-                  ('height: compact ? 25 : 29,', 'height: compact ? 23 : 25,'),
-              ],
-          )
-
+'''
+          source = source[:class_start] + replacement + source[players_start:]
           path.write_text(source)
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - uses: subosito/flutter-action@v2
         with:
@@ -130,31 +154,23 @@ jobs:
 
       - run: flutter pub get
       - run: dart format lib/features/duel/online_duel_screen.dart
-      - run: flutter analyze --fatal-infos lib/features/duel/online_duel_screen.dart
+      - run: python3 tool/validate_localizations.py
+      - run: python3 tool/verify_user_facing_messages.py
+      - run: python3 tool/verify_ux_contracts.py
+      - run: flutter analyze --fatal-infos
+      - name: Test
+        shell: bash
+        run: timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
 
-      - name: Verify responsive result contract
-        shell: python
-        run: |
-          from pathlib import Path
-          source = Path('lib/features/duel/online_duel_screen.dart').read_text()
-          assert 'BoxConstraints(maxWidth: 400)' in source
-          assert 'availableHeight.clamp(0.0, 820.0)' in source
-          assert 'viewport.width < 350 || viewport.height < 700' in source
-          assert 'width: compact ? 50 : 58' in source
-          assert 'height: compact ? 88 : 98' in source
-          assert "assets/ELO_rating_icons/cup.png" in source
-
-      - name: Restore workflow and commit
+      - name: Commit directly to main
         shell: bash
         run: |
           set -euo pipefail
-          git checkout cf4f2ca503aa2a2047851defd93f15b281f42743 -- .github/workflows/unify-online-result-main.yml
-          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
-          git add lib/features/duel/online_duel_screen.dart .github/workflows/unify-online-result-main.yml
+          git add lib/features/duel/online_duel_screen.dart
           git diff --cached --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Polish responsive duel result layout [skip ci]'
+          git commit -m 'Unify online duel result with the shared outcome template'
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
