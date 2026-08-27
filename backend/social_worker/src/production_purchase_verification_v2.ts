@@ -1061,30 +1061,27 @@ function entitlementUpsertStatement(
 ): D1PreparedStatement {
   return env.DB.prepare(
     `INSERT INTO player_entitlements (
-       id, player_id, entitlement_key, source, source_transaction_id,
-       verification_hash, granted_at, updated_at, metadata_json
+       id, player_id, entitlement_key,
+       source_platform, source_product_id,
+       source_transaction_id, verification_hash,
+       granted_at, updated_at
      ) VALUES (?, ?, 'no_ads', ?, ?, ?, ?, ?, ?)
      ON CONFLICT(player_id, entitlement_key) DO UPDATE SET
-       source = excluded.source,
+       source_platform = excluded.source_platform,
+       source_product_id = excluded.source_product_id,
        source_transaction_id = excluded.source_transaction_id,
        verification_hash = excluded.verification_hash,
        revoked_at = NULL,
-       updated_at = excluded.updated_at,
-       metadata_json = excluded.metadata_json`,
+       updated_at = excluded.updated_at`,
   ).bind(
     crypto.randomUUID(),
     playerId,
     purchase.platform,
+    purchase.productId,
     purchase.transactionId,
     verificationHash,
     now,
     now,
-    JSON.stringify({
-      productId: purchase.productId,
-      platform: purchase.platform,
-      storeEnvironment: purchase.storeEnvironment,
-      verificationSource: purchase.verificationSource,
-    }),
   );
 }
 
