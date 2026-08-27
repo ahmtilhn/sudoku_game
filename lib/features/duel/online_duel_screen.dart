@@ -836,30 +836,35 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
             localValue: '${snapshot.correctMoves[snapshot.youSeat] ?? 0}',
             opponentValue: '${snapshot.correctMoves[opponentSeat] ?? 0}',
             icon: Icons.check_rounded,
+            asset: 'assets/images/ui/check.png',
           ),
           _ResultMetric(
             label: context.tr('mistakes'),
             localValue: '${snapshot.mistakes[snapshot.youSeat] ?? 0}',
             opponentValue: '${snapshot.mistakes[opponentSeat] ?? 0}',
             icon: Icons.close_rounded,
+            asset: 'assets/images/ui/close.png',
           ),
           _ResultMetric(
             label: context.tr('timeouts'),
             localValue: '${snapshot.timeouts[snapshot.youSeat] ?? 0}',
             opponentValue: '${snapshot.timeouts[opponentSeat] ?? 0}',
             icon: Icons.timer_outlined,
+            asset: 'assets/images/ui/timer.png',
           ),
           _ResultMetric(
             label: context.tr('hints'),
             localValue: context.tr('not_available_short'),
             opponentValue: context.tr('not_available_short'),
             icon: Icons.lightbulb_outline_rounded,
+            asset: 'assets/images/ui/lightbulb.png',
           ),
           _ResultMetric(
             label: context.tr('coin_result'),
             localValue: coinLabel(localNetCoin),
             opponentValue: coinLabel(opponentNetCoin),
             icon: Icons.monetization_on_outlined,
+            asset: 'assets/images/ui/coin.png',
           ),
         ],
         rankResult: _rankResult,
@@ -1064,12 +1069,14 @@ class _ResultMetric {
     required this.localValue,
     required this.opponentValue,
     required this.icon,
+    this.asset,
   });
 
   final String label;
   final String localValue;
   final String opponentValue;
   final IconData icon;
+  final String? asset;
 }
 
 class _ResultCard extends StatelessWidget {
@@ -1170,7 +1177,11 @@ class _ResultCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _ResultHero(
-            asset: _cupAsset,
+            asset: draw
+                ? 'assets/images/ui/shield.png'
+                : won
+                ? _cupAsset
+                : 'assets/images/ui/defeat_trophy.png',
             title: headline,
             subtitle: subtitle,
             accent: accent,
@@ -1415,9 +1426,11 @@ class _ResultPlayers extends StatelessWidget {
         ? const Color(0xFF79C8FF)
         : const Color(0xFF38E09E);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    return SizedBox(
+      height: compact ? 82 : 92,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         Expanded(
           child: _ResultPlayerPanel(
             player: opponent,
@@ -1466,7 +1479,8 @@ class _ResultPlayers extends StatelessWidget {
             isLocal: true,
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -1682,11 +1696,7 @@ class _ResultMetricRow extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  metric.icon,
-                  color: const Color(0xFFFFC94D),
-                  size: compact ? 13 : 14,
-                ),
+                _ResultMetricIcon(metric: metric, compact: compact),
                 const SizedBox(width: 5),
                 Flexible(
                   child: Text(
@@ -1719,6 +1729,34 @@ class _ResultMetricRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ResultMetricIcon extends StatelessWidget {
+  const _ResultMetricIcon({required this.metric, required this.compact});
+
+  final _ResultMetric metric;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = compact ? 13.0 : 14.0;
+    final asset = metric.asset;
+    if (asset == null) {
+      return Icon(metric.icon, color: const Color(0xFFFFC94D), size: size);
+    }
+    final image = Image.asset(
+      asset,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+    );
+    if (asset.endsWith('/coin.png')) return image;
+    return ColorFiltered(
+      colorFilter: const ColorFilter.mode(Color(0xFFFFC94D), BlendMode.srcIn),
+      child: image,
     );
   }
 }
