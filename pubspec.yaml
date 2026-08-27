@@ -47,6 +47,7 @@ flutter:
     - assets/rank/
     - assets/profile/
     - assets/profilecustomization/
+    - assets/ELO_rating_icons/
     - assets/puzzles/
     - assets/cards/
     - assets/logo/
