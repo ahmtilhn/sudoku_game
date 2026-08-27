@@ -588,13 +588,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             snapshot: snapshot,
             compact: compact,
             board: board,
-            statusText: _forfeiting
-                ? context.tr('connection_interrupted_retrying')
-                : _controller?.pendingMove == true
-                ? context.tr('sending_move')
-                : snapshot.isLocalTurn
-                ? context.tr('select_empty_cell_enter_number')
-                : context.tr('waiting_opponent_move'),
+            sendingMove: _controller?.pendingMove == true,
             onForfeit: _requestForfeit,
             forfeiting: _forfeiting,
             turnNoticeVisible: _turnNoticeVisible,
@@ -630,16 +624,10 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
                 ),
               if (snapshot.status == OnlineDuelStatus.paused)
                 Padding(
-                  padding: EdgeInsets.only(bottom: compact ? 4 : 8),
-                  child: Text(
-                    context.tr('opponent_connecting'),
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: _localConnectionInterrupted
-                          ? Theme.of(context).colorScheme.tertiary
-                          : null,
-                    ),
+                  padding: EdgeInsets.only(bottom: compact ? 7 : 10),
+                  child: _PausedDuelStatusCard(
+                    text: context.tr('opponent_connecting'),
+                    interrupted: _localConnectionInterrupted,
                   ),
                 ),
               Expanded(
@@ -656,6 +644,55 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     return SudokuDifficulty.values.firstWhere(
       (difficulty) => difficulty.name == value,
       orElse: () => SudokuDifficulty.easy,
+    );
+  }
+}
+
+class _PausedDuelStatusCard extends StatelessWidget {
+  const _PausedDuelStatusCard({required this.text, required this.interrupted});
+
+  final String text;
+  final bool interrupted;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = interrupted
+        ? const Color(0xFFFFC94D)
+        : const Color(0xFF66C7FF);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111E29).withValues(alpha: .94),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: .26)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox.square(
+            dimension: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              color: accent,
+            ),
+          ),
+          const SizedBox(width: 9),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1798,71 +1835,159 @@ class _ResultInvitationPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    final fee = EconomyService.instance.entryFeeForDifficulty(invite.difficulty);
+    if (invite.isSender) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF243149),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF29D398).withValues(alpha: .20)),
+        ),
+        child: Row(
+          children: [
+            const SizedBox.square(
+              dimension: 20,
+              child: CircularProgressIndicator(strokeWidth: 2.2),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                context.tr('waiting_for_player_seconds', <Object>[
+                  opponentName,
+                  seconds,
+                ]),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final progress = (seconds / 10).clamp(0.0, 1.0).toDouble();
+    return Container(
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .07),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF243149), Color(0xFF1A2638)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF29D398).withValues(alpha: .24)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: invite.isSender
-            ? Row(
-                children: [
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.2),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      context.tr('waiting_for_player_seconds', <Object>[
-                        opponentName,
-                        seconds,
-                      ]),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
+      child: Column(
+        children: [
+          Text(
+            context.tr('rematch_invitation_title'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            context.tr('wants_to_play_again', <Object>[invite.sender.displayName]),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .68),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              SizedBox.square(
+                dimension: 54,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 4,
+                      backgroundColor: Colors.white.withValues(alpha: .10),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF29D398),
                       ),
                     ),
-                  ),
-                ],
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    context.tr('wants_rematch_seconds', <Object>[
-                      invite.sender.displayName,
-                      seconds,
-                    ]),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: busy ? null : onDecline,
-                          child: Text(context.tr('decline')),
+                    Center(
+                      child: Text(
+                        '$seconds',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFC94D).withValues(alpha: .08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const DuelAssetIcon(
+                        DuelAsset.coin,
+                        size: 17,
+                        color: Color(0xFFFFD66B),
+                      ),
+                      const SizedBox(width: 6),
                       Expanded(
-                        child: FilledButton(
-                          onPressed: busy || !canPlay ? null : onAccept,
-                          child: Text(context.tr('accept')),
+                        child: Text(
+                          context.tr('rematch_requires_coin', <Object>[fee]),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFFFD66B),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 11),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: busy ? null : onDecline,
+                  child: Text(context.tr('decline')),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: busy || !canPlay ? null : onAccept,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF29D398),
+                    foregroundColor: const Color(0xFF071612),
+                  ),
+                  child: Text(
+                    context.tr('accept'),
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -2009,90 +2134,12 @@ class _TurnAwareBoardFrame extends StatelessWidget {
   }
 }
 
-class _TurnNoticePill extends StatelessWidget {
-  const _TurnNoticePill({
-    required this.visible,
-    required this.localTurn,
-    required this.compact,
-  });
-
-  final bool visible;
-  final bool localTurn;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final accent = localTurn ? scheme.primary : scheme.tertiary;
-    return IgnorePointer(
-      child: AnimatedOpacity(
-        key: const ValueKey<String>('online-board-turn-notice'),
-        opacity: visible ? 1 : 0,
-        duration: const Duration(milliseconds: 140),
-        child: Align(
-          alignment: Alignment.center,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xFF07111E).withValues(alpha: .90),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: accent.withValues(alpha: .86)),
-              boxShadow: [
-                BoxShadow(
-                  color: accent.withValues(alpha: localTurn ? .32 : .24),
-                  blurRadius: 16,
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: .34),
-                  blurRadius: 12,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: compact ? 18 : 24,
-                vertical: compact ? 7 : 9,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    localTurn
-                        ? Icons.touch_app_rounded
-                        : Icons.hourglass_top_rounded,
-                    color: accent,
-                    size: compact ? 19 : 22,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    localTurn
-                        ? context.tr('your_turn')
-                        : context.tr('opponents_turn'),
-                    key: const ValueKey<String>('online-board-turn-label'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: compact ? 17 : 19,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ArenaMatchLayout extends StatelessWidget {
   const _ArenaMatchLayout({
     required this.snapshot,
     required this.compact,
     required this.board,
-    required this.statusText,
+    required this.sendingMove,
     required this.onForfeit,
     required this.forfeiting,
     required this.turnNoticeVisible,
@@ -2102,7 +2149,7 @@ class _ArenaMatchLayout extends StatelessWidget {
   final OnlineDuelSnapshot snapshot;
   final bool compact;
   final Widget board;
-  final String statusText;
+  final bool sendingMove;
   final VoidCallback onForfeit;
   final bool forfeiting;
   final bool turnNoticeVisible;
@@ -2110,68 +2157,74 @@ class _ArenaMatchLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hub = OnlineDuelEmoteHub.instance;
+    final opponentOnLeft = snapshot.youSeat == OnlineDuelSeat.b;
     return DecoratedBox(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF1C2638), Color(0xFF273347), Color(0xFF182132)],
+          colors: [Color(0xFF1A2638), Color(0xFF202D41), Color(0xFF172133)],
         ),
       ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          compact ? 5 : 8,
-          compact ? 4 : 7,
-          compact ? 5 : 8,
-          compact ? 4 : 7,
-        ),
-        child: Column(
-          children: [
-            _MatchHeader(snapshot: snapshot, compact: compact),
-            SizedBox(height: compact ? 3 : 5),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 760;
-                  final railWidth = wide ? 54.0 : 0.0;
-                  final historyWidth = wide ? 82.0 : 0.0;
-                  final horizontalChrome =
-                      railWidth + historyWidth + (wide ? 10.0 : 0.0);
-                  final noticeHeight = compact ? 40.0 : 46.0;
-                  const noticeGap = 26.0;
-                  final verticalNoticeChrome = noticeHeight + noticeGap;
-                  final boardMax =
-                      constraints.maxHeight - verticalNoticeChrome <
-                          constraints.maxWidth - horizontalChrome
-                      ? constraints.maxHeight - verticalNoticeChrome
-                      : constraints.maxWidth - horizontalChrome;
-                  final boardSize = wide
-                      ? boardMax.clamp(320.0, 760.0)
-                      : boardMax.clamp(300.0, 720.0);
-                  final boardWidget = Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          height: noticeHeight,
-                          child: _TurnNoticePill(
-                            visible: turnNoticeVisible,
-                            localTurn: turnNoticeLocal,
-                            compact: compact,
-                          ),
-                        ),
-                        const SizedBox(height: noticeGap),
-                        SizedBox.square(
+      child: Stack(
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              compact ? 5 : 8,
+              compact ? 4 : 7,
+              compact ? 5 : 8,
+              compact ? 5 : 8,
+            ),
+            child: Column(
+              children: [
+                _MatchHeader(snapshot: snapshot, compact: compact),
+                SizedBox(height: compact ? 5 : 7),
+                _ArenaTurnStatusBar(
+                  localTurn: snapshot.isLocalTurn,
+                  sendingMove: sendingMove,
+                  pulse: turnNoticeVisible,
+                  pulseLocal: turnNoticeLocal,
+                  compact: compact,
+                ),
+                SizedBox(height: compact ? 6 : 9),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth >= 760;
+                      final railWidth = wide ? 54.0 : 0.0;
+                      final historyWidth = wide ? 82.0 : 0.0;
+                      final horizontalChrome =
+                          railWidth + historyWidth + (wide ? 10.0 : 0.0);
+                      final boardMax =
+                          constraints.maxHeight <
+                              constraints.maxWidth - horizontalChrome
+                          ? constraints.maxHeight
+                          : constraints.maxWidth - horizontalChrome;
+                      final boardSize = wide
+                          ? boardMax.clamp(320.0, 760.0)
+                          : boardMax.clamp(300.0, 720.0);
+                      final boardWidget = Align(
+                        alignment: Alignment.topCenter,
+                        child: SizedBox.square(
                           key: const ValueKey<String>('online-board-frame'),
                           dimension: boardSize,
-                          child: DecoratedBox(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: (snapshot.isLocalTurn
+                                        ? const Color(0xFF29D398)
+                                        : const Color(0xFF66C7FF))
+                                    .withValues(alpha: .16),
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(
-                                    0xFF3D74B6,
-                                  ).withValues(alpha: .14),
+                                  color: (snapshot.isLocalTurn
+                                          ? const Color(0xFF29D398)
+                                          : const Color(0xFF3D74B6))
+                                      .withValues(alpha: .12),
                                   blurRadius: 18,
                                 ),
                               ],
@@ -2182,59 +2235,361 @@ class _ArenaMatchLayout extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  );
-                  if (!wide) return boardWidget;
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(width: 54, child: _ArenaToolRail()),
-                      Expanded(child: boardWidget),
-                      SizedBox(
-                        width: 82,
-                        child: _MoveHistoryPanel(snapshot: snapshot),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            SizedBox(height: compact ? 3 : 5),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    statusText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: .58),
-                    ),
+                      );
+                      if (!wide) return boardWidget;
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(width: 54, child: _ArenaToolRail()),
+                          Expanded(child: boardWidget),
+                          SizedBox(
+                            width: 82,
+                            child: _MoveHistoryPanel(snapshot: snapshot),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(width: 6),
-                OutlinedButton.icon(
-                  onPressed: forfeiting ? null : onForfeit,
-                  icon: forfeiting
-                      ? const SizedBox.square(
-                          dimension: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.flag_rounded, size: 16),
-                  label: Text(context.tr('forfeit_and_leave')),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFFFB4AB),
-                    visualDensity: VisualDensity.compact,
-                    minimumSize: const Size(44, 34),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                SizedBox(height: compact ? 5 : 8),
+                _ArenaControlBar(
+                  hub: hub,
+                  sendingMove: sendingMove,
+                  forfeiting: forfeiting,
+                  onForfeit: onForfeit,
+                  compact: compact,
+                ),
+              ],
+            ),
+          ),
+          AnimatedBuilder(
+            animation: hub,
+            builder: (context, _) {
+              if (!hub.visible || hub.incomingEmoteId == null) {
+                return const SizedBox.shrink();
+              }
+              return Positioned(
+                top: compact ? 76 : 90,
+                left: opponentOnLeft ? 10 : null,
+                right: opponentOnLeft ? null : 10,
+                child: IgnorePointer(
+                  child: _ArenaOpponentEmote(
+                    emoteId: hub.incomingEmoteId,
+                    leftAligned: opponentOnLeft,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArenaTurnStatusBar extends StatelessWidget {
+  const _ArenaTurnStatusBar({
+    required this.localTurn,
+    required this.sendingMove,
+    required this.pulse,
+    required this.pulseLocal,
+    required this.compact,
+  });
+
+  final bool localTurn;
+  final bool sendingMove;
+  final bool pulse;
+  final bool pulseLocal;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final highlightedLocal = pulse ? pulseLocal : localTurn;
+    final accent = highlightedLocal
+        ? const Color(0xFF29D398)
+        : const Color(0xFFFFC94D);
+    final title = sendingMove
+        ? 'SENDING MOVE…'
+        : localTurn
+        ? context.tr('your_turn').toUpperCase()
+        : context.tr('opponents_turn').toUpperCase();
+    final subtitle = sendingMove
+        ? 'Syncing your move'
+        : localTurn
+        ? 'Make your move'
+        : 'Waiting for opponent';
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      width: double.infinity,
+      height: compact ? 42 : 48,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF091621).withValues(alpha: .94),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: accent.withValues(alpha: pulse ? .76 : .38),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: pulse ? .22 : .08),
+            blurRadius: pulse ? 18 : 10,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            sendingMove
+                ? Icons.sync_rounded
+                : localTurn
+                ? Icons.touch_app_rounded
+                : Icons.hourglass_top_rounded,
+            color: accent,
+            size: compact ? 18 : 20,
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: compact ? 11 : 13,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .55,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .62),
+                    fontSize: compact ? 9 : 10,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArenaControlBar extends StatelessWidget {
+  const _ArenaControlBar({
+    required this.hub,
+    required this.sendingMove,
+    required this.forfeiting,
+    required this.onForfeit,
+    required this.compact,
+  });
+
+  final OnlineDuelEmoteHub hub;
+  final bool sendingMove;
+  final bool forfeiting;
+  final VoidCallback onForfeit;
+  final bool compact;
+
+  Future<void> _showOptions(BuildContext context) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: .44),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+          child: Material(
+            color: const Color(0xFF101D27),
+            borderRadius: BorderRadius.circular(22),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .18),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'MATCH OPTIONS',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: hub.muted ? 'Unmute' : 'Mute',
+                        onPressed: hub.toggleMute,
+                        icon: Icon(
+                          hub.muted
+                              ? Icons.volume_off_rounded
+                              : Icons.volume_up_rounded,
+                        ),
+                      ),
+                    ],
+                  ),
+                  ListTile(
+                    enabled: !forfeiting,
+                    leading: const Icon(
+                      Icons.flag_rounded,
+                      color: Color(0xFFFF8C88),
+                    ),
+                    title: const Text(
+                      'Forfeit match',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    subtitle: const Text('A second confirmation is required.'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: forfeiting
+                        ? null
+                        : () => Navigator.of(sheetContext).pop('forfeit'),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
+    );
+    if (action == 'forfeit') onForfeit();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: compact ? 48 : 54,
+      child: Row(
+        children: [
+          if (sendingMove) ...[
+            const SizedBox.square(
+              dimension: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              context.tr('sending_move'),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .58),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+          const Spacer(),
+          _ArenaCircleButton(
+            tooltip: 'Emotes',
+            onPressed: hub.visible
+                ? () => showOnlineDuelEmotePicker(context, hub)
+                : null,
+            child: Icon(
+              Icons.add_reaction_outlined,
+              color: hub.onCooldown
+                  ? Colors.white38
+                  : const Color(0xFFFFD66B),
+              size: 23,
+            ),
+          ),
+          const SizedBox(width: 9),
+          _ArenaCircleButton(
+            tooltip: 'Match options',
+            onPressed: () => _showOptions(context),
+            child: const Icon(
+              Icons.more_horiz_rounded,
+              color: Color(0xFFFFD66B),
+              size: 25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArenaCircleButton extends StatelessWidget {
+  const _ArenaCircleButton({
+    required this.tooltip,
+    required this.onPressed,
+    required this.child,
+  });
+
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: const Color(0xFF152532),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: SizedBox.square(dimension: 42, child: Center(child: child)),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArenaOpponentEmote extends StatelessWidget {
+  const _ArenaOpponentEmote({required this.emoteId, required this.leftAligned});
+
+  final String? emoteId;
+  final bool leftAligned;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      textDirection: leftAligned ? TextDirection.ltr : TextDirection.rtl,
+      children: [
+        OnlineDuelEmoteBubble(
+          emoteId: emoteId,
+          accent: const Color(0xFFFFC94D),
+        ),
+        const SizedBox(width: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0B1722).withValues(alpha: .94),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.white.withValues(alpha: .08)),
+          ),
+          child: Text(
+            'OPPONENT',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .62),
+              fontSize: 8,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .7,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
