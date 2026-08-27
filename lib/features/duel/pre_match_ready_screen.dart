@@ -476,11 +476,14 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   bool get _showReadyEmotes {
     final opponent = _opponent;
     final status = _snapshot?.status;
+    final connectionUsable =
+        _connectionState == OnlineDuelConnectionState.connected ||
+        _connectionState == OnlineDuelConnectionState.resyncing;
     return opponent != null &&
         opponent.publicId.trim().isNotEmpty &&
         status != null &&
         onlineDuelStatusAllowsEmotes(status) &&
-        _connectionState == OnlineDuelConnectionState.connected;
+        connectionUsable;
   }
 
   _StageAction _actionForState(BuildContext context, bool failed) {

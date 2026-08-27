@@ -387,9 +387,11 @@ class OnlineDuelController with WidgetsBindingObserver {
   void _syncEmoteAvailability(OnlineDuelSnapshot snapshot) {
     final session = _emoteSession;
     if (session == null) return;
+    final connectionState = _transport.connectionState;
     OnlineDuelEmoteHub.instance.setMatchActive(
       session,
-      _transport.connectionState == OnlineDuelConnectionState.connected &&
+      (connectionState == OnlineDuelConnectionState.connected ||
+              connectionState == OnlineDuelConnectionState.resyncing) &&
           onlineDuelStatusAllowsEmotes(snapshot.status),
     );
   }
