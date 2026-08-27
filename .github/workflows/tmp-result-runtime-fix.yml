@@ -1,5 +1,6 @@
 name: Temporary result runtime fix
 
+# trigger: runtime-safe result validation
 on:
   push:
     branches: [main]
