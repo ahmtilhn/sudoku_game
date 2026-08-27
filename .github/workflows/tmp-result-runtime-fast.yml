@@ -1,0 +1,39 @@
+name: Fast result runtime patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-result-runtime-fast.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - run: python3 tool/tmp_result_runtime_fix.py
+      - run: git diff --check
+      - run: |
+          grep -q "height: compact ? 82 : 92" lib/features/duel/online_duel_screen.dart
+          grep -q "assets/images/ui/defeat_trophy.png" lib/features/duel/online_duel_screen.dart
+          grep -q "assets/images/ui/coin.png" lib/features/duel/online_duel_screen.dart
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib/features/duel/online_duel_screen.dart
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Fix result popup runtime layout and use UI assets'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
