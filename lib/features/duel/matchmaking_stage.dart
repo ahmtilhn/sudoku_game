@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
@@ -47,7 +45,11 @@ class MatchmakingVisualPlayer {
   }
 }
 
-class MatchmakingStage extends StatefulWidget {
+/// Presentation-only matchmaking arena.
+///
+/// Queue creation, polling, cancellation and room handoff remain owned by
+/// MatchmakingScreen. This widget only renders the current queue state.
+class MatchmakingStage extends StatelessWidget {
   const MatchmakingStage({
     super.key,
     required this.currentPlayer,
@@ -80,203 +82,80 @@ class MatchmakingStage extends StatefulWidget {
   bool get matched => opponent != null;
 
   @override
-  State<MatchmakingStage> createState() => _MatchmakingStageState();
-}
-
-class _MatchmakingStageState extends State<MatchmakingStage>
-    with TickerProviderStateMixin {
-  late final AnimationController _introController;
-  late final AnimationController _energyController;
-  late final AnimationController _matchController;
-  bool _reduceMotion = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _introController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 440),
-    )..forward();
-    _energyController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2300),
-    )..repeat();
-    _matchController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1050),
-      value: widget.matched ? 1 : 0,
-    );
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final reduce = MediaQuery.of(context).disableAnimations;
-    if (_reduceMotion == reduce) return;
-    _reduceMotion = reduce;
-    if (reduce) {
-      _energyController.stop();
-      _energyController.value = .18;
-      if (_introController.isAnimating) _introController.value = 1;
-      if (widget.matched) _matchController.value = 1;
-    } else if (!_energyController.isAnimating) {
-      _energyController.repeat();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant MatchmakingStage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!oldWidget.matched && widget.matched) {
-      if (_reduceMotion) {
-        _matchController.value = 1;
-      } else {
-        _matchController.forward(from: 0);
-      }
-    } else if (oldWidget.matched && !widget.matched) {
-      _matchController.value = 0;
-    }
-  }
-
-  @override
-  void dispose() {
-    _introController.dispose();
-    _energyController.dispose();
-    _matchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final playerEntrance = CurvedAnimation(
-      parent: _introController,
-      curve: const Interval(0, .82, curve: Curves.easeOutCubic),
-    );
-    final opponentEntrance = CurvedAnimation(
-      parent: _introController,
-      curve: const Interval(.14, 1, curve: Curves.easeOutCubic),
-    );
-
     return Scaffold(
-      backgroundColor: const Color(0xFF061424),
+      backgroundColor: const Color(0xFF07111E),
       body: AppBackdrop(
-        dim: .24,
+        dim: .28,
         child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 680),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final size = Size(
-                    constraints.maxWidth,
-                    constraints.maxHeight,
-                  );
-                  final compact = size.height < 710;
-                  final cardWidth = (size.width * .43).clamp(158.0, 244.0);
-                  final cardHeight = compact ? 226.0 : 250.0;
-                  final playerTop = compact
-                      ? size.height * .105
-                      : size.height * .13;
-                  final opponentTop = compact
-                      ? size.height * .43
-                      : size.height * .47;
-                  final horizontalInset = (size.width * .055).clamp(12.0, 34.0);
-
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Positioned.fill(
-                        child: RepaintBoundary(
-                          child: AnimatedBuilder(
-                            animation: Listenable.merge(<Listenable>[
-                              _energyController,
-                              _matchController,
-                              _introController,
-                            ]),
-                            builder: (context, _) {
-                              return CustomPaint(
-                                painter: _MatchmakingEnergyPainter(
-                                  progress: _energyController.value,
-                                  introProgress: _introController.value,
-                                  matchProgress: _matchController.value,
-                                  matched: widget.matched,
-                                  reducedMotion: _reduceMotion,
-                                ),
-                              );
-                            },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight < 720;
+              final veryCompact = constraints.maxHeight < 640;
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      14,
+                      compact ? 7 : 12,
+                      14,
+                      compact ? 10 : 16,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _SearchTopBar(
+                          onClose: onClose,
+                          matched: matched,
+                        ),
+                        SizedBox(height: compact ? 10 : 16),
+                        _SearchTitle(
+                          matched: matched,
+                          status: searchStatus,
+                          compact: compact,
+                        ),
+                        SizedBox(height: compact ? 10 : 16),
+                        Expanded(
+                          child: _MatchSearchArena(
+                            currentPlayer: currentPlayer,
+                            opponent: opponent,
+                            opponentReady: opponentReady,
+                            opponentStatus: opponentStatus,
+                            compact: compact,
+                            veryCompact: veryCompact,
                           ),
                         ),
-                      ),
-                      if (widget.onClose != null)
-                        Positioned(
-                          left: 12,
-                          top: 6,
-                          child: _CloseButton(onPressed: widget.onClose!),
+                        SizedBox(height: compact ? 8 : 12),
+                        _QueueStatusBar(
+                          matched: matched,
+                          busy: actionBusy,
+                          status: matched
+                              ? (opponentStatus ?? context.tr('connected'))
+                              : (searchStatus ??
+                                    context.tr('searching_opponent_short')),
                         ),
-                      Positioned(
-                        left: horizontalInset,
-                        top: playerTop,
-                        width: cardWidth,
-                        height: cardHeight,
-                        child: _EntranceMotion(
-                          animation: playerEntrance,
-                          from: const Offset(-12, -8),
-                          child: _PlayerCard(
-                            player: widget.currentPlayer,
-                            semanticLabel: context.tr('you'),
+                        SizedBox(height: compact ? 8 : 12),
+                        _MatchmakingActionButton(
+                          label: actionLabel,
+                          icon: actionIcon,
+                          busy: actionBusy,
+                          onPressed: onAction,
+                          matched: matched,
+                        ),
+                        if (floatingControl != null) ...[
+                          SizedBox(height: compact ? 6 : 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: floatingControl!,
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        right: horizontalInset,
-                        top: opponentTop,
-                        width: cardWidth,
-                        height: cardHeight,
-                        child: _EntranceMotion(
-                          animation: opponentEntrance,
-                          from: const Offset(12, 8),
-                          child: _OpponentCard(
-                            opponent: widget.opponent,
-                            matchAnimation: _matchController,
-                            searchAnimation: _energyController,
-                            searchStatus: widget.searchStatus,
-                            opponentStatus: widget.opponentStatus,
-                            opponentReady: widget.opponentReady,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 18,
-                        right: 18,
-                        bottom: compact ? 12 : 18,
-                        child: FadeTransition(
-                          opacity: CurvedAnimation(
-                            parent: _introController,
-                            curve: const Interval(
-                              .36,
-                              1,
-                              curve: Curves.easeOut,
-                            ),
-                          ),
-                          child: _MatchmakingActionButton(
-                            label: widget.actionLabel,
-                            icon: widget.actionIcon,
-                            busy: widget.actionBusy,
-                            onPressed: widget.onAction,
-                          ),
-                        ),
-                      ),
-                      if (widget.floatingControl != null)
-                        Positioned(
-                          right: 18,
-                          bottom: compact ? 88 : 98,
-                          child: widget.floatingControl!,
-                        ),
-                    ],
-                  );
-                },
-              ),
-            ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -284,479 +163,152 @@ class _MatchmakingStageState extends State<MatchmakingStage>
   }
 }
 
-class _EntranceMotion extends AnimatedWidget {
-  const _EntranceMotion({
-    required Animation<double> animation,
-    required this.from,
-    required this.child,
-  }) : super(listenable: animation);
+class _SearchTopBar extends StatelessWidget {
+  const _SearchTopBar({required this.onClose, required this.matched});
 
-  final Offset from;
-  final Widget child;
+  final VoidCallback? onClose;
+  final bool matched;
 
   @override
   Widget build(BuildContext context) {
-    final animation = listenable as Animation<double>;
-    final t = animation.value;
-    return Opacity(
-      opacity: t,
-      child: Transform.translate(
-        offset: Offset(from.dx * (1 - t), from.dy * (1 - t)),
-        child: Transform.scale(scale: .97 + (.03 * t), child: child),
-      ),
-    );
-  }
-}
-
-class _PlayerCard extends StatelessWidget {
-  const _PlayerCard({required this.player, required this.semanticLabel});
-
-  final MatchmakingVisualPlayer player;
-  final String semanticLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      label: '$semanticLabel, ${player.displayName}',
-      child: _CardShell(
-        child: Column(
-          children: [
-            _AvatarRing(player: player),
-            const SizedBox(height: 9),
-            Text(
-              player.displayName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -.2,
+    return SizedBox(
+      height: 56,
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: context.tr('cancel'),
+            onPressed: onClose,
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFF132A3C).withValues(alpha: .92),
+              foregroundColor: Colors.white,
+              side: BorderSide(
+                color: Colors.white.withValues(alpha: .10),
               ),
             ),
-            const SizedBox(height: 5),
-            _RankLine(label: player.rankLabel),
-            const Spacer(),
-            Divider(color: Colors.white.withValues(alpha: .12), height: 1),
-            const SizedBox(height: 10),
-            _StatsRow(player: player),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _OpponentCard extends StatelessWidget {
-  const _OpponentCard({
-    required this.opponent,
-    required this.matchAnimation,
-    required this.searchAnimation,
-    required this.searchStatus,
-    required this.opponentStatus,
-    required this.opponentReady,
-  });
-
-  final MatchmakingVisualPlayer? opponent;
-  final Animation<double> matchAnimation;
-  final Animation<double> searchAnimation;
-  final String? searchStatus;
-  final String? opponentStatus;
-  final bool opponentReady;
-
-  @override
-  Widget build(BuildContext context) {
-    final matched = opponent != null;
-    return Semantics(
-      container: true,
-      label: matched
-          ? '${context.tr('opponent')}, ${opponent!.displayName}'
-          : context.tr('searching_opponent'),
-      child: _CardShell(
-        child: AnimatedBuilder(
-          animation: Listenable.merge(<Listenable>[
-            matchAnimation,
-            searchAnimation,
-          ]),
-          builder: (context, _) {
-            final reveal = matched
-                ? Curves.easeOutCubic.transform(
-                    ((matchAnimation.value - .24) / .76).clamp(0.0, 1.0),
-                  )
-                : 0.0;
-            return Stack(
-              fit: StackFit.expand,
+            icon: const Icon(Icons.arrow_back_rounded, size: 25),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IgnorePointer(
-                  child: Opacity(
-                    opacity: matched ? 1 - reveal : 1,
-                    child: _SearchingOpponentContent(
-                      animationValue: searchAnimation.value,
-                      status: searchStatus,
-                    ),
+                Text(
+                  context.tr('online_duel').toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.25,
                   ),
                 ),
-                if (matched)
-                  Opacity(
-                    opacity: reveal,
-                    child: Transform.translate(
-                      offset: Offset(0, 6 * (1 - reveal)),
-                      child: Transform.scale(
-                        scale: .91 + (.09 * reveal),
-                        child: _MatchedOpponentContent(
-                          player: opponent!,
-                          status: opponentStatus,
-                          ready: opponentReady,
-                        ),
-                      ),
-                    ),
+                const SizedBox(height: 2),
+                Text(
+                  matched ? 'MATCH FOUND' : 'MATCHMAKING',
+                  style: TextStyle(
+                    color: (matched
+                            ? const Color(0xFF29D398)
+                            : const Color(0xFF66C7FF))
+                        .withValues(alpha: .88),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.45,
                   ),
+                ),
               ],
-            );
-          },
-        ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: const Color(0xFF102131).withValues(alpha: .92),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: const Color(0xFF66C7FF).withValues(alpha: .16),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: matched
+                        ? const Color(0xFF29D398)
+                        : const Color(0xFF66C7FF),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (matched
+                                ? const Color(0xFF29D398)
+                                : const Color(0xFF66C7FF))
+                            .withValues(alpha: .34),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  matched ? 'FOUND' : 'LIVE',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .72),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _SearchingOpponentContent extends StatelessWidget {
-  const _SearchingOpponentContent({
-    required this.animationValue,
+class _SearchTitle extends StatelessWidget {
+  const _SearchTitle({
+    required this.matched,
     required this.status,
+    required this.compact,
   });
 
-  final double animationValue;
+  final bool matched;
   final String? status;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final breathe =
-        1 + .025 * ((math.sin(animationValue * math.pi * 2) + 1) / 2);
     return Column(
       children: [
-        Transform.scale(
-          scale: breathe,
-          child: Container(
-            width: 74,
-            height: 74,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF0B1A31),
-              border: Border.all(
-                color: const Color(0xFF64B5FF).withValues(alpha: .78),
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF3A7BFF).withValues(alpha: .22),
-                  blurRadius: 18,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.person_search_rounded,
-              color: Color(0xFF8EB8FF),
-              size: 38,
-            ),
+        Text(
+          matched ? context.tr('opponent_ready') : context.tr('searching_opponent'),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: compact ? 21 : 25,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -.35,
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 4),
         Text(
-          context.tr('searching_opponent'),
+          status ??
+              (matched
+                  ? context.tr('connected')
+                  : context.tr('searching_opponent_short')),
+          textAlign: TextAlign.center,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            height: 1.05,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 7),
-        _SearchingStatus(
-          animationValue: animationValue,
-          status: status ?? context.tr('searching_opponent_short'),
-        ),
-        const Spacer(),
-        Divider(color: Colors.white.withValues(alpha: .12), height: 1),
-        const SizedBox(height: 10),
-        const _UnknownStatsRow(),
-      ],
-    );
-  }
-}
-
-class _MatchedOpponentContent extends StatelessWidget {
-  const _MatchedOpponentContent({
-    required this.player,
-    required this.status,
-    required this.ready,
-  });
-
-  final MatchmakingVisualPlayer player;
-  final String? status;
-  final bool ready;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _AvatarRing(player: player, cyan: true),
-        const SizedBox(height: 9),
-        Text(
-          player.displayName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -.2,
-          ),
-        ),
-        const SizedBox(height: 5),
-        _RankLine(label: player.rankLabel, cyan: true),
-        const Spacer(),
-        Divider(color: Colors.white.withValues(alpha: .12), height: 1),
-        const SizedBox(height: 10),
-        _StatsRow(player: player),
-        const SizedBox(height: 7),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              ready ? Icons.check_circle_rounded : Icons.link_rounded,
-              color: ready ? const Color(0xFF39D98A) : const Color(0xFF66C7FF),
-              size: 16,
-            ),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                status ??
-                    (ready ? context.tr('ready') : context.tr('connected')),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: ready
-                      ? const Color(0xFF39D98A)
-                      : const Color(0xFF66C7FF),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _CardShell extends StatelessWidget {
-  const _CardShell({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF14233A).withValues(alpha: .94),
-            const Color(0xFF071525).withValues(alpha: .95),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: const Color(0xFF63A9FF).withValues(alpha: .56),
-          width: 1.15,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF238CFF).withValues(alpha: .13),
-            blurRadius: 18,
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .30),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
-        child: child,
-      ),
-    );
-  }
-}
-
-class _AvatarRing extends StatelessWidget {
-  const _AvatarRing({required this.player, this.cyan = false});
-
-  final MatchmakingVisualPlayer player;
-  final bool cyan;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = cyan ? const Color(0xFF61C8FF) : const Color(0xFF8A7DFF);
-    return Container(
-      width: 74,
-      height: 74,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: accent.withValues(alpha: .9), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: .22),
-            blurRadius: 15,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: PlayerAvatar(
-        displayName: player.displayName,
-        avatarKey: player.avatarKey,
-        remoteApprovedImageUrl: player.remoteApprovedImageUrl,
-        radius: 32,
-        semanticLabel: context.tr('player_avatar_semantics', <Object>[
-          player.displayName,
-        ]),
-      ),
-    );
-  }
-}
-
-class _RankLine extends StatelessWidget {
-  const _RankLine({this.label, this.cyan = false});
-
-  final String? label;
-  final bool cyan;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = label?.trim();
-    final accent = cyan ? const Color(0xFF69CCFF) : const Color(0xFF9B8DFF);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.diamond_rounded, size: 14, color: accent),
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            text == null || text.isEmpty ? context.tr('rank') : text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: accent,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatsRow extends StatelessWidget {
-  const _StatsRow({required this.player});
-
-  final MatchmakingVisualPlayer player;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _Stat(
-            value: player.gamesPlayed?.toString() ?? '—',
-            label: context.tr('match_type'),
-          ),
-        ),
-        Expanded(
-          child: _Stat(
-            value: player.winRate == null
-                ? '—'
-                : '${(player.winRate!.clamp(0, 1) * 100).round()}%',
-            label: context.tr('win_rate'),
-          ),
-        ),
-        Expanded(
-          child: _Stat(
-            value: player.rating?.toString() ?? '—',
-            label: 'RP',
-            accent: const Color(0xFFB29AFF),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _UnknownStatsRow extends StatelessWidget {
-  const _UnknownStatsRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _Stat(value: '—', label: context.tr('match_type')),
-        ),
-        Expanded(
-          child: _Stat(value: '—', label: context.tr('win_rate')),
-        ),
-        const Expanded(
-          child: _Stat(value: '—', label: 'RP'),
-        ),
-      ],
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label, this.accent});
-
-  final String value;
-  final String label;
-  final Color? accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            value,
-            style: TextStyle(
-              color: accent ?? Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: .58),
-            fontSize: 9.5,
+            color: Colors.white.withValues(alpha: .55),
+            fontSize: compact ? 11 : 12,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -765,208 +317,513 @@ class _Stat extends StatelessWidget {
   }
 }
 
-class _SearchingStatus extends StatelessWidget {
-  const _SearchingStatus({required this.animationValue, required this.status});
+class _MatchSearchArena extends StatelessWidget {
+  const _MatchSearchArena({
+    required this.currentPlayer,
+    required this.opponent,
+    required this.opponentReady,
+    required this.opponentStatus,
+    required this.compact,
+    required this.veryCompact,
+  });
 
-  final double animationValue;
-  final String status;
+  final MatchmakingVisualPlayer currentPlayer;
+  final MatchmakingVisualPlayer? opponent;
+  final bool opponentReady;
+  final String? opponentStatus;
+  final bool compact;
+  final bool veryCompact;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var i = 0; i < 3; i++) ...[
-          Opacity(
-            opacity: _dotOpacity(animationValue, i),
-            child: const Text(
-              '•',
-              style: TextStyle(
-                color: Color(0xFF59C7FF),
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xF0122639), Color(0xF0091622)],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: const Color(0xFF66C7FF).withValues(alpha: .18),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .30),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const Positioned.fill(
+              child: IgnorePointer(child: CustomPaint(painter: _ArenaGridPainter())),
+            ),
+            Positioned(
+              left: -60,
+              top: -50,
+              child: _GlowOrb(
+                size: 180,
+                color: const Color(0xFF29D398),
               ),
             ),
-          ),
-          if (i != 2) const SizedBox(width: 1),
-        ],
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            status,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF65C9FF),
-              fontSize: 10.5,
-              height: 1.1,
-              fontWeight: FontWeight.w800,
+            Positioned(
+              right: -70,
+              bottom: -60,
+              child: _GlowOrb(
+                size: 200,
+                color: const Color(0xFFFFC94D),
+              ),
             ),
-          ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                compact ? 10 : 16,
+                veryCompact ? 10 : (compact ? 14 : 20),
+                compact ? 10 : 16,
+                veryCompact ? 10 : (compact ? 14 : 20),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _PlayerSearchCard(
+                      player: currentPlayer,
+                      label: context.tr('you'),
+                      accent: const Color(0xFF29D398),
+                      compact: compact,
+                    ),
+                  ),
+                  SizedBox(
+                    width: compact ? 58 : 74,
+                    child: _VersusCore(compact: compact),
+                  ),
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 240),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      child: opponent == null
+                          ? _SearchingCard(
+                              key: const ValueKey<String>('searching-opponent-card'),
+                              compact: compact,
+                            )
+                          : _PlayerSearchCard(
+                              key: ValueKey<String>(
+                                'matched-opponent-${opponent!.displayName}',
+                              ),
+                              player: opponent!,
+                              label: context.tr('opponent'),
+                              accent: const Color(0xFFFFC94D),
+                              compact: compact,
+                              status: opponentStatus,
+                              ready: opponentReady,
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
-    );
-  }
-
-  double _dotOpacity(double t, int index) {
-    final phase = (t + index * .18) % 1;
-    return .22 + .78 * ((math.sin(phase * math.pi * 2) + 1) / 2);
-  }
-}
-
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: MaterialLocalizations.of(context).closeButtonTooltip,
-      child: IconButton(
-        onPressed: onPressed,
-        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-        style: IconButton.styleFrom(
-          backgroundColor: const Color(0xFF10304D).withValues(alpha: .92),
-          foregroundColor: Colors.white,
-          fixedSize: const Size(52, 52),
-          shape: const CircleBorder(),
-        ),
-        icon: const Icon(Icons.close_rounded, size: 30),
       ),
     );
   }
 }
 
-class _MatchmakingActionButton extends StatefulWidget {
+class _PlayerSearchCard extends StatelessWidget {
+  const _PlayerSearchCard({
+    super.key,
+    required this.player,
+    required this.label,
+    required this.accent,
+    required this.compact,
+    this.status,
+    this.ready = false,
+  });
+
+  final MatchmakingVisualPlayer player;
+  final String label;
+  final Color accent;
+  final bool compact;
+  final String? status;
+  final bool ready;
+
+  @override
+  Widget build(BuildContext context) {
+    final avatarRadius = compact ? 35.0 : 44.0;
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        compact ? 8 : 12,
+        compact ? 10 : 16,
+        compact ? 8 : 12,
+        compact ? 10 : 14,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1C2A).withValues(alpha: .78),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: accent.withValues(alpha: .22)),
+      ),
+      child: Column(
+        children: [
+          _SideLabel(label: label, color: accent),
+          SizedBox(height: compact ? 8 : 12),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: accent.withValues(alpha: .72),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: .18),
+                  blurRadius: 18,
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(3),
+              child: PlayerAvatar(
+                displayName: player.displayName,
+                avatarKey: player.avatarKey,
+                remoteApprovedImageUrl: player.remoteApprovedImageUrl,
+                radius: avatarRadius,
+              ),
+            ),
+          ),
+          SizedBox(height: compact ? 8 : 11),
+          Text(
+            player.displayName,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: compact ? 14 : 17,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          _RankChip(
+            rank: player.rankLabel,
+            accent: accent,
+            compact: compact,
+          ),
+          const Spacer(),
+          _PlayerStats(player: player, compact: compact),
+          if (status != null || ready) ...[
+            SizedBox(height: compact ? 7 : 9),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  ready ? Icons.check_circle_rounded : Icons.link_rounded,
+                  color: ready ? const Color(0xFF29D398) : accent,
+                  size: 14,
+                ),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    status ?? context.tr('ready'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .62),
+                      fontSize: compact ? 9 : 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchingCard extends StatelessWidget {
+  const _SearchingCard({super.key, required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        compact ? 8 : 12,
+        compact ? 10 : 16,
+        compact ? 8 : 12,
+        compact ? 10 : 14,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D1C2A).withValues(alpha: .72),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFFFFC94D).withValues(alpha: .18),
+        ),
+      ),
+      child: Column(
+        children: [
+          const _SideLabel(label: 'OPPONENT', color: Color(0xFFFFC94D)),
+          const Spacer(),
+          SizedBox.square(
+            dimension: compact ? 86 : 104,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CircularProgressIndicator(
+                  strokeWidth: compact ? 3 : 3.5,
+                  backgroundColor: Colors.white.withValues(alpha: .06),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFF66C7FF),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(9),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const RadialGradient(
+                        colors: [Color(0xFF17344A), Color(0xFF0A1926)],
+                      ),
+                      border: Border.all(
+                        color: const Color(0xFF66C7FF).withValues(alpha: .22),
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.person_search_rounded,
+                      color: const Color(0xFF8ED8FF),
+                      size: compact ? 38 : 46,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: compact ? 10 : 14),
+          Text(
+            context.tr('searching_opponent'),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: compact ? 13 : 16,
+              height: 1.08,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(height: compact ? 6 : 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const _PulseDot(color: Color(0xFF66C7FF)),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  context.tr('searching_opponent_short'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .50),
+                    fontSize: compact ? 9 : 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          const _UnknownStats(compact: true),
+        ],
+      ),
+    );
+  }
+}
+
+class _VersusCore extends StatelessWidget {
+  const _VersusCore({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: compact ? 48 : 60,
+          height: compact ? 48 : 60,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const RadialGradient(
+              colors: [Color(0xFF27435C), Color(0xFF0A1722)],
+            ),
+            border: Border.all(
+              color: const Color(0xFFFFC94D).withValues(alpha: .42),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF66C7FF).withValues(alpha: .18),
+                blurRadius: 18,
+              ),
+              BoxShadow(
+                color: const Color(0xFFFFC94D).withValues(alpha: .12),
+                blurRadius: 18,
+              ),
+            ],
+          ),
+          child: Icon(
+            Icons.bolt_rounded,
+            color: const Color(0xFFFFD66B),
+            size: compact ? 28 : 34,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          'VS',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .42),
+            fontSize: compact ? 10 : 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QueueStatusBar extends StatelessWidget {
+  const _QueueStatusBar({
+    required this.matched,
+    required this.busy,
+    required this.status,
+  });
+
+  final bool matched;
+  final bool busy;
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = matched
+        ? const Color(0xFF29D398)
+        : const Color(0xFF66C7FF);
+    return Container(
+      minHeight: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF102131).withValues(alpha: .92),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: .16)),
+      ),
+      child: Row(
+        children: [
+          SizedBox.square(
+            dimension: 24,
+            child: busy || !matched
+                ? CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: accent,
+                    backgroundColor: Colors.white.withValues(alpha: .06),
+                  )
+                : Icon(Icons.check_circle_rounded, color: accent, size: 22),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  matched ? 'Opponent found' : context.tr('searching_opponent'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  status,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .48),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            matched ? Icons.link_rounded : Icons.travel_explore_rounded,
+            color: accent.withValues(alpha: .72),
+            size: 20,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MatchmakingActionButton extends StatelessWidget {
   const _MatchmakingActionButton({
     required this.label,
     required this.icon,
     required this.busy,
     required this.onPressed,
+    required this.matched,
   });
 
   final String label;
   final IconData icon;
   final bool busy;
   final VoidCallback? onPressed;
-
-  @override
-  State<_MatchmakingActionButton> createState() =>
-      _MatchmakingActionButtonState();
-}
-
-class _MatchmakingActionButtonState extends State<_MatchmakingActionButton> {
-  bool _pressed = false;
+  final bool matched;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = widget.onPressed != null && !widget.busy;
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      label: widget.label,
-      child: AnimatedScale(
-        scale: _pressed && enabled ? .975 : 1,
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOut,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
-          onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
-          onTapUp: enabled
-              ? (_) {
-                  setState(() => _pressed = false);
-                  widget.onPressed?.call();
-                }
-              : null,
-          child: AnimatedOpacity(
-            opacity: enabled ? 1 : .62,
-            duration: const Duration(milliseconds: 160),
-            child: Container(
-              height: 66,
-              constraints: const BoxConstraints(maxWidth: 620),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF372064).withValues(alpha: .66),
-                    const Color(0xFF10213D).withValues(alpha: .90),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(19),
-                border: Border.all(
-                  color: const Color(0xFF8F67FF).withValues(alpha: .92),
-                  width: 1.6,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF7C48FF).withValues(alpha: .28),
-                    blurRadius: 18,
-                    spreadRadius: 1,
-                  ),
-                  BoxShadow(
-                    color: const Color(0xFF268BFF).withValues(alpha: .14),
-                    blurRadius: 22,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
-                    transitionBuilder: (child, animation) => ScaleTransition(
-                      scale: animation,
-                      child: FadeTransition(opacity: animation, child: child),
-                    ),
-                    child: Container(
-                      key: ValueKey<Object>(widget.busy ? 'busy' : widget.icon),
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF87A8FF).withValues(alpha: .92),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: widget.busy
-                          ? const Padding(
-                              padding: EdgeInsets.all(9),
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF8FCBFF),
-                              ),
-                            )
-                          : Icon(
-                              widget.icon,
-                              color: const Color(0xFFA9C5FF),
-                              size: 22,
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Flexible(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      child: Text(
-                        widget.label,
-                        key: ValueKey<String>(widget.label),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    final accent = matched
+        ? const Color(0xFF29D398)
+        : const Color(0xFFFF7A70);
+    return SizedBox(
+      height: 54,
+      child: OutlinedButton.icon(
+        key: const ValueKey<String>('matchmaking-stage-action'),
+        onPressed: busy ? null : onPressed,
+        icon: busy
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(icon, size: 21),
+        label: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: accent,
+          disabledForegroundColor: Colors.white54,
+          backgroundColor: const Color(0xFF0D1B28).withValues(alpha: .90),
+          side: BorderSide(color: accent.withValues(alpha: .40)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
           ),
         ),
       ),
@@ -974,237 +831,292 @@ class _MatchmakingActionButtonState extends State<_MatchmakingActionButton> {
   }
 }
 
-class _MatchmakingEnergyPainter extends CustomPainter {
-  const _MatchmakingEnergyPainter({
-    required this.progress,
-    required this.introProgress,
-    required this.matchProgress,
-    required this.matched,
-    required this.reducedMotion,
+class _SideLabel extends StatelessWidget {
+  const _SideLabel({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .16)),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color.withValues(alpha: .92),
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .9,
+        ),
+      ),
+    );
+  }
+}
+
+class _RankChip extends StatelessWidget {
+  const _RankChip({
+    required this.rank,
+    required this.accent,
+    required this.compact,
   });
 
-  final double progress;
-  final double introProgress;
-  final double matchProgress;
-  final bool matched;
-  final bool reducedMotion;
+  final String? rank;
+  final Color accent;
+  final bool compact;
 
-  static const List<double> _zig = <double>[
-    0,
-    .42,
-    -.22,
-    .52,
-    -.48,
-    .18,
-    -.30,
-    .44,
-    -.16,
-    .28,
-    0,
-  ];
+  @override
+  Widget build(BuildContext context) {
+    final value = rank?.trim();
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 130),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 9,
+        vertical: compact ? 3 : 4,
+      ),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: accent.withValues(alpha: .17)),
+      ),
+      child: Text(
+        value == null || value.isEmpty ? 'UNRANKED' : value.toUpperCase(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: .76),
+          fontSize: compact ? 8 : 9,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .45,
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerStats extends StatelessWidget {
+  const _PlayerStats({required this.player, required this.compact});
+
+  final MatchmakingVisualPlayer player;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final winRate = player.winRate;
+    final rate = winRate == null ? '—' : '${(winRate * 100).round()}%';
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 4 : 6,
+        vertical: compact ? 6 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .035),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: Colors.white.withValues(alpha: .055)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _MiniStat(
+              value: player.rating?.toString() ?? '—',
+              label: 'RP',
+              compact: compact,
+            ),
+          ),
+          _MiniDivider(compact: compact),
+          Expanded(
+            child: _MiniStat(
+              value: player.gamesPlayed?.toString() ?? '—',
+              label: 'GAMES',
+              compact: compact,
+            ),
+          ),
+          _MiniDivider(compact: compact),
+          Expanded(
+            child: _MiniStat(
+              value: rate,
+              label: 'WIN',
+              compact: compact,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UnknownStats extends StatelessWidget {
+  const _UnknownStats({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 4 : 6,
+        vertical: compact ? 6 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .025),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: Colors.white.withValues(alpha: .045)),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < 3; i++) ...[
+            Expanded(
+              child: _MiniStat(
+                value: '—',
+                label: i == 0 ? 'RP' : (i == 1 ? 'GAMES' : 'WIN'),
+                compact: compact,
+              ),
+            ),
+            if (i < 2) _MiniDivider(compact: compact),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({
+    required this.value,
+    required this.label,
+    required this.compact,
+  });
+
+  final String value;
+  final String label;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: compact ? 10 : 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .34),
+            fontSize: compact ? 6 : 7,
+            fontWeight: FontWeight.w900,
+            letterSpacing: .45,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniDivider extends StatelessWidget {
+  const _MiniDivider({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: compact ? 22 : 26,
+      color: Colors.white.withValues(alpha: .06),
+    );
+  }
+}
+
+class _PulseDot extends StatelessWidget {
+  const _PulseDot({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 8,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(color: color.withValues(alpha: .30), blurRadius: 7),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GlowOrb extends StatelessWidget {
+  const _GlowOrb({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color.withValues(alpha: .10), Colors.transparent],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArenaGridPainter extends CustomPainter {
+  const _ArenaGridPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final intro = Curves.easeOutCubic.transform(
-      ((introProgress - .26) / .74).clamp(0.0, 1.0),
-    );
-    if (intro <= 0) return;
-
-    final start = Offset(size.width * .43, size.height * .34);
-    final end = Offset(size.width * .57, size.height * .58);
-    final delta = end - start;
-    final length = math.max(1.0, delta.distance);
-    final normal = Offset(-delta.dy / length, delta.dx / length);
-    final jitter = reducedMotion ? 0.0 : (matched ? 1.1 : 3.0);
-    final flash = math.sin(matchProgress.clamp(0, 1) * math.pi);
-    final path = Path();
-    final points = <Offset>[];
-
-    for (var i = 0; i < _zig.length; i++) {
-      final t = i / (_zig.length - 1);
-      final base = Offset.lerp(start, end, t)!;
-      final fixed = normal * (_zig[i] * 18);
-      final animated =
-          normal * (math.sin(progress * math.pi * 2 + i * 1.37) * jitter);
-      final point = base + fixed + animated;
-      points.add(point);
-      if (i == 0) {
-        path.moveTo(point.dx, point.dy);
-      } else {
-        path.lineTo(point.dx, point.dy);
-      }
-    }
-
-    final brightness = .76 + .16 * ((math.sin(progress * math.pi * 2) + 1) / 2);
-    final visible = intro.clamp(0.0, 1.0);
-    final outer = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 13 + flash * 5
-      ..color = const Color(
-        0xFF7B42FF,
-      ).withValues(alpha: (.12 + flash * .10) * visible)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
-    final middle = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 5.2 + flash * 1.8
-      ..color = Color.lerp(
-        const Color(0xFF7247FF),
-        const Color(0xFF4EA8FF),
-        .46,
-      )!.withValues(alpha: (.54 + flash * .18) * brightness * visible)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.2);
-    final core = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 1.8 + flash * 1.0
-      ..color = const Color(
-        0xFFE7F5FF,
-      ).withValues(alpha: (.86 + flash * .14) * visible);
-
-    canvas.drawPath(path, outer);
-    canvas.drawPath(path, middle);
-    canvas.drawPath(path, core);
-
-    if (!reducedMotion) {
-      _drawBranches(canvas, points, normal, visible, flash);
-      _drawParticles(canvas, start, delta, normal, visible);
-    }
-
-    final center = Offset.lerp(start, end, .5)! + normal * -1.5;
-    _drawCore(canvas, center, visible, flash);
-    _drawRings(canvas, center, visible, flash);
-  }
-
-  void _drawBranches(
-    Canvas canvas,
-    List<Offset> points,
-    Offset normal,
-    double visible,
-    double flash,
-  ) {
-    const indices = <int>[2, 4, 7, 8];
-    for (var j = 0; j < indices.length; j++) {
-      final index = indices[j];
-      final flicker = math
-          .pow(((math.sin(progress * math.pi * 4 + j * 2.1) + 1) / 2), 5)
-          .toDouble();
-      final alpha = (.08 + flicker * .44 + flash * .12) * visible;
-      if (alpha < .10) continue;
-      final anchor = points[index];
-      final sign = j.isEven ? 1.0 : -1.0;
-      final end =
-          anchor + normal * (sign * (14 + j * 3)) + Offset(4 * sign, -7);
-      final p = Path()
-        ..moveTo(anchor.dx, anchor.dy)
-        ..lineTo(end.dx, end.dy);
-      canvas.drawPath(
-        p,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..strokeWidth = 1.1
-          ..color = const Color(0xFFB8D8FF).withValues(alpha: alpha),
-      );
-    }
-  }
-
-  void _drawParticles(
-    Canvas canvas,
-    Offset start,
-    Offset delta,
-    Offset normal,
-    double visible,
-  ) {
-    final count = matched ? 8 : 14;
-    for (var i = 0; i < count; i++) {
-      final t = (i / count + progress * .075) % 1;
-      final base = start + delta * t;
-      final drift =
-          math.sin(i * 1.73 + progress * math.pi * 2) * (8 + (i % 3) * 3);
-      final point = base + normal * drift + Offset(math.sin(i * 2.2) * 5, 0);
-      final pulse =
-          .35 + .65 * ((math.sin(progress * math.pi * 2 + i) + 1) / 2);
-      canvas.drawCircle(
-        point,
-        i % 4 == 0 ? 1.4 : .8,
-        Paint()
-          ..color =
-              (i.isEven ? const Color(0xFF79BFFF) : const Color(0xFFB077FF))
-                  .withValues(alpha: .45 * pulse * visible),
-      );
-    }
-  }
-
-  void _drawCore(Canvas canvas, Offset center, double visible, double flash) {
-    final breathing = .88 + .12 * ((math.sin(progress * math.pi * 2) + 1) / 2);
-    final radius = (5.5 + flash * 8) * breathing;
-    canvas.drawCircle(
-      center,
-      radius * 3.2,
-      Paint()
-        ..color = const Color(
-          0xFF5E7DFF,
-        ).withValues(alpha: (.08 + flash * .12) * visible)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 13),
-    );
-    canvas.drawCircle(
-      center,
-      radius * 1.6,
-      Paint()
-        ..color = const Color(
-          0xFF6CC7FF,
-        ).withValues(alpha: (.22 + flash * .16) * visible)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-    );
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = const Color(
-          0xFFF4FBFF,
-        ).withValues(alpha: (.88 + flash * .12) * visible),
-    );
-  }
-
-  void _drawRings(Canvas canvas, Offset center, double visible, double flash) {
-    final ringPaint = Paint()
-      ..style = PaintingStyle.stroke
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: .025)
       ..strokeWidth = 1;
-    final cycles = reducedMotion ? 1 : 3;
-    for (var i = 0; i < cycles; i++) {
-      final phase = reducedMotion ? .36 : (progress + i / cycles) % 1;
-      final radius = 14 + phase * 42 + flash * 12;
-      ringPaint.color = const Color(
-        0xFF6FAEFF,
-      ).withValues(alpha: (1 - phase) * .25 * visible + flash * .10 * visible);
-      canvas.drawCircle(center, radius, ringPaint);
+    const divisions = 7;
+    for (var i = 1; i < divisions; i++) {
+      final x = size.width * i / divisions;
+      final y = size.height * i / divisions;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), line);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
     }
-    if (flash > .01) {
-      final shockRadius = 18 + matchProgress * 74;
-      canvas.drawCircle(
-        center,
-        shockRadius,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4
-          ..color = const Color(
-            0xFFA783FF,
-          ).withValues(alpha: (1 - matchProgress) * .48 * visible),
-      );
-    }
+
+    final centerLine = Paint()
+      ..color = const Color(0xFF66C7FF).withValues(alpha: .035)
+      ..strokeWidth = 1.2;
+    canvas.drawLine(
+      Offset(size.width / 2, 14),
+      Offset(size.width / 2, size.height - 14),
+      centerLine,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _MatchmakingEnergyPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.introProgress != introProgress ||
-        oldDelegate.matchProgress != matchProgress ||
-        oldDelegate.matched != matched ||
-        oldDelegate.reducedMotion != reducedMotion;
-  }
+  bool shouldRepaint(covariant _ArenaGridPainter oldDelegate) => false;
 }
