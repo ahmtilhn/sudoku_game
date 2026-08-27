@@ -73,6 +73,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git restore --worktree --staged pubspec.lock analysis_options.yaml 2>/dev/null || true
           git add lib/features/duel/online_duel_screen.dart
           git diff --cached --check
           git config user.name 'github-actions[bot]'
