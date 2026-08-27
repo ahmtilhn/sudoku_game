@@ -123,93 +123,102 @@ class _MatchmakingStageState extends State<MatchmakingStage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF06111F),
+      backgroundColor: const Color(0xFF050E18),
       body: AppBackdrop(
-        dim: .22,
-        child: SafeArea(
-          minimum: const EdgeInsets.only(top: 2, bottom: 2),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final width = constraints.maxWidth;
-              final height = constraints.maxHeight;
-              final horizontalScale = (width / 390).clamp(.84, 1.10).toDouble();
-              final verticalScale = (height / 800).clamp(.78, 1.06).toDouble();
-              final scale = math.min(horizontalScale, verticalScale).toDouble();
-              final sidePadding = (20 * horizontalScale)
-                  .clamp(14.0, 24.0)
-                  .toDouble();
+        dim: .50,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x8F04101C), Color(0xB805101A)],
+            ),
+          ),
+          child: SafeArea(
+            minimum: const EdgeInsets.only(top: 2, bottom: 2),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final height = constraints.maxHeight;
+                final horizontalScale = (width / 390).clamp(.84, 1.10).toDouble();
+                final verticalScale = (height / 800).clamp(.76, 1.06).toDouble();
+                final scale = math.min(horizontalScale, verticalScale).toDouble();
+                final sidePadding = (18 * horizontalScale)
+                    .clamp(13.0, 22.0)
+                    .toDouble();
 
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      sidePadding,
-                      5 * scale,
-                      sidePadding,
-                      7 * scale,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _SearchHeader(
-                          difficultyLabel: widget.difficultyLabel,
-                          onBack: widget.onClose,
-                          scale: scale,
-                          onHelp: _showSearchInfo,
-                        ),
-                        SizedBox(height: 8 * scale),
-                        _SearchStateLine(
-                          matched: widget.matched,
-                          busy: widget.actionBusy,
-                          status: widget.searchStatus,
-                          animation: _ambientController,
-                          scale: scale,
-                        ),
-                        SizedBox(height: 12 * scale),
-                        Expanded(
-                          child: RepaintBoundary(
-                            child: _ResponsiveDuelArena(
-                              currentPlayer: widget.currentPlayer,
-                              opponent: widget.opponent,
-                              opponentReady: widget.opponentReady,
-                              opponentStatus: widget.opponentStatus,
-                              animation: _ambientController,
-                              scale: scale,
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        sidePadding,
+                        5 * scale,
+                        sidePadding,
+                        7 * scale,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _SearchHeader(
+                            difficultyLabel: widget.difficultyLabel,
+                            onBack: widget.onClose,
+                            scale: scale,
+                            onHelp: _showSearchInfo,
+                          ),
+                          SizedBox(height: 8 * scale),
+                          _SearchStateLine(
+                            matched: widget.matched,
+                            busy: widget.actionBusy,
+                            status: widget.searchStatus,
+                            animation: _ambientController,
+                            scale: scale,
+                          ),
+                          SizedBox(height: 14 * scale),
+                          Expanded(
+                            child: RepaintBoundary(
+                              child: _ResponsiveDuelArena(
+                                currentPlayer: widget.currentPlayer,
+                                opponent: widget.opponent,
+                                opponentReady: widget.opponentReady,
+                                opponentStatus: widget.opponentStatus,
+                                animation: _ambientController,
+                                scale: scale,
+                              ),
                             ),
                           ),
-                        ),
-                        SizedBox(height: 12 * scale),
-                        _RankSearchStatus(
-                          matched: widget.matched,
-                          busy: widget.actionBusy,
-                          animation: _ambientController,
-                          scale: scale,
-                        ),
-                        SizedBox(height: 12 * scale),
-                        _MatchmakingActionButton(
-                          label: widget.actionLabel,
-                          icon: widget.actionIcon,
-                          busy: widget.actionBusy,
-                          matched: widget.matched,
-                          onPressed: widget.onAction,
-                          scale: scale,
-                        ),
-                        if (widget.floatingControl != null) ...[
-                          SizedBox(height: 8 * scale),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: widget.floatingControl!,
+                          SizedBox(height: 13 * scale),
+                          _RankSearchStatus(
+                            matched: widget.matched,
+                            busy: widget.actionBusy,
+                            animation: _ambientController,
+                            scale: scale,
                           ),
+                          SizedBox(height: 12 * scale),
+                          _MatchmakingActionButton(
+                            label: widget.actionLabel,
+                            icon: widget.actionIcon,
+                            busy: widget.actionBusy,
+                            matched: widget.matched,
+                            onPressed: widget.onAction,
+                            scale: scale,
+                          ),
+                          if (widget.floatingControl != null) ...[
+                            SizedBox(height: 8 * scale),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: widget.floatingControl!,
+                            ),
+                          ],
+                          SizedBox(height: 10 * scale),
+                          _SearchTip(scale: scale),
                         ],
-                        SizedBox(height: 10 * scale),
-                        _SearchTip(scale: scale),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -222,11 +231,11 @@ class _MatchmakingStageState extends State<MatchmakingStage>
       context: context,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: .58),
+      barrierColor: Colors.black.withValues(alpha: .64),
       builder: (sheetContext) => Padding(
         padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         child: Material(
-          color: const Color(0xFF101E2B),
+          color: const Color(0xFF0B1825),
           borderRadius: BorderRadius.circular(24),
           clipBehavior: Clip.antiAlias,
           child: Padding(
@@ -363,11 +372,11 @@ class _HeaderButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: const Color(0xC70B1A29),
+        color: const Color(0xD60A1724),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(size * .34),
           side: BorderSide(
-            color: const Color(0xFF3AA9FF).withValues(alpha: .23),
+            color: const Color(0xFF2FB6FF).withValues(alpha: .20),
           ),
         ),
         child: InkWell(
@@ -425,9 +434,9 @@ class _SearchStateLine extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF29D398).withValues(
-                      alpha: .12 + wave * .14,
+                      alpha: .10 + wave * .12,
                     ),
-                    blurRadius: 9,
+                    blurRadius: 8,
                   ),
                 ],
               ),
@@ -440,7 +449,7 @@ class _SearchStateLine extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: .80),
+                  color: Colors.white.withValues(alpha: .82),
                   fontSize: (13 * scale).clamp(11.0, 14.0).toDouble(),
                   fontWeight: FontWeight.w600,
                 ),
@@ -476,10 +485,12 @@ class _ResponsiveDuelArena extends StatelessWidget {
       builder: (context, constraints) {
         final arenaWidth = constraints.maxWidth;
         final arenaHeight = constraints.maxHeight;
-        final visualHeight = math.min(arenaHeight, 410 * scale).toDouble();
-        final centerGap = (arenaWidth * .105).clamp(36.0, 54.0).toDouble();
+        final visualHeight = math
+            .min(arenaHeight, (352 * scale).clamp(286.0, 382.0))
+            .toDouble();
+        final centerGap = (arenaWidth * .05).clamp(14.0, 24.0).toDouble();
         final cardWidth = ((arenaWidth - centerGap) / 2)
-            .clamp(112.0, 224.0)
+            .clamp(132.0, 236.0)
             .toDouble();
 
         return Center(
@@ -488,6 +499,7 @@ class _ResponsiveDuelArena extends StatelessWidget {
             height: visualHeight,
             child: Stack(
               alignment: Alignment.center,
+              clipBehavior: Clip.none,
               children: [
                 const Positioned.fill(
                   child: CustomPaint(painter: _MatchmakingEnergyPainter()),
@@ -539,31 +551,31 @@ class _PlayerSearchCard extends StatelessWidget {
       accent: const Color(0xFF2FB6FF),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final dense = constraints.maxHeight < 295;
-          final veryDense = constraints.maxHeight < 235;
-          final avatarRadius = veryDense
-              ? 23.0
-              : dense
-              ? 28.0
-              : (35 * scale).clamp(30.0, 39.0).toDouble();
-          final gap = veryDense ? 5.0 : dense ? 7.0 : 10 * scale;
+          final dense = constraints.maxHeight < 315;
+          final veryDense = constraints.maxHeight < 270;
+          final avatarRadius = math
+              .min(
+                constraints.maxWidth * .255,
+                (43 * scale).clamp(35.0, 47.0),
+              )
+              .toDouble();
 
           return Padding(
             padding: EdgeInsets.fromLTRB(
-              (11 * scale).clamp(8.0, 13.0).toDouble(),
-              (14 * scale).clamp(10.0, 16.0).toDouble(),
-              (11 * scale).clamp(8.0, 13.0).toDouble(),
-              (13 * scale).clamp(9.0, 15.0).toDouble(),
+              (12 * scale).clamp(9.0, 14.0).toDouble(),
+              (18 * scale).clamp(12.0, 20.0).toDouble(),
+              (12 * scale).clamp(9.0, 14.0).toDouble(),
+              (15 * scale).clamp(10.0, 17.0).toDouble(),
             ),
             child: Column(
               children: [
-                const Spacer(),
+                Spacer(flex: veryDense ? 1 : 2),
                 _AvatarHalo(
                   player: player,
                   accent: const Color(0xFF2FB6FF),
                   radius: avatarRadius,
                 ),
-                SizedBox(height: gap),
+                SizedBox(height: veryDense ? 5 : 9 * scale),
                 Text(
                   context.tr('you'),
                   maxLines: 1,
@@ -592,9 +604,9 @@ class _PlayerSearchCard extends StatelessWidget {
                   scale: scale,
                   dense: dense,
                 ),
-                const Spacer(),
+                Spacer(flex: veryDense ? 1 : 2),
                 Divider(
-                  color: const Color(0xFF47BCFF).withValues(alpha: .32),
+                  color: const Color(0xFF47BCFF).withValues(alpha: .36),
                   height: 1,
                 ),
                 SizedBox(height: veryDense ? 6 : dense ? 8 : 12 * scale),
@@ -693,24 +705,25 @@ class _ScanningOpponentCard extends StatelessWidget {
       accent: const Color(0xFFFFC94D),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final dense = constraints.maxHeight < 295;
-          final veryDense = constraints.maxHeight < 235;
-          final radarSize = veryDense
-              ? 62.0
-              : dense
-              ? 76.0
-              : (102 * scale).clamp(82.0, 110.0).toDouble();
+          final dense = constraints.maxHeight < 315;
+          final veryDense = constraints.maxHeight < 270;
+          final radarSize = math
+              .min(
+                constraints.maxWidth * .60,
+                (112 * scale).clamp(86.0, 120.0),
+              )
+              .toDouble();
 
           return Padding(
             padding: EdgeInsets.fromLTRB(
-              (10 * scale).clamp(8.0, 12.0).toDouble(),
-              (12 * scale).clamp(9.0, 14.0).toDouble(),
-              (10 * scale).clamp(8.0, 12.0).toDouble(),
-              (13 * scale).clamp(9.0, 15.0).toDouble(),
+              (11 * scale).clamp(8.0, 13.0).toDouble(),
+              (16 * scale).clamp(11.0, 18.0).toDouble(),
+              (11 * scale).clamp(8.0, 13.0).toDouble(),
+              (15 * scale).clamp(10.0, 17.0).toDouble(),
             ),
             child: Column(
               children: [
-                const Spacer(),
+                Spacer(flex: veryDense ? 1 : 2),
                 SizedBox.square(
                   dimension: radarSize,
                   child: _SearchRadar(animation: animation),
@@ -728,13 +741,13 @@ class _ScanningOpponentCard extends StatelessWidget {
                         : dense
                         ? 13
                         : (16 * scale).clamp(14.0, 17.0).toDouble(),
-                    height: 1.25,
+                    height: 1.20,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const Spacer(),
+                Spacer(flex: veryDense ? 1 : 2),
                 Divider(
-                  color: const Color(0xFFFFC94D).withValues(alpha: .28),
+                  color: const Color(0xFFFFC94D).withValues(alpha: .30),
                   height: 1,
                 ),
                 SizedBox(height: veryDense ? 6 : dense ? 8 : 12 * scale),
@@ -792,30 +805,31 @@ class _FoundOpponentCard extends StatelessWidget {
       accent: const Color(0xFFFFC94D),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final dense = constraints.maxHeight < 295;
-          final veryDense = constraints.maxHeight < 235;
-          final avatarRadius = veryDense
-              ? 23.0
-              : dense
-              ? 28.0
-              : (35 * scale).clamp(30.0, 39.0).toDouble();
+          final dense = constraints.maxHeight < 315;
+          final veryDense = constraints.maxHeight < 270;
+          final avatarRadius = math
+              .min(
+                constraints.maxWidth * .255,
+                (43 * scale).clamp(35.0, 47.0),
+              )
+              .toDouble();
 
           return Padding(
             padding: EdgeInsets.fromLTRB(
-              (11 * scale).clamp(8.0, 13.0).toDouble(),
-              (14 * scale).clamp(10.0, 16.0).toDouble(),
-              (11 * scale).clamp(8.0, 13.0).toDouble(),
-              (13 * scale).clamp(9.0, 15.0).toDouble(),
+              (12 * scale).clamp(9.0, 14.0).toDouble(),
+              (18 * scale).clamp(12.0, 20.0).toDouble(),
+              (12 * scale).clamp(9.0, 14.0).toDouble(),
+              (15 * scale).clamp(10.0, 17.0).toDouble(),
             ),
             child: Column(
               children: [
-                const Spacer(),
+                Spacer(flex: veryDense ? 1 : 2),
                 _AvatarHalo(
                   player: player,
                   accent: const Color(0xFFFFC94D),
                   radius: avatarRadius,
                 ),
-                SizedBox(height: veryDense ? 5 : dense ? 7 : 10 * scale),
+                SizedBox(height: veryDense ? 5 : 9 * scale),
                 Text(
                   player.displayName,
                   maxLines: 1,
@@ -836,7 +850,7 @@ class _FoundOpponentCard extends StatelessWidget {
                 SizedBox(height: veryDense ? 2 : 4),
                 _RpLine(value: player.rating, scale: scale, dense: dense),
                 if (!veryDense) ...[
-                  SizedBox(height: dense ? 4 : 7 * scale),
+                  SizedBox(height: dense ? 3 : 6 * scale),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -861,9 +875,9 @@ class _FoundOpponentCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                const Spacer(),
+                Spacer(flex: veryDense ? 1 : 2),
                 Divider(
-                  color: const Color(0xFFFFC94D).withValues(alpha: .28),
+                  color: const Color(0xFFFFC94D).withValues(alpha: .30),
                   height: 1,
                 ),
                 SizedBox(height: veryDense ? 6 : dense ? 8 : 12 * scale),
@@ -914,17 +928,17 @@ class _DuelCardShell extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xF2142A40), Color(0xF2081522)],
+          colors: [Color(0xFF0C2134), Color(0xFF07131F)],
         ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: accent.withValues(alpha: .76), width: 1.35),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: accent.withValues(alpha: .82), width: 1.4),
         boxShadow: [
           BoxShadow(
-            color: accent.withValues(alpha: .13),
-            blurRadius: 23,
+            color: accent.withValues(alpha: .15),
+            blurRadius: 22,
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: .34),
+            color: Colors.black.withValues(alpha: .44),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -953,11 +967,11 @@ class _AvatarHalo extends StatelessWidget {
       padding: const EdgeInsets.all(2.5),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: accent.withValues(alpha: .90), width: 1.6),
+        border: Border.all(color: accent.withValues(alpha: .94), width: 1.7),
         boxShadow: [
           BoxShadow(
-            color: accent.withValues(alpha: .20),
-            blurRadius: 14,
+            color: accent.withValues(alpha: .22),
+            blurRadius: 15,
           ),
         ],
       ),
@@ -1015,6 +1029,7 @@ class _RpLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // label: 'RP' is the visible competitive metric label.
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -1106,7 +1121,7 @@ class _SearchRadar extends StatelessWidget {
               height: 46,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF0B1A25).withValues(alpha: .88),
+                color: const Color(0xFF081721).withValues(alpha: .96),
                 border: Border.all(
                   color: const Color(0xFF29D398).withValues(
                     alpha: .24 + wave * .12,
@@ -1187,7 +1202,7 @@ class _VersusBadge extends StatelessWidget {
         final wave = (math.sin(animation.value * math.pi * 2) + 1) / 2;
         final size = (58 * scale).clamp(48.0, 62.0).toDouble();
         return Transform.scale(
-          scale: 1 + wave * .012,
+          scale: 1 + wave * .010,
           child: Container(
             width: size,
             height: size,
@@ -1195,26 +1210,26 @@ class _VersusBadge extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const RadialGradient(
-                colors: [Color(0xFF243D54), Color(0xFF081522)],
+                colors: [Color(0xFF1D354A), Color(0xFF07131E)],
               ),
               border: Border.all(
-                color: const Color(0xFFFFC94D).withValues(alpha: .72),
-                width: 1.4,
+                color: const Color(0xFFFFC94D).withValues(alpha: .80),
+                width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF3AA9FF).withValues(
-                    alpha: .14 + wave * .04,
+                  color: const Color(0xFF2FB6FF).withValues(
+                    alpha: .12 + wave * .035,
                   ),
-                  blurRadius: 18,
-                  offset: const Offset(-7, 0),
+                  blurRadius: 17,
+                  offset: const Offset(-6, 0),
                 ),
                 BoxShadow(
                   color: const Color(0xFFFFC94D).withValues(
-                    alpha: .14 + wave * .04,
+                    alpha: .12 + wave * .035,
                   ),
-                  blurRadius: 18,
-                  offset: const Offset(7, 0),
+                  blurRadius: 17,
+                  offset: const Offset(6, 0),
                 ),
               ],
             ),
@@ -1273,10 +1288,10 @@ class _RankSearchStatus extends StatelessWidget {
             vertical: (10 * scale).clamp(8.0, 12.0).toDouble(),
           ),
           decoration: BoxDecoration(
-            color: const Color(0xD60B1A28),
+            color: const Color(0xE00A1825),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFF2FB6FF).withValues(alpha: .22),
+              color: const Color(0xFF2FB6FF).withValues(alpha: .20),
             ),
           ),
           child: Row(
@@ -1286,9 +1301,9 @@ class _RankSearchStatus extends StatelessWidget {
                 height: (42 * scale).clamp(36.0, 44.0).toDouble(),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF10263B),
+                  color: const Color(0xFF0E2438),
                   border: Border.all(
-                    color: const Color(0xFF3AA9FF).withValues(alpha: .38),
+                    color: const Color(0xFF2FB6FF).withValues(alpha: .35),
                   ),
                 ),
                 child: const Icon(
@@ -1339,9 +1354,9 @@ class _RankSearchStatus extends StatelessWidget {
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF29D398).withValues(
-                        alpha: .14 + wave * .15,
+                        alpha: .12 + wave * .13,
                       ),
-                      blurRadius: 9,
+                      blurRadius: 8,
                     ),
                   ],
                 ),
@@ -1416,7 +1431,7 @@ class _MatchmakingActionButtonState extends State<_MatchmakingActionButton> {
                     height: 32,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: accent.withValues(alpha: .78)),
+                      border: Border.all(color: accent.withValues(alpha: .80)),
                     ),
                     alignment: Alignment.center,
                     child: Icon(widget.icon, size: 19),
@@ -1432,10 +1447,10 @@ class _MatchmakingActionButtonState extends State<_MatchmakingActionButton> {
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: accent,
-              backgroundColor: const Color(0xC8081521),
+              backgroundColor: const Color(0xEA07131D),
               side: BorderSide(
-                color: accent.withValues(alpha: .82),
-                width: 1.1,
+                color: accent.withValues(alpha: .86),
+                width: 1.2,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
@@ -1497,24 +1512,25 @@ class _SearchTip extends StatelessWidget {
   }
 }
 
+/// Background glows only. The approved reference has no vertical separator
+/// between the two cards, so this painter intentionally draws no center line.
 class _MatchmakingEnergyPainter extends CustomPainter {
   const _MatchmakingEnergyPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
-    final centerX = size.width / 2;
     final centerY = size.height / 2;
 
     final blueGlow = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFF2FB6FF).withValues(alpha: .065),
+          const Color(0xFF2FB6FF).withValues(alpha: .075),
           Colors.transparent,
         ],
       ).createShader(
         Rect.fromCircle(
-          center: Offset(size.width * .31, centerY),
-          radius: size.width * .34,
+          center: Offset(size.width * .30, centerY),
+          radius: size.width * .31,
         ),
       );
     canvas.drawRect(Offset.zero & size, blueGlow);
@@ -1522,72 +1538,16 @@ class _MatchmakingEnergyPainter extends CustomPainter {
     final goldGlow = Paint()
       ..shader = RadialGradient(
         colors: [
-          const Color(0xFFFFC94D).withValues(alpha: .060),
+          const Color(0xFFFFC94D).withValues(alpha: .070),
           Colors.transparent,
         ],
       ).createShader(
         Rect.fromCircle(
-          center: Offset(size.width * .69, centerY),
-          radius: size.width * .34,
+          center: Offset(size.width * .70, centerY),
+          radius: size.width * .31,
         ),
       );
     canvas.drawRect(Offset.zero & size, goldGlow);
-
-    final axis = Paint()
-      ..strokeWidth = 1
-      ..color = Colors.white.withValues(alpha: .035)
-      ..style = PaintingStyle.stroke;
-    for (var i = 1; i <= 4; i++) {
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(centerX, centerY),
-          width: size.width * (.18 + i * .13),
-          height: size.height * (.18 + i * .10),
-        ),
-        axis,
-      );
-    }
-
-    final energy = Path()
-      ..moveTo(centerX, size.height * .10)
-      ..cubicTo(
-        centerX - size.width * .012,
-        size.height * .28,
-        centerX + size.width * .018,
-        size.height * .34,
-        centerX - size.width * .008,
-        size.height * .48,
-      )
-      ..cubicTo(
-        centerX - size.width * .022,
-        size.height * .57,
-        centerX + size.width * .025,
-        size.height * .69,
-        centerX,
-        size.height * .90,
-      );
-
-    final energyPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF2FB6FF), Color(0xFFFFC94D)],
-      ).createShader(Offset.zero & size)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(energy, energyPaint);
-
-    final glowPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0x662FB6FF), Color(0x66FFC94D)],
-      ).createShader(Offset.zero & size)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
-    canvas.drawPath(energy, glowPaint);
   }
 
   @override
