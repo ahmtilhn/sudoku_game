@@ -1785,7 +1785,7 @@ class _TurnAwareBoardFrame extends StatelessWidget {
             IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: .30),
+                  color: Colors.black.withValues(alpha: .38),
                 ),
               ),
             ),
