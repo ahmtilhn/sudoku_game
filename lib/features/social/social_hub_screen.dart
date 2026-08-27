@@ -341,8 +341,8 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                   Row(children: [
                     if (secondaryLabel != null && onSecondary != null) ...[
                       Expanded(child: OutlinedButton(
-                        onPressed: () { Navigator.of(sheetContext).pop(); onSecondary!(); },
-                        child: Text(secondaryLabel!),
+                        onPressed: () { Navigator.of(sheetContext).pop(); onSecondary(); },
+                        child: Text(secondaryLabel),
                       )),
                       const SizedBox(width: 8),
                     ],
@@ -350,7 +350,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                       Expanded(
                         flex: 2,
                         child: FilledButton.icon(
-                          onPressed: onPrimary == null ? null : () { Navigator.of(sheetContext).pop(); onPrimary!(); },
+                          onPressed: onPrimary == null ? null : () { Navigator.of(sheetContext).pop(); onPrimary(); },
                           style: FilledButton.styleFrom(backgroundColor: const Color(0xFF29D398), foregroundColor: const Color(0xFF07111E), minimumSize: const Size.fromHeight(48)),
                           icon: Icon(_actionIcon(primaryLabel)),
                           label: Text(primaryLabel),
@@ -453,13 +453,15 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 
   Widget _requestsView() {
-    if (_requests.isEmpty) return _Empty(
-      asset: DuelAsset.homeFriendsScene,
-      title: 'All caught up',
-      message: context.tr('friend_requests_empty'),
-      action: 'Find players',
-      onAction: _searchFocus.requestFocus,
-    );
+    if (_requests.isEmpty) {
+      return _Empty(
+        asset: DuelAsset.homeFriendsScene,
+        title: 'All caught up',
+        message: context.tr('friend_requests_empty'),
+        action: 'Find players',
+        onAction: _searchFocus.requestFocus,
+      );
+    }
     return _list([
       for (final p in _requests)
         _PlayerCard(
@@ -482,13 +484,15 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 
   Widget _friendsView() {
-    if (_friends.isEmpty) return _Empty(
-      asset: DuelAsset.homeFriendsScene,
-      title: 'No friends yet',
-      message: 'Add friends to challenge, compare scores and climb the ranks together.',
-      action: 'Find friends',
-      onAction: _searchFocus.requestFocus,
-    );
+    if (_friends.isEmpty) {
+      return _Empty(
+        asset: DuelAsset.homeFriendsScene,
+        title: 'No friends yet',
+        message: 'Add friends to challenge, compare scores and climb the ranks together.',
+        action: 'Find friends',
+        onAction: _searchFocus.requestFocus,
+      );
+    }
     return _list([
       for (final p in _friends)
         _PlayerCard(
@@ -503,11 +507,13 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 
   Widget _recentView() {
-    if (_opponents.isEmpty) return _Empty(
-      asset: DuelAsset.homeDuelScene,
-      title: 'No recent opponents',
-      message: context.tr('recent_opponents_empty_body'),
-    );
+    if (_opponents.isEmpty) {
+      return _Empty(
+        asset: DuelAsset.homeDuelScene,
+        title: 'No recent opponents',
+        message: context.tr('recent_opponents_empty_body'),
+      );
+    }
     return _list([
       for (final p in _opponents)
         _PlayerCard(
@@ -528,11 +534,13 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 
   Widget _challengesView() {
-    if (_incoming.isEmpty) return _Empty(
-      asset: DuelAsset.homeDuelScene,
-      title: 'No active challenges',
-      message: 'Incoming duel challenges will appear here.',
-    );
+    if (_incoming.isEmpty) {
+      return _Empty(
+        asset: DuelAsset.homeDuelScene,
+        title: 'No active challenges',
+        message: 'Incoming duel challenges will appear here.',
+      );
+    }
     return _list([
       for (final c in _incoming)
         _ChallengeCard(
