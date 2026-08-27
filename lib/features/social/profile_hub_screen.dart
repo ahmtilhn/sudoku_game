@@ -175,7 +175,7 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
     return [
       _ProfileTabData(
         tab: _ProfileTab.customize,
-        asset: DuelAsset.profilePro,
+        asset: 'assets/images/ui/profile_style.png',
         title: 'Profile style',
         subtitle: 'Avatar, rank frame, badges and title',
         accent: const Color(0xFF66C7FF),
@@ -203,7 +203,9 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
       if (Platform.isAndroid || Platform.isIOS)
         _ProfileTabData(
           tab: _ProfileTab.platform,
-          asset: DuelAsset.profilePro,
+          asset: Platform.isIOS
+              ? 'assets/logo/game_center_logo.png'
+              : 'assets/logo/google_play_logo.png',
           title: Platform.isIOS ? 'Game Center' : 'Google Play Games',
           subtitle: 'Native platform services',
           accent: const Color(0xFF29D398),
