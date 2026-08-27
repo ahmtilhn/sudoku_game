@@ -22,6 +22,10 @@ class ProfileCustomizationScreen extends StatefulWidget {
 
 class _ProfileCustomizationScreenState
     extends State<ProfileCustomizationScreen> {
+  // Titles stay implemented and can be re-enabled later without rebuilding the
+  // tab. Keeping the flag here also keeps _TitleTab referenced for the analyzer.
+  static const bool _showTitles = false;
+
   late RankIdentityProfile _profile;
   bool _hydrating = false;
   bool _saving = false;
@@ -159,7 +163,7 @@ class _ProfileCustomizationScreenState
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 860),
               child: DefaultTabController(
-                length: 4,
+                length: _showTitles ? 5 : 4,
                 child: Column(
                   children: [
                     Padding(
@@ -213,8 +217,9 @@ class _ProfileCustomizationScreenState
                               ),
                             ),
                             child: const TabBar(
-                              isScrollable: true,
-                              tabAlignment: TabAlignment.start,
+                              isScrollable: false,
+                              tabAlignment: TabAlignment.fill,
+                              labelPadding: EdgeInsets.zero,
                               tabs: [
                                 Tab(
                                   icon: Icon(Icons.face_rounded),
@@ -228,6 +233,11 @@ class _ProfileCustomizationScreenState
                                   icon: Icon(Icons.workspace_premium_rounded),
                                   text: 'Badges',
                                 ),
+                                if (_showTitles)
+                                  Tab(
+                                    icon: Icon(Icons.title_rounded),
+                                    text: 'Titles',
+                                  ),
                                 Tab(
                                   icon: Icon(Icons.public_rounded),
                                   text: 'Country',
@@ -260,6 +270,13 @@ class _ProfileCustomizationScreenState
                             selectedAchievementIds: _achievementIds,
                             onToggle: _toggleDecoration,
                           ),
+                          if (_showTitles)
+                            _TitleTab(
+                              profile: _profile,
+                              selectedKey: _titleKey,
+                              onSelected: (key) =>
+                                  setState(() => _titleKey = key),
+                            ),
                           _CountryTab(
                             countryCode: _countryCode,
                             flagVisible: _countryFlagVisible,
