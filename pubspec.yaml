@@ -45,6 +45,7 @@ flutter:
     - assets/emote/
     - assets/frames/
     - assets/rank/
+    - assets/profile/
     - assets/puzzles/
     - assets/cards/
     - assets/logo/
