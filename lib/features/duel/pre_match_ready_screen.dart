@@ -96,7 +96,6 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           rankLabel: profile.rankName,
           gamesPlayed: stats.rankedGames,
           winRate: winRate,
-          // Legacy presentation slot, now populated with visible RP only.
           rating: profile.rankPoints,
         );
       });
@@ -532,32 +531,39 @@ class _ReadyArenaStage extends StatelessWidget {
         : currentReady
         ? context.tr('waiting_opponent_ready')
         : 'Waiting for both players to confirm';
-    final statusSubtitle = currentReady
+    final statusSubtitle = bothReady
+        ? '2/2 players ready'
+        : currentReady
         ? '$readyCount/2 players ready'
-        : connectionLabel;
+        : 'Both players need to be ready to start';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF07111E),
+      backgroundColor: const Color(0xFF06111F),
       body: AppBackdrop(
-        dim: .28,
+        dim: .20,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final compact = constraints.maxHeight < 720;
+              final compact = constraints.maxHeight < 740;
               return Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 760),
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
-                      14,
+                      12,
+                      compact ? 6 : 10,
+                      12,
                       compact ? 8 : 12,
-                      14,
-                      compact ? 10 : 16,
                     ),
                     child: Column(
                       children: [
-                        _ReadyTopBar(onClose: onClose),
-                        SizedBox(height: compact ? 8 : 12),
+                        _ReadyDuelHeader(
+                          opponent: opponent,
+                          currentPlayer: currentPlayer,
+                          opponentReady: opponentReady,
+                          currentReady: currentReady,
+                        ),
+                        SizedBox(height: compact ? 7 : 10),
                         Expanded(
                           child: _ReadyVersusArena(
                             currentPlayer: currentPlayer,
@@ -567,49 +573,58 @@ class _ReadyArenaStage extends StatelessWidget {
                             compact: compact,
                           ),
                         ),
-                        SizedBox(height: compact ? 8 : 12),
+                        SizedBox(height: compact ? 7 : 10),
                         _ReadyStatusCard(
                           title: statusTitle,
                           subtitle: statusSubtitle,
                           readyCount: readyCount,
                         ),
-                        SizedBox(height: compact ? 8 : 12),
+                        SizedBox(height: compact ? 8 : 11),
                         SizedBox(
                           width: double.infinity,
-                          height: compact ? 54 : 62,
+                          height: compact ? 58 : 66,
                           child: FilledButton.icon(
                             key: const ValueKey<String>('prematch-ready-action'),
                             onPressed: actionBusy ? null : onAction,
                             icon: actionBusy
                                 ? const SizedBox.square(
-                                    dimension: 20,
+                                    dimension: 22,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.2,
                                     ),
                                   )
-                                : Icon(actionIcon, size: 25),
+                                : Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: const Color(0xFF29D398),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(actionIcon, size: 25),
+                                  ),
                             label: Text(
                               actionLabel,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 19,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
                             style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF0D463E),
+                              backgroundColor: const Color(0xD9102830),
                               foregroundColor: Colors.white,
-                              disabledBackgroundColor: const Color(
-                                0xFF132733,
-                              ),
+                              disabledBackgroundColor: const Color(0xC5132430),
                               disabledForegroundColor: Colors.white70,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(22),
-                                side: BorderSide(
-                                  color: const Color(
-                                    0xFF29D398,
-                                  ).withValues(alpha: .86),
+                                borderRadius: BorderRadius.circular(28),
+                                side: const BorderSide(
+                                  color: Color(0xFF29D398),
+                                  width: 1.6,
                                 ),
                               ),
                               elevation: 0,
@@ -627,17 +642,7 @@ class _ReadyArenaStage extends StatelessWidget {
                                     const SizedBox.shrink(),
                               ),
                             ),
-                            Expanded(
-                              child: Text(
-                                'The match will begin once both players are ready.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: .52),
-                                  fontSize: compact ? 10 : 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
+                            const Spacer(),
                             SizedBox(
                               width: 58,
                               height: 58,
@@ -645,17 +650,17 @@ class _ReadyArenaStage extends StatelessWidget {
                                 tooltip: context.tr('cancel'),
                                 onPressed: onClose,
                                 style: IconButton.styleFrom(
-                                  backgroundColor: const Color(
-                                    0xFF152431,
-                                  ).withValues(alpha: .94),
+                                  backgroundColor: const Color(0xD8142430),
                                   foregroundColor: const Color(0xFFFFC94D),
                                   side: BorderSide(
-                                    color: const Color(
-                                      0xFFFFC94D,
-                                    ).withValues(alpha: .26),
+                                    color: const Color(0xFFFFC94D)
+                                        .withValues(alpha: .44),
                                   ),
                                 ),
-                                icon: const Icon(Icons.more_horiz_rounded),
+                                icon: const Icon(
+                                  Icons.tune_rounded,
+                                  size: 25,
+                                ),
                               ),
                             ),
                           ],
@@ -673,57 +678,184 @@ class _ReadyArenaStage extends StatelessWidget {
   }
 }
 
-class _ReadyTopBar extends StatelessWidget {
-  const _ReadyTopBar({required this.onClose});
+class _ReadyDuelHeader extends StatelessWidget {
+  const _ReadyDuelHeader({
+    required this.opponent,
+    required this.currentPlayer,
+    required this.opponentReady,
+    required this.currentReady,
+  });
 
-  final VoidCallback? onClose;
+  final MatchmakingVisualPlayer? opponent;
+  final MatchmakingVisualPlayer currentPlayer;
+  final bool opponentReady;
+  final bool currentReady;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 58,
+    return Container(
+      height: 78,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xDA0C1A2A),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: .09)),
+      ),
       child: Row(
         children: [
-          IconButton(
-            tooltip: context.tr('cancel'),
-            onPressed: onClose,
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFF15324A).withValues(alpha: .88),
-              foregroundColor: Colors.white,
-            ),
-            icon: const Icon(Icons.arrow_back_rounded, size: 27),
-          ),
-          const SizedBox(width: 10),
           Expanded(
+            child: _MiniPlayerHeader(
+              player: opponent,
+              fallbackName: context.tr('opponent'),
+              accent: const Color(0xFF3AA9FF),
+              ready: opponentReady,
+            ),
+          ),
+          Container(
+            width: 68,
+            height: 68,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF17263A),
+              border: Border.all(
+                color: const Color(0xFF29D398).withValues(alpha: .72),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF29D398).withValues(alpha: .18),
+                  blurRadius: 16,
+                ),
+              ],
+            ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  context.tr('online_duel').toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  '${(opponentReady ? 1 : 0) + (currentReady ? 1 : 0)}/2',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 17,
+                    fontSize: 22,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.3,
                   ),
                 ),
-                const SizedBox(height: 2),
                 Text(
-                  'READY CHECK',
+                  'READY',
                   style: TextStyle(
-                    color: const Color(0xFF66C7FF).withValues(alpha: .82),
-                    fontSize: 10,
+                    color: Colors.white.withValues(alpha: .48),
+                    fontSize: 7,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.45,
+                    letterSpacing: 1.1,
                   ),
                 ),
               ],
             ),
           ),
+          Expanded(
+            child: _MiniPlayerHeader(
+              player: currentPlayer,
+              fallbackName: context.tr('you'),
+              accent: const Color(0xFFFFC94D),
+              ready: currentReady,
+              alignEnd: true,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _MiniPlayerHeader extends StatelessWidget {
+  const _MiniPlayerHeader({
+    required this.player,
+    required this.fallbackName,
+    required this.accent,
+    required this.ready,
+    this.alignEnd = false,
+  });
+
+  final MatchmakingVisualPlayer? player;
+  final String fallbackName;
+  final Color accent;
+  final bool ready;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = player;
+    final name = p?.displayName.isNotEmpty == true ? p!.displayName : fallbackName;
+    final avatar = p == null
+        ? Container(
+            width: 43,
+            height: 43,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF122236),
+              border: Border.all(color: accent.withValues(alpha: .56)),
+            ),
+            child: const Icon(Icons.person_outline_rounded, color: Colors.white54),
+          )
+        : Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: accent, width: ready ? 2 : 1),
+              boxShadow: ready
+                  ? [BoxShadow(color: accent.withValues(alpha: .28), blurRadius: 10)]
+                  : null,
+            ),
+            child: PlayerAvatar(
+              displayName: p.displayName,
+              avatarKey: p.avatarKey,
+              radius: 19,
+              semanticLabel: p.displayName,
+            ),
+          );
+    final info = Expanded(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            p?.rankLabel ?? '—',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFFC3A8FF),
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${p?.rating ?? 0} RP',
+            style: TextStyle(
+              color: ready ? const Color(0xFF29D398) : Colors.white70,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: Row(
+        textDirection: alignEnd ? TextDirection.rtl : TextDirection.ltr,
+        children: [avatar, const SizedBox(width: 7), info],
       ),
     );
   }
@@ -746,108 +878,81 @@ class _ReadyVersusArena extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xE8112233), Color(0xED08131E)],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFF66C7FF).withValues(alpha: .25)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .30),
-            blurRadius: 24,
-            offset: const Offset(0, 14),
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _ReadyArenaPainter(),
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Stack(
+        ),
+        Row(
           children: [
-            Positioned.fill(child: CustomPaint(painter: _ReadyArenaPainter())),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                compact ? 10 : 16,
-                compact ? 12 : 18,
-                compact ? 10 : 16,
-                compact ? 12 : 18,
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: .92,
+                  heightFactor: compact ? .86 : .88,
+                  child: _ReadyPlayerCard(
+                    player: opponent,
+                    ready: opponentReady,
+                    accent: const Color(0xFF3AA9FF),
+                    placeholderLabel: context.tr('connecting_players'),
+                  ),
+                ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _ReadyPlayerCard(
-                      player: opponent,
-                      ready: opponentReady,
-                      accent: const Color(0xFF3AA9FF),
-                      compact: compact,
-                      placeholderLabel: context.tr('connecting_players'),
-                    ),
+            ),
+            const SizedBox(width: 40),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: FractionallySizedBox(
+                  widthFactor: .92,
+                  heightFactor: compact ? .86 : .88,
+                  child: _ReadyPlayerCard(
+                    player: currentPlayer,
+                    ready: currentReady,
+                    accent: const Color(0xFFFFC94D),
+                    placeholderLabel: context.tr('you'),
                   ),
-                  SizedBox(
-                    width: compact ? 54 : 70,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: compact ? 46 : 58,
-                          height: compact ? 46 : 58,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const RadialGradient(
-                              colors: [Color(0xFF27435C), Color(0xFF0A1722)],
-                            ),
-                            border: Border.all(
-                              color: const Color(
-                                0xFFFFC94D,
-                              ).withValues(alpha: .48),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFF3AA9FF,
-                                ).withValues(alpha: .24),
-                                blurRadius: 18,
-                              ),
-                              BoxShadow(
-                                color: const Color(
-                                  0xFFFFC94D,
-                                ).withValues(alpha: .15),
-                                blurRadius: 18,
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            'VS',
-                            style: TextStyle(
-                              color: const Color(0xFFFFD66B),
-                              fontSize: compact ? 17 : 21,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: _ReadyPlayerCard(
-                      player: currentPlayer,
-                      ready: currentReady,
-                      accent: const Color(0xFFFFC94D),
-                      compact: compact,
-                      placeholderLabel: context.tr('you'),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],
         ),
-      ),
+        Container(
+          width: compact ? 58 : 66,
+          height: compact ? 58 : 66,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF16263A),
+            border: Border.all(
+              color: const Color(0xFFFFC94D).withValues(alpha: .50),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF3AA9FF).withValues(alpha: .34),
+                blurRadius: 20,
+                offset: const Offset(-8, 0),
+              ),
+              BoxShadow(
+                color: const Color(0xFFFFC94D).withValues(alpha: .30),
+                blurRadius: 20,
+                offset: const Offset(8, 0),
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: const Icon(
+            Icons.shield_rounded,
+            color: Color(0xFFFFC94D),
+            size: 33,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -857,190 +962,148 @@ class _ReadyPlayerCard extends StatelessWidget {
     required this.player,
     required this.ready,
     required this.accent,
-    required this.compact,
     required this.placeholderLabel,
   });
 
   final MatchmakingVisualPlayer? player;
   final bool ready;
   final Color accent;
-  final bool compact;
   final String placeholderLabel;
 
   @override
   Widget build(BuildContext context) {
-    final value = player;
-    final name = value?.displayName.trim().isNotEmpty == true
-        ? value!.displayName
-        : placeholderLabel;
-    final rank = value?.rankLabel?.trim().isNotEmpty == true
-        ? value!.rankLabel!
-        : '—';
-    final games = value?.gamesPlayed ?? 0;
-    final winRate = ((value?.winRate ?? 0) * 100).round();
-    final rp = value?.rating ?? 0;
-    final avatarRadius = compact ? 37.0 : 44.0;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      padding: EdgeInsets.fromLTRB(
-        compact ? 8 : 12,
-        compact ? 12 : 16,
-        compact ? 8 : 12,
-        compact ? 10 : 14,
-      ),
+    final p = player;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 18, 14, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1B29).withValues(alpha: .88),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: (ready ? const Color(0xFF29D398) : accent).withValues(
-            alpha: ready ? .72 : .48,
-          ),
-          width: ready ? 1.5 : 1,
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xF0162940), Color(0xF10A1624)],
         ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accent.withValues(alpha: .74), width: 1.35),
         boxShadow: [
           BoxShadow(
-            color: (ready ? const Color(0xFF29D398) : accent).withValues(
-              alpha: ready ? .18 : .10,
-            ),
-            blurRadius: ready ? 20 : 12,
+            color: accent.withValues(alpha: ready ? .27 : .14),
+            blurRadius: ready ? 24 : 16,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .33),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (value == null)
-            Container(
-              width: avatarRadius * 2,
-              height: avatarRadius * 2,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: .05),
-                border: Border.all(color: accent.withValues(alpha: .28)),
-              ),
-              child: Center(
-                child: SizedBox.square(
-                  dimension: compact ? 25 : 30,
-                  child: const CircularProgressIndicator(strokeWidth: 2.2),
-                ),
-              ),
-            )
-          else
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: accent.withValues(alpha: .24),
-                    blurRadius: 17,
-                  ),
-                ],
-              ),
-              child: PlayerAvatar(
-                displayName: name,
-                avatarKey: value.avatarKey,
-                remoteApprovedImageUrl: value.remoteApprovedImageUrl,
-                radius: avatarRadius,
-              ),
-            ),
-          SizedBox(height: compact ? 7 : 10),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: compact ? 15 : 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            rank,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: const Color(0xFFB7A9FF),
-              fontSize: compact ? 11 : 13,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          SizedBox(height: compact ? 7 : 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-            decoration: BoxDecoration(
-              color: (ready ? const Color(0xFF29D398) : Colors.white)
-                  .withValues(alpha: ready ? .12 : .055),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: (ready ? const Color(0xFF29D398) : Colors.white)
-                    .withValues(alpha: ready ? .40 : .10),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+      child: p == null
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  ready ? Icons.check_circle_rounded : Icons.hourglass_top_rounded,
-                  size: 14,
-                  color: ready
-                      ? const Color(0xFF29D398)
-                      : Colors.white.withValues(alpha: .55),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  ready ? context.tr('ready').toUpperCase() : 'WAITING',
-                  style: TextStyle(
-                    color: ready
-                        ? const Color(0xFF29D398)
-                        : Colors.white.withValues(alpha: .58),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: .65,
+                Container(
+                  width: 82,
+                  height: 82,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF102139),
+                    border: Border.all(color: accent.withValues(alpha: .60), width: 2),
                   ),
+                  child: const Icon(Icons.person_search_rounded, color: Colors.white54, size: 42),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  placeholderLabel,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2.4, color: accent),
                 ),
               ],
-            ),
-          ),
-          SizedBox(height: compact ? 9 : 13),
-          Divider(color: Colors.white.withValues(alpha: .10), height: 1),
-          SizedBox(height: compact ? 8 : 10),
-          Row(
-            children: [
-              Expanded(child: _ReadyStat(value: '$games', label: 'Matches')),
-              Expanded(child: _ReadyStat(value: '$winRate%', label: 'Win rate')),
-              Expanded(child: _ReadyStat(value: '$rp', label: 'RP', accent: true)),
-            ],
-          ),
-          SizedBox(height: compact ? 8 : 11),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.link_rounded,
-                size: 15,
-                color: Color(0xFF66C7FF),
-              ),
-              const SizedBox(width: 5),
-              Flexible(
-                child: Text(
-                  value == null ? 'Connecting…' : context.tr('connected'),
+            )
+          : Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: accent, width: 2.2),
+                    boxShadow: [
+                      BoxShadow(color: accent.withValues(alpha: .28), blurRadius: 18),
+                    ],
+                  ),
+                  child: PlayerAvatar(
+                    displayName: p.displayName,
+                    avatarKey: p.avatarKey,
+                    radius: 34,
+                    semanticLabel: p.displayName,
+                  ),
+                ),
+                const SizedBox(height: 13),
+                Text(
+                  p.displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF66C7FF),
-                    fontSize: 10,
+                    color: Colors.white,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
+                const SizedBox(height: 7),
+                Text(
+                  p.rankLabel ?? '—',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFC3A8FF),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const Spacer(),
+                Divider(color: Colors.white.withValues(alpha: .16)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: _ReadyStat(value: '${p.gamesPlayed ?? 0}', label: 'Matches')),
+                    Expanded(
+                      child: _ReadyStat(
+                        value: '${(((p.winRate ?? 0) * 100).round())}%',
+                        label: 'Win rate',
+                      ),
+                    ),
+                    Expanded(child: _ReadyStat(value: '${p.rating ?? 0}', label: 'RP', accent: true)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      ready ? Icons.check_circle_rounded : Icons.link_rounded,
+                      color: ready ? const Color(0xFF29D398) : const Color(0xFF66C7FF),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      ready ? context.tr('ready') : context.tr('connected'),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 }
@@ -1058,11 +1121,9 @@ class _ReadyStat extends StatelessWidget {
       children: [
         Text(
           value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: accent ? const Color(0xFFB7A9FF) : Colors.white,
-            fontSize: 13,
+            color: accent ? const Color(0xFFC3A8FF) : Colors.white,
+            fontSize: 14,
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -1072,7 +1133,7 @@ class _ReadyStat extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: .46),
+            color: Colors.white.withValues(alpha: .52),
             fontSize: 8,
             fontWeight: FontWeight.w700,
           ),
@@ -1095,31 +1156,24 @@ class _ReadyStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final complete = readyCount >= 2;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D1B29).withValues(alpha: .92),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+        color: const Color(0xD9102030),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: .10)),
       ),
       child: Row(
         children: [
           Container(
-            width: 39,
-            height: 39,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF29D398).withValues(alpha: .10),
-              border: Border.all(
-                color: const Color(0xFF29D398).withValues(alpha: .35),
-              ),
+              color: const Color(0xFF122C44),
+              border: Border.all(color: const Color(0xFF66C7FF).withValues(alpha: .42)),
             ),
-            child: Icon(
-              complete ? Icons.check_rounded : Icons.people_alt_rounded,
-              color: const Color(0xFF29D398),
-              size: 21,
-            ),
+            child: const Icon(Icons.group_rounded, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 11),
           Expanded(
@@ -1132,17 +1186,17 @@ class _ReadyStatusCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
                   subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: .50),
+                    color: Colors.white.withValues(alpha: .58),
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1150,15 +1204,19 @@ class _ReadyStatusCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          Text(
-            '$readyCount/2',
-            style: TextStyle(
-              color: complete
-                  ? const Color(0xFF29D398)
-                  : const Color(0xFF66C7FF),
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: readyCount == 2 ? const Color(0xFF29D398) : const Color(0xFFFFC94D),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: (readyCount == 2 ? const Color(0xFF29D398) : const Color(0xFFFFC94D))
+                      .withValues(alpha: .34),
+                  blurRadius: 9,
+                ),
+              ],
             ),
           ),
         ],
@@ -1171,24 +1229,41 @@ class _ReadyArenaPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final ring = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = const Color(0xFF3AA9FF).withValues(alpha: .09);
-    for (var i = 1; i <= 4; i++) {
-      canvas.drawCircle(center, i * size.shortestSide * .095, ring);
+    final blue = Paint()
+      ..color = const Color(0xFF2BA9FF).withValues(alpha: .20)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    final gold = Paint()
+      ..color = const Color(0xFFFFC94D).withValues(alpha: .18)
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+
+    for (var i = 1; i <= 3; i++) {
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: center,
+          width: size.width * (.32 + i * .15),
+          height: size.height * (.20 + i * .11),
+        ),
+        i.isOdd ? blue : gold,
+      );
     }
 
-    final line = Paint()
-      ..strokeWidth = 1.1
+    final bolt = Path()
+      ..moveTo(center.dx - 10, size.height * .34)
+      ..lineTo(center.dx + 15, size.height * .45)
+      ..lineTo(center.dx - 9, size.height * .53)
+      ..lineTo(center.dx + 12, size.height * .64);
+    final glow = Paint()
       ..shader = const LinearGradient(
-        colors: [Color(0x003AA9FF), Color(0xAA3AA9FF), Color(0x00FFC94D)],
-      ).createShader(Offset.zero & size);
-    canvas.drawLine(
-      Offset(size.width * .27, size.height * .50),
-      Offset(size.width * .73, size.height * .50),
-      line,
-    );
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF3AA9FF), Color(0xFFFFC94D)],
+      ).createShader(Offset.zero & size)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(bolt, glow);
   }
 
   @override
