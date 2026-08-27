@@ -222,15 +222,24 @@ class _ProfileCustomizationScreenState
                               labelPadding: EdgeInsets.zero,
                               tabs: [
                                 const Tab(
-                                  icon: Icon(Icons.face_rounded),
+                                  icon: _CustomizationTabIcon(
+                                    assetPath:
+                                        'assets/profilecustomization/avatars.png',
+                                  ),
                                   text: 'Avatars',
                                 ),
                                 const Tab(
-                                  icon: Icon(Icons.shield_rounded),
+                                  icon: _CustomizationTabIcon(
+                                    assetPath:
+                                        'assets/profilecustomization/framers.png',
+                                  ),
                                   text: 'Frames',
                                 ),
                                 const Tab(
-                                  icon: Icon(Icons.workspace_premium_rounded),
+                                  icon: _CustomizationTabIcon(
+                                    assetPath:
+                                        'assets/profilecustomization/badges.png',
+                                  ),
                                   text: 'Badges',
                                 ),
                                 if (_showTitles)
@@ -239,7 +248,10 @@ class _ProfileCustomizationScreenState
                                     text: 'Titles',
                                   ),
                                 const Tab(
-                                  icon: Icon(Icons.public_rounded),
+                                  icon: _CustomizationTabIcon(
+                                    assetPath:
+                                        'assets/profilecustomization/country.png',
+                                  ),
                                   text: 'Country',
                                 ),
                               ],
@@ -318,6 +330,27 @@ class _ProfileCustomizationScreenState
       }
       _achievementIds.add(achievementId);
     });
+  }
+}
+
+class _CustomizationTabIcon extends StatelessWidget {
+  const _CustomizationTabIcon({required this.assetPath});
+
+  final String assetPath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      assetPath,
+      width: 28,
+      height: 28,
+      fit: BoxFit.contain,
+      cacheWidth: 96,
+      cacheHeight: 96,
+      filterQuality: FilterQuality.high,
+      gaplessPlayback: true,
+      errorBuilder: (_, _, _) => const SizedBox.square(dimension: 28),
+    );
   }
 }
 
