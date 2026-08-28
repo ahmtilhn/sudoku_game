@@ -115,6 +115,11 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Flutter setup/pub-get may rewrite tracked tooling files. They are not
+          # part of this localization change and must not block a clean rebase.
+          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
+
           git add assets/localization/Localizable.xcstrings android/app/src/main/res/values-tr/strings.xml
           git diff --cached --check
           if git diff --cached --quiet; then
