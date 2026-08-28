@@ -1,0 +1,91 @@
+name: Fix high visibility Turkish localizations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-high-visibility-turkish-localizations-main.yml'
+      - 'tool/fix_high_visibility_turkish_localizations.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-high-visibility-turkish-localizations-main
+  cancel-in-progress: true
+
+jobs:
+  localize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply Turkish catalog and Android resources
+        run: python3 tool/fix_high_visibility_turkish_localizations.py
+
+      - name: Validate localization catalog
+        run: python3 tool/validate_localizations.py
+
+      - name: Verify requested screens use localization keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "context.tr('matchmaking_looking_near_rank')" lib/features/duel/matchmaking_stage.dart
+          grep -q "context.tr('matchmaking_tip')" lib/features/duel/matchmaking_stage.dart
+          grep -q "context.tr('profile_customization')" lib/features/social/profile_customization_screen.dart
+          grep -q "context.tr('avatars')" lib/features/social/profile_customization_screen.dart
+          grep -q "context.tr('frames')" lib/features/social/profile_customization_screen.dart
+          grep -q "context.tr('badges')" lib/features/social/profile_customization_screen.dart
+          grep -q "context.tr('emotes')" lib/features/social/emote_loadout_screen.dart
+          grep -q "context.tr('quick_emotes')" lib/features/social/emote_loadout_screen.dart
+          grep -q "context.tr('visible_rp_rank_info')" lib/features/duel/leaderboards_screen.dart
+          grep -q 'Rütbene yakın bir oyuncu aranıyor' android/app/src/main/res/values-tr/strings.xml
+          grep -q 'Görünen RP, gösterilen rütbeni belirler' android/app/src/main/res/values-tr/strings.xml
+          grep -q '"Rütbene yakın bir oyuncu aranıyor"' assets/localization/Localizable.xcstrings
+          grep -q '"Görünen RP, gösterilen rütbeni belirler' assets/localization/Localizable.xcstrings
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter packages
+        run: flutter pub get
+
+      - name: Run localization guards
+        run: |
+          python3 tool/verify_localized_user_copy.py
+          python3 tool/verify_exhaustive_user_copy.py
+          python3 tool/verify_user_facing_messages.py
+          python3 tool/verify_non_widget_user_copy.py
+
+      - name: Analyze requested surfaces
+        run: >-
+          flutter analyze --fatal-infos
+          lib/features/duel/matchmaking_stage.dart
+          lib/features/duel/leaderboards_screen.dart
+          lib/features/social/profile_customization_screen.dart
+          lib/features/social/emote_loadout_screen.dart
+          lib/models/online_duel_emote_catalog.dart
+          lib/localization/app_strings.dart
+
+      - name: Commit localized platform resources to latest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/localization/Localizable.xcstrings android/app/src/main/res/values-tr/strings.xml
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Requested Turkish localizations are already materialized.'
+            exit 0
+          fi
+          git commit -m "Localize online profile emotes and RP copy in Turkish"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
