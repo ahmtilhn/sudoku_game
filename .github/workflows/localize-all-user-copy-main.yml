@@ -8,6 +8,7 @@ on:
       - 'tool/localize_all_user_copy.py'
       - 'tool/localize_remaining_presentation_copy.py'
       - 'tool/localize_final_presentation_copy.py'
+      - 'tool/localize_exhaustive_user_copy.py'
       - 'tool/localize_user_safe_errors.py'
       - 'tool/localize_non_widget_user_copy.py'
       - 'tool/fix_localization_analyzer_warnings.py'
@@ -58,6 +59,9 @@ jobs:
 
       - name: Close final presentation gaps
         run: python3 tool/localize_final_presentation_copy.py
+
+      - name: Close exhaustive presentation gaps
+        run: python3 tool/localize_exhaustive_user_copy.py
 
       - name: Map user-facing errors safely
         run: python3 tool/localize_user_safe_errors.py
