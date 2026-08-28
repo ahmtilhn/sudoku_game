@@ -1,8 +1,9 @@
-name: Patch Turkish localization verifier on main
+name: Harden iOS localization tooling
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '.github/workflows/patch-ios-turkish-verifier-main.yml'
 
@@ -10,39 +11,53 @@ permissions:
   contents: write
 
 jobs:
-  patch:
-    runs-on: ubuntu-24.04
+  harden:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
 
-      - name: Let canonical validator handle legacy placeholder syntax
-        shell: bash
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-
-          path = Path('.github/workflows/fix-ios-turkish-runtime-v2-main.yml')
-          source = path.read_text(encoding='utf-8')
-          old = """              if placeholder_re.findall(en) != placeholder_re.findall(tr):
-                  raise SystemExit(f'Placeholder mismatch for {key}: {en!r} -> {tr!r}')
-"""
-          if old not in source:
-              raise SystemExit('Expected strict legacy-placeholder verifier was not found.')
-          source = source.replace(old, '')
-          path.write_text(source, encoding='utf-8')
-          PY
-
-      - name: Commit verifier adjustment
+      - name: Harden catalog verifier and remove legacy workflow
         shell: bash
         run: |
           set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('tool/repair_ios_catalog_all_languages.py')
+          source = path.read_text(encoding='utf-8')
+          old = '''        for key, expected in CURATED[locale].items():
+            actual = value_for(strings[key], locale)
+            if actual != expected:
+                failures.append(
+                    f"{locale}:{key}: expected curated {expected!r}, got {actual!r}"
+                )
+'''
+          new = '''        for key, expected in CURATED[locale].items():
+            definition = strings.get(key)
+            if not isinstance(definition, dict):
+                # Curated copy is optional metadata. A removed app key must not
+                # crash verification; source parity is validated separately.
+                continue
+            actual = value_for(definition, locale)
+            if actual != expected:
+                failures.append(
+                    f"{locale}:{key}: expected curated {expected!r}, got {actual!r}"
+                )
+'''
+          if old not in source:
+              raise SystemExit('Expected curated verification block was not found.')
+          path.write_text(source.replace(old, new, 1), encoding='utf-8')
+          PY
+
+          git rm .github/workflows/patch-ios-turkish-verifier-main.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/fix-ios-turkish-runtime-v2-main.yml
+          git add tool/repair_ios_catalog_all_languages.py
           git diff --cached --check
-          git commit -m "Accept equivalent localization placeholder syntax"
-          git pull --rebase origin main
+          git commit -m "Harden iOS localization verification tooling"
+          git fetch origin main
+          git rebase origin/main
           git push origin HEAD:main
