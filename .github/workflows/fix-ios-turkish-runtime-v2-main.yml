@@ -19,7 +19,7 @@ concurrency:
 jobs:
   translate:
     name: Translate ${{ matrix.group }}
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -100,7 +100,7 @@ jobs:
   merge-test-and-commit:
     name: Merge, verify and commit all iOS locales
     needs: translate
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
