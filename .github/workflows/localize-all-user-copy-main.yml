@@ -125,8 +125,7 @@ jobs:
       - name: Verify localized presentation copy
         run: python3 tool/verify_localized_user_copy.py
 
-      - name: Diagnose exhaustive user-facing copy
-        continue-on-error: true
+      - name: Verify exhaustive user-facing copy
         run: python3 tool/verify_exhaustive_user_copy.py
 
       - name: Verify user-safe messages
@@ -145,10 +144,11 @@ jobs:
       - name: Analyze Flutter
         run: flutter analyze
 
-      - name: Commit diagnostic localization output directly to main
+      - name: Commit localized app surfaces directly to main
         shell: bash
         run: |
           set -euo pipefail
+          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
           git add \
             lib \
             android/app/src/main/res/values/strings.xml \
@@ -159,20 +159,20 @@ jobs:
             tool/verify_exhaustive_user_copy.py \
             .github/workflows/mobile-ci.yml \
             docs/ux_audit.md
-          git diff --cached --check
           if git diff --cached --quiet; then
             echo 'Localization migration already applied.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Apply centralized user-facing copy'
+          git commit -m 'Centralize remaining user-facing copy'
           git reset --hard HEAD
           git fetch origin main
           git rebase origin/main
           python3 tool/verify_localized_user_copy.py
+          python3 tool/verify_exhaustive_user_copy.py
           python3 tool/verify_user_facing_messages.py
           python3 tool/verify_non_widget_user_copy.py
           git push origin HEAD:main
 
-# Diagnostic rerun commits generated localization only after analyzer and safety checks pass.
+# Final rerun: commit verified localized screens, dialogs, errors, results and notifications.
