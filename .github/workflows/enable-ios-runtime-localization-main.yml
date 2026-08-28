@@ -75,6 +75,11 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'Activate iOS runtime localization'
+          # flutter pub/analyze can update generated or dependency metadata that
+          # is intentionally outside this localization commit. Discard only
+          # those uncommitted CI-side changes before rebasing onto live main.
+          git reset --hard HEAD
+          git clean -fd
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
