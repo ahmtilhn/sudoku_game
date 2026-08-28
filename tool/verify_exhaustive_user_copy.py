@@ -100,6 +100,15 @@ ASSET_OR_TECH_RE = re.compile(
     re.IGNORECASE,
 )
 
+LOCALIZED_EXPRESSION_MARKERS = (
+    'context.tr(',
+    'context.strings.',
+    'AppStrings.current.',
+    'AppStrings.english[',
+    '_localized(',
+    '_copy(',
+)
+
 
 def strip_comments(source: str) -> str:
     source = re.sub(r"/\*.*?\*/", "", source, flags=re.DOTALL)
@@ -120,6 +129,11 @@ def has_visible_letters(value: str) -> bool:
 def should_skip(value: str) -> bool:
     value = value.strip()
     if not value or value in LOCALIZATION_KEYS or value in ALLOWED_VALUES:
+        return True
+    if any(marker in value for marker in LOCALIZED_EXPRESSION_MARKERS):
+        return True
+    # Dynamic localization key templates are keys, not displayed English.
+    if value.startswith(('country_name_${', 'rarity_${', 'rank_${', 'emote_')):
         return True
     if ASSET_OR_TECH_RE.match(value):
         return True
