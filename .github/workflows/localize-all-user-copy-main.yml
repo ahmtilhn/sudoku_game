@@ -175,3 +175,5 @@ jobs:
           python3 tool/verify_localized_user_copy.py
           python3 tool/verify_exhaustive_user_copy.py
           git push origin HEAD:main
+
+# Manual rerun: apply localization migration to current main.
