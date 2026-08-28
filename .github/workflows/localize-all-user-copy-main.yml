@@ -11,6 +11,7 @@ on:
       - 'tool/localize_user_safe_errors.py'
       - 'tool/localize_non_widget_user_copy.py'
       - 'tool/fix_localization_analyzer_warnings.py'
+      - 'tool/fix_social_hub_localization_lint.py'
       - 'tool/fix_localization_dart_escapes.py'
       - 'tool/fix_percent_localization_literals.py'
       - 'tool/verify_localized_user_copy.py'
@@ -74,6 +75,9 @@ jobs:
 
       - name: Normalize analyzer compatibility warnings
         run: python3 tool/fix_localization_analyzer_warnings.py
+
+      - name: Close final social hub analyzer lint
+        run: python3 tool/fix_social_hub_localization_lint.py
 
       - name: Format changed Dart sources
         run: >-
