@@ -616,7 +616,7 @@ class _OnlineHeroCard extends StatelessWidget {
                         ),
                         _HomeMetaPill(
                           asset: DuelAsset.people,
-                          label: context.tr('same_difficulty_match'),
+                          label: context.tr('same_variant_match'),
                           color: const Color(0xFF29D398),
                         ),
                       ],
