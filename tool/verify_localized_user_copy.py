@@ -81,13 +81,14 @@ def looks_user_facing(value: str) -> bool:
         return False
     if "context.tr(" in value or "context.strings" in value:
         return False
-    # Regex string matching cannot parse nested quote literals inside a Dart
-    # interpolation such as '${positive ? '+' : '-'}$amount'. When the captured
-    # fragment starts an interpolation but does not contain its closing brace,
-    # defer to the surrounding static copy instead of treating variable names as
-    # visible words. Complete interpolations such as '${points} RP' are still
-    # checked and correctly report the visible 'RP' suffix.
-    if value.startswith("${") and "}" not in value:
+    # Regex matching deliberately stays lightweight rather than trying to parse
+    # all Dart strings. Nested quote literals inside interpolations can make a
+    # capture stop in the middle of an expression, e.g.
+    # '@${player.username}${rank == null ? '' : ...}'. If there are more
+    # interpolation openings than closing braces, this is an incomplete capture,
+    # not visible copy. Complete interpolations such as '${points} RP' remain
+    # checked and still report their static user-facing suffix.
+    if value.count("${") > value.count("}"):
         return False
     static = re.sub(r"\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_.]*", "", value)
     return re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]", static) is not None
