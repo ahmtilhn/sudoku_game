@@ -1,0 +1,230 @@
+name: Fix iOS runtime localization on main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-ios-runtime-localization-main.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-ios-runtime-localization-main
+  cancel-in-progress: false
+
+jobs:
+  fix-test-and-commit:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Harden iOS locale resolution
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          app_path = Path('lib/localization/app_strings.dart')
+          app = app_path.read_text(encoding='utf-8')
+
+          replacement = r'''  static Future<AppStrings> load() async {
+            final values = Map<String, String>.from(english);
+            final catalogLocales = defaultTargetPlatform == TargetPlatform.iOS
+                ? await _preferredIosLocales()
+                : const <Locale>[Locale('en')];
+            await _loadStringCatalog(values, catalogLocales);
+
+            // Android intentionally keeps the native resource override so Google Play's
+            // server-generated app-string translations can replace the English source.
+            // iOS uses the bundled String Catalog directly; reading NSLocalizedString
+            // here would introduce a second, independent localization source.
+            if (defaultTargetPlatform == TargetPlatform.android) {
+              try {
+                final response = await _channel.invokeMethod<Map<Object?, Object?>>(
+                  'getStrings',
+                  <String, Object>{'keys': english.keys.toList(growable: false)},
+                );
+                if (response != null) {
+                  for (final entry in response.entries) {
+                    final key = entry.key;
+                    final value = entry.value;
+                    if (key is String &&
+                        value is String &&
+                        value.isNotEmpty &&
+                        value != key) {
+                      values[key] = value;
+                    }
+                  }
+                }
+              } on MissingPluginException {
+                // Unit tests and unsupported platforms use the catalog or English fallback.
+              } on PlatformException {
+                // A platform localization failure must never block app startup.
+              }
+            }
+            return AppStrings._(values);
+          }
+
+          static Future<List<Locale>> _preferredIosLocales() async {
+            final flutterLocales = PlatformDispatcher.instance.locales;
+            try {
+              final preferredLanguages = await _channel.invokeListMethod<String>(
+                'getPreferredLocales',
+              );
+              if (preferredLanguages != null && preferredLanguages.isNotEmpty) {
+                final nativeLocales = preferredLanguages
+                    .map(_localeFromLanguageTag)
+                    .whereType<Locale>()
+                    .toList(growable: false);
+                if (nativeLocales.isNotEmpty) {
+                  return <Locale>[...nativeLocales, ...flutterLocales];
+                }
+              }
+            } on MissingPluginException {
+              // Flutter's locale list remains the source of truth if the bridge is absent.
+            } on PlatformException {
+              // Fall back to Flutter's locale list if native locale lookup fails.
+            }
+            return flutterLocales.isNotEmpty
+                ? flutterLocales
+                : const <Locale>[Locale('en')];
+          }
+
+          static Locale? _localeFromLanguageTag(String rawTag) {
+            final tag = rawTag.trim().replaceAll('_', '-');
+            if (tag.isEmpty) return null;
+            final parts = tag
+                .split('-')
+                .where((part) => part.isNotEmpty)
+                .toList(growable: false);
+            if (parts.isEmpty) return null;
+
+            final language = parts.first.toLowerCase();
+            String? script;
+            String? country;
+            for (final part in parts.skip(1)) {
+              if (part.length == 4 && script == null) {
+                script = '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}';
+              } else if ((part.length == 2 || part.length == 3) && country == null) {
+                country = part.toUpperCase();
+              }
+            }
+            return Locale.fromSubtags(
+              languageCode: language,
+              scriptCode: script,
+              countryCode: country,
+            );
+          }
+
+          static Future<void> _loadStringCatalog('''
+
+          pattern = re.compile(
+              r"  static Future<AppStrings> load\(\) async \{.*?\n  static Future<void> _loadStringCatalog\(",
+              re.S,
+          )
+          updated, count = pattern.subn(replacement, app, count=1)
+          if count != 1:
+              raise SystemExit('Could not locate the AppStrings.load localization block exactly once.')
+          app_path.write_text(updated, encoding='utf-8')
+
+          swift_path = Path('ios/Runner/AppDelegate.swift')
+          swift = swift_path.read_text(encoding='utf-8')
+          swift_replacement = r'''  private func configureLocalizationChannel(messenger: FlutterBinaryMessenger) {
+            let channel = FlutterMethodChannel(
+              name: "com.devovia.sudoku/localization",
+              binaryMessenger: messenger
+            )
+            channel.setMethodCallHandler { call, result in
+              switch call.method {
+              case "getPreferredLocales":
+                // Ordered device language preferences. This also gives Flutter a
+                // reliable fallback on Simulator before the first widget is mounted.
+                result(Locale.preferredLanguages)
+              case "getStrings":
+                // iOS strings are resolved from the Flutter-bundled String Catalog.
+                // Android alone uses native string resources for Google Play translation.
+                result([String: String]())
+              default:
+                result(FlutterMethodNotImplemented)
+              }
+            }
+            localizationChannel = channel
+          }
+
+          private func configureGameServicesChannel'''
+          swift_pattern = re.compile(
+              r"  private func configureLocalizationChannel\(messenger: FlutterBinaryMessenger\) \{.*?\n  private func configureGameServicesChannel",
+              re.S,
+          )
+          swift_updated, swift_count = swift_pattern.subn(swift_replacement, swift, count=1)
+          if swift_count != 1:
+              raise SystemExit('Could not locate the iOS localization channel exactly once.')
+          swift_path.write_text(swift_updated, encoding='utf-8')
+          PY
+
+          dart format lib/localization/app_strings.dart
+
+      - name: Verify real Turkish catalog values
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+
+          catalog = json.loads(Path('assets/localization/Localizable.xcstrings').read_text(encoding='utf-8'))
+          strings = catalog['strings']
+          for key in ('home', 'play', 'settings'):
+              localizations = strings[key]['localizations']
+              en = localizations['en']['stringUnit']['value']
+              tr = localizations['tr']['stringUnit']['value']
+              print(f'{key}: en={en!r} tr={tr!r}')
+              if not tr.strip() or tr == en:
+                  raise SystemExit(f'{key} does not have a real Turkish translation: {tr!r}')
+          PY
+
+      - name: Validate localization sources
+        run: python3 tool/validate_localizations.py
+
+      - name: Run locale consistency tests
+        run: flutter test test/localization_locale_consistency_test.dart
+
+      - name: Analyze locale runtime
+        run: flutter analyze --fatal-infos lib/localization/app_strings.dart lib/app.dart
+
+      - name: Build iOS simulator app
+        run: flutter build ios --simulator --debug --no-codesign
+
+      - name: Commit on top of latest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Flutter tooling can update generated dependency metadata; keep this commit
+          # strictly scoped to the iOS localization runtime fix.
+          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
+          git add lib/localization/app_strings.dart ios/Runner/AppDelegate.swift
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'iOS runtime localization is already hardened.'
+            exit 0
+          fi
+
+          git commit -m "Fix iOS device language resolution"
+          git pull --rebase origin main
+          git push origin HEAD:main
