@@ -15,6 +15,7 @@ on:
       - 'tool/fix_localization_dart_escapes.py'
       - 'tool/fix_percent_localization_literals.py'
       - 'tool/verify_localized_user_copy.py'
+      - 'tool/verify_exhaustive_user_copy.py'
       - 'tool/verify_user_facing_messages.py'
       - 'tool/verify_non_widget_user_copy.py'
       - 'tool/sync_missing_ios_localization_keys.py'
@@ -120,6 +121,9 @@ jobs:
       - name: Verify localized presentation copy
         run: python3 tool/verify_localized_user_copy.py
 
+      - name: Verify exhaustive user-facing copy
+        run: python3 tool/verify_exhaustive_user_copy.py
+
       - name: Verify user-safe messages
         run: python3 tool/verify_user_facing_messages.py
 
@@ -147,6 +151,7 @@ jobs:
             ios/Runner.xcodeproj/project.pbxproj \
             backend/social_worker/src \
             tool/verify_localized_user_copy.py \
+            tool/verify_exhaustive_user_copy.py \
             .github/workflows/mobile-ci.yml \
             docs/ux_audit.md
           git diff --cached --check
@@ -157,6 +162,12 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'Centralize remaining user-facing copy'
+
+          # flutter pub get may touch tracked housekeeping files on the runner.
+          # Keep only the committed localization changes before rebasing.
+          git reset --hard HEAD
           git fetch origin main
           git rebase origin/main
+          python3 tool/verify_localized_user_copy.py
+          python3 tool/verify_exhaustive_user_copy.py
           git push origin HEAD:main
