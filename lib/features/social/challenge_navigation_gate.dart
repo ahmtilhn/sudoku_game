@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
+
 import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
 import '../../data/game_session_store.dart';
@@ -190,7 +192,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
       if (!mounted) return null;
       final message = error.statusCode == 404 || error.statusCode == 409
           ? context.tr('challenge_timed_out')
-          : error.message;
+          : UserSafeError.message(context, error);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));

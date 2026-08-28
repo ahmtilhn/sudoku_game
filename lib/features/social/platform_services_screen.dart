@@ -77,13 +77,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
       }
     } on PlatformGameServicesException catch (error) {
       if (mounted) {
-        setState(
-          () => _error = UserSafeError.message(
-            context,
-            error,
-            fallback: error.message,
-          ),
-        );
+        setState(() => _error = UserSafeError.message(context, error));
       }
     } catch (error) {
       if (mounted) {
@@ -196,10 +190,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                     _LeaderboardCard(
                       title: difficulties[i].title,
                       accent: difficulties[i].accent,
-                      icon: _AssetIcon(
-                        asset: difficulties[i].asset,
-                        size: 43,
-                      ),
+                      icon: _AssetIcon(asset: difficulties[i].asset, size: 43),
                       onTap: _busy
                           ? null
                           : () => _run(
@@ -208,8 +199,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                               ),
                             ),
                     ),
-                    if (i != difficulties.length - 1)
-                      const SizedBox(height: 7),
+                    if (i != difficulties.length - 1) const SizedBox(height: 7),
                   ],
                   const SizedBox(height: 14),
                   _LeaderboardCard(
@@ -285,10 +275,8 @@ class _PlatformStatusCard extends StatelessWidget {
               cacheWidth: 112,
               cacheHeight: 112,
               filterQuality: FilterQuality.high,
-              errorBuilder: (_, _, _) => Icon(
-                Icons.sports_esports_rounded,
-                color: accent,
-              ),
+              errorBuilder: (_, _, _) =>
+                  Icon(Icons.sports_esports_rounded, color: accent),
             ),
           ),
           const SizedBox(width: 12),

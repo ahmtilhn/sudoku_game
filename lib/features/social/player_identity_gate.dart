@@ -348,13 +348,11 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
   }
 
   String _profileSaveError(BuildContext context, Object error) {
-    if (error is PlayerProfileException &&
-        (error.statusCode == 400 || error.statusCode == 409)) {
-      return error.message;
+    if (error is PlayerProfileException && error.code == 'username_taken') {
+      return context.tr('try_again');
     }
-    if (error is SocialApiException &&
-        (error.statusCode == 400 || error.statusCode == 409)) {
-      return error.message;
+    if (error is SocialApiException && error.statusCode == 409) {
+      return context.tr('try_again');
     }
     if (error is FirebaseSessionException) {
       return UserSafeError.message(context, error);
@@ -547,7 +545,10 @@ class _RematchPushDialogState extends State<_RematchPushDialog> {
               const SizedBox(height: 17),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFC94D).withValues(alpha: .08),
                   borderRadius: BorderRadius.circular(12),

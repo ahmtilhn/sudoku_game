@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
+
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/push_notification_service.dart';
@@ -120,11 +122,7 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
   }
 
   Future<void> _checkStatus() async {
-    if (_checking ||
-        _openingRoom ||
-        _ended ||
-        !mounted ||
-        !_routeIsCurrent) {
+    if (_checking || _openingRoom || _ended || !mounted || !_routeIsCurrent) {
       return;
     }
     _checking = true;
@@ -161,7 +159,9 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
         _finish(ChallengeWaitingEndReason.expired);
       }
     } on SocialApiException catch (error) {
-      if (mounted && _routeIsCurrent) setState(() => _error = error.message);
+      if (mounted && _routeIsCurrent) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted && _routeIsCurrent) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -199,7 +199,9 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
       } catch (_) {
         // Keep original cancellation failure visible.
       }
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -297,7 +299,8 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                             PlayerAvatar(
                               displayName: recipient.displayName,
                               avatarKey:
-                                  rank?.avatarKey ?? 'challenge-wait-${recipient.publicId}',
+                                  rank?.avatarKey ??
+                                  'challenge-wait-${recipient.publicId}',
                               radius: 45,
                             ),
                             const SizedBox(height: 10),
@@ -357,18 +360,18 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .errorContainer,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.errorContainer,
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: Text(
                                   _error!,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onErrorContainer,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onErrorContainer,
                                   ),
                                 ),
                               ),

@@ -45,8 +45,8 @@ class FirebaseSessionService {
     }
 
     if (restorePlayGames) {
-      final restored =
-          await PlayGamesFirebaseAuthService.instance.restoreSilently();
+      final restored = await PlayGamesFirebaseAuthService.instance
+          .restoreSilently();
       if (restored != null) return restored;
     }
 
@@ -218,7 +218,7 @@ class FirebaseSessionService {
   static Future<User> signOutToGuest() async {
     try {
       await _auth.signOut();
-      return ensureAnonymousSession(restorePlayGames: false);
+      return await ensureAnonymousSession(restorePlayGames: false);
     } on FirebaseAuthException catch (error) {
       throw _mapAuthError(error);
     }

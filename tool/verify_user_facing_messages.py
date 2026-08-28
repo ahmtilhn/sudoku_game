@@ -37,6 +37,54 @@ RAW_RENDER_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
 )
 
+
+ADDITIONAL_RAW_RENDER_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "raw status/error state",
+        re.compile(
+            r"\b(?:_error|errorText|_statusMessage)\s*=\s*"
+            r"(?:_?error|snapshot\.error)\s*\.\s*(?:message|toString\s*\(\s*\))"
+        ),
+    ),
+    (
+        "raw returned error message",
+        re.compile(r"\breturn\s+(?:_?error|snapshot\.error)\s*\.\s*message\b"),
+    ),
+    (
+        "unsafe raw error fallback",
+        re.compile(r"\bfallback\s*:\s*(?:_?error|snapshot\.error)\s*\.\s*message\b"),
+    ),
+    (
+        "raw ternary error message",
+        re.compile(r":\s*(?:_?error|snapshot\.error)\s*\.\s*message\s*[;,]"),
+    ),
+    (
+        "raw snackbar/helper error message",
+        re.compile(
+            r"\b(?:_snack|Text)\s*\(\s*(?:_?error|snapshot\.error)\s*\.\s*"
+            r"(?:message|toString\s*\(\s*\))"
+        ),
+    ),
+)
+
+PUSH_SERVICE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "raw push registration exception",
+        re.compile(
+            r"lastRegistrationError\.value\s*=\s*"
+            r"(?:_?error)\s*\.\s*(?:message|toString\s*\(\s*\))"
+        ),
+    ),
+    (
+        "remote push title rendered directly",
+        re.compile(r"message\.notification\?\.title"),
+    ),
+    (
+        "remote push body rendered directly",
+        re.compile(r"message\.notification\?\.body"),
+    ),
+)
+
 FORBIDDEN_LITERAL_TERMS = (
     "SOCIAL_BACKEND_URL",
     "Deploy the social backend",
@@ -78,7 +126,7 @@ def main() -> int:
         for path in sorted(scan_root.rglob("*.dart")):
             source = without_line_comments(path.read_text(encoding="utf-8"))
             relative = path.relative_to(ROOT)
-            for label, pattern in RAW_RENDER_PATTERNS:
+            for label, pattern in RAW_RENDER_PATTERNS + ADDITIONAL_RAW_RENDER_PATTERNS:
                 for match in pattern.finditer(source):
                     excerpt = match.group(0)
                     if SAFE_ERROR_FRAGMENT in excerpt:
@@ -94,6 +142,14 @@ def main() -> int:
                         violations.append(
                             f"{relative}:{line}: technical user-facing literal: {term}"
                         )
+
+    push_path = ROOT / "lib" / "services" / "push_notification_service.dart"
+    push_source = without_line_comments(push_path.read_text(encoding="utf-8"))
+    for label, pattern in PUSH_SERVICE_PATTERNS:
+        for match in pattern.finditer(push_source):
+            line = push_source.count("\n", 0, match.start()) + 1
+            excerpt = " ".join(match.group(0).split())[:180]
+            violations.append(f"{push_path.relative_to(ROOT)}:{line}: {label}: {excerpt}")
 
     if violations:
         print("User-facing technical error guard failed:")

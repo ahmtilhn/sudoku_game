@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../core/user_safe_error.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/sudoku.dart';
@@ -65,7 +67,12 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   }
 
   Future<void> _load() async {
-    if (mounted) setState(() { _loading = true; _error = null; });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final values = await Future.wait<Object>([
         PlayerProfileService.instance.load(),
@@ -86,15 +93,19 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         _challenges = challenges;
         _opponents = opponents;
       });
-      unawaited(_loadRankSummaries([
-        ...friends,
-        ...requests,
-        ...opponents,
-        for (final c in challenges) c.challenger,
-        for (final c in challenges) c.recipient,
-      ]));
+      unawaited(
+        _loadRankSummaries([
+          ...friends,
+          ...requests,
+          ...opponents,
+          for (final c in challenges) c.challenger,
+          for (final c in challenges) c.recipient,
+        ]),
+      );
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -104,24 +115,35 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     final pending = <SocialPlayer>[];
     for (final player in players) {
       final id = player.publicId.trim();
-      if (id.length < 3 || _rankSummaries.containsKey(id) || _rankRequests.contains(id)) continue;
+      if (id.length < 3 ||
+          _rankSummaries.containsKey(id) ||
+          _rankRequests.contains(id)) {
+        continue;
+      }
       _rankRequests.add(id);
       pending.add(player);
     }
-    final loaded = await Future.wait(pending.map((player) async {
-      final id = player.publicId.trim();
-      try {
-        return MapEntry(id, await RankIdentityService.instance.loadPublicRankSummary(id));
-      } catch (_) {
-        return null;
-      } finally {
-        _rankRequests.remove(id);
-      }
-    }));
+    final loaded = await Future.wait(
+      pending.map((player) async {
+        final id = player.publicId.trim();
+        try {
+          return MapEntry(
+            id,
+            await RankIdentityService.instance.loadPublicRankSummary(id),
+          );
+        } catch (_) {
+          return null;
+        } finally {
+          _rankRequests.remove(id);
+        }
+      }),
+    );
     if (!mounted) return;
     setState(() {
       for (final entry in loaded) {
-        if (entry != null) _rankSummaries[entry.key] = entry.value;
+        if (entry != null) {
+          _rankSummaries[entry.key] = entry.value;
+        }
       }
     });
   }
@@ -130,12 +152,17 @@ class _SocialHubScreenState extends State<SocialHubScreen>
 
   Future<void> _perform(String id, Future<void> Function() action) async {
     if (_busyId != null) return;
-    setState(() { _busyId = id; _error = null; });
+    setState(() {
+      _busyId = id;
+      _error = null;
+    });
     try {
       await action();
       await _load();
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busyId = null);
     }
@@ -144,14 +171,19 @@ class _SocialHubScreenState extends State<SocialHubScreen>
   Future<void> _findPlayers() async {
     final query = _search.text.trim();
     if (query.length < 3 || _searching) return;
-    setState(() { _searching = true; _error = null; });
+    setState(() {
+      _searching = true;
+      _error = null;
+    });
     try {
       final results = await _social.searchPlayers(query);
       if (!mounted) return;
       setState(() => _results = results);
       unawaited(_loadRankSummaries(results));
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _searching = false);
     }
@@ -159,17 +191,25 @@ class _SocialHubScreenState extends State<SocialHubScreen>
 
   Future<void> _sendFriendRequest(SocialPlayer player) async {
     if (!_canAdd(player)) return;
-    await _perform('friend-${player.publicId}', () => _social.sendFriendRequest(player.publicId));
+    await _perform(
+      'friend-${player.publicId}',
+      () => _social.sendFriendRequest(player.publicId),
+    );
     if (mounted && _error == null) _snack(context.tr('friend_request_sent'));
   }
 
   Future<void> _respondRequest(SocialPlayer player, bool accept) async {
-    await _perform('request-${player.publicId}', () => _social.respondToFriendRequest(
-      requesterPublicId: player.publicId,
-      accept: accept,
-    ));
+    await _perform(
+      'request-${player.publicId}',
+      () => _social.respondToFriendRequest(
+        requesterPublicId: player.publicId,
+        accept: accept,
+      ),
+    );
     if (mounted && _error == null && accept) {
-      _snack(context.tr('friend_request_accepted', <Object>[player.displayName]));
+      _snack(
+        context.tr('friend_request_accepted', <Object>[player.displayName]),
+      );
     }
   }
 
@@ -185,7 +225,10 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(context.tr('choose_duel_difficulty'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+            Text(
+              context.tr('choose_duel_difficulty'),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 8),
             for (final item in SudokuDifficulty.values)
               ListTile(
@@ -199,30 +242,41 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       ),
     );
     if (difficulty == null || !mounted) return;
-    setState(() { _busyId = 'challenge-${player.publicId}'; _error = null; });
+    setState(() {
+      _busyId = 'challenge-${player.publicId}';
+      _error = null;
+    });
     try {
       final challenge = await _social.createChallenge(
         recipientPublicId: player.publicId,
         difficulty: difficulty.name,
       );
       if (!mounted) return;
-      await Navigator.of(context).push<void>(MaterialPageRoute(
-        builder: (_) => ChallengeWaitingScreen(challenge: challenge),
-      ));
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => ChallengeWaitingScreen(challenge: challenge),
+        ),
+      );
       if (mounted) await _load();
     } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } finally {
       if (mounted) setState(() => _busyId = null);
     }
   }
 
   Future<void> _openChallenge(SocialChallenge challenge) async {
-    await Navigator.of(context).push<void>(MaterialPageRoute(
-      builder: (_) => UxChallengeInvitationScreen(challengeId: challenge.id),
-    ));
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => UxChallengeInvitationScreen(challengeId: challenge.id),
+      ),
+    );
     if (mounted) await _load();
   }
 
@@ -237,7 +291,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     return context.tr('add_friend');
   }
 
-  void _snack(String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  void _snack(String message) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(message)));
 
   Future<void> _showPlayer(
     SocialPlayer player, {
@@ -265,7 +321,11 @@ class _SocialHubScreenState extends State<SocialHubScreen>
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [accent.withValues(alpha: .14), const Color(0xFF0A1721), const Color(0xFF061019)],
+              colors: [
+                accent.withValues(alpha: .14),
+                const Color(0xFF0A1721),
+                const Color(0xFF061019),
+              ],
             ),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             border: Border.all(color: accent.withValues(alpha: .32)),
@@ -273,10 +333,20 @@ class _SocialHubScreenState extends State<SocialHubScreen>
           child: SingleChildScrollView(
             child: Column(
               children: [
-                Container(width: 42, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(99))),
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: IconButton(onPressed: () => Navigator.of(sheetContext).pop(), icon: const Icon(Icons.close_rounded)),
+                  child: IconButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
                 ),
                 PlayerAvatar(
                   displayName: player.displayName,
@@ -284,33 +354,84 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                   radius: 50,
                 ),
                 const SizedBox(height: 10),
-                Text(player.displayName, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
-                Text('@${player.username}', style: TextStyle(color: Colors.white.withValues(alpha: .48), fontWeight: FontWeight.w700)),
+                Text(
+                  player.displayName,
+                  style: const TextStyle(
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  '@${player.username}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .48),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   alignment: WrapAlignment.center,
                   children: [
                     _Pill(rank?.rankName ?? 'Unranked', accent),
-                    _Pill('${rank?.rankPoints ?? 0} RP', const Color(0xFF66C7FF)),
+                    _Pill(
+                      '${rank?.rankPoints ?? 0} RP',
+                      const Color(0xFF66C7FF),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(child: _Stat('Games', '$games', Icons.sports_esports_rounded)),
-                  const SizedBox(width: 7),
-                  Expanded(child: _Stat('Wins', '$wins', Icons.emoji_events_rounded)),
-                  const SizedBox(width: 7),
-                  Expanded(child: _Stat('Win rate', '${(winRate * 100).round()}%', Icons.percent_rounded)),
-                ]),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _Stat(
+                        'Games',
+                        '$games',
+                        Icons.sports_esports_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: _Stat('Wins', '$wins', Icons.emoji_events_rounded),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: _Stat(
+                        'Win rate',
+                        '${(winRate * 100).round()}%',
+                        Icons.percent_rounded,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 7),
-                Row(children: [
-                  Expanded(child: _Stat('Losses', '${rank?.losses ?? (games - wins).clamp(0, games)}', Icons.close_rounded)),
-                  const SizedBox(width: 7),
-                  Expanded(child: _Stat('Draws', '${rank?.draws ?? 0}', Icons.drag_handle_rounded)),
-                  const SizedBox(width: 7),
-                  Expanded(child: _Stat('Achievements', '${player.achievementCount}', Icons.workspace_premium_rounded)),
-                ]),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _Stat(
+                        'Losses',
+                        '${rank?.losses ?? (games - wins).clamp(0, games)}',
+                        Icons.close_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: _Stat(
+                        'Draws',
+                        '${rank?.draws ?? 0}',
+                        Icons.drag_handle_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: _Stat(
+                        'Achievements',
+                        '${player.achievementCount}',
+                        Icons.workspace_premium_rounded,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 _InfoRow(
                   icon: Icons.badge_outlined,
@@ -323,40 +444,81 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                 ),
                 if (player.lastPlayedAt != null) ...[
                   const SizedBox(height: 7),
-                  _InfoRow(icon: Icons.schedule_rounded, label: 'Last played', value: _lastPlayed(player.lastPlayedAt)),
+                  _InfoRow(
+                    icon: Icons.schedule_rounded,
+                    label: 'Last played',
+                    value: _lastPlayed(player.lastPlayedAt),
+                  ),
                 ],
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: .035), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
-                  child: Row(children: [
-                    const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFC94D)),
-                    const SizedBox(width: 10),
-                    const Expanded(child: Text('Achievements', style: TextStyle(fontWeight: FontWeight.w900))),
-                    Text('${player.achievementCount}', style: const TextStyle(color: Color(0xFFFFC94D), fontSize: 18, fontWeight: FontWeight.w900)),
-                  ]),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .035),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.workspace_premium_rounded,
+                        color: Color(0xFFFFC94D),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'Achievements',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      Text(
+                        '${player.achievementCount}',
+                        style: const TextStyle(
+                          color: Color(0xFFFFC94D),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 if (primaryLabel != null || secondaryLabel != null) ...[
                   const SizedBox(height: 16),
-                  Row(children: [
-                    if (secondaryLabel != null && onSecondary != null) ...[
-                      Expanded(child: OutlinedButton(
-                        onPressed: () { Navigator.of(sheetContext).pop(); onSecondary(); },
-                        child: Text(secondaryLabel),
-                      )),
-                      const SizedBox(width: 8),
-                    ],
-                    if (primaryLabel != null)
-                      Expanded(
-                        flex: 2,
-                        child: FilledButton.icon(
-                          onPressed: onPrimary == null ? null : () { Navigator.of(sheetContext).pop(); onPrimary(); },
-                          style: FilledButton.styleFrom(backgroundColor: const Color(0xFF29D398), foregroundColor: const Color(0xFF07111E), minimumSize: const Size.fromHeight(48)),
-                          icon: Icon(_actionIcon(primaryLabel)),
-                          label: Text(primaryLabel),
+                  Row(
+                    children: [
+                      if (secondaryLabel != null && onSecondary != null) ...[
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.of(sheetContext).pop();
+                              onSecondary();
+                            },
+                            child: Text(secondaryLabel),
+                          ),
                         ),
-                      ),
-                  ]),
+                        const SizedBox(width: 8),
+                      ],
+                      if (primaryLabel != null)
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton.icon(
+                            onPressed: onPrimary == null
+                                ? null
+                                : () {
+                                    Navigator.of(sheetContext).pop();
+                                    onPrimary();
+                                  },
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF29D398),
+                              foregroundColor: const Color(0xFF07111E),
+                              minimumSize: const Size.fromHeight(48),
+                            ),
+                            icon: Icon(_actionIcon(primaryLabel)),
+                            label: Text(primaryLabel),
+                          ),
+                        ),
+                    ],
+                  ),
                 ],
               ],
             ),
@@ -372,81 +534,107 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       backgroundColor: const Color(0xFF0B1215),
       body: AppBackdrop(
         child: SafeArea(
-          child: Column(children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-                  child: Column(children: [
-                    InPageHeader(
-                      title: context.tr('friends_challenges'),
-                      actions: [IconButton(
-                        tooltip: context.tr('refresh'),
-                        onPressed: _loading ? null : _load,
-                        icon: _loading
-                            ? const SizedBox.square(dimension: 19, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.refresh_rounded),
-                      )],
-                    ),
-                    const SizedBox(height: 6),
-                    _FixedTabs(
-                      controller: _tabs,
-                      requests: _requests.length,
-                      friends: _friends.length,
-                      challenges: _incoming.length,
-                    ),
-                    const SizedBox(height: 10),
-                    _SearchField(
-                      controller: _search,
-                      focusNode: _searchFocus,
-                      searching: _searching,
-                      hasResults: _results.isNotEmpty,
-                      onSearch: _findPlayers,
-                      onClear: () { _search.clear(); setState(() => _results = const []); },
-                    ),
-                    if (_results.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: _panelDecoration(),
-                        child: Column(children: [
-                          for (final p in _results.take(5)) ...[
-                            _SearchPlayer(
-                              player: p,
-                              rank: _rankFor(p.publicId),
-                              busy: _busyId == 'friend-${p.publicId}',
-                              enabled: _canAdd(p),
-                              label: _friendLabel(p),
-                              onTap: () => _showPlayer(
-                                p,
-                                primaryLabel: _friendLabel(p),
-                                onPrimary: _canAdd(p) ? () => _sendFriendRequest(p) : null,
-                              ),
-                              onAction: () => _sendFriendRequest(p),
+          child: Column(
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+                    child: Column(
+                      children: [
+                        InPageHeader(
+                          title: context.tr('friends_challenges'),
+                          actions: [
+                            IconButton(
+                              tooltip: context.tr('refresh'),
+                              onPressed: _loading ? null : _load,
+                              icon: _loading
+                                  ? const SizedBox.square(
+                                      dimension: 19,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.refresh_rounded),
                             ),
-                            const SizedBox(height: 5),
                           ],
-                        ]),
-                      ),
-                    ],
-                    if (_error != null) ...[
-                      const SizedBox(height: 8),
-                      _ErrorBar(message: _error!, onDismiss: () => setState(() => _error = null)),
-                    ],
-                  ]),
+                        ),
+                        const SizedBox(height: 6),
+                        _FixedTabs(
+                          controller: _tabs,
+                          requests: _requests.length,
+                          friends: _friends.length,
+                          challenges: _incoming.length,
+                        ),
+                        const SizedBox(height: 10),
+                        _SearchField(
+                          controller: _search,
+                          focusNode: _searchFocus,
+                          searching: _searching,
+                          hasResults: _results.isNotEmpty,
+                          onSearch: _findPlayers,
+                          onClear: () {
+                            _search.clear();
+                            setState(() => _results = const []);
+                          },
+                        ),
+                        if (_results.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: _panelDecoration(),
+                            child: Column(
+                              children: [
+                                for (final p in _results.take(5)) ...[
+                                  _SearchPlayer(
+                                    player: p,
+                                    rank: _rankFor(p.publicId),
+                                    busy: _busyId == 'friend-${p.publicId}',
+                                    enabled: _canAdd(p),
+                                    label: _friendLabel(p),
+                                    onTap: () => _showPlayer(
+                                      p,
+                                      primaryLabel: _friendLabel(p),
+                                      onPrimary: _canAdd(p)
+                                          ? () => _sendFriendRequest(p)
+                                          : null,
+                                    ),
+                                    onAction: () => _sendFriendRequest(p),
+                                  ),
+                                  const SizedBox(height: 5),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (_error != null) ...[
+                          const SizedBox(height: 8),
+                          _ErrorBar(
+                            message: _error!,
+                            onDismiss: () => setState(() => _error = null),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : TabBarView(
-                      controller: _tabs,
-                      children: [_requestsView(), _friendsView(), _challengesView(), _recentView()],
-                    ),
-            ),
-          ]),
+              Expanded(
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : TabBarView(
+                        controller: _tabs,
+                        children: [
+                          _requestsView(),
+                          _friendsView(),
+                          _challengesView(),
+                          _recentView(),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -488,7 +676,8 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       return _Empty(
         asset: DuelAsset.homeFriendsScene,
         title: 'No friends yet',
-        message: 'Add friends to challenge, compare scores and climb the ranks together.',
+        message:
+            'Add friends to challenge, compare scores and climb the ranks together.',
         action: 'Find friends',
         onAction: _searchFocus.requestFocus,
       );
@@ -500,7 +689,11 @@ class _SocialHubScreenState extends State<SocialHubScreen>
           rank: _rankFor(p.publicId),
           busy: _busyId == 'challenge-${p.publicId}',
           primary: context.tr('challenge'),
-          onTap: () => _showPlayer(p, primaryLabel: context.tr('challenge'), onPrimary: () => _challenge(p)),
+          onTap: () => _showPlayer(
+            p,
+            primaryLabel: context.tr('challenge'),
+            onPrimary: () => _challenge(p),
+          ),
           onPrimary: () => _challenge(p),
         ),
     ]);
@@ -546,7 +739,11 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         _ChallengeCard(
           challenge: c,
           rank: _rankFor(c.challenger.publicId),
-          onPlayer: () => _showPlayer(c.challenger, primaryLabel: 'View challenge', onPrimary: () => _openChallenge(c)),
+          onPlayer: () => _showPlayer(
+            c.challenger,
+            primaryLabel: 'View challenge',
+            onPrimary: () => _openChallenge(c),
+          ),
           onOpen: () => _openChallenge(c),
         ),
     ]);
@@ -566,7 +763,12 @@ class _SocialHubScreenState extends State<SocialHubScreen>
 }
 
 class _FixedTabs extends StatelessWidget {
-  const _FixedTabs({required this.controller, required this.requests, required this.friends, required this.challenges});
+  const _FixedTabs({
+    required this.controller,
+    required this.requests,
+    required this.friends,
+    required this.challenges,
+  });
   final TabController controller;
   final int requests;
   final int friends;
@@ -589,8 +791,15 @@ class _FixedTabs extends StatelessWidget {
       indicator: BoxDecoration(
         color: const Color(0xFF29D398).withValues(alpha: .16),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF35D5A1).withValues(alpha: .48)),
-        boxShadow: [BoxShadow(color: const Color(0xFF35D5A1).withValues(alpha: .14), blurRadius: 14)],
+        border: Border.all(
+          color: const Color(0xFF35D5A1).withValues(alpha: .48),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF35D5A1).withValues(alpha: .14),
+            blurRadius: 14,
+          ),
+        ],
       ),
       labelColor: Colors.white,
       unselectedLabelColor: Colors.white54,
@@ -614,24 +823,44 @@ class _TabItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Tab(
     height: 54,
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 18),
-        if (count != null) ...[
-          const SizedBox(width: 4),
-          Container(
-            height: 18,
-            constraints: const BoxConstraints(minWidth: 18),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(color: const Color(0xFF29D398).withValues(alpha: .22), borderRadius: BorderRadius.circular(99)),
-            child: Text('$count', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900)),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18),
+            if (count != null) ...[
+              const SizedBox(width: 4),
+              Container(
+                height: 18,
+                constraints: const BoxConstraints(minWidth: 18),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF29D398).withValues(alpha: .22),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  '$count',
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 4),
+        FittedBox(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
           ),
-        ],
-      ]),
-      const SizedBox(height: 4),
-      FittedBox(child: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900))),
-    ]),
+        ),
+      ],
+    ),
   );
 }
 
@@ -671,10 +900,17 @@ class _SearchField extends StatelessWidget {
         border: InputBorder.none,
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: searching
-            ? const Padding(padding: EdgeInsets.all(13), child: CircularProgressIndicator(strokeWidth: 2))
+            ? const Padding(
+                padding: EdgeInsets.all(13),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : IconButton(
                 onPressed: hasResults ? onClear : onSearch,
-                icon: Icon(hasResults ? Icons.close_rounded : Icons.arrow_forward_rounded),
+                icon: Icon(
+                  hasResults
+                      ? Icons.close_rounded
+                      : Icons.arrow_forward_rounded,
+                ),
               ),
       ),
       onSubmitted: (_) => onSearch(),
@@ -708,18 +944,44 @@ class _SearchPlayer extends StatelessWidget {
       borderRadius: BorderRadius.circular(13),
       child: Padding(
         padding: const EdgeInsets.all(7),
-        child: Row(children: [
-          PlayerAvatar(displayName: player.displayName, avatarKey: rank?.avatarKey ?? 'search-${player.publicId}', radius: 21),
-          const SizedBox(width: 9),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(player.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
-            Text(rank == null ? '@${player.username}' : '${rank!.rankName} · ${rank!.rankPoints} RP', style: const TextStyle(fontSize: 10, color: Colors.white54)),
-          ])),
-          OutlinedButton(
-            onPressed: busy || !enabled ? null : onAction,
-            child: busy ? const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2)) : Text(label),
-          ),
-        ]),
+        child: Row(
+          children: [
+            PlayerAvatar(
+              displayName: player.displayName,
+              avatarKey: rank?.avatarKey ?? 'search-${player.publicId}',
+              radius: 21,
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    player.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    rank == null
+                        ? '@${player.username}'
+                        : '${rank!.rankName} · ${rank!.rankPoints} RP',
+                    style: const TextStyle(fontSize: 10, color: Colors.white54),
+                  ),
+                ],
+              ),
+            ),
+            OutlinedButton(
+              onPressed: busy || !enabled ? null : onAction,
+              child: busy
+                  ? const SizedBox.square(
+                      dimension: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(label),
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -757,58 +1019,136 @@ class _PlayerCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 9, 9, 9),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [accent.withValues(alpha: .08), const Color(0xFF07131C).withValues(alpha: .90)]),
+        gradient: LinearGradient(
+          colors: [
+            accent.withValues(alpha: .08),
+            const Color(0xFF07131C).withValues(alpha: .90),
+          ],
+        ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: accent.withValues(alpha: .28)),
       ),
-      child: Row(children: [
-        Expanded(
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(14),
-              child: Row(children: [
-                PlayerAvatar(displayName: player.displayName, avatarKey: rank?.avatarKey ?? 'player-${player.publicId}', radius: 27),
-                const SizedBox(width: 11),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(player.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 2),
-                  Text('@${player.username}${rank == null ? '' : ' · ${rank!.rankName}'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 5),
-                  Wrap(spacing: 8, children: [
-                    _Meta(Icons.shield_rounded, '${rank?.rankPoints ?? 0} RP', accent),
-                    _Meta(Icons.emoji_events_rounded, '${(winRate * 100).round()}%', const Color(0xFFFFC94D)),
-                    _Meta(Icons.sports_esports_rounded, '$games', const Color(0xFF66C7FF)),
-                    if (meta != null && meta!.isNotEmpty) _Meta(Icons.schedule_rounded, meta!, Colors.white54),
-                  ]),
-                ])),
-              ]),
+      child: Row(
+        children: [
+          Expanded(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(14),
+                child: Row(
+                  children: [
+                    PlayerAvatar(
+                      displayName: player.displayName,
+                      avatarKey: rank?.avatarKey ?? 'player-${player.publicId}',
+                      radius: 27,
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            player.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '@${player.username}${rank == null ? '' : ' · ${rank!.rankName}'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              _Meta(
+                                Icons.shield_rounded,
+                                '${rank?.rankPoints ?? 0} RP',
+                                accent,
+                              ),
+                              _Meta(
+                                Icons.emoji_events_rounded,
+                                '${(winRate * 100).round()}%',
+                                const Color(0xFFFFC94D),
+                              ),
+                              _Meta(
+                                Icons.sports_esports_rounded,
+                                '$games',
+                                const Color(0xFF66C7FF),
+                              ),
+                              if (meta != null && meta!.isNotEmpty)
+                                _Meta(
+                                  Icons.schedule_rounded,
+                                  meta!,
+                                  Colors.white54,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 7),
-        if (secondary != null && onSecondary != null) ...[
-          TextButton(onPressed: busy ? null : onSecondary, child: Text(secondary!)),
-          const SizedBox(width: 3),
-        ],
-        FilledButton.tonal(
-          onPressed: busy || !enabled ? null : onPrimary,
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF29D398).withValues(alpha: .12),
-            side: BorderSide(color: const Color(0xFF29D398).withValues(alpha: .34)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-            padding: const EdgeInsets.symmetric(horizontal: 13),
+          const SizedBox(width: 7),
+          if (secondary != null && onSecondary != null) ...[
+            TextButton(
+              onPressed: busy ? null : onSecondary,
+              child: Text(secondary!),
+            ),
+            const SizedBox(width: 3),
+          ],
+          FilledButton.tonal(
+            onPressed: busy || !enabled ? null : onPrimary,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF29D398).withValues(alpha: .12),
+              side: BorderSide(
+                color: const Color(0xFF29D398).withValues(alpha: .34),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(13),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 13),
+            ),
+            child: busy
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    primary,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
           ),
-          child: busy ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)) : Text(primary, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
 
 class _ChallengeCard extends StatelessWidget {
-  const _ChallengeCard({required this.challenge, required this.rank, required this.onPlayer, required this.onOpen});
+  const _ChallengeCard({
+    required this.challenge,
+    required this.rank,
+    required this.onPlayer,
+    required this.onOpen,
+  });
   final SocialChallenge challenge;
   final PublicRankSummary? rank;
   final VoidCallback onPlayer;
@@ -818,33 +1158,83 @@ class _ChallengeCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(10, 9, 9, 9),
     decoration: BoxDecoration(
-      gradient: LinearGradient(colors: [const Color(0xFFFF8A4C).withValues(alpha: .10), const Color(0xFF07131C).withValues(alpha: .90)]),
+      gradient: LinearGradient(
+        colors: [
+          const Color(0xFFFF8A4C).withValues(alpha: .10),
+          const Color(0xFF07131C).withValues(alpha: .90),
+        ],
+      ),
       borderRadius: BorderRadius.circular(18),
       border: Border.all(color: const Color(0xFFFFA15A).withValues(alpha: .30)),
     ),
-    child: Row(children: [
-      Expanded(
-        child: InkWell(
-          onTap: onPlayer,
-          borderRadius: BorderRadius.circular(14),
-          child: Row(children: [
-            PlayerAvatar(displayName: challenge.challenger.displayName, avatarKey: rank?.avatarKey ?? 'challenge-${challenge.challenger.publicId}', radius: 27),
-            const SizedBox(width: 11),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(challenge.challenger.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
-              Text(rank == null ? '@${challenge.challenger.username}' : '${rank!.rankName} · ${rank!.rankPoints} RP', style: const TextStyle(color: Colors.white54, fontSize: 10)),
-              const SizedBox(height: 5),
-              Wrap(spacing: 8, children: [
-                _Meta(Icons.grid_4x4_rounded, context.strings.difficultyLabel(_difficulty(challenge.difficulty)), const Color(0xFFFFB46A)),
-                _Meta(Icons.schedule_rounded, _expires(challenge.expiresAt), const Color(0xFF66C7FF)),
-              ]),
-            ])),
-          ]),
+    child: Row(
+      children: [
+        Expanded(
+          child: InkWell(
+            onTap: onPlayer,
+            borderRadius: BorderRadius.circular(14),
+            child: Row(
+              children: [
+                PlayerAvatar(
+                  displayName: challenge.challenger.displayName,
+                  avatarKey:
+                      rank?.avatarKey ??
+                      'challenge-${challenge.challenger.publicId}',
+                  radius: 27,
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        challenge.challenger.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        rank == null
+                            ? '@${challenge.challenger.username}'
+                            : '${rank!.rankName} · ${rank!.rankPoints} RP',
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 10,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          _Meta(
+                            Icons.grid_4x4_rounded,
+                            context.strings.difficultyLabel(
+                              _difficulty(challenge.difficulty),
+                            ),
+                            const Color(0xFFFFB46A),
+                          ),
+                          _Meta(
+                            Icons.schedule_rounded,
+                            _expires(challenge.expiresAt),
+                            const Color(0xFF66C7FF),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
-      const SizedBox(width: 8),
-      FilledButton.tonalIcon(onPressed: onOpen, icon: const Icon(Icons.sports_martial_arts_rounded, size: 16), label: const Text('View')),
-    ]),
+        const SizedBox(width: 8),
+        FilledButton.tonalIcon(
+          onPressed: onOpen,
+          icon: const Icon(Icons.sports_martial_arts_rounded, size: 16),
+          label: const Text('View'),
+        ),
+      ],
+    ),
   );
 }
 
@@ -855,11 +1245,21 @@ class _Meta extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-    Icon(icon, size: 11, color: color),
-    const SizedBox(width: 3),
-    Text(text, style: const TextStyle(color: Colors.white60, fontSize: 9, fontWeight: FontWeight.w800)),
-  ]);
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 11, color: color),
+      const SizedBox(width: 3),
+      Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white60,
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    ],
+  );
 }
 
 class _Pill extends StatelessWidget {
@@ -870,8 +1270,15 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-    decoration: BoxDecoration(color: color.withValues(alpha: .09), borderRadius: BorderRadius.circular(99), border: Border.all(color: color.withValues(alpha: .30))),
-    child: Text(text, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900)),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: .09),
+      borderRadius: BorderRadius.circular(99),
+      border: Border.all(color: color.withValues(alpha: .30)),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900),
+    ),
   );
 }
 
@@ -884,18 +1291,39 @@ class _Stat extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-    decoration: BoxDecoration(color: Colors.white.withValues(alpha: .035), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white10)),
-    child: Column(children: [
-      Icon(icon, size: 17, color: const Color(0xFF66C7FF)),
-      const SizedBox(height: 5),
-      Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
-      Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 8.5)),
-    ]),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: .035),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Colors.white10),
+    ),
+    child: Column(
+      children: [
+        Icon(icon, size: 17, color: const Color(0xFF66C7FF)),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+        ),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white54, fontSize: 8.5),
+        ),
+      ],
+    ),
   );
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value, this.onTap});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.onTap,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -904,21 +1332,57 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-    decoration: BoxDecoration(color: Colors.white.withValues(alpha: .03), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white10)),
-    child: Row(children: [
-      Icon(icon, size: 18, color: Colors.white54),
-      const SizedBox(width: 9),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 8.5, fontWeight: FontWeight.w900)),
-        Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-      ])),
-      if (onTap != null) IconButton(onPressed: onTap, icon: const Icon(Icons.copy_rounded, size: 18)),
-    ]),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: .03),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: Colors.white10),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.white54),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 8.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (onTap != null)
+          IconButton(
+            onPressed: onTap,
+            icon: const Icon(Icons.copy_rounded, size: 18),
+          ),
+      ],
+    ),
   );
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.asset, required this.title, required this.message, this.action, this.onAction});
+  const _Empty({
+    required this.asset,
+    required this.title,
+    required this.message,
+    this.action,
+    this.onAction,
+  });
   final String asset;
   final String title;
   final String message;
@@ -935,26 +1399,59 @@ class _Empty extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [const Color(0xFF123149).withValues(alpha: .34), const Color(0xFF07131C).withValues(alpha: .76)]),
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF123149).withValues(alpha: .34),
+                const Color(0xFF07131C).withValues(alpha: .76),
+              ],
+            ),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(color: Colors.white10),
           ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            SizedBox(width: 105, height: 105, child: DuelAssetIcon(asset, size: 100, fit: BoxFit.contain)),
-            const SizedBox(height: 10),
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 5),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white60, fontSize: 11, height: 1.35)),
-            if (action != null && onAction != null) ...[
-              const SizedBox(height: 14),
-              SizedBox(width: double.infinity, child: FilledButton.icon(
-                onPressed: onAction,
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF29D398), foregroundColor: const Color(0xFF07111E)),
-                icon: const Icon(Icons.person_search_rounded),
-                label: Text(action!),
-              )),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 105,
+                height: 105,
+                child: DuelAssetIcon(asset, size: 100, fit: BoxFit.contain),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 11,
+                  height: 1.35,
+                ),
+              ),
+              if (action != null && onAction != null) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: onAction,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF29D398),
+                      foregroundColor: const Color(0xFF07111E),
+                    ),
+                    icon: const Icon(Icons.person_search_rounded),
+                    label: Text(action!),
+                  ),
+                ),
+              ],
             ],
-          ]),
+          ),
         ),
       ),
     ),
@@ -969,13 +1466,33 @@ class _ErrorBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
-    decoration: BoxDecoration(color: const Color(0xFFFF6B6B).withValues(alpha: .09), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFFF6B6B).withValues(alpha: .24))),
-    child: Row(children: [
-      const Icon(Icons.error_outline_rounded, color: Color(0xFFFF8D8D), size: 18),
-      const SizedBox(width: 8),
-      Expanded(child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10))),
-      IconButton(onPressed: onDismiss, icon: const Icon(Icons.close_rounded, size: 18)),
-    ]),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFF6B6B).withValues(alpha: .09),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFFF6B6B).withValues(alpha: .24)),
+    ),
+    child: Row(
+      children: [
+        const Icon(
+          Icons.error_outline_rounded,
+          color: Color(0xFFFF8D8D),
+          size: 18,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            message,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 10),
+          ),
+        ),
+        IconButton(
+          onPressed: onDismiss,
+          icon: const Icon(Icons.close_rounded, size: 18),
+        ),
+      ],
+    ),
   );
 }
 
@@ -1020,7 +1537,8 @@ IconData _actionIcon(String label) {
   return Icons.sports_martial_arts_rounded;
 }
 
-SudokuDifficulty _difficulty(String value) => SudokuDifficulty.values.firstWhere(
-  (difficulty) => difficulty.name == value,
-  orElse: () => SudokuDifficulty.easy,
-);
+SudokuDifficulty _difficulty(String value) =>
+    SudokuDifficulty.values.firstWhere(
+      (difficulty) => difficulty.name == value,
+      orElse: () => SudokuDifficulty.easy,
+    );

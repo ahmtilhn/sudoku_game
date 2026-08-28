@@ -960,7 +960,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       });
     } on EconomyApiException catch (error) {
       if (!mounted) return;
-      setState(() => _statusMessage = error.message);
+      setState(() => _statusMessage = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -993,7 +993,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       }
     } on EconomyApiException catch (error) {
       if (!mounted) return;
-      setState(() => _statusMessage = error.message);
+      setState(() => _statusMessage = UserSafeError.message(context, error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1084,7 +1084,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
         } else if (message.contains('pending')) {
           _friendshipStatus = 'pending';
         }
-        _statusMessage = error.message;
+        _statusMessage = UserSafeError.message(context, error);
       });
     } finally {
       if (mounted) setState(() => _busy = false);

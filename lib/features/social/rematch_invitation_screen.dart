@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
+
 import '../../localization/app_strings.dart';
 import '../../services/economy_api_client.dart';
 import '../../services/economy_service.dart';
@@ -114,7 +116,9 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
       }
       _startClock();
     } on EconomyApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -175,7 +179,9 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
         setState(() => _error = context.tr('rematch_could_not_start'));
       }
     } on EconomyApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('rematch_could_not_start'));
@@ -226,7 +232,9 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                           ),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: const Color(0xFF66C7FF).withValues(alpha: .24),
+                            color: const Color(
+                              0xFF66C7FF,
+                            ).withValues(alpha: .24),
                           ),
                           boxShadow: [
                             BoxShadow(
@@ -246,21 +254,30 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFF24435E), Color(0xFF102136)],
+                                  colors: [
+                                    Color(0xFF24435E),
+                                    Color(0xFF102136),
+                                  ],
                                 ),
                                 border: Border.all(
-                                  color: const Color(0xFFFFC94D).withValues(alpha: .68),
+                                  color: const Color(
+                                    0xFFFFC94D,
+                                  ).withValues(alpha: .68),
                                   width: 2,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFFFFC94D).withValues(alpha: .18),
+                                    color: const Color(
+                                      0xFFFFC94D,
+                                    ).withValues(alpha: .18),
                                     blurRadius: 16,
                                   ),
                                 ],
                               ),
                               child: Text(
-                                senderName.isEmpty ? '?' : senderName.substring(0, 1).toUpperCase(),
+                                senderName.isEmpty
+                                    ? '?'
+                                    : senderName.substring(0, 1).toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 26,
@@ -297,10 +314,13 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                                   CircularProgressIndicator(
                                     value: progress,
                                     strokeWidth: 6,
-                                    backgroundColor: Colors.white.withValues(alpha: .10),
-                                    valueColor: const AlwaysStoppedAnimation<Color>(
-                                      Color(0xFF29D398),
+                                    backgroundColor: Colors.white.withValues(
+                                      alpha: .10,
                                     ),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          Color(0xFF29D398),
+                                        ),
                                   ),
                                   Center(
                                     child: Column(
@@ -318,7 +338,9 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                                         Text(
                                           's',
                                           style: TextStyle(
-                                            color: Colors.white.withValues(alpha: .52),
+                                            color: Colors.white.withValues(
+                                              alpha: .52,
+                                            ),
                                             fontSize: 12,
                                             fontWeight: FontWeight.w800,
                                           ),
@@ -332,12 +354,19 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                             const SizedBox(height: 17),
                             Container(
                               width: double.infinity,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFC94D).withValues(alpha: .08),
+                                color: const Color(
+                                  0xFFFFC94D,
+                                ).withValues(alpha: .08),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(0xFFFFC94D).withValues(alpha: .18),
+                                  color: const Color(
+                                    0xFFFFC94D,
+                                  ).withValues(alpha: .18),
                                 ),
                               ),
                               child: Row(
@@ -380,12 +409,16 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                               children: [
                                 Expanded(
                                   child: OutlinedButton(
-                                    onPressed: _canRespond ? () => _respond(false) : null,
+                                    onPressed: _canRespond
+                                        ? () => _respond(false)
+                                        : null,
                                     style: OutlinedButton.styleFrom(
                                       minimumSize: const Size(0, 48),
                                       foregroundColor: Colors.white,
                                       side: BorderSide(
-                                        color: Colors.white.withValues(alpha: .18),
+                                        color: Colors.white.withValues(
+                                          alpha: .18,
+                                        ),
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
@@ -397,7 +430,9 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                                 const SizedBox(width: 9),
                                 Expanded(
                                   child: FilledButton(
-                                    onPressed: _canRespond ? () => _respond(true) : null,
+                                    onPressed: _canRespond
+                                        ? () => _respond(true)
+                                        : null,
                                     style: FilledButton.styleFrom(
                                       minimumSize: const Size(0, 48),
                                       backgroundColor: const Color(0xFF29D398),
@@ -409,11 +444,15 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                                     child: _busy
                                         ? const SizedBox.square(
                                             dimension: 18,
-                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
                                           )
                                         : Text(
                                             context.tr('accept'),
-                                            style: const TextStyle(fontWeight: FontWeight.w900),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w900,
+                                            ),
                                           ),
                                   ),
                                 ),

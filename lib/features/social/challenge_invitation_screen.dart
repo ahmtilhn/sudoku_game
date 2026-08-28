@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
+
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
@@ -103,7 +105,9 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
         setState(() {});
       });
     } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -160,7 +164,9 @@ class _ChallengeInvitationScreenState extends State<ChallengeInvitationScreen> {
         MaterialPageRoute(builder: (_) => PreMatchReadyScreen(roomId: roomId)),
       );
     } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('matchmaking_start_failed'));
@@ -254,7 +260,8 @@ class _ChallengeCard extends StatelessWidget {
     final difficulty = _difficulty(challenge.difficulty);
     final accent = _accent(difficulty);
     final rank = challengerRank;
-    final avatarKey = rank?.avatarKey ?? 'challenge-${challenge.challenger.publicId}';
+    final avatarKey =
+        rank?.avatarKey ?? 'challenge-${challenge.challenger.publicId}';
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),

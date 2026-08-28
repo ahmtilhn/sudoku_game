@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/user_safe_error.dart';
+
 import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
 import '../../services/economy_service.dart';
@@ -106,7 +108,9 @@ class _UxChallengeInvitationScreenState
         if (_statusTicks.isEven) unawaited(_refreshStatus());
       });
     } on SocialApiException catch (error) {
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (mounted) {
         setState(() => _error = context.tr('try_again_when_connected'));
@@ -200,7 +204,9 @@ class _UxChallengeInvitationScreenState
       await _openRoom(roomId);
     } on SocialApiException catch (error) {
       if (accept && await _recoverAcceptedChallenge()) return;
-      if (mounted) setState(() => _error = error.message);
+      if (mounted) {
+        setState(() => _error = UserSafeError.message(context, error));
+      }
     } catch (_) {
       if (accept && await _recoverAcceptedChallenge()) return;
       if (mounted) {
@@ -333,7 +339,8 @@ class _UxChallengeInvitationScreenState
                 PlayerAvatar(
                   displayName: challenge.challenger.displayName,
                   avatarKey:
-                      rank?.avatarKey ?? 'challenge-${challenge.challenger.publicId}',
+                      rank?.avatarKey ??
+                      'challenge-${challenge.challenger.publicId}',
                   radius: 48,
                 ),
                 const SizedBox(height: 12),

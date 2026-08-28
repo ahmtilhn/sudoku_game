@@ -109,8 +109,7 @@ PushNotificationDestination? parsePushNotificationDestination(
       type: PushNotificationDestinationType.rematch,
       id: rematchId,
       defaultTitle: 'Rematch invitation',
-      defaultBody:
-          'A player wants to play again. Open Sudoku Duel to respond.',
+      defaultBody: 'A player wants to play again. Open Sudoku Duel to respond.',
     );
   }
 
@@ -133,6 +132,8 @@ class PushNotificationService {
 
   static const String _challengeChannelId = 'online_challenges';
   static const String _enabledKey = 'challenge_push_enabled_v1';
+  static const String _safeRegistrationError =
+      'Notification setup could not be completed. Please try again.';
 
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -225,7 +226,7 @@ class PushNotificationService {
       initialized.value = true;
     } catch (error, stackTrace) {
       initialized.value = false;
-      lastRegistrationError.value = error.toString();
+      lastRegistrationError.value = _safeRegistrationError;
       debugPrint('Challenge push initialization failed: $error');
       debugPrintStack(stackTrace: stackTrace);
       await FirebaseServices.instance.recordNonFatal(error, stackTrace);
@@ -261,9 +262,9 @@ class PushNotificationService {
       userDisabled.value = false;
       lastRegistrationError.value = null;
       await _preferences.setBool(_enabledKey, true);
-      return _registerCurrentToken();
+      return await _registerCurrentToken();
     } catch (error, stackTrace) {
-      lastRegistrationError.value = error.toString();
+      lastRegistrationError.value = _safeRegistrationError;
       debugPrint('Challenge notification permission failed: $error');
       await FirebaseServices.instance.recordNonFatal(error, stackTrace);
       return false;
@@ -283,7 +284,7 @@ class PushNotificationService {
       return false;
     }
     enabled.value = true;
-    return _registerCurrentToken();
+    return await _registerCurrentToken();
   }
 
   Future<void> disableChallengeNotifications() async {
@@ -373,19 +374,18 @@ class PushNotificationService {
       if (_automaticSocialUiAllowed) return;
     }
 
-    await _showForegroundSystemNotification(message, target);
+    await _showForegroundSystemNotification(target);
   }
 
   Future<void> _showForegroundSystemNotification(
-    RemoteMessage message,
     PushNotificationDestination target,
   ) async {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
 
     await _localNotifications.show(
       id: target.id.hashCode & 0x7fffffff,
-      title: message.notification?.title ?? target.defaultTitle,
-      body: message.notification?.body ?? target.defaultBody,
+      title: target.defaultTitle,
+      body: target.defaultBody,
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           _challengeChannelId,
@@ -395,9 +395,7 @@ class PushNotificationService {
           importance: Importance.high,
           priority: Priority.high,
         ),
-        iOS: DarwinNotificationDetails(
-          threadIdentifier: 'online-challenges',
-        ),
+        iOS: DarwinNotificationDetails(threadIdentifier: 'online-challenges'),
       ),
       payload: target.payload,
     );
@@ -451,7 +449,7 @@ class PushNotificationService {
   Future<bool> _registerCurrentToken() async {
     final token = await _loadMessagingToken();
     if (token == null || token.isEmpty) {
-      lastRegistrationError.value = 'FCM registration token is unavailable.';
+      lastRegistrationError.value = _safeRegistrationError;
       return false;
     }
     return _registerToken(token);
@@ -483,12 +481,12 @@ class PushNotificationService {
       lastRegistrationError.value = null;
       return true;
     } on SocialApiException catch (error, stackTrace) {
-      lastRegistrationError.value = error.message;
+      lastRegistrationError.value = _safeRegistrationError;
       debugPrint('Push token registration failed: $error');
       await FirebaseServices.instance.recordNonFatal(error, stackTrace);
       return false;
     } catch (error, stackTrace) {
-      lastRegistrationError.value = error.toString();
+      lastRegistrationError.value = _safeRegistrationError;
       await FirebaseServices.instance.recordNonFatal(error, stackTrace);
       return false;
     }

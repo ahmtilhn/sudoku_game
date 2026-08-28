@@ -386,9 +386,9 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
         ),
       ),
     );
-    if (action != 'forfeit' || !mounted) return;
+    if (action != 'forfeit' || !context.mounted) return;
     await Future<void>.delayed(const Duration(milliseconds: 80));
-    if (!mounted) return;
+    if (!context.mounted) return;
     await Navigator.of(context).maybePop();
   }
 }
@@ -400,7 +400,9 @@ class _PersistentDuelTurnStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = localTurn ? const Color(0xFF29D398) : const Color(0xFFFFC94D);
+    final accent = localTurn
+        ? const Color(0xFF29D398)
+        : const Color(0xFFFFC94D);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       height: 40,
@@ -424,7 +426,9 @@ class _PersistentDuelTurnStrip extends StatelessWidget {
           const SizedBox(width: 7),
           Flexible(
             child: Text(
-              localTurn ? 'YOUR TURN · Make your move' : 'OPPONENT’S TURN · Waiting…',
+              localTurn
+                  ? 'YOUR TURN · Make your move'
+                  : 'OPPONENT’S TURN · Waiting…',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -560,7 +564,10 @@ class _CompactRoundControl extends StatelessWidget {
 }
 
 class _OpponentEmotePresentation extends StatelessWidget {
-  const _OpponentEmotePresentation({required this.emoteId, required this.accent});
+  const _OpponentEmotePresentation({
+    required this.emoteId,
+    required this.accent,
+  });
 
   final String? emoteId;
   final Color accent;
@@ -839,9 +846,7 @@ class _EmoteRoundButton extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [Color(0xFF263947), Color(0xFF17252E)],
               ),
-              border: Border.all(
-                color: scheme.tertiary.withValues(alpha: .42),
-              ),
+              border: Border.all(color: scheme.tertiary.withValues(alpha: .42)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: .32),
@@ -935,9 +940,7 @@ class _EmotePickerButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: .045),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: .07),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: .07)),
               ),
               child: Center(
                 child: OnlineDuelEmoteVisual(
@@ -973,7 +976,9 @@ class OnlineDuelEmoteBubble extends StatelessWidget {
           ? Duration.zero
           : const Duration(milliseconds: 170),
       transitionBuilder: (child, animation) {
-        if (reduceMotion) return FadeTransition(opacity: animation, child: child);
+        if (reduceMotion) {
+          return FadeTransition(opacity: animation, child: child);
+        }
         return FadeTransition(
           opacity: animation,
           child: ScaleTransition(

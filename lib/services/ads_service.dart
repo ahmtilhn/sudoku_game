@@ -513,7 +513,7 @@ class AdsService {
 
   Future<ConsentStatus> _safeConsentStatus() async {
     try {
-      return ConsentInformation.instance.getConsentStatus();
+      return await ConsentInformation.instance.getConsentStatus();
     } catch (error, stackTrace) {
       debugPrint('UMP consent status lookup failed: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -523,7 +523,7 @@ class AdsService {
 
   Future<bool> _safeCanRequestAds() async {
     try {
-      return ConsentInformation.instance.canRequestAds();
+      return await ConsentInformation.instance.canRequestAds();
     } catch (error, stackTrace) {
       debugPrint('UMP canRequestAds lookup failed: $error');
       debugPrintStack(stackTrace: stackTrace);

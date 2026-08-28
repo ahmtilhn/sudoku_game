@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../core/user_safe_error.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
@@ -223,10 +225,10 @@ class _UxRootScreenState extends State<UxRootScreen> {
       if (mounted) setState(() => _profile = updated);
       return true;
     } on PlayerProfileException catch (error) {
-      if (mounted) _snack(error.message);
+      if (mounted) _snack(UserSafeError.message(context, error));
       return false;
     } on SocialApiException catch (error) {
-      if (mounted) _snack(error.message);
+      if (mounted) _snack(UserSafeError.message(context, error));
       return false;
     } catch (_) {
       if (mounted) _snack(context.tr('try_again_when_connected'));
@@ -369,7 +371,7 @@ class _UxRootScreenState extends State<UxRootScreen> {
         );
       }
     } on EconomyApiException catch (error) {
-      if (mounted) _snack(error.message);
+      if (mounted) _snack(UserSafeError.message(context, error));
     } catch (_) {
       if (mounted) _snack(context.tr('rematch_invitation_load_failed'));
     }
