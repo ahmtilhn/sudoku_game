@@ -107,6 +107,22 @@ jobs:
 
           repair.print_audit('Before locale repair:', repair.audit(strings))
           repair.translate(strings)
+
+          # Brand names, platform names and RP/MMR-style technical labels are
+          # intentionally not machine-translated. New catalog keys still need
+          # a concrete locale value, so preserve the canonical source for any
+          # value that remains empty after translation.
+          technical_fallbacks = 0
+          for definition in strings.values():
+              if not isinstance(definition, dict):
+                  continue
+              source = repair.value_for(definition, 'en')
+              target = repair.value_for(definition, locale)
+              if source.strip() and not target.strip():
+                  repair.set_value(definition, locale, source)
+                  technical_fallbacks += 1
+          print(f'{locale}: preserved {technical_fallbacks} technical/source labels')
+
           repair.print_audit('After locale repair:', repair.audit(strings))
           repair.verify(strings)
 
