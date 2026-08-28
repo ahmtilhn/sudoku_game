@@ -54,7 +54,9 @@ def main() -> int:
             'Your next Sudoku is waiting.', 'Can you finish without a single mistake?',
             'Open Sudoku Duel and take the first move.',
         ),
-        'lib/widgets/rank_emblem.dart': (' rank emblem',),
+        # Match the original runtime interpolation, not documentation comments
+        # such as "competitive rank emblem".
+        'lib/widgets/rank_emblem.dart': ("${tier.label} rank emblem",),
         'backend/social_worker/src/friend_notifications.ts': (
             'New friend request', 'Friend request accepted', 'Friend request declined',
             'sent you a friend request.', 'accepted your friend request.',
