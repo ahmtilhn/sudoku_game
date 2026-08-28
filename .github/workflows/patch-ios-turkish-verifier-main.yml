@@ -7,6 +7,10 @@ on:
     paths:
       - '.github/workflows/patch-ios-turkish-verifier-main.yml'
 
+concurrency:
+  group: ios-localization-tooling-cleanup
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -14,32 +18,59 @@ jobs:
   harden:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-
-      - name: Harden catalog verifier and remove legacy workflow
+      - name: Patch verifier and remove legacy workflow
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 <<'PY'
-          from pathlib import Path
-          path = Path('tool/repair_ios_catalog_all_languages.py')
-          source = path.read_text(encoding='utf-8')
+          import base64
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          base_url = f'https://api.github.com/repos/{repo}/contents/'
+          headers = {
+              'Authorization': f'Bearer {token}',
+              'Accept': 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+          }
+
+          def call(method, path, payload=None, ref=False):
+              url = base_url + urllib.parse.quote(path, safe='/')
+              if ref:
+                  url += '?ref=main'
+              data = None if payload is None else json.dumps(payload).encode('utf-8')
+              request = urllib.request.Request(url, data=data, headers=headers, method=method)
+              with urllib.request.urlopen(request) as response:
+                  raw = response.read()
+              return json.loads(raw.decode('utf-8')) if raw else {}
+
+          repair_path = 'tool/repair_ios_catalog_all_languages.py'
+          repair = call('GET', repair_path, ref=True)
+          source = base64.b64decode(repair['content']).decode('utf-8')
           old = "            actual = value_for(strings[key], locale)\n"
           new = "            definition = strings.get(key)\n            if not isinstance(definition, dict):\n                # Curated copy is optional metadata. Removed app keys are ignored here.\n                continue\n            actual = value_for(definition, locale)\n"
-          if old not in source:
+          if old in source:
+              source = source.replace(old, new, 1)
+              call('PUT', repair_path, {
+                  'message': 'Harden iOS localization verification tooling',
+                  'content': base64.b64encode(source.encode('utf-8')).decode('ascii'),
+                  'sha': repair['sha'],
+                  'branch': 'main',
+              })
+          elif 'definition = strings.get(key)' not in source:
               raise SystemExit('Expected curated verification access was not found.')
-          path.write_text(source.replace(old, new, 1), encoding='utf-8')
-          PY
 
-          git rm .github/workflows/patch-ios-turkish-verifier-main.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tool/repair_ios_catalog_all_languages.py
-          git diff --cached --check
-          git commit -m "Harden iOS localization verification tooling"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          workflow_path = '.github/workflows/patch-ios-turkish-verifier-main.yml'
+          workflow = call('GET', workflow_path, ref=True)
+          call('DELETE', workflow_path, {
+              'message': 'Remove obsolete Turkish verifier patch workflow',
+              'sha': workflow['sha'],
+              'branch': 'main',
+          })
+          PY
