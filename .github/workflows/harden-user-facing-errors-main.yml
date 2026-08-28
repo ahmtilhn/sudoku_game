@@ -1,0 +1,74 @@
+name: Harden user-facing errors on main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tool/harden_user_facing_errors.py'
+      - '.github/workflows/harden-user-facing-errors-main.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: harden-user-facing-errors-main
+  cancel-in-progress: false
+
+jobs:
+  harden-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter packages
+        run: flutter pub get
+
+      - name: Hide technical errors from presentation
+        run: python3 tool/harden_user_facing_errors.py
+
+      - name: Format changed Dart sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git diff --name-only --diff-filter=ACM -- '*.dart')
+          if ((${#files[@]})); then
+            dart format "${files[@]}"
+          fi
+
+      - name: Verify technical errors cannot reach UI
+        run: python3 tool/verify_user_facing_messages.py
+
+      - name: Analyze Flutter
+        run: flutter analyze --fatal-infos
+
+      - name: Commit hardening directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib tool/verify_user_facing_messages.py
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'User-facing error hardening already applied.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Hide technical errors from user-facing UI'
+
+          # flutter pub get may update runner-local tracked housekeeping files.
+          # Discard only uncommitted runner changes after the hardening commit.
+          git reset --hard HEAD
+          git fetch origin main
+          git rebase origin/main
+          python3 tool/verify_user_facing_messages.py
+          git push origin HEAD:main
