@@ -2,14 +2,12 @@
 """Fix analyzer issues introduced or exposed by the localization migration.
 
 Keeps compatibility helpers backed by AppStrings, adds awaits where a Future is
-returned from inside a try block, and normalizes small control-flow/context lint
-issues in files touched by the migration. No product policy or game behavior is
-changed.
+returned from inside a try block, and fixes the exact control-flow/context lints
+reported by Flutter analyze. No product policy or game behavior is changed.
 """
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,29 +36,53 @@ def fix_country_compatibility() -> None:
     path.write_text(source, encoding='utf-8')
 
 
-def wrap_single_line_ifs(path_string: str) -> None:
-    """Add braces to simple one-line if statements in migration-touched files."""
-    path = ROOT / path_string
-    source = path.read_text(encoding='utf-8')
-    lines = source.splitlines()
-    output: list[str] = []
-    pattern = re.compile(r'^(\s*)if \((.*)\) (.+;)$')
-    for line in lines:
-        match = pattern.match(line)
-        if match is None:
-            output.append(line)
-            continue
-        indent, condition, statement = match.groups()
-        output.extend(
-            [
-                f'{indent}if ({condition}) {{',
-                f'{indent}  {statement}',
-                f'{indent}}}',
-            ]
-        )
-    updated = '\n'.join(output) + ('\n' if source.endswith('\n') else '')
-    if updated != source:
-        path.write_text(updated, encoding='utf-8')
+def wrap_safe_error_if(path: str, condition: str = 'mounted') -> None:
+    replace(
+        path,
+        f"if ({condition}) setState(() => _error = UserSafeError.message(context, error));",
+        f"""if ({condition}) {{
+        setState(() => _error = UserSafeError.message(context, error));
+      }}""",
+    )
+
+
+def fix_reported_control_flow_lints() -> None:
+    # Challenge/rematch screens: these are precisely the catch branches that
+    # became user-safe during the preceding migration step.
+    wrap_safe_error_if('lib/features/social/challenge_invitation_screen.dart')
+    wrap_safe_error_if(
+        'lib/features/social/challenge_waiting_screen.dart',
+        'mounted && _routeIsCurrent',
+    )
+    wrap_safe_error_if('lib/features/social/challenge_waiting_screen.dart')
+    wrap_safe_error_if('lib/features/social/rematch_invitation_screen.dart')
+    wrap_safe_error_if('lib/features/social/ux_challenge_invitation_screen.dart')
+
+    # Social hub has five user-safe catch branches plus two pre-existing
+    # single-line conditionals reported by the analyzer.
+    wrap_safe_error_if('lib/features/social/social_hub_screen.dart')
+    replace(
+        'lib/features/social/social_hub_screen.dart',
+        'if (mounted) setState(() { _loading = true; _error = null; });',
+        """if (mounted) {
+      setState(() { _loading = true; _error = null; });
+    }""",
+    )
+    replace(
+        'lib/features/social/social_hub_screen.dart',
+        'if (entry != null) _rankSummaries[entry.key] = entry.value;',
+        """if (entry != null) {
+          _rankSummaries[entry.key] = entry.value;
+        }""",
+    )
+
+    replace(
+        'lib/services/online_duel_emote_hub.dart',
+        'if (reduceMotion) return FadeTransition(opacity: animation, child: child);',
+        """if (reduceMotion) {
+          return FadeTransition(opacity: animation, child: child);
+        }""",
+    )
 
 
 def fix_emote_loadout_async_context() -> None:
@@ -119,16 +141,7 @@ def main() -> int:
 
     fix_emote_loadout_async_context()
     fix_emote_hub_async_context()
-
-    for path in (
-        'lib/features/social/challenge_invitation_screen.dart',
-        'lib/features/social/challenge_waiting_screen.dart',
-        'lib/features/social/rematch_invitation_screen.dart',
-        'lib/features/social/social_hub_screen.dart',
-        'lib/features/social/ux_challenge_invitation_screen.dart',
-        'lib/services/online_duel_emote_hub.dart',
-    ):
-        wrap_single_line_ifs(path)
+    fix_reported_control_flow_lints()
 
     print('Localization analyzer issues normalized.')
     return 0
