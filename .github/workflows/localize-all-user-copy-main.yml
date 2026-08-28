@@ -60,14 +60,14 @@ jobs:
       - name: Close final presentation gaps
         run: python3 tool/localize_final_presentation_copy.py
 
-      - name: Close exhaustive presentation gaps
-        run: python3 tool/localize_exhaustive_user_copy.py
-
       - name: Map user-facing errors safely
         run: python3 tool/localize_user_safe_errors.py
 
       - name: Centralize notifications reminders and accessibility copy
         run: python3 tool/localize_non_widget_user_copy.py
+
+      - name: Close exhaustive presentation gaps
+        run: python3 tool/localize_exhaustive_user_copy.py
 
       - name: Normalize percent localization literals
         run: python3 tool/fix_percent_localization_literals.py
