@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -7,25 +9,69 @@ import 'data/local_progress_store.dart';
 import 'features/social/challenge_navigation_gate.dart';
 import 'localization/app_strings.dart';
 
-class SudokuApp extends StatelessWidget {
+class SudokuApp extends StatefulWidget {
   const SudokuApp({super.key, required this.store, required this.strings});
 
   final LocalProgressStore store;
   final AppStrings strings;
 
   @override
+  State<SudokuApp> createState() => _SudokuAppState();
+}
+
+class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
+  late AppStrings _strings;
+  int _localeReloadGeneration = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _strings = widget.strings;
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didUpdateWidget(covariant SudokuApp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.strings != widget.strings) {
+      _strings = widget.strings;
+    }
+  }
+
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    super.didChangeLocales(locales);
+    unawaited(_reloadStringsForPlatformLocale());
+  }
+
+  Future<void> _reloadStringsForPlatformLocale() async {
+    final generation = ++_localeReloadGeneration;
+    final strings = await AppStrings.load();
+    if (!mounted || generation != _localeReloadGeneration) return;
+    setState(() {
+      _strings = strings;
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: store,
+      animation: widget.store,
       builder: (context, _) {
         return AppStringsScope(
-          strings: strings,
+          strings: _strings,
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
             scaffoldMessengerKey: AppMessenger.key,
             onGenerateTitle: (context) => context.tr('app_name'),
-            theme: AppTheme.dark(highContrast: store.highContrast),
-            darkTheme: AppTheme.dark(highContrast: store.highContrast),
+            theme: AppTheme.dark(highContrast: widget.store.highContrast),
+            darkTheme: AppTheme.dark(highContrast: widget.store.highContrast),
             themeMode: ThemeMode.dark,
             localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
               GlobalMaterialLocalizations.delegate,
@@ -33,7 +79,7 @@ class SudokuApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             supportedLocales: AppStrings.supportedLocales,
-            home: ChallengeNavigationGate(store: store),
+            home: ChallengeNavigationGate(store: widget.store),
           ),
         );
       },
