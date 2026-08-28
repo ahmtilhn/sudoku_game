@@ -1,0 +1,73 @@
+name: Localize all user copy on main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/localize-all-user-copy-main.yml'
+      - 'tool/localize_all_user_copy.py'
+      - 'tool/verify_localized_user_copy.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: localize-all-user-copy-main
+  cancel-in-progress: false
+
+jobs:
+  migrate-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Migrate remaining user copy
+        run: python3 tool/localize_all_user_copy.py
+
+      - name: Format changed Dart sources
+        run: dart format lib/localization lib/features/social/emote_loadout_screen.dart lib/features/social/profile_customization_screen.dart lib/services/online_duel_emote_hub.dart lib/models/avatar_preset_catalog.dart lib/models/country_catalog.dart lib/models/online_duel_emote_catalog.dart lib/models/rank_identity_fallback.dart
+
+      - name: Validate localization catalogs
+        run: python3 tool/validate_localizations.py
+
+      - name: Verify localized presentation copy
+        run: python3 tool/verify_localized_user_copy.py
+
+      - name: Verify user-safe messages
+        run: python3 tool/verify_user_facing_messages.py
+
+      - name: Refresh UX audit
+        run: python3 tool/generate_ux_audit.py --write
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Commit directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib assets/localization/Localizable.xcstrings tool/verify_localized_user_copy.py .github/workflows/mobile-ci.yml docs/ux_audit.md
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Localization migration already applied.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Centralize remaining user-facing copy'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
