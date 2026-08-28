@@ -361,8 +361,11 @@ jobs:
       - name: Validate localization sources
         run: python3 tool/validate_localizations.py
 
-      - name: Run locale consistency tests
-        run: flutter test test/localization_locale_consistency_test.dart
+      - name: Run targeted iOS locale runtime test
+        run: flutter test test/localization_locale_consistency_test.dart --plain-name "runtime localization follows the platform locale"
+
+      - name: Run strict catalog coverage test
+        run: flutter test test/localization_catalog_test.dart
 
       - name: Analyze localization runtime
         run: flutter analyze --fatal-infos lib/localization/app_strings.dart lib/app.dart
