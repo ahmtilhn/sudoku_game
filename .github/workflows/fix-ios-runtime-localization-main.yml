@@ -28,7 +28,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Resolve packages
+      - name: Resolve Flutter packages
         run: flutter pub get
 
       - name: Harden iOS locale resolution
@@ -151,12 +151,10 @@ jobs:
             channel.setMethodCallHandler { call, result in
               switch call.method {
               case "getPreferredLocales":
-                // Ordered device language preferences. This also gives Flutter a
-                // reliable fallback on Simulator before the first widget is mounted.
                 result(Locale.preferredLanguages)
               case "getStrings":
-                // iOS strings are resolved from the Flutter-bundled String Catalog.
-                // Android alone uses native string resources for Google Play translation.
+                // iOS strings come from the Flutter-bundled String Catalog. Android
+                // alone uses native resources for Google Play app-string translation.
                 result([String: String]())
               default:
                 result(FlutterMethodNotImplemented)
@@ -178,22 +176,160 @@ jobs:
 
           dart format lib/localization/app_strings.dart
 
-      - name: Verify real Turkish catalog values
+      - name: Install English to Turkish translation model
+        run: python3 -m pip install --disable-pip-version-check --quiet 'transformers<5' sentencepiece torch
+
+      - name: Replace English-copy Turkish catalog entries
         shell: bash
         run: |
           python3 <<'PY'
           import json
+          import re
           from pathlib import Path
 
+          import torch
+          from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+          CATALOG = Path('assets/localization/Localizable.xcstrings')
+          MODEL = 'Helsinki-NLP/opus-mt-tc-big-en-tr'
+          PLACEHOLDER_RE = re.compile(r'%(?:\d+\$?)?[sd]|%%')
+          catalog = json.loads(CATALOG.read_text(encoding='utf-8'))
+          strings = catalog['strings']
+
+          def unit(definition, locale):
+              localizations = definition.setdefault('localizations', {})
+              localization = localizations.setdefault(locale, {})
+              return localization.setdefault('stringUnit', {'state': 'translated', 'value': ''})
+
+          pending = []
+          for key, definition in strings.items():
+              en = unit(definition, 'en').get('value', '')
+              tr = unit(definition, 'tr').get('value', '')
+              if not isinstance(en, str) or not en.strip():
+                  continue
+              if not isinstance(tr, str) or not tr.strip() or tr == en:
+                  pending.append((key, en))
+
+          print(f'Turkish entries requiring translation: {len(pending)} / {len(strings)}')
+          tokenizer = AutoTokenizer.from_pretrained(MODEL)
+          model = AutoModelForSeq2SeqLM.from_pretrained(MODEL)
+          device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+          model.to(device)
+          model.eval()
+
+          protected = {}
+
+          def protect(text):
+              tokens = []
+              def repl(match):
+                  token = f'ZXPH{len(tokens)}ZX'
+                  tokens.append((token, match.group(0)))
+                  return token
+              prepared = PLACEHOLDER_RE.sub(repl, text)
+              prepared = prepared.replace('\n', ' ZXNEWLINEZX ')
+              return prepared, tokens
+
+          def restore(translated, tokens):
+              result = translated.replace('ZXNEWLINEZX', '\n')
+              for token, original in tokens:
+                  # Marian may insert spaces around an unknown sentinel.
+                  compact = re.sub(r'\s+', '', token)
+                  found = False
+                  variants = [token, token.lower(), token.upper()]
+                  for variant in variants:
+                      if variant in result:
+                          result = result.replace(variant, original)
+                          found = True
+                  if not found:
+                      normalized_result = re.sub(r'\s+', '', result)
+                      if compact in normalized_result:
+                          # This path is intentionally conservative; fail below if the
+                          # original placeholder still cannot be recovered exactly.
+                          result = normalized_result.replace(compact, original)
+              return result.strip()
+
+          batch_size = 24
+          for start in range(0, len(pending), batch_size):
+              batch = pending[start:start + batch_size]
+              prepared = []
+              metadata = []
+              for key, source in batch:
+                  text, tokens = protect(source)
+                  prepared.append(text)
+                  metadata.append((key, source, tokens))
+
+              encoded = tokenizer(
+                  prepared,
+                  return_tensors='pt',
+                  padding=True,
+                  truncation=True,
+                  max_length=256,
+              ).to(device)
+              with torch.inference_mode():
+                  generated = model.generate(
+                      **encoded,
+                      max_new_tokens=256,
+                      num_beams=4,
+                      early_stopping=True,
+                  )
+              translations = tokenizer.batch_decode(generated, skip_special_tokens=True)
+
+              for (key, source, tokens), translated in zip(metadata, translations):
+                  translated = restore(translated, tokens)
+                  source_placeholders = PLACEHOLDER_RE.findall(source)
+                  translated_placeholders = PLACEHOLDER_RE.findall(translated)
+                  if source_placeholders != translated_placeholders:
+                      raise SystemExit(
+                          f'Placeholder mismatch for {key}: {source_placeholders} -> '
+                          f'{translated_placeholders}; translation={translated!r}'
+                      )
+                  if not translated:
+                      raise SystemExit(f'Empty Turkish translation generated for {key}')
+                  entry = unit(strings[key], 'tr')
+                  entry['state'] = 'translated'
+                  entry['value'] = translated
+
+              print(f'Translated {min(start + batch_size, len(pending))}/{len(pending)}')
+
+          CATALOG.write_text(
+              json.dumps(catalog, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
+
+      - name: Verify Turkish catalog quality and placeholders
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          placeholder_re = re.compile(r'%(?:\d+\$?)?[sd]|%%')
           catalog = json.loads(Path('assets/localization/Localizable.xcstrings').read_text(encoding='utf-8'))
           strings = catalog['strings']
+          identical = []
+          for key, definition in strings.items():
+              loc = definition.get('localizations', {})
+              en = loc.get('en', {}).get('stringUnit', {}).get('value', '')
+              tr = loc.get('tr', {}).get('stringUnit', {}).get('value', '')
+              if not isinstance(tr, str) or not tr.strip():
+                  raise SystemExit(f'Missing Turkish translation for {key}')
+              if placeholder_re.findall(en) != placeholder_re.findall(tr):
+                  raise SystemExit(f'Placeholder mismatch for {key}: {en!r} -> {tr!r}')
+              if tr == en:
+                  identical.append(key)
+
           for key in ('home', 'play', 'settings'):
-              localizations = strings[key]['localizations']
-              en = localizations['en']['stringUnit']['value']
-              tr = localizations['tr']['stringUnit']['value']
+              loc = strings[key]['localizations']
+              en = loc['en']['stringUnit']['value']
+              tr = loc['tr']['stringUnit']['value']
               print(f'{key}: en={en!r} tr={tr!r}')
-              if not tr.strip() or tr == en:
-                  raise SystemExit(f'{key} does not have a real Turkish translation: {tr!r}')
+              if tr == en:
+                  raise SystemExit(f'{key} is still an English copy in Turkish: {tr!r}')
+
+          print(f'Turkish catalog: {len(strings)} non-empty entries; {len(identical)} intentionally/possibly identical to English.')
+          print('Sample identical keys:', ', '.join(identical[:40]))
           PY
 
       - name: Validate localization sources
@@ -215,16 +351,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Flutter tooling can update generated dependency metadata; keep this commit
-          # strictly scoped to the iOS localization runtime fix.
           git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
-          git add lib/localization/app_strings.dart ios/Runner/AppDelegate.swift
+          git add \
+            lib/localization/app_strings.dart \
+            ios/Runner/AppDelegate.swift \
+            assets/localization/Localizable.xcstrings
           git diff --cached --check
           if git diff --cached --quiet; then
-            echo 'iOS runtime localization is already hardened.'
+            echo 'iOS runtime localization is already fixed.'
             exit 0
           fi
 
-          git commit -m "Fix iOS device language resolution"
+          git commit -m "Fix Turkish iOS runtime localization"
           git pull --rebase origin main
           git push origin HEAD:main
