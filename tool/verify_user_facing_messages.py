@@ -49,6 +49,8 @@ FORBIDDEN_LITERAL_TERMS = (
     "SHA-256",
 )
 
+SAFE_ERROR_FRAGMENT = "UserSafeError.message"
+
 
 def without_line_comments(source: str) -> str:
     lines: list[str] = []
@@ -78,8 +80,11 @@ def main() -> int:
             relative = path.relative_to(ROOT)
             for label, pattern in RAW_RENDER_PATTERNS:
                 for match in pattern.finditer(source):
+                    excerpt = match.group(0)
+                    if SAFE_ERROR_FRAGMENT in excerpt:
+                        continue
                     line = source.count("\n", 0, match.start()) + 1
-                    excerpt = " ".join(match.group(0).split())[:180]
+                    excerpt = " ".join(excerpt.split())[:180]
                     violations.append(
                         f"{relative}:{line}: {label}: {excerpt}"
                     )
