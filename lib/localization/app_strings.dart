@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:ui' show PlatformDispatcher;
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -624,7 +627,10 @@ class AppStrings {
 
   static Future<AppStrings> load() async {
     final values = Map<String, String>.from(english);
-    await _loadStringCatalog(values);
+    final catalogLocales = defaultTargetPlatform == TargetPlatform.iOS
+        ? PlatformDispatcher.instance.locales
+        : const <Locale>[Locale('en')];
+    await _loadStringCatalog(values, catalogLocales);
     try {
       final response = await _channel.invokeMethod<Map<Object?, Object?>>(
         'getStrings',
@@ -650,18 +656,17 @@ class AppStrings {
     return AppStrings._(values);
   }
 
-  static Future<void> _loadStringCatalog(Map<String, String> values) async {
+  static Future<void> _loadStringCatalog(
+    Map<String, String> values,
+    List<Locale> preferredLocales,
+  ) async {
     try {
       final source = await rootBundle.loadString(_catalogAsset);
       final catalog = jsonDecode(source) as Map<String, dynamic>;
       final catalogStrings = catalog['strings'];
       if (catalogStrings is! Map) return;
 
-      // Sudoku Duel currently ships with English as the product language.
-      // The catalog still stores platform translations, but in-app copy must
-      // not switch to a device language unless a real language selector is
-      // added and persisted.
-      const candidates = <String>['en'];
+      final candidates = _catalogLocaleCandidates(preferredLocales);
 
       for (final entry in catalogStrings.entries) {
         final key = entry.key.toString();
@@ -686,6 +691,43 @@ class AppStrings {
     } on FormatException {
       // Keep the English fallback if a catalog is temporarily malformed.
     }
+  }
+
+  static List<String> _catalogLocaleCandidates(List<Locale> preferredLocales) {
+    final candidates = <String>[];
+
+    void add(String candidate) {
+      if (candidate.isNotEmpty && !candidates.contains(candidate)) {
+        candidates.add(candidate);
+      }
+    }
+
+    for (final locale in preferredLocales) {
+      final language = locale.languageCode.toLowerCase();
+      final script = locale.scriptCode;
+      final country = locale.countryCode?.toUpperCase();
+
+      if (language == 'zh') {
+        if (script == 'Hant' ||
+            const <String>{'TW', 'HK', 'MO'}.contains(country)) {
+          add('zh-Hant');
+        } else if (script == 'Hans' ||
+            const <String>{'CN', 'SG'}.contains(country)) {
+          add('zh-Hans');
+        }
+      }
+
+      if (script != null && script.isNotEmpty) {
+        add('$language-$script');
+      }
+      if (country != null && country.isNotEmpty) {
+        add('$language-$country');
+      }
+      add(language);
+    }
+
+    add('en');
+    return candidates;
   }
 
   String text(String key, [List<Object> arguments = const <Object>[]]) {

@@ -4,22 +4,19 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('runtime copy keeps English as the product language', () {
+  test('runtime localization follows the platform locale', () {
     final appStrings = File(
       'lib/localization/app_strings.dart',
     ).readAsStringSync();
-    final uxCopy = File('lib/localization/ux_copy.dart').readAsStringSync();
     final app = File('lib/app.dart').readAsStringSync();
-    final account = File(
-      'lib/features/settings/account_protection_screen.dart',
-    ).readAsStringSync();
 
-    expect(appStrings, contains("const candidates = <String>['en']"));
-    expect(app, contains("locale: const Locale('en')"));
-    expect(app, isNot(contains('localeResolutionCallback')));
-    expect(uxCopy, isNot(contains('PlatformDispatcher.instance.locale')));
-    expect(account, isNot(contains('PlatformDispatcher.instance.locale')));
-    expect(account, isNot(contains('_accountText')));
+    expect(appStrings, contains('PlatformDispatcher.instance.locales'));
+    expect(appStrings, contains('defaultTargetPlatform == TargetPlatform.iOS'));
+    expect(appStrings, contains('_catalogLocaleCandidates(preferredLocales)'));
+    expect(appStrings, contains("add('en');"));
+    expect(appStrings, isNot(contains("const candidates = <String>['en']")));
+    expect(app, isNot(contains("locale: const Locale('en')")));
+    expect(app, contains('supportedLocales: AppStrings.supportedLocales'));
   });
 
   test('runtime source files do not contain Turkish UI copy', () {

@@ -33,7 +33,6 @@ class SudokuApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             supportedLocales: AppStrings.supportedLocales,
-            locale: const Locale('en'),
             home: ChallengeNavigationGate(store: store),
           ),
         );

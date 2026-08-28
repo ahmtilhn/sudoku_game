@@ -350,4 +350,170 @@
     <string name="platform_friends_empty_body">Friend access may not be granted, or no matching Play Games/Game Center friends were returned.</string>
     <string name="open_native_platform_profile">Open native platform profile</string>
     <string name="try_again">Try again</string>
+    <!-- Auto-synchronized AppStrings keys for Google Play app-string translation. -->
+    <string name="account" formatted="false">Account</string>
+    <string name="account_data" formatted="false">Account &amp; data</string>
+    <string name="account_data_body" formatted="false">Protect or recover the player account, sign out, and permanently delete the account and server data.</string>
+    <string name="account_protected" formatted="false">Account protected</string>
+    <string name="account_protected_verify_email" formatted="false">Account protected. Check your inbox to verify the email.</string>
+    <string name="account_refreshed" formatted="false">Account refreshed.</string>
+    <string name="achievements" formatted="false">Achievements</string>
+    <string name="board" formatted="false">Board</string>
+    <string name="challenge_expires_at" formatted="false">%1s challenge · expires %2s</string>
+    <string name="challenge_notifications_body" formatted="false">Receive invitations and responses even while Sudoku Duel is closed.</string>
+    <string name="challenge_notifications_enabled" formatted="false">Challenge notifications enabled</string>
+    <string name="challenge_player" formatted="false">Challenge %1s</string>
+    <string name="challenge_sent_to" formatted="false">Challenge sent to %1s.</string>
+    <string name="chapter" formatted="false">Chapter</string>
+    <string name="claim_hint_refill" formatted="false">Claim Hint Refill</string>
+    <string name="classic_16x16" formatted="false">16x16</string>
+    <string name="classic_9x9" formatted="false">9x9</string>
+    <string name="classic_variants_short" formatted="false">9x9 · 16x16</string>
+    <string name="close" formatted="false">Close</string>
+    <string name="coin" formatted="false">Coin</string>
+    <string name="coin_pack_body" formatted="false">Add Coins to your wallet</string>
+    <string name="coin_pack_title" formatted="false">%1s Coins</string>
+    <string name="coin_reward_value" formatted="false">+%1d Coins</string>
+    <string name="collect" formatted="false">Collect</string>
+    <string name="confirm_password" formatted="false">Confirm password</string>
+    <string name="connect_platform_profile" formatted="false">Connect platform profile</string>
+    <string name="connect_platform_profile_body" formatted="false">Use Play Games or Game Center for native friends, leaderboards, achievements, and player profiles.</string>
+    <string name="connected_player" formatted="false">Connected player</string>
+    <string name="copy_diagnostics" formatted="false">Copy diagnostics</string>
+    <string name="cross_platform_social_service" formatted="false">Cross-platform social service</string>
+    <string name="cross_platform_social_service_body" formatted="false">Sudoku Duel usernames, friends, recent opponents, and challenges are connected through the shared backend.</string>
+    <string name="current_elo_summary" formatted="false">%1d ELO · %2d games · %3dW %4dL</string>
+    <string name="current_password" formatted="false">Current password</string>
+    <string name="daily_day_short" formatted="false">Day %1d</string>
+    <string name="daily_hint_refill_reward" formatted="false">Hint Refill added.</string>
+    <string name="daily_reward_day_title" formatted="false">Day %1d reward</string>
+    <string name="daily_reward_doubled" formatted="false">Daily reward doubled.</string>
+    <string name="daily_reward_track_body" formatted="false">Come back tomorrow to continue your 30-day track.</string>
+    <string name="daily_sudoku_challenges_channel" formatted="false">Daily reminders to return for a fresh Sudoku challenge.</string>
+    <string name="delete_permanently" formatted="false">Delete permanently</string>
+    <string name="delete_player_account" formatted="false">Delete player account</string>
+    <string name="delete_player_account_body" formatted="false">Removes wallet, purchases, Friend ID, friends, rating and match history.</string>
+    <string name="delete_player_account_question" formatted="false">Delete player account permanently?</string>
+    <string name="delete_player_account_warning" formatted="false">This cannot be undone. Wallet, purchases, friends, rating and match history will be removed. Finish active online matches first.</string>
+    <string name="email_account" formatted="false">an email account</string>
+    <string name="email_address" formatted="false">Email address</string>
+    <string name="email_verification_required" formatted="false">Email verification required</string>
+    <string name="email_verified" formatted="false">Email verified</string>
+    <string name="email_verified_notice" formatted="false">Email verified.</string>
+    <string name="enable" formatted="false">Enable</string>
+    <string name="enable_challenge_notifications" formatted="false">Enable challenge notifications</string>
+    <string name="enter_three_characters" formatted="false">Enter at least 3 characters.</string>
+    <string name="entries_shown" formatted="false">%1d shown</string>
+    <string name="fantasy_level_title" formatted="false">16x16 Level %1d</string>
+    <string name="fantasy_mode_title" formatted="false">Fantasy Mode · 16×16</string>
+    <string name="forgot_password" formatted="false">Forgot password?</string>
+    <string name="friend_request_sent_to" formatted="false">Friend request sent to %1s.</string>
+    <string name="friends_empty_body" formatted="false">Search a username and send a friend request to build your list.</string>
+    <string name="game_paused" formatted="false">Game paused</string>
+    <string name="games" formatted="false">Games</string>
+    <string name="games_count" formatted="false">%1d games</string>
+    <string name="global_rp_leaderboard" formatted="false">Global RP leaderboard</string>
+    <string name="guest_account" formatted="false">Guest account</string>
+    <string name="guest_account_risk" formatted="false">Deleting the app or changing devices can make this guest inaccessible. Protect it before buying Coins.</string>
+    <string name="guest_player_created" formatted="false">Guest player created.</string>
+    <string name="hide_password" formatted="false">Hide password</string>
+    <string name="hint_refill_reward_body" formatted="false">A Hint Refill restores an empty hint meter to full.</string>
+    <string name="hint_refill_reward_value" formatted="false">+1 Hint Refill</string>
+    <string name="hint_refill_short" formatted="false">Refill</string>
+    <string name="hint_refill_unavailable" formatted="false">Hint refill is not available right now.</string>
+    <string name="leaderboard" formatted="false">Leaderboard</string>
+    <string name="leaderboard_empty_hint" formatted="false">Sudoku Duel ELO fills after ranked online matches are completed.</string>
+    <string name="loading" formatted="false">Loading...</string>
+    <string name="losses" formatted="false">Losses</string>
+    <string name="milestone" formatted="false">Milestone</string>
+    <string name="native_leaderboard_short" formatted="false">Native</string>
+    <string name="next_level" formatted="false">Next level</string>
+    <string name="no_elo" formatted="false">No ELO</string>
+    <string name="no_pending_challenges" formatted="false">No pending challenges</string>
+    <string name="no_score" formatted="false">No score</string>
+    <string name="offline_special_mode" formatted="false">Offline special mode</string>
+    <string name="ok" formatted="false">OK</string>
+    <string name="online_identity_linked" formatted="false">Online identity linked to %1s.</string>
+    <string name="paid_coins_recoverable" formatted="false">Paid Coin purchases can be recovered on another device.</string>
+    <string name="password" formatted="false">Password</string>
+    <string name="password_min_chars" formatted="false">At least 8 characters</string>
+    <string name="password_reset_email_sent" formatted="false">Password reset email sent.</string>
+    <string name="passwords_do_not_match" formatted="false">Passwords do not match.</string>
+    <string name="pause" formatted="false">Pause</string>
+    <string name="pause_body" formatted="false">Paused. Continue when ready.</string>
+    <string name="pause_game" formatted="false">Pause game</string>
+    <string name="pending_challenges" formatted="false">Pending challenges</string>
+    <string name="pending_challenges_empty_body" formatted="false">New invitations will appear here and can also arrive by push notification.</string>
+    <string name="platform_achievements_body" formatted="false">Open achievements and progress</string>
+    <string name="platform_difficulty_rank_body" formatted="false">Ranking for this difficulty</string>
+    <string name="platform_global_rank_body" formatted="false">Your main platform ranking</string>
+    <string name="platform_leaderboards_body" formatted="false">Global ELO and difficulty boards</string>
+    <string name="player_account_deleted" formatted="false">Player account and online data deleted.</string>
+    <string name="please_wait" formatted="false">Please wait...</string>
+    <string name="private" formatted="false">Private</string>
+    <string name="profile_discovery_off" formatted="false">New players cannot find you in search. Friends stay connected.</string>
+    <string name="profile_discovery_on" formatted="false">Other players can find you by name or Friend ID.</string>
+    <string name="profile_discovery_title" formatted="false">Let players find me</string>
+    <string name="profile_display_error" formatted="false">Enter at least 2 characters.</string>
+    <string name="profile_display_helper" formatted="false">Use the name you want shown on leaderboards.</string>
+    <string name="profile_edit_preview_body" formatted="false">Choose how other players see you in matches and search.</string>
+    <string name="profile_search_error" formatted="false">Use 3-20 letters, numbers or underscore.</string>
+    <string name="profile_search_helper" formatted="false">Lowercase letters, numbers and underscore are allowed.</string>
+    <string name="profile_search_name" formatted="false">Search name</string>
+    <string name="protect_account" formatted="false">Protect account</string>
+    <string name="protect_current" formatted="false">Protect current</string>
+    <string name="protect_current_guest" formatted="false">Protect the current guest</string>
+    <string name="protect_current_guest_body" formatted="false">Link email and password without changing this player.</string>
+    <string name="protected_account" formatted="false">Protected account</string>
+    <string name="protected_player_account_opened" formatted="false">Protected player account opened.</string>
+    <string name="rank_progression" formatted="false">Rank progression</string>
+    <string name="ranked_ladder" formatted="false">Ranked ladder</string>
+    <string name="ranked_progress_title" formatted="false">Ranked Progress</string>
+    <string name="recent_opponents" formatted="false">Recent opponents</string>
+    <string name="recent_opponents_empty_body" formatted="false">Players you finish an online match with will appear here.</string>
+    <string name="record" formatted="false">Record</string>
+    <string name="recoverable_account" formatted="false">Recoverable account</string>
+    <string name="rematch_invitation_expired" formatted="false">This rematch invitation has expired.</string>
+    <string name="rematch_waiting_room" formatted="false">Starting the rematch...</string>
+    <string name="resend_verification_email" formatted="false">Resend verification email</string>
+    <string name="restart_puzzle_body" formatted="false">Moves and time will be cleared.</string>
+    <string name="restart_puzzle_title" formatted="false">Restart puzzle?</string>
+    <string name="search" formatted="false">Search</string>
+    <string name="search_results" formatted="false">Search results</string>
+    <string name="search_sudoku_duel_username" formatted="false">Search Sudoku Duel username</string>
+    <string name="send_password_reset_email" formatted="false">Send password reset email</string>
+    <string name="service_diagnostics" formatted="false">Service diagnostics</string>
+    <string name="service_diagnostics_copied" formatted="false">Diagnostics copied.</string>
+    <string name="service_diagnostics_needs_attention" formatted="false">One or more online checks need attention</string>
+    <string name="service_diagnostics_ready" formatted="false">Online services are reachable</string>
+    <string name="service_diagnostics_subtitle" formatted="false">Check the installed build, Firebase session and social server.</string>
+    <string name="service_message" formatted="false">Service message</string>
+    <string name="show_password" formatted="false">Show password</string>
+    <string name="sign_in" formatted="false">Sign in</string>
+    <string name="sign_in_protected_account" formatted="false">Sign in to a protected account</string>
+    <string name="sign_in_protected_account_body" formatted="false">Use the same wallet, Friend ID and rating here.</string>
+    <string name="sign_in_switches_guest" formatted="false">Signing in switches away from this guest. Wallets are not merged.</string>
+    <string name="sign_out" formatted="false">Sign out</string>
+    <string name="sign_out_body" formatted="false">The protected wallet stays on the account. This device will use a guest until you sign in again.</string>
+    <string name="sign_out_on_device" formatted="false">Sign out on this device</string>
+    <string name="sign_out_question" formatted="false">Sign out?</string>
+    <string name="stars" formatted="false">Stars</string>
+    <string name="sudoku" formatted="false">Sudoku</string>
+    <string name="sudoku_duel_friends" formatted="false">Sudoku Duel friends</string>
+    <string name="tier_bronze" formatted="false">Bronze</string>
+    <string name="tier_diamond" formatted="false">Diamond</string>
+    <string name="tier_gold" formatted="false">Gold</string>
+    <string name="tier_master" formatted="false">Master</string>
+    <string name="tier_platinum" formatted="false">Platinum</string>
+    <string name="tier_silver" formatted="false">Silver</string>
+    <string name="top_rank" formatted="false">Top rank</string>
+    <string name="track" formatted="false">Track</string>
+    <string name="type_delete" formatted="false">Type DELETE</string>
+    <string name="use_hint_refill" formatted="false">Use refill · %1d left (+%2d hints)</string>
+    <string name="verification_email_sent" formatted="false">Verification email sent.</string>
+    <string name="verified_refresh" formatted="false">I verified it - refresh</string>
+    <string name="verify_email_before_buying" formatted="false">Verify email before buying Coins.</string>
+    <string name="watch_ad_reward_value" formatted="false">Watch ad · +%1d</string>
+    <string name="wins" formatted="false">Wins</string>
+    <string name="your_rank" formatted="false">Your rank</string>
 </resources>
