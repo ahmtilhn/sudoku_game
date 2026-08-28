@@ -148,7 +148,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
+          git checkout -- analysis_options.yaml pubspec.lock .github/workflows/mobile-ci.yml 2>/dev/null || true
           git add \
             lib \
             android/app/src/main/res/values/strings.xml \
@@ -157,7 +157,6 @@ jobs:
             backend/social_worker/src \
             tool/verify_localized_user_copy.py \
             tool/verify_exhaustive_user_copy.py \
-            .github/workflows/mobile-ci.yml \
             docs/ux_audit.md
           if git diff --cached --quiet; then
             echo 'Localization migration already applied.'
