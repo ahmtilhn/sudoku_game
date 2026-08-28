@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: parallel-ios-localization-main-v3
+  group: parallel-ios-localization-main-v4
   cancel-in-progress: true
 
 jobs:
@@ -22,9 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 21
       matrix:
         locale:
+          - tr
           - de
           - fr
           - es
@@ -145,7 +146,7 @@ jobs:
           path: translated-catalogs
           merge-multiple: false
 
-      - name: Merge remaining 20 locales into canonical String Catalog
+      - name: Merge all 21 non-English locales into canonical String Catalog
         shell: bash
         run: |
           python3 <<'PY'
@@ -154,7 +155,7 @@ jobs:
           from pathlib import Path
 
           locales = [
-              'de', 'fr', 'es', 'pt', 'it', 'nl', 'pl', 'ru', 'uk', 'ar',
+              'tr', 'de', 'fr', 'es', 'pt', 'it', 'nl', 'pl', 'ru', 'uk', 'ar',
               'hi', 'id', 'ja', 'ko', 'zh-Hans', 'zh-Hant', 'th', 'vi', 'bn', 'ur',
           ]
           catalog_path = Path('assets/localization/Localizable.xcstrings')
@@ -238,6 +239,7 @@ jobs:
           grep -q '_preferredIosLocales' lib/localization/app_strings.dart
           grep -q 'WidgetsBindingObserver' lib/app.dart
           grep -q 'addPostFrameCallback' lib/app.dart
+          grep -q '"Ana Sayfa"' assets/localization/Localizable.xcstrings
           grep -q '"Startseite"' assets/localization/Localizable.xcstrings
           grep -q '"Accueil"' assets/localization/Localizable.xcstrings
           grep -q '"Instellingen"' assets/localization/Localizable.xcstrings
@@ -262,6 +264,10 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Fill all supported iOS translations"
-          git pull --rebase origin main
+          git commit -m "Translate expanded app copy across all supported iOS locales"
+          git reset --hard HEAD
+          git fetch origin main
+          git rebase origin/main
+          python3 tool/repair_ios_catalog_all_languages.py --verify-only
+          python3 tool/validate_localizations.py
           git push origin HEAD:main
