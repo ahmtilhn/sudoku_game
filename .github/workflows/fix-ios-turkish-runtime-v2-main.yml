@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: repair-turkish-ios-localization-main
+  group: parallel-ios-localization-main-v2
   cancel-in-progress: true
 
 jobs:
@@ -55,7 +55,6 @@ jobs:
           .translation-venv/bin/python <<'PY'
           import json
           import os
-          from pathlib import Path
           import tool.repair_ios_catalog_all_languages as repair
 
           locales = [item.strip() for item in os.environ['TARGET_LOCALES'].split(',') if item.strip()]
