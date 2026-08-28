@@ -54702,7 +54702,7 @@
         }
       }
     },
-    "private": {
+    "private_label": {
       "localizations": {
         "ar": {
           "stringUnit": {

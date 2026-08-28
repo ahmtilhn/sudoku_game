@@ -131,15 +131,15 @@
     <string name="forfeit_and_leave">Forfeit and leave</string>
     <string name="global">Global</string>
     <string name="leaderboard_empty">No leaderboard entries yet.</string>
-    <string name="leaderboard_row">%1d games · %2d% win rate</string>
+    <string name="leaderboard_row" formatted="false">%1d games · %2d% win rate</string>
     <string name="leaderboards">Leaderboards</string>
-    <string name="online_connection_failed">Online duel connection failed: %1s</string>
-    <string name="online_final_score">Final score: %1d - %2d</string>
+    <string name="online_connection_failed" formatted="false">Online duel connection failed: %1s</string>
+    <string name="online_final_score" formatted="false">Final score: %1d - %2d</string>
     <string name="online_forfeit_body">Leaving an active online duel forfeits the match to your opponent.</string>
     <string name="online_forfeit_title">Forfeit match?</string>
-    <string name="online_turn_number">Turn %1d</string>
+    <string name="online_turn_number" formatted="false">Turn %1d</string>
     <string name="online_waiting_snapshot">Waiting for the server snapshot…</string>
-    <string name="rating_delta">Global rating: %1d to %2d (%3d)</string>
+    <string name="rating_delta" formatted="false">Global rating: %1d to %2d (%3d)</string>
     <string name="ready">Ready</string>
     <string name="reconnecting">Reconnecting</string>
     <string name="refresh">Refresh</string>
@@ -450,7 +450,7 @@
     <string name="platform_leaderboards_body" formatted="false">Global ELO and difficulty boards</string>
     <string name="player_account_deleted" formatted="false">Player account and online data deleted.</string>
     <string name="please_wait" formatted="false">Please wait...</string>
-    <string name="private" formatted="false">Private</string>
+    <string name="private_label" formatted="false">Private</string>
     <string name="profile_discovery_off" formatted="false">New players cannot find you in search. Friends stay connected.</string>
     <string name="profile_discovery_on" formatted="false">Other players can find you by name or Friend ID.</string>
     <string name="profile_discovery_title" formatted="false">Let players find me</string>

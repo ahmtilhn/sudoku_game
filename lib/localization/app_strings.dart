@@ -222,7 +222,7 @@ class AppStrings {
     'board': 'Board',
     'entries_shown': '%1d shown',
     'account': 'Account',
-    'private': 'Private',
+    'private_label': 'Private',
     'record': 'Record',
     'games_count': '%1d games',
     'wins': 'Wins',
