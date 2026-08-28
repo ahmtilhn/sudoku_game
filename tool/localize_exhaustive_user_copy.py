@@ -119,12 +119,12 @@ def patch_matchmaking() -> None:
     path = 'lib/features/duel/matchmaking_stage.dart'
     source = read(path)
     source = source.replace("this.difficultyLabel = 'Easy',", "this.difficultyLabel = '',")
-    # A default is still useful for tests/preview callers, but the fallback is localized
-    # at render time instead of being stored as English in the widget API.
-    source = source.replace(
-        'widget.difficultyLabel',
-        "(widget.difficultyLabel.trim().isEmpty ? context.tr('difficulty_easy') : widget.difficultyLabel)",
-    )
+    fallback_marker = "widget.difficultyLabel.trim().isEmpty ? context.tr('difficulty_easy')"
+    if fallback_marker not in source:
+        source = source.replace(
+            'widget.difficultyLabel',
+            "(widget.difficultyLabel.trim().isEmpty ? context.tr('difficulty_easy') : widget.difficultyLabel)",
+        )
     replacements = {
         "'Cancelling search...'": "context.tr('matchmaking_cancelling_search')",
         "'Opponent found'": "context.tr('opponent_found')",
@@ -140,7 +140,7 @@ def patch_matchmaking() -> None:
         source = source.replace(old, new)
     source = re.sub(
         r"const\s+TextSpan\(\s*text:\s*'Tip:\s*',",
-        "TextSpan(\n                  text: '${context.tr('matchmaking_tip')} ',",
+        'TextSpan(\n                  text: \'${context.tr("matchmaking_tip")} \',',
         source,
     )
     write(path, source)
@@ -264,6 +264,38 @@ def patch_emote_hub() -> None:
     write(path, source)
 
 
+def patch_push_after_non_widget_migration() -> None:
+    path = 'lib/services/push_notification_service.dart'
+    source = read(path)
+    # The non-widget migration predates the technical-error hardening pass. Keep
+    # its localization-key model, but adapt it to the hardened client shape and
+    # never restore arbitrary remote notification title/body rendering.
+    source = re.sub(
+        r"defaultTitle:\s*'Rematch invitation',\s*defaultBody:\s*'A player wants to play again\. Open Sudoku Duel to respond\.'",
+        "defaultTitleKey: 'push_rematch_title',\n      defaultBodyKey: 'push_rematch_body'",
+        source,
+    )
+    source = source.replace(
+        'title: target.defaultTitle,',
+        "title: _localized(target.defaultTitleKey),",
+    )
+    source = source.replace(
+        'body: target.defaultBody,',
+        "body: _localized(target.defaultBodyKey),",
+    )
+    # Also handle an older pre-hardening form if it ever reappears during a
+    # concurrent migration; remote Firebase copy must not bypass our catalog.
+    source = source.replace(
+        'title: message.notification?.title ?? target.defaultTitle,',
+        "title: _localized(target.defaultTitleKey),",
+    )
+    source = source.replace(
+        'body: message.notification?.body ?? target.defaultBody,',
+        "body: _localized(target.defaultBodyKey),",
+    )
+    write(path, source)
+
+
 def main() -> int:
     ensure_catalogs()
     patch_leaderboards()
@@ -275,6 +307,7 @@ def main() -> int:
     patch_rank_summary()
     patch_social_hub()
     patch_emote_hub()
+    patch_push_after_non_widget_migration()
     print(f'Exhaustive localization migration prepared {len(STRINGS)} final audit keys.')
     return 0
 
