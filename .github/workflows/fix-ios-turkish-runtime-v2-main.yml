@@ -17,13 +17,152 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  repair-test-and-commit:
+  translate:
+    name: Translate ${{ matrix.group }}
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: west-1
+            locales: de,fr,es,pt
+          - group: west-2
+            locales: it,nl,pl,ru
+          - group: south-east
+            locales: uk,ar,hi,id
+          - group: cjk
+            locales: ja,ko,zh-Hans,zh-Hant
+          - group: asia
+            locales: th,vi,bn,ur
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Create translation environment
+        shell: bash
+        run: |
+          python3 -m venv .translation-venv
+          .translation-venv/bin/python -m pip install --disable-pip-version-check --quiet --upgrade pip
+          .translation-venv/bin/python -m pip install --disable-pip-version-check --quiet \
+            'transformers<5' sentencepiece torch opencc-python-reimplemented
+
+      - name: Translate locale group into String Catalog
+        shell: bash
+        env:
+          TARGET_LOCALES: ${{ matrix.locales }}
+        run: |
+          .translation-venv/bin/python <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import tool.repair_ios_catalog_all_languages as repair
+
+          locales = [item.strip() for item in os.environ['TARGET_LOCALES'].split(',') if item.strip()]
+          unknown = [locale for locale in locales if locale not in repair.LOCALE_TO_M2M]
+          if unknown:
+              raise SystemExit(f'Unknown locales: {unknown}')
+
+          repair.LOCALE_TO_M2M = {
+              locale: repair.LOCALE_TO_M2M[locale]
+              for locale in locales
+          }
+
+          catalog = json.loads(repair.CATALOG.read_text(encoding='utf-8'))
+          strings = catalog.get('strings')
+          if not isinstance(strings, dict):
+              raise SystemExit("String Catalog has no 'strings' dictionary")
+
+          repair.print_audit('Before group repair:', repair.audit(strings))
+          repair.translate(strings)
+          repair.print_audit('After group repair:', repair.audit(strings))
+          repair.verify(strings)
+
+          repair.CATALOG.write_text(
+              json.dumps(catalog, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          print('Completed locale group:', ', '.join(locales))
+          PY
+
+      - name: Stage translated catalog artifact
+        shell: bash
+        run: |
+          mkdir -p artifact
+          cp assets/localization/Localizable.xcstrings artifact/Localizable.xcstrings
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-catalog-${{ matrix.group }}
+          path: artifact/Localizable.xcstrings
+          retention-days: 1
+          if-no-files-found: error
+
+  merge-test-and-commit:
+    name: Merge, verify and commit all iOS locales
+    needs: translate
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
+
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: ios-catalog-*
+          path: translated-catalogs
+          merge-multiple: false
+
+      - name: Merge remaining 20 locales into canonical String Catalog
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json
+          from copy import deepcopy
+          from pathlib import Path
+
+          catalog_path = Path('assets/localization/Localizable.xcstrings')
+          base = json.loads(catalog_path.read_text(encoding='utf-8'))
+          base_strings = base.get('strings')
+          if not isinstance(base_strings, dict):
+              raise SystemExit('Canonical catalog has no strings dictionary')
+
+          groups = {
+              'ios-catalog-west-1': ['de', 'fr', 'es', 'pt'],
+              'ios-catalog-west-2': ['it', 'nl', 'pl', 'ru'],
+              'ios-catalog-south-east': ['uk', 'ar', 'hi', 'id'],
+              'ios-catalog-cjk': ['ja', 'ko', 'zh-Hans', 'zh-Hant'],
+              'ios-catalog-asia': ['th', 'vi', 'bn', 'ur'],
+          }
+
+          for artifact, locales in groups.items():
+              source_path = Path('translated-catalogs') / artifact / 'Localizable.xcstrings'
+              if not source_path.exists():
+                  raise SystemExit(f'Missing translated artifact: {source_path}')
+              source = json.loads(source_path.read_text(encoding='utf-8'))
+              source_strings = source.get('strings')
+              if not isinstance(source_strings, dict):
+                  raise SystemExit(f'{artifact} has no strings dictionary')
+
+              for key, definition in base_strings.items():
+                  source_definition = source_strings.get(key)
+                  if not isinstance(definition, dict) or not isinstance(source_definition, dict):
+                      continue
+                  source_localizations = source_definition.get('localizations', {})
+                  target_localizations = definition.setdefault('localizations', {})
+                  for locale in locales:
+                      locale_value = source_localizations.get(locale)
+                      if not isinstance(locale_value, dict):
+                          raise SystemExit(f'{artifact}: missing {locale} for {key}')
+                      target_localizations[locale] = deepcopy(locale_value)
+              print(f'Merged {artifact}: {", ".join(locales)}')
+
+          catalog_path.write_text(
+              json.dumps(base, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          PY
 
       - uses: subosito/flutter-action@v2
         with:
@@ -33,26 +172,13 @@ jobs:
       - name: Resolve Flutter packages
         run: flutter pub get
 
-      - name: Harden iOS locale resolution
+      - name: Harden iOS runtime locale resolution
         run: |
           python3 tool/harden_ios_runtime_localization.py
           dart format lib/localization/app_strings.dart lib/app.dart
 
-      - name: Create multilingual translation environment
-        shell: bash
-        run: |
-          python3 -m venv .translation-venv
-          .translation-venv/bin/python -m pip install --disable-pip-version-check --quiet --upgrade pip
-          .translation-venv/bin/python -m pip install --disable-pip-version-check --quiet \
-            'transformers<5' sentencepiece torch opencc-python-reimplemented
-
-      - name: Repair all 21 non-English iOS locales
-        shell: bash
-        run: .translation-venv/bin/python tool/repair_ios_catalog_all_languages.py
-
-      - name: Verify all iOS locale values and placeholders
-        shell: bash
-        run: .translation-venv/bin/python tool/repair_ios_catalog_all_languages.py --verify-only
+      - name: Verify all 21 non-English catalog locales
+        run: python3 tool/repair_ios_catalog_all_languages.py --verify-only
 
       - name: Validate localization source parity
         run: python3 tool/validate_localizations.py
@@ -66,7 +192,7 @@ jobs:
       - name: Analyze localization runtime
         run: flutter analyze --fatal-infos lib/localization/app_strings.dart lib/app.dart
 
-      - name: Verify iOS native locale bridge is present
+      - name: Verify runtime bridge and visible locale proofs
         shell: bash
         run: |
           grep -q 'case "getPreferredLocales"' ios/Runner/AppDelegate.swift
@@ -74,8 +200,12 @@ jobs:
           grep -q '_preferredIosLocales' lib/localization/app_strings.dart
           grep -q 'WidgetsBindingObserver' lib/app.dart
           grep -q 'addPostFrameCallback' lib/app.dart
+          grep -q '"Startseite"' assets/localization/Localizable.xcstrings
+          grep -q '"Accueil"' assets/localization/Localizable.xcstrings
+          grep -q '"Instellingen"' assets/localization/Localizable.xcstrings
+          grep -q '"設定"' assets/localization/Localizable.xcstrings
 
-      - name: Commit on top of latest main
+      - name: Commit canonical 22-language iOS catalog on latest main
         shell: bash
         run: |
           set -euo pipefail
@@ -83,18 +213,17 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
-          rm -rf .translation-venv
           git add \
+            assets/localization/Localizable.xcstrings \
             lib/localization/app_strings.dart \
             lib/app.dart \
-            ios/Runner/AppDelegate.swift \
-            assets/localization/Localizable.xcstrings
+            ios/Runner/AppDelegate.swift
           git diff --cached --check
           if git diff --cached --quiet; then
-            echo 'All iOS localizations already match the intended runtime.'
+            echo 'Canonical iOS catalog already contains all translations.'
             exit 0
           fi
 
-          git commit -m "Fix all iOS runtime localizations"
+          git commit -m "Fill all supported iOS translations"
           git pull --rebase origin main
           git push origin HEAD:main
