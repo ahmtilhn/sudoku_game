@@ -614,6 +614,7 @@ class MainActivity : FlutterActivity() {
 
     private fun playerGameEventBuilderClass(): Class<*> {
         val candidates = listOf(
+            "com.google.android.gms.games.playergameevent.PlayerGameEvent\$Builder",
             "com.google.android.gms.games.PlayerGameEvent\$Builder",
             "com.google.android.gms.games.gamestats.PlayerGameEvent\$Builder",
             "com.google.android.gms.games.gamesstats.PlayerGameEvent\$Builder",
