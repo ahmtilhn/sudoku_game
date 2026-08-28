@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'tool/harden_user_facing_errors.py'
+      - 'tool/fix_localization_analyzer_warnings.py'
+      - 'tool/fix_social_hub_localization_lint.py'
       - '.github/workflows/harden-user-facing-errors-main.yml'
   workflow_dispatch:
 
