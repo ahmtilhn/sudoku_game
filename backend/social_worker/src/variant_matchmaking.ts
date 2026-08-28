@@ -367,9 +367,10 @@ async function coordinateRankedMatch(
            SELECT COUNT(*)
            FROM matches recent
            WHERE recent.mode = 'ranked'
-             AND recent.rated = 1
-             AND recent.finished_at IS NOT NULL
-             AND recent.finished_at >= ?
+             AND recent.started_at IS NOT NULL
+             AND recent.status IN ('completed', 'forfeited', 'abandoned')
+             AND julianday(COALESCE(recent.finished_at, recent.updated_at, recent.created_at))
+                   >= julianday(?)
              AND (
                (recent.player_a_id = q.player_id AND recent.player_b_id = ?)
                OR (recent.player_a_id = ? AND recent.player_b_id = q.player_id)
