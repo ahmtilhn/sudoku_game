@@ -8,8 +8,13 @@ on:
       - 'tool/localize_all_user_copy.py'
       - 'tool/localize_remaining_presentation_copy.py'
       - 'tool/localize_final_presentation_copy.py'
+      - 'tool/localize_user_safe_errors.py'
+      - 'tool/localize_non_widget_user_copy.py'
       - 'tool/fix_localization_dart_escapes.py'
+      - 'tool/fix_percent_localization_literals.py'
       - 'tool/verify_localized_user_copy.py'
+      - 'tool/verify_user_facing_messages.py'
+      - 'tool/verify_non_widget_user_copy.py'
       - 'tool/sync_missing_ios_localization_keys.py'
   workflow_dispatch:
 
@@ -35,8 +40,12 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Resolve packages
+      - name: Resolve Flutter packages
         run: flutter pub get
+
+      - name: Resolve social worker packages
+        working-directory: backend/social_worker
+        run: npm ci
 
       - name: Migrate remaining user copy
         run: python3 tool/localize_all_user_copy.py
@@ -46,6 +55,15 @@ jobs:
 
       - name: Close final presentation gaps
         run: python3 tool/localize_final_presentation_copy.py
+
+      - name: Map user-facing errors safely
+        run: python3 tool/localize_user_safe_errors.py
+
+      - name: Centralize notifications reminders and accessibility copy
+        run: python3 tool/localize_non_widget_user_copy.py
+
+      - name: Normalize percent localization literals
+        run: python3 tool/fix_percent_localization_literals.py
 
       - name: Normalize Dart localization escapes
         run: python3 tool/fix_localization_dart_escapes.py
@@ -62,6 +80,10 @@ jobs:
           lib/models/online_duel_emote_catalog.dart
           lib/models/rank_identity_fallback.dart
           lib/services/online_duel_emote_hub.dart
+          lib/services/push_notification_service.dart
+          lib/services/reminder_message_catalog.dart
+          lib/services/reminder_notification_service.dart
+          lib/widgets/rank_emblem.dart
           lib/features/career/career_hub_screen.dart
           lib/features/duel/leaderboards_screen.dart
           lib/features/duel/matchmaking_stage.dart
@@ -80,6 +102,7 @@ jobs:
           lib/features/social/rank_identity_summary_card.dart
           lib/features/social/rematch_invitation_screen.dart
           lib/features/social/social_hub_screen.dart
+          lib/features/social/ux_challenge_invitation_screen.dart
 
       - name: Validate localization catalogs
         run: python3 tool/validate_localizations.py
@@ -90,17 +113,32 @@ jobs:
       - name: Verify user-safe messages
         run: python3 tool/verify_user_facing_messages.py
 
+      - name: Verify non-widget user copy
+        run: python3 tool/verify_non_widget_user_copy.py
+
+      - name: Typecheck social worker
+        working-directory: backend/social_worker
+        run: npm run typecheck
+
       - name: Refresh UX audit
         run: python3 tool/generate_ux_audit.py --write
 
-      - name: Analyze
+      - name: Analyze Flutter
         run: flutter analyze --fatal-infos
 
       - name: Commit directly to main
         shell: bash
         run: |
           set -euo pipefail
-          git add lib assets/localization/Localizable.xcstrings tool/verify_localized_user_copy.py .github/workflows/mobile-ci.yml docs/ux_audit.md
+          git add \
+            lib \
+            android/app/src/main/res/values/strings.xml \
+            assets/localization/Localizable.xcstrings \
+            ios/Runner.xcodeproj/project.pbxproj \
+            backend/social_worker/src \
+            tool/verify_localized_user_copy.py \
+            .github/workflows/mobile-ci.yml \
+            docs/ux_audit.md
           git diff --cached --check
           if git diff --cached --quiet; then
             echo 'Localization migration already applied.'
