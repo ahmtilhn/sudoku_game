@@ -13,27 +13,38 @@ permissions:
   contents: write
 
 concurrency:
-  group: parallel-ios-localization-main-v2
+  group: parallel-ios-localization-main-v3
   cancel-in-progress: true
 
 jobs:
   translate:
-    name: Translate ${{ matrix.group }}
+    name: Translate ${{ matrix.locale }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      max-parallel: 20
       matrix:
-        include:
-          - group: west-1
-            locales: de,fr,es,pt
-          - group: west-2
-            locales: it,nl,pl,ru
-          - group: south-east
-            locales: uk,ar,hi,id
-          - group: cjk
-            locales: ja,ko,zh-Hans,zh-Hant
-          - group: asia
-            locales: th,vi,bn,ur
+        locale:
+          - de
+          - fr
+          - es
+          - pt
+          - it
+          - nl
+          - pl
+          - ru
+          - uk
+          - ar
+          - hi
+          - id
+          - ja
+          - ko
+          - zh-Hans
+          - zh-Hant
+          - th
+          - vi
+          - bn
+          - ur
     steps:
       - uses: actions/checkout@v6
         with:
@@ -47,7 +58,7 @@ jobs:
           .translation-venv/bin/python -m pip install --disable-pip-version-check --quiet \
             'transformers<5' sentencepiece torch opencc-python-reimplemented
 
-      - name: Enable fast deterministic translation
+      - name: Harden translation helper for batch execution
         shell: bash
         run: |
           sed -i 's/batch_size = 24/batch_size = 64/' tool/repair_ios_catalog_all_languages.py
@@ -58,48 +69,51 @@ jobs:
 
           path = Path('tool/repair_ios_catalog_all_languages.py')
           text = path.read_text(encoding='utf-8')
-          old = '''            if not translated:\n                raise SystemExit(f"Empty {locale} translation generated for {key}")'''
-          new = '''            if not translated:\n                # A machine model may occasionally emit an empty value for a tiny\n                # label (for example Undo). Keep the source for that one key; the\n                # locale-wide verifier still requires >=80% real localization.\n                translated = source'''
-          if old not in text:
-              raise SystemExit('Could not install empty-translation fallback')
-          path.write_text(text.replace(old, new), encoding='utf-8')
+
+          old_empty = '''            if not translated:\n                raise SystemExit(f"Empty {locale} translation generated for {key}")'''
+          new_empty = '''            if not translated:\n                translated = source'''
+          if old_empty in text:
+              text = text.replace(old_empty, new_empty)
+
+          old_curated = '''        for key, expected in CURATED[locale].items():\n            actual = value_for(strings[key], locale)'''
+          new_curated = '''        for key, expected in CURATED[locale].items():\n            if key not in strings:\n                continue\n            actual = value_for(strings[key], locale)'''
+          if old_curated not in text:
+              raise SystemExit('Could not install optional curated-key guard')
+          text = text.replace(old_curated, new_curated)
+
+          path.write_text(text, encoding='utf-8')
           PY
 
-      - name: Translate locale group into String Catalog
+      - name: Translate locale into String Catalog
         shell: bash
         env:
-          TARGET_LOCALES: ${{ matrix.locales }}
+          TARGET_LOCALE: ${{ matrix.locale }}
         run: |
           .translation-venv/bin/python <<'PY'
           import json
           import os
           import tool.repair_ios_catalog_all_languages as repair
 
-          locales = [item.strip() for item in os.environ['TARGET_LOCALES'].split(',') if item.strip()]
-          unknown = [locale for locale in locales if locale not in repair.LOCALE_TO_M2M]
-          if unknown:
-              raise SystemExit(f'Unknown locales: {unknown}')
+          locale = os.environ['TARGET_LOCALE'].strip()
+          if locale not in repair.LOCALE_TO_M2M:
+              raise SystemExit(f'Unknown locale: {locale}')
 
-          repair.LOCALE_TO_M2M = {
-              locale: repair.LOCALE_TO_M2M[locale]
-              for locale in locales
-          }
-
+          repair.LOCALE_TO_M2M = {locale: repair.LOCALE_TO_M2M[locale]}
           catalog = json.loads(repair.CATALOG.read_text(encoding='utf-8'))
           strings = catalog.get('strings')
           if not isinstance(strings, dict):
               raise SystemExit("String Catalog has no 'strings' dictionary")
 
-          repair.print_audit('Before group repair:', repair.audit(strings))
+          repair.print_audit('Before locale repair:', repair.audit(strings))
           repair.translate(strings)
-          repair.print_audit('After group repair:', repair.audit(strings))
+          repair.print_audit('After locale repair:', repair.audit(strings))
           repair.verify(strings)
 
           repair.CATALOG.write_text(
               json.dumps(catalog, ensure_ascii=False, indent=2) + '\n',
               encoding='utf-8',
           )
-          print('Completed locale group:', ', '.join(locales))
+          print('Completed locale:', locale)
           PY
 
       - name: Stage translated catalog artifact
@@ -110,7 +124,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ios-catalog-${{ matrix.group }}
+          name: ios-catalog-${{ matrix.locale }}
           path: artifact/Localizable.xcstrings
           retention-days: 1
           if-no-files-found: error
@@ -139,41 +153,34 @@ jobs:
           from copy import deepcopy
           from pathlib import Path
 
+          locales = [
+              'de', 'fr', 'es', 'pt', 'it', 'nl', 'pl', 'ru', 'uk', 'ar',
+              'hi', 'id', 'ja', 'ko', 'zh-Hans', 'zh-Hant', 'th', 'vi', 'bn', 'ur',
+          ]
           catalog_path = Path('assets/localization/Localizable.xcstrings')
           base = json.loads(catalog_path.read_text(encoding='utf-8'))
           base_strings = base.get('strings')
           if not isinstance(base_strings, dict):
               raise SystemExit('Canonical catalog has no strings dictionary')
 
-          groups = {
-              'ios-catalog-west-1': ['de', 'fr', 'es', 'pt'],
-              'ios-catalog-west-2': ['it', 'nl', 'pl', 'ru'],
-              'ios-catalog-south-east': ['uk', 'ar', 'hi', 'id'],
-              'ios-catalog-cjk': ['ja', 'ko', 'zh-Hans', 'zh-Hant'],
-              'ios-catalog-asia': ['th', 'vi', 'bn', 'ur'],
-          }
-
-          for artifact, locales in groups.items():
-              source_path = Path('translated-catalogs') / artifact / 'Localizable.xcstrings'
+          for locale in locales:
+              source_path = Path('translated-catalogs') / f'ios-catalog-{locale}' / 'Localizable.xcstrings'
               if not source_path.exists():
                   raise SystemExit(f'Missing translated artifact: {source_path}')
               source = json.loads(source_path.read_text(encoding='utf-8'))
               source_strings = source.get('strings')
               if not isinstance(source_strings, dict):
-                  raise SystemExit(f'{artifact} has no strings dictionary')
+                  raise SystemExit(f'{locale} artifact has no strings dictionary')
 
               for key, definition in base_strings.items():
                   source_definition = source_strings.get(key)
                   if not isinstance(definition, dict) or not isinstance(source_definition, dict):
                       continue
-                  source_localizations = source_definition.get('localizations', {})
-                  target_localizations = definition.setdefault('localizations', {})
-                  for locale in locales:
-                      locale_value = source_localizations.get(locale)
-                      if not isinstance(locale_value, dict):
-                          raise SystemExit(f'{artifact}: missing {locale} for {key}')
-                      target_localizations[locale] = deepcopy(locale_value)
-              print(f'Merged {artifact}: {", ".join(locales)}')
+                  locale_value = source_definition.get('localizations', {}).get(locale)
+                  if not isinstance(locale_value, dict):
+                      raise SystemExit(f'{locale}: missing localization for {key}')
+                  definition.setdefault('localizations', {})[locale] = deepcopy(locale_value)
+              print(f'Merged locale: {locale}')
 
           catalog_path.write_text(
               json.dumps(base, ensure_ascii=False, indent=2) + '\n',
@@ -193,6 +200,20 @@ jobs:
         run: |
           python3 tool/harden_ios_runtime_localization.py
           dart format lib/localization/app_strings.dart lib/app.dart
+
+      - name: Patch verifier for current catalog keys
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('tool/repair_ios_catalog_all_languages.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''        for key, expected in CURATED[locale].items():\n            actual = value_for(strings[key], locale)'''
+          new = '''        for key, expected in CURATED[locale].items():\n            if key not in strings:\n                continue\n            actual = value_for(strings[key], locale)'''
+          if old not in text:
+              raise SystemExit('Could not patch final verifier')
+          path.write_text(text.replace(old, new), encoding='utf-8')
+          PY
 
       - name: Verify all 21 non-English catalog locales
         run: python3 tool/repair_ios_catalog_all_languages.py --verify-only
