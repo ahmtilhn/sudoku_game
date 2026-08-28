@@ -288,6 +288,27 @@ jobs:
               unit['value'] = translated
               changed += 1
 
+          curated = {
+              'home': 'Ana Sayfa',
+              'play': 'Oyna',
+              'compete': 'Rekabet',
+              'profile': 'Profil',
+              'settings': 'Ayarlar',
+              'friends': 'Arkadaşlar',
+              'shop': 'Mağaza',
+              'career': 'Kariyer',
+              'leaderboard': 'Liderlik Tablosu',
+              'achievements': 'Başarımlar',
+          }
+          for key, translated in curated.items():
+              if key not in strings:
+                  continue
+              unit = strings[key].setdefault('localizations', {}).setdefault(
+                  'tr', {}
+              ).setdefault('stringUnit', {})
+              unit['state'] = 'translated'
+              unit['value'] = translated
+
           CATALOG.write_text(
               json.dumps(catalog, ensure_ascii=False, indent=2) + '\n',
               encoding='utf-8',
@@ -304,6 +325,9 @@ jobs:
           from pathlib import Path
 
           placeholder_re = re.compile(r'%(?:\d+\$?)?[sd]|%%')
+          def placeholders(value):
+              return [token.replace('$', '') for token in placeholder_re.findall(value)]
+
           catalog = json.loads(Path('assets/localization/Localizable.xcstrings').read_text(encoding='utf-8'))
           strings = catalog['strings']
           identical = []
@@ -313,18 +337,21 @@ jobs:
               tr = loc.get('tr', {}).get('stringUnit', {}).get('value', '')
               if not isinstance(tr, str) or not tr.strip():
                   raise SystemExit(f'Missing Turkish value for {key}')
-              if placeholder_re.findall(en) != placeholder_re.findall(tr):
+              if placeholders(en) != placeholders(tr):
                   raise SystemExit(f'Placeholder mismatch for {key}: {en!r} -> {tr!r}')
               if tr == en:
                   identical.append(key)
 
-          for key in ('home', 'play', 'settings'):
-              loc = strings[key]['localizations']
-              en = loc['en']['stringUnit']['value']
-              tr = loc['tr']['stringUnit']['value']
-              print(f'{key}: en={en!r} tr={tr!r}')
-              if tr == en:
-                  raise SystemExit(f'{key} is still English in Turkish catalog')
+          expected = {
+              'home': 'Ana Sayfa',
+              'play': 'Oyna',
+              'settings': 'Ayarlar',
+          }
+          for key, expected_value in expected.items():
+              tr = strings[key]['localizations']['tr']['stringUnit']['value']
+              print(f'{key}: tr={tr!r}')
+              if tr != expected_value:
+                  raise SystemExit(f'{key} Turkish value is not curated: {tr!r}')
 
           print(f'Turkish non-empty entries: {len(strings)}')
           print(f'Entries still identical to English (brands/abbreviations may be valid): {len(identical)}')
