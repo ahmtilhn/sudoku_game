@@ -373,9 +373,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                   spacing: 8,
                   alignment: WrapAlignment.center,
                   children: [
-                    _Pill(rank?.rankName ?? 'Unranked', accent),
+                    _Pill(rank?.rankName ?? context.tr('unranked'), accent),
                     _Pill(
-                      '${rank?.rankPoints ?? 0} RP',
+                      context.tr('rp_value', <Object>[rank?.rankPoints ?? 0]),
                       const Color(0xFF66C7FF),
                     ),
                   ],
@@ -385,19 +385,23 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                   children: [
                     Expanded(
                       child: _Stat(
-                        'Games',
+                        context.tr('games_label'),
                         '$games',
                         Icons.sports_esports_rounded,
                       ),
                     ),
                     const SizedBox(width: 7),
                     Expanded(
-                      child: _Stat('Wins', '$wins', Icons.emoji_events_rounded),
+                      child: _Stat(
+                        context.tr('wins_label'),
+                        '$wins',
+                        Icons.emoji_events_rounded,
+                      ),
                     ),
                     const SizedBox(width: 7),
                     Expanded(
                       child: _Stat(
-                        'Win rate',
+                        context.tr('win_rate'),
                         '${(winRate * 100).round()}%',
                         Icons.percent_rounded,
                       ),
@@ -409,7 +413,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                   children: [
                     Expanded(
                       child: _Stat(
-                        'Losses',
+                        context.tr('losses'),
                         '${rank?.losses ?? (games - wins).clamp(0, games)}',
                         Icons.close_rounded,
                       ),
@@ -417,7 +421,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                     const SizedBox(width: 7),
                     Expanded(
                       child: _Stat(
-                        'Draws',
+                        context.tr('draws'),
                         '${rank?.draws ?? 0}',
                         Icons.drag_handle_rounded,
                       ),
@@ -425,7 +429,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                     const SizedBox(width: 7),
                     Expanded(
                       child: _Stat(
-                        'Achievements',
+                        context.tr('achievement_label'),
                         '${player.achievementCount}',
                         Icons.workspace_premium_rounded,
                       ),
@@ -435,18 +439,18 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                 const SizedBox(height: 12),
                 _InfoRow(
                   icon: Icons.badge_outlined,
-                  label: 'Friend ID',
+                  label: context.tr('friend_id'),
                   value: player.publicId,
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: player.publicId));
-                    _snack('Friend ID copied');
+                    _snack(context.tr('friend_id_copied'));
                   },
                 ),
                 if (player.lastPlayedAt != null) ...[
                   const SizedBox(height: 7),
                   _InfoRow(
                     icon: Icons.schedule_rounded,
-                    label: 'Last played',
+                    label: context.tr('last_played'),
                     value: _lastPlayed(player.lastPlayedAt),
                   ),
                 ],
@@ -465,9 +469,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                         color: Color(0xFFFFC94D),
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Achievements',
+                          context.tr('achievement_label'),
                           style: TextStyle(fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -644,9 +648,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     if (_requests.isEmpty) {
       return _Empty(
         asset: DuelAsset.homeFriendsScene,
-        title: 'All caught up',
+        title: context.tr('all_caught_up'),
         message: context.tr('friend_requests_empty'),
-        action: 'Find players',
+        action: context.tr('find_players'),
         onAction: _searchFocus.requestFocus,
       );
     }
@@ -675,10 +679,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     if (_friends.isEmpty) {
       return _Empty(
         asset: DuelAsset.homeFriendsScene,
-        title: 'No friends yet',
-        message:
-            'Add friends to challenge, compare scores and climb the ranks together.',
-        action: 'Find friends',
+        title: context.tr('no_friends_yet'),
+        message: context.tr('no_friends_body'),
+        action: context.tr('find_friends'),
         onAction: _searchFocus.requestFocus,
       );
     }
@@ -703,7 +706,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     if (_opponents.isEmpty) {
       return _Empty(
         asset: DuelAsset.homeDuelScene,
-        title: 'No recent opponents',
+        title: context.tr('no_recent_opponents'),
         message: context.tr('recent_opponents_empty_body'),
       );
     }
@@ -730,8 +733,8 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     if (_incoming.isEmpty) {
       return _Empty(
         asset: DuelAsset.homeDuelScene,
-        title: 'No active challenges',
-        message: 'Incoming duel challenges will appear here.',
+        title: context.tr('no_active_challenges'),
+        message: context.tr('incoming_challenges_body'),
       );
     }
     return _list([
@@ -741,7 +744,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
           rank: _rankFor(c.challenger.publicId),
           onPlayer: () => _showPlayer(
             c.challenger,
-            primaryLabel: 'View challenge',
+            primaryLabel: context.tr('view_challenge'),
             onPrimary: () => _openChallenge(c),
           ),
           onOpen: () => _openChallenge(c),
@@ -895,7 +898,7 @@ class _SearchField extends StatelessWidget {
       textInputAction: TextInputAction.search,
       autocorrect: false,
       decoration: InputDecoration(
-        hintText: 'Search username or Friend ID',
+        hintText: context.tr('search_username_friend_id'),
         hintStyle: const TextStyle(fontSize: 12),
         border: InputBorder.none,
         prefixIcon: const Icon(Icons.search_rounded),
@@ -965,7 +968,10 @@ class _SearchPlayer extends StatelessWidget {
                   Text(
                     rank == null
                         ? '@${player.username}'
-                        : '${rank!.rankName} · ${rank!.rankPoints} RP',
+                        : context.tr('rank_points_format', <Object>[
+                            rank!.rankName,
+                            rank!.rankPoints,
+                          ]),
                     style: const TextStyle(fontSize: 10, color: Colors.white54),
                   ),
                 ],
@@ -1196,7 +1202,10 @@ class _ChallengeCard extends StatelessWidget {
                       Text(
                         rank == null
                             ? '@${challenge.challenger.username}'
-                            : '${rank!.rankName} · ${rank!.rankPoints} RP',
+                            : context.tr('rank_points_format', <Object>[
+                                rank!.rankName,
+                                rank!.rankPoints,
+                              ]),
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 10,
@@ -1231,7 +1240,7 @@ class _ChallengeCard extends StatelessWidget {
         FilledButton.tonalIcon(
           onPressed: onOpen,
           icon: const Icon(Icons.sports_martial_arts_rounded, size: 16),
-          label: const Text('View'),
+          label: Text(context.tr('view')),
         ),
       ],
     ),

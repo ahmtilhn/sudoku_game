@@ -176,28 +176,28 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
       _ProfileTabData(
         tab: _ProfileTab.customize,
         asset: 'assets/images/ui/profile_style.png',
-        title: 'Profile style',
-        subtitle: 'Avatar, rank frame, badges and country',
+        title: context.tr('profile_style'),
+        subtitle: context.tr('profile_style_subtitle'),
         accent: const Color(0xFF66C7FF),
-        metric: '40 avatars',
+        metric: context.tr('profile_avatar_count', <Object>[40]),
         onOpen: _openCustomization,
       ),
       _ProfileTabData(
         tab: _ProfileTab.emotes,
         asset: DuelAsset.homeDuelEmblem,
-        title: 'Emotes',
-        subtitle: 'Choose and order your 8 quick duel emotes',
+        title: context.tr('emotes'),
+        subtitle: context.tr('quick_emotes_profile_subtitle'),
         accent: const Color(0xFFFFC94D),
-        metric: '8 slots',
+        metric: context.tr('quick_emote_slots_count', <Object>[8]),
         onOpen: _openEmotes,
       ),
       _ProfileTabData(
         tab: _ProfileTab.leaderboards,
         asset: DuelAsset.leaderboardCrownPro,
         title: context.tr('leaderboards'),
-        subtitle: 'Rank Points and division progress',
+        subtitle: context.tr('rank_points_division_progress'),
         accent: const Color(0xFFB7A9FF),
-        metric: '${_profile?.rankPoints ?? 0} RP',
+        metric: context.tr('rp_value', <Object>[_profile?.rankPoints ?? 0]),
         onOpen: () => _open(const LeaderboardsScreen(), refreshAfter: true),
       ),
       if (Platform.isAndroid || Platform.isIOS)
@@ -206,10 +206,14 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
           asset: Platform.isIOS
               ? 'assets/logo/game_center_logo.png'
               : 'assets/logo/google_play_logo.png',
-          title: Platform.isIOS ? 'Game Center' : 'Google Play Games',
-          subtitle: 'Native platform services',
+          title: Platform.isIOS
+              ? context.tr('game_center')
+              : context.tr('google_play_games'),
+          subtitle: context.tr('native_platform_services'),
           accent: const Color(0xFF29D398),
-          metric: Platform.isIOS ? 'Native' : 'Play Games',
+          metric: Platform.isIOS
+              ? context.tr('native')
+              : context.tr('play_games_short'),
           onOpen: () => _open(const PlatformServicesScreen()),
         ),
     ];
@@ -242,9 +246,7 @@ class _IdentityPolicyNote extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Rank frames and achievement badges are earned, not purchased. '
-              'You can equip up to 3 earned badges on your frame. '
-              '$selectedBadges/3 badge slots are currently in use.',
+              context.tr('profile_badge_policy', <Object>[selectedBadges]),
               style: TextStyle(
                 color: Colors.white.withValues(alpha: .60),
                 fontSize: 11,

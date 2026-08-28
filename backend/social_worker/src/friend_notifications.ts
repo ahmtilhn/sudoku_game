@@ -98,8 +98,8 @@ async function notifyFriendRequest(
   }
 
   await sendPlayerPush(env, target.id, {
-    title: 'New friend request',
-    body: `${requester.display_name} sent you a friend request.`,
+    titleKey: 'push_friend_request_title',
+    bodyKey: 'push_friend_request_body',
     tag: `friend_request_${requester.id}`,
     data: {
       type: 'friend_request',
@@ -122,10 +122,12 @@ async function notifyFriendResponse(
   if (!requester || requester.id === responder.id) return;
 
   await sendPlayerPush(env, requester.id, {
-    title: accepted ? 'Friend request accepted' : 'Friend request declined',
-    body: accepted
-      ? `${responder.display_name} accepted your friend request.`
-      : `${responder.display_name} declined your friend request.`,
+    titleKey: accepted
+      ? 'push_friend_accepted_title'
+      : 'push_friend_declined_title',
+    bodyKey: accepted
+      ? 'push_friend_accepted_body'
+      : 'push_friend_declined_body',
     tag: `friend_response_${responder.id}`,
     data: {
       type: 'friend_response',

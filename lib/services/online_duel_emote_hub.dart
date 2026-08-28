@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../localization/app_strings.dart';
 import '../models/online_duel_emote_catalog.dart';
 import 'online_duel_emote_loadout_service.dart';
 
@@ -343,9 +344,9 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'MATCH OPTIONS',
+                          context.tr('match_options'),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -355,7 +356,9 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
                         ),
                       ),
                       IconButton(
-                        tooltip: _hub.muted ? 'Unmute' : 'Mute',
+                        tooltip: _hub.muted
+                            ? context.tr('unmute')
+                            : context.tr('mute'),
                         onPressed: _hub.toggleMute,
                         icon: Icon(
                           _hub.muted
@@ -371,11 +374,11 @@ class _OnlineDuelEmoteDockState extends State<OnlineDuelEmoteDock> {
                       Icons.flag_rounded,
                       color: Color(0xFFFF8C88),
                     ),
-                    title: const Text(
-                      'Forfeit match',
+                    title: Text(
+                      context.tr('forfeit_match'),
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
-                    subtitle: const Text('A confirmation is required.'),
+                    subtitle: Text(context.tr('confirmation_required')),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => Navigator.of(sheetContext).pop('forfeit'),
                   ),
@@ -427,8 +430,8 @@ class _PersistentDuelTurnStrip extends StatelessWidget {
           Flexible(
             child: Text(
               localTurn
-                  ? 'YOUR TURN · Make your move'
-                  : 'OPPONENT’S TURN · Waiting…',
+                  ? context.tr('your_turn_make_move_compact')
+                  : context.tr('opponent_turn_waiting_compact'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -487,7 +490,7 @@ class _CompactDuelControlBar extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'DUEL CONTROLS',
+              context.tr('duel_controls'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -499,7 +502,7 @@ class _CompactDuelControlBar extends StatelessWidget {
             ),
           ),
           _CompactRoundControl(
-            tooltip: 'Emotes',
+            tooltip: context.tr('emotes'),
             onTap: onEmotes,
             child: Stack(
               alignment: Alignment.center,
@@ -521,7 +524,7 @@ class _CompactDuelControlBar extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           _CompactRoundControl(
-            tooltip: 'Match options',
+            tooltip: context.tr('match_options'),
             onTap: onOptions,
             child: const Icon(
               Icons.more_horiz_rounded,
@@ -590,7 +593,7 @@ class _OpponentEmotePresentation extends StatelessWidget {
           OnlineDuelEmoteBubble(emoteId: emoteId, accent: accent),
           const SizedBox(width: 2),
           Text(
-            'OPPONENT',
+            context.tr('opponent'),
             style: TextStyle(
               color: Colors.white.withValues(alpha: .68),
               fontSize: 9,
@@ -750,7 +753,7 @@ class _QuickEmotePickerPanel extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        'QUICK EMOTES',
+                        context.tr('quick_emotes'),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .66),
                           fontSize: 10,
@@ -762,8 +765,8 @@ class _QuickEmotePickerPanel extends StatelessWidget {
                       Semantics(
                         button: true,
                         label: hub.muted
-                            ? 'Unmute opponent emotes'
-                            : 'Mute opponent emotes',
+                            ? context.tr('unmute_opponent_emotes')
+                            : context.tr('mute_opponent_emotes'),
                         child: IconButton(
                           tooltip: hub.muted ? 'Unmute' : 'Mute',
                           visualDensity: VisualDensity.compact,
@@ -830,7 +833,7 @@ class _EmoteRoundButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
-      label: 'Open emotes',
+      label: context.tr('open_emotes'),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -927,7 +930,7 @@ class _EmotePickerButton extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: enabled,
-      label: emote.label,
+      label: context.tr(emote.labelKey),
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 120),
         opacity: enabled ? 1 : .42,

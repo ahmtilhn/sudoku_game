@@ -349,7 +349,10 @@ class _ChallengeCard extends StatelessWidget {
               if (rank != null) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '${rank.rankName} · ${rank.rankPoints} RP',
+                  context.tr('rank_points_format', <Object>[
+                    rank.rankName,
+                    rank.rankPoints,
+                  ]),
                   style: const TextStyle(
                     color: Color(0xFF8ED8FF),
                     fontWeight: FontWeight.w900,
@@ -382,7 +385,7 @@ class _ChallengeCard extends StatelessWidget {
                   Expanded(
                     child: _Metric(
                       asset: DuelAsset.trophy,
-                      label: 'RP',
+                      label: context.tr('rank_points_short'),
                       value: rank == null ? '—' : '${rank.rankPoints}',
                       color: const Color(0xFFFFC94D),
                     ),

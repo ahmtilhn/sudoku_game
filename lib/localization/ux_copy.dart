@@ -21,46 +21,51 @@ class UxCopy {
       context.tr('fantasy_mode_title');
 
   static String fantasySubtitle(BuildContext context) =>
-      'A long 16×16 board with symbols 1–9 and A–G.';
+      context.tr('fantasy_subtitle');
 
   static String fantasyBadge(BuildContext context) =>
       context.tr('offline_special_mode');
 
-  static String genericError(BuildContext context) => 'Try again in a moment.';
+  static String genericError(BuildContext context) =>
+      context.tr('generic_try_again_moment');
 
   static String connectionError(BuildContext context) =>
-      'Check your connection and try again.';
+      context.tr('connection_try_again');
 
   static String accountError(BuildContext context) =>
-      'Player account unavailable. Try again.';
+      context.tr('player_account_try_again');
 
   static String serverBusy(BuildContext context) =>
-      'Service busy. Try again shortly.';
+      context.tr('service_busy_try_again');
 
-  static String emptyProfile(BuildContext context) => 'Profile not ready yet.';
+  static String emptyProfile(BuildContext context) =>
+      context.tr('profile_not_ready');
 
-  static String connectedPlatform(BuildContext context) => 'Platform connected';
+  static String connectedPlatform(BuildContext context) =>
+      context.tr('platform_connected');
 
   static String platformNotConnected(BuildContext context) =>
-      'Platform not connected';
+      context.tr('platform_not_connected');
 
-  static String overview(BuildContext context) => 'Overview';
+  static String overview(BuildContext context) => context.tr('overview');
 
-  static String performance(BuildContext context) => 'Performance';
+  static String performance(BuildContext context) => context.tr('performance');
 
-  static String accountAndSocial(BuildContext context) => 'Account & social';
+  static String accountAndSocial(BuildContext context) =>
+      context.tr('account_social');
 
-  static String totalMatches(BuildContext context) => 'Matches';
+  static String totalMatches(BuildContext context) => context.tr('matches');
 
-  static String losses(BuildContext context) => 'Losses';
+  static String losses(BuildContext context) => context.tr('losses');
 
-  static String draws(BuildContext context) => 'Draws';
+  static String draws(BuildContext context) => context.tr('draws');
 
-  static String countryRank(BuildContext context) => 'Country rank';
+  static String countryRank(BuildContext context) => context.tr('country_rank');
 
-  static String achievements(BuildContext context) => 'Achievements';
+  static String achievements(BuildContext context) =>
+      context.tr('achievements');
 
-  static String loading(BuildContext context) => 'Loading...';
+  static String loading(BuildContext context) => context.tr('loading');
 
-  static String noData(BuildContext context) => 'No data yet.';
+  static String noData(BuildContext context) => context.tr('no_data_yet');
 }

@@ -205,7 +205,10 @@ class _CurrentRankCard extends StatelessWidget {
               stops: const [0, .38, 1],
             ),
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: accent.withValues(alpha: .58), width: 1.2),
+            border: Border.all(
+              color: accent.withValues(alpha: .58),
+              width: 1.2,
+            ),
             boxShadow: [
               BoxShadow(
                 color: accent.withValues(alpha: .12),
@@ -287,7 +290,9 @@ class _CurrentRankCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${profile.rankPoints} RP',
+                                context.tr('rp_value', <Object>[
+                                  profile.rankPoints,
+                                ]),
                                 style: const TextStyle(
                                   color: Color(0xFF66C7FF),
                                   fontSize: 31,
@@ -313,16 +318,24 @@ class _CurrentRankCard extends StatelessWidget {
                       children: [
                         Text(
                           profile.divisionSize == null
-                              ? '${profile.pointsInDivision} RP above Master I'
-                              : '${profile.pointsInDivision}/${profile.divisionSize} RP',
+                              ? context.tr('rp_above_master_i', <Object>[
+                                  profile.pointsInDivision,
+                                ])
+                              : context.tr('rp_progress_fraction', <Object>[
+                                  profile.pointsInDivision,
+                                  profile.divisionSize ?? 0,
+                                ]),
                           style: _mutedRankStyle(),
                         ),
                         const Spacer(),
                         Flexible(
                           child: Text(
                             profile.nextRankName == null
-                                ? 'Top rank'
-                                : '${profile.pointsToNext ?? 0} RP to ${profile.nextRankName}',
+                                ? context.tr('top_rank')
+                                : context.tr('rp_to_rank', <Object>[
+                                    profile.pointsToNext ?? 0,
+                                    profile.nextRankName ?? '',
+                                  ]),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.end,
@@ -377,14 +390,8 @@ class _PremiumProgressBar extends StatelessWidget {
             ),
           ),
         ),
-        Positioned(
-          left: -1,
-          child: _ProgressDiamond(accent: accent),
-        ),
-        Positioned(
-          right: -1,
-          child: _ProgressDiamond(accent: accent),
-        ),
+        Positioned(left: -1, child: _ProgressDiamond(accent: accent)),
+        Positioned(right: -1, child: _ProgressDiamond(accent: accent)),
       ],
     );
   }
@@ -457,7 +464,7 @@ class _GlobalRankPill extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'GLOBAL',
+            context.tr('global_upper'),
             style: TextStyle(
               color: Colors.white.withValues(alpha: .52),
               fontSize: 8.5,
@@ -481,7 +488,9 @@ class _RankInfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF071118).withValues(alpha: .58),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF66C7FF).withValues(alpha: .13)),
+        border: Border.all(
+          color: const Color(0xFF66C7FF).withValues(alpha: .13),
+        ),
       ),
       child: Row(
         children: [
@@ -505,7 +514,7 @@ class _RankInfoCard extends StatelessWidget {
           const SizedBox(width: 11),
           Expanded(
             child: Text(
-              'Visible RP determines your displayed rank. Matchmaking skill stays hidden.',
+              context.tr('visible_rp_rank_info'),
               style: TextStyle(
                 color: Colors.white.withValues(alpha: .68),
                 fontSize: 11,
@@ -594,8 +603,7 @@ class _LeaderboardList extends StatelessWidget {
             current: snapshot.entries[index].publicId == currentPublicId,
             countryCode: countryFlags[snapshot.entries[index].publicId],
           ),
-          if (index != snapshot.entries.length - 1)
-            const SizedBox(height: 6),
+          if (index != snapshot.entries.length - 1) const SizedBox(height: 6),
         ],
       ],
     );
@@ -620,10 +628,7 @@ class _LeaderboardRow extends StatelessWidget {
     final isPodium = entry.rank <= 3;
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 11,
-        vertical: isPodium ? 9 : 8,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 11, vertical: isPodium ? 9 : 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.centerLeft,
@@ -687,7 +692,7 @@ class _LeaderboardRow extends StatelessWidget {
                       Text(
                         flag,
                         style: const TextStyle(fontSize: 16, height: 1),
-                        semanticsLabel: 'Country flag',
+                        semanticsLabel: context.tr('country_flag'),
                       ),
                       const SizedBox(width: 5),
                     ],
@@ -711,7 +716,10 @@ class _LeaderboardRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${entry.rankName} · ${(entry.winRate * 100).round()}% wins',
+                  context.tr('rank_win_rate_line', <Object>[
+                    entry.rankName,
+                    (entry.winRate * 100).round(),
+                  ]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -740,7 +748,7 @@ class _LeaderboardRow extends StatelessWidget {
             const SizedBox(width: 5),
           ],
           Text(
-            '${entry.rankPoints} RP',
+            context.tr('rp_value', <Object>[entry.rankPoints]),
             style: TextStyle(
               color: entry.rank == 1
                   ? const Color(0xFFFFC94D)
@@ -814,8 +822,8 @@ class _YouBadge extends StatelessWidget {
           color: const Color(0xFF35B8FF).withValues(alpha: .34),
         ),
       ),
-      child: const Text(
-        'YOU',
+      child: Text(
+        context.tr('you_upper'),
         style: TextStyle(
           color: Color(0xFF7ED6FF),
           fontSize: 8,
@@ -854,7 +862,7 @@ class _BoardLoadingCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withValues(alpha: .06)),
       ),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox.square(
@@ -863,7 +871,7 @@ class _BoardLoadingCard extends StatelessWidget {
           ),
           SizedBox(width: 10),
           Text(
-            'Loading player rankings…',
+            context.tr('loading_player_rankings'),
             style: TextStyle(
               color: Colors.white70,
               fontWeight: FontWeight.w800,
@@ -899,8 +907,8 @@ class _EmptyBoard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             offline
-                ? 'Leaderboard server is unavailable.'
-                : 'No ranked players yet.',
+                ? context.tr('leaderboard_server_unavailable')
+                : context.tr('no_ranked_players_yet'),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -910,8 +918,8 @@ class _EmptyBoard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             offline
-                ? 'Your current rank remains visible locally. Pull down or tap refresh after the backend reconnects.'
-                : 'Complete a ranked duel to enter the RP leaderboard.',
+                ? context.tr('leaderboard_offline_body')
+                : context.tr('leaderboard_empty_ranked_body'),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withValues(alpha: .52),

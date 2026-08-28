@@ -28,8 +28,8 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
   String get _platformTitle {
     if (kIsWeb) return context.tr('leaderboards');
     return defaultTargetPlatform == TargetPlatform.iOS
-        ? 'Game Center'
-        : 'Google Play Games';
+        ? context.tr('game_center')
+        : context.tr('google_play_games');
   }
 
   @override
@@ -191,10 +191,10 @@ class _GooglePlayGamesScreenState extends State<GooglePlayGamesScreen> {
   @override
   Widget build(BuildContext context) {
     final statusText = switch ((_configured, _authenticated)) {
-      (false, _) => 'Not configured',
+      (false, _) => context.tr('not_configured'),
       (true, true) => context.tr('connected'),
       (true, false) => context.tr('online_account_unavailable'),
-      _ => 'Checking connection',
+      _ => context.tr('checking_connection'),
     };
     final title = _platformTitle;
 

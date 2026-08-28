@@ -297,10 +297,8 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     final leave = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Leave ready room?'),
-        content: const Text(
-          'You will leave this duel room. The match will not start from this screen.',
-        ),
+        title: Text(context.tr('leave_ready_room_question')),
+        content: Text(context.tr('leave_ready_room_body')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -308,7 +306,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Leave room'),
+            child: Text(context.tr('leave_room')),
           ),
         ],
       ),
@@ -801,7 +799,7 @@ class _FoundTitle extends StatelessWidget {
         ),
         SizedBox(width: 8 * scale),
         Text(
-          'Opponent found',
+          context.tr('opponent_found'),
           style: TextStyle(
             color: Colors.white,
             fontSize: (14 * scale).clamp(12.0, 15.0).toDouble(),
@@ -1058,7 +1056,11 @@ class _FoundPlayerCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      player.rating == null ? '— RP' : '${player.rating} RP',
+                      player.rating == null
+                          ? '—'
+                          : context.tr('rp_value', <Object>[
+                              player.rating ?? 0,
+                            ]),
                       style: TextStyle(
                         color: ready
                             ? const Color(0xFF29D398)
@@ -1083,7 +1085,7 @@ class _FoundPlayerCard extends StatelessWidget {
                     Expanded(
                       child: _FoundStat(
                         value: player.gamesPlayed?.toString() ?? '—',
-                        label: 'Matches',
+                        label: context.tr('matches'),
                         dense: dense,
                       ),
                     ),
@@ -1097,7 +1099,7 @@ class _FoundPlayerCard extends StatelessWidget {
                         value: player.winRate == null
                             ? '—'
                             : '${(player.winRate! * 100).round()}%',
-                        label: 'Win rate',
+                        label: context.tr('win_rate'),
                         dense: dense,
                       ),
                     ),
@@ -1105,7 +1107,7 @@ class _FoundPlayerCard extends StatelessWidget {
                 ),
                 if (ready && !veryDense) ...[
                   SizedBox(height: dense ? 6 : 8),
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
@@ -1115,7 +1117,7 @@ class _FoundPlayerCard extends StatelessWidget {
                       ),
                       SizedBox(width: 5),
                       Text(
-                        'READY',
+                        context.tr('ready_upper'),
                         style: TextStyle(
                           color: Color(0xFF29D398),
                           fontSize: 9,
@@ -1211,7 +1213,7 @@ class _FoundVersusBadge extends StatelessWidget {
         ],
       ),
       child: Text(
-        'VS',
+        context.tr('vs'),
         style: TextStyle(
           color: const Color(0xFFFFD66B),
           fontSize: (20 * scale).clamp(17.0, 21.0).toDouble(),
@@ -1274,8 +1276,8 @@ class _FoundStatusCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Match found',
+                Text(
+                  context.tr('match_found'),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -1285,8 +1287,12 @@ class _FoundStatusCard extends StatelessWidget {
                 SizedBox(height: 3 * scale),
                 Text(
                   opponentReady
-                      ? '$opponentName is ready. Confirm when you are ready.'
-                      : '$opponentName matched near your competitive level.',
+                      ? context.tr('opponent_ready_confirm', <Object>[
+                          opponentName,
+                        ])
+                      : context.tr('opponent_matched_near_level', <Object>[
+                          opponentName,
+                        ]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1348,11 +1354,11 @@ class _ReadyArenaStage extends StatelessWidget {
         ? context.tr('everyone_ready_starting')
         : currentReady
         ? context.tr('waiting_opponent_ready')
-        : 'Waiting for both players to confirm';
+        : context.tr('waiting_both_players');
     final subtitle = bothReady
-        ? '2/2 players ready'
+        ? context.tr('players_ready_count', <Object>[2])
         : currentReady
-        ? '$readyCount/2 players ready'
+        ? context.tr('players_ready_count', <Object>[readyCount])
         : connectionLabel;
 
     return Scaffold(
@@ -1511,10 +1517,10 @@ class _ReadyOptionsButton extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'READY ROOM OPTIONS',
+                      context.tr('ready_room_options'),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 13,
@@ -1529,11 +1535,11 @@ class _ReadyOptionsButton extends StatelessWidget {
                       Icons.logout_rounded,
                       color: Color(0xFFFF8C88),
                     ),
-                    title: const Text(
-                      'Leave ready room',
+                    title: Text(
+                      context.tr('leave_ready_room'),
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
-                    subtitle: const Text('A confirmation is required.'),
+                    subtitle: Text(context.tr('confirmation_required')),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: onLeave == null
                         ? null
@@ -1555,7 +1561,7 @@ class _ReadyOptionsButton extends StatelessWidget {
       width: 56,
       height: 56,
       child: IconButton(
-        tooltip: 'Ready room options',
+        tooltip: context.tr('ready_room_options'),
         onPressed: () => _open(context),
         style: IconButton.styleFrom(
           backgroundColor: const Color(0xD8142430),
@@ -1630,7 +1636,7 @@ class _ReadyDuelHeader extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'READY',
+                  context.tr('ready_upper'),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .48),
                     fontSize: 7,
@@ -1739,7 +1745,9 @@ class _MiniPlayerHeader extends StatelessWidget {
           ),
           const SizedBox(height: 1),
           Text(
-            p?.rating == null ? '— RP' : '${p!.rating} RP',
+            p?.rating == null
+                ? context.tr('rp_unavailable')
+                : context.tr('rp_value', <Object>[p!.rating ?? 0]),
             style: TextStyle(
               color: ready ? const Color(0xFF29D398) : Colors.white70,
               fontSize: (9 * scale).clamp(8.0, 10.0).toDouble(),
@@ -2002,7 +2010,7 @@ class _ReadyPlayerCard extends StatelessWidget {
                         Expanded(
                           child: _ReadyStat(
                             value: p.gamesPlayed?.toString() ?? '—',
-                            label: 'Matches',
+                            label: context.tr('matches'),
                           ),
                         ),
                         Expanded(
@@ -2010,13 +2018,13 @@ class _ReadyPlayerCard extends StatelessWidget {
                             value: p.winRate == null
                                 ? '—'
                                 : '${(p.winRate! * 100).round()}%',
-                            label: 'Win rate',
+                            label: context.tr('win_rate'),
                           ),
                         ),
                         Expanded(
                           child: _ReadyStat(
                             value: p.rating?.toString() ?? '—',
-                            label: 'RP',
+                            label: context.tr('rank_points_short'),
                             accent: true,
                           ),
                         ),

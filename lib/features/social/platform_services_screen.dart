@@ -25,8 +25,9 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
   bool _busy = false;
   String? _error;
 
-  String get _platformTitle =>
-      Platform.isIOS ? 'Game Center' : 'Google Play Games';
+  String get _platformTitle => Platform.isIOS
+      ? context.tr('game_center')
+      : context.tr('google_play_games');
 
   String get _platformLogo => Platform.isIOS
       ? 'assets/logo/game_center_logo.png'
@@ -170,7 +171,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   const SizedBox(height: 10),
                   _LeaderboardCard(
                     title: context.tr('global_elo'),
-                    subtitle: 'Compete with the best players worldwide',
+                    subtitle: context.tr('platform_global_compete_subtitle'),
                     accent: const Color(0xFF35D2FF),
                     featured: true,
                     icon: const DuelAssetIcon(
@@ -204,7 +205,7 @@ class _PlatformServicesScreenState extends State<PlatformServicesScreen> {
                   const SizedBox(height: 14),
                   _LeaderboardCard(
                     title: context.tr('achievement_showcase'),
-                    subtitle: 'View your highlights and milestones',
+                    subtitle: context.tr('achievement_highlights_subtitle'),
                     accent: const Color(0xFFB78BFF),
                     featured: true,
                     compactFeatured: true,
@@ -296,7 +297,9 @@ class _PlatformStatusCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  connected ? 'Connected' : 'Connects when a feature is opened',
+                  connected
+                      ? context.tr('connected')
+                      : context.tr('platform_connects_on_open'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

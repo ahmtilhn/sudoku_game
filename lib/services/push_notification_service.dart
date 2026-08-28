@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../localization/app_strings.dart';
 import 'firebase_runtime_config.dart';
 import 'firebase_services.dart';
 import 'social_api_client.dart';
@@ -29,14 +30,14 @@ class PushNotificationDestination {
   const PushNotificationDestination({
     required this.type,
     required this.id,
-    required this.defaultTitle,
-    required this.defaultBody,
+    required this.defaultTitleKey,
+    required this.defaultBodyKey,
   });
 
   final PushNotificationDestinationType type;
   final String id;
-  final String defaultTitle;
-  final String defaultBody;
+  final String defaultTitleKey;
+  final String defaultBodyKey;
 
   String get payload => '${type.name}:$id';
 }
@@ -53,24 +54,24 @@ PushNotificationDestination? parsePushNotificationDestination(
       return PushNotificationDestination(
         type: PushNotificationDestinationType.room,
         id: roomId,
-        defaultTitle: 'Challenge accepted',
-        defaultBody: 'Your opponent accepted. The duel room is ready.',
+        defaultTitleKey: 'push_challenge_accepted_title',
+        defaultBodyKey: 'push_challenge_accepted_body',
       );
     }
     final challengeId = data['challengeId']?.toString() ?? 'challenge';
     return PushNotificationDestination(
       type: PushNotificationDestinationType.informational,
       id: challengeId,
-      defaultTitle: status == 'declined'
-          ? 'Challenge declined'
+      defaultTitleKey: status == 'declined'
+          ? 'push_challenge_declined_title'
           : status == 'cancelled'
-          ? 'Challenge cancelled'
-          : 'Challenge updated',
-      defaultBody: status == 'declined'
-          ? 'Your opponent declined the Sudoku challenge.'
+          ? 'push_challenge_cancelled_title'
+          : 'push_challenge_updated_title',
+      defaultBodyKey: status == 'declined'
+          ? 'push_challenge_declined_body'
           : status == 'cancelled'
-          ? 'The pending Sudoku challenge was cancelled.'
-          : 'Your Sudoku challenge status changed.',
+          ? 'push_challenge_cancelled_body'
+          : 'push_challenge_updated_body',
     );
   }
 
@@ -80,8 +81,8 @@ PushNotificationDestination? parsePushNotificationDestination(
       return PushNotificationDestination(
         type: PushNotificationDestinationType.social,
         id: requesterId,
-        defaultTitle: 'New friend request',
-        defaultBody: 'A player sent you a friend request.',
+        defaultTitleKey: 'push_friend_request_title',
+        defaultBodyKey: 'push_friend_request_body',
       );
     }
   }
@@ -93,12 +94,16 @@ PushNotificationDestination? parsePushNotificationDestination(
       return PushNotificationDestination(
         type: PushNotificationDestinationType.social,
         id: playerId,
-        defaultTitle: status == 'accepted'
-            ? 'Friend request accepted'
-            : 'Friend request updated',
-        defaultBody: status == 'accepted'
-            ? 'Your friend request was accepted.'
-            : 'Your friend request was updated.',
+        defaultTitleKey: status == 'accepted'
+            ? 'push_friend_accepted_title'
+            : status == 'declined'
+            ? 'push_friend_declined_title'
+            : 'push_friend_updated_title',
+        defaultBodyKey: status == 'accepted'
+            ? 'push_friend_accepted_body'
+            : status == 'declined'
+            ? 'push_friend_declined_body'
+            : 'push_friend_updated_body',
       );
     }
   }
@@ -108,8 +113,8 @@ PushNotificationDestination? parsePushNotificationDestination(
     return PushNotificationDestination(
       type: PushNotificationDestinationType.rematch,
       id: rematchId,
-      defaultTitle: 'Rematch invitation',
-      defaultBody: 'A player wants to play again. Open Sudoku Duel to respond.',
+      defaultTitleKey: 'push_rematch_title',
+      defaultBodyKey: 'push_rematch_body',
     );
   }
 
@@ -118,8 +123,8 @@ PushNotificationDestination? parsePushNotificationDestination(
     return PushNotificationDestination(
       type: PushNotificationDestinationType.challenge,
       id: challengeId,
-      defaultTitle: 'New Sudoku challenge',
-      defaultBody: 'A player challenged you. Open Sudoku Duel to respond.',
+      defaultTitleKey: 'push_challenge_title',
+      defaultBodyKey: 'push_challenge_body',
     );
   }
   return null;
@@ -156,6 +161,7 @@ class PushNotificationService {
   StreamSubscription<RemoteMessage>? _openedSubscription;
   Future<void>? _initialization;
   bool _automaticSocialUiAllowed = false;
+  AppStrings? _strings;
 
   bool get configured => FirebaseRuntimeConfig.configured;
 
@@ -179,6 +185,7 @@ class PushNotificationService {
   Future<void> _initializeOnce() async {
     try {
       await FirebaseRuntimeConfig.initializeIfConfigured();
+      _strings ??= await AppStrings.load();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
       final signedIn = await _ensureAnonymousSession();
@@ -253,7 +260,9 @@ class PushNotificationService {
       if (!allowed) {
         enabled.value = false;
         userDisabled.value = true;
-        lastRegistrationError.value = 'Notification permission was denied.';
+        lastRegistrationError.value = _localized(
+          'notification_permission_denied',
+        );
         await _preferences.setBool(_enabledKey, false);
         return false;
       }
@@ -351,11 +360,10 @@ class PushNotificationService {
             AndroidFlutterLocalNotificationsPlugin
           >()
           ?.createNotificationChannel(
-            const AndroidNotificationChannel(
+            AndroidNotificationChannel(
               _challengeChannelId,
-              'Online challenges',
-              description:
-                  'Invitations and updates for online Sudoku challenges and rematches.',
+              _localized('online_challenges_channel_name'),
+              description: _localized('online_challenges_channel_description'),
               importance: Importance.high,
             ),
           );
@@ -384,18 +392,21 @@ class PushNotificationService {
 
     await _localNotifications.show(
       id: target.id.hashCode & 0x7fffffff,
-      title: target.defaultTitle,
-      body: target.defaultBody,
-      notificationDetails: const NotificationDetails(
+      title: _localized(target.defaultTitleKey),
+      body: _localized(target.defaultBodyKey),
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
           _challengeChannelId,
-          'Online challenges',
-          channelDescription:
-              'Invitations and updates for online Sudoku challenges and rematches.',
+          _localized('online_challenges_channel_name'),
+          channelDescription: _localized(
+            'online_challenges_channel_description',
+          ),
           importance: Importance.high,
           priority: Priority.high,
         ),
-        iOS: DarwinNotificationDetails(threadIdentifier: 'online-challenges'),
+        iOS: const DarwinNotificationDetails(
+          threadIdentifier: 'online-challenges',
+        ),
       ),
       payload: target.payload,
     );
@@ -425,8 +436,8 @@ class PushNotificationService {
       PushNotificationDestination(
         type: type.first,
         id: id,
-        defaultTitle: 'Online invitation',
-        defaultBody: 'Open Sudoku Duel to continue.',
+        defaultTitleKey: 'push_online_invitation_title',
+        defaultBodyKey: 'push_online_invitation_body',
       ),
     );
   }
@@ -491,6 +502,9 @@ class PushNotificationService {
       return false;
     }
   }
+
+  String _localized(String key) =>
+      _strings?.text(key) ?? AppStrings.english[key] ?? key;
 
   bool _isAuthorized(AuthorizationStatus status) {
     return status == AuthorizationStatus.authorized ||

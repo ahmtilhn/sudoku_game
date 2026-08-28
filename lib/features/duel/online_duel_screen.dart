@@ -1514,7 +1514,7 @@ class _ResultPlayers extends StatelessWidget {
                 ],
               ),
               child: Text(
-                'VS',
+                context.tr('vs'),
                 style: TextStyle(
                   color: const Color(0xFFFFC94D),
                   fontSize: compact ? 10 : 11,
@@ -1857,7 +1857,7 @@ class _ResultRankPanel extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Rank Points will update automatically.',
+                context.tr('rank_points_auto_update'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: .65),
                   fontSize: compact ? 9 : 10,
@@ -1912,7 +1912,7 @@ class _ResultRankPanel extends StatelessWidget {
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
-                  'Rank Points',
+                  context.tr('rank_points'),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: compact ? 10 : 11,
@@ -1921,7 +1921,10 @@ class _ResultRankPanel extends StatelessWidget {
                 ),
               ),
               Text(
-                '${value.rpDelta >= 0 ? '+' : ''}${value.rpDelta} RP',
+                context.tr('rp_signed_value', <Object>[
+                  value.rpDelta >= 0 ? '+' : '',
+                  value.rpDelta,
+                ]),
                 style: TextStyle(
                   color: deltaColor,
                   fontSize: compact ? 12 : 13,
@@ -1955,7 +1958,7 @@ class _ResultRankPanel extends StatelessWidget {
               ),
               const SizedBox(width: 7),
               Text(
-                '${value.rpAfter} RP',
+                context.tr('rp_value', <Object>[value.rpAfter]),
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: compact ? 9.5 : 10.5,
@@ -1982,7 +1985,10 @@ class _ResultRankPanel extends StatelessWidget {
               if (next != null && pointsToNext != null)
                 Flexible(
                   child: Text(
-                    '$pointsToNext RP to ${next.label}',
+                    context.tr('rp_to_rank', <Object>[
+                      pointsToNext,
+                      next.label,
+                    ]),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.right,
@@ -1998,7 +2004,9 @@ class _ResultRankPanel extends StatelessWidget {
           if (value.abandonmentPenalty > 0) ...[
             const SizedBox(height: 4),
             Text(
-              'Includes -${value.abandonmentPenalty} RP leave penalty.',
+              context.tr('leave_penalty_rp', <Object>[
+                value.abandonmentPenalty,
+              ]),
               textAlign: TextAlign.center,
               style: _noticeStyle(compact),
             ),
@@ -2006,8 +2014,8 @@ class _ResultRankPanel extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               value.repeatPercent == 0
-                  ? 'Repeat-opponent protection: no farmable RP this match.'
-                  : 'Repeat-opponent protection reduced positive RP.',
+                  ? context.tr('repeat_opponent_no_rp')
+                  : context.tr('repeat_opponent_reduced_rp'),
               textAlign: TextAlign.center,
               style: _noticeStyle(compact),
             ),
@@ -2163,7 +2171,10 @@ class _InlineRematch extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            '${invitation.sender.displayName} wants a rematch · ${seconds}s',
+            context.tr('rematch_request_seconds', <Object>[
+              invitation.sender.displayName,
+              seconds,
+            ]),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -2378,15 +2389,15 @@ class _TurnStatusStrip extends StatelessWidget {
         ? const Color(0xFF29D398)
         : const Color(0xFFFFC94D);
     final title = sendingMove
-        ? 'SENDING MOVE…'
+        ? context.tr('sending_move').toUpperCase()
         : localTurn
         ? context.tr('your_turn').toUpperCase()
         : context.tr('opponents_turn').toUpperCase();
     final subtitle = sendingMove
-        ? 'Syncing your move'
+        ? context.tr('syncing_your_move')
         : localTurn
-        ? 'Make your move'
-        : 'Waiting for opponent';
+        ? context.tr('make_your_move')
+        : context.tr('waiting_for_opponent');
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -2477,9 +2488,9 @@ class _ArenaBottomControls extends StatelessWidget {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'MATCH OPTIONS',
+                          context.tr('match_options'),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -2489,7 +2500,9 @@ class _ArenaBottomControls extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        tooltip: hub.muted ? 'Unmute' : 'Mute',
+                        tooltip: hub.muted
+                            ? context.tr('unmute')
+                            : context.tr('mute'),
                         onPressed: hub.toggleMute,
                         icon: Icon(
                           hub.muted
@@ -2505,11 +2518,11 @@ class _ArenaBottomControls extends StatelessWidget {
                       Icons.flag_rounded,
                       color: Color(0xFFFF8C88),
                     ),
-                    title: const Text(
-                      'Forfeit match',
+                    title: Text(
+                      context.tr('forfeit_match'),
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
-                    subtitle: const Text('A second confirmation is required.'),
+                    subtitle: Text(context.tr('second_confirmation_required')),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: forfeiting
                         ? null
@@ -2532,7 +2545,7 @@ class _ArenaBottomControls extends StatelessWidget {
       child: Row(
         children: [
           _ArenaCircleButton(
-            tooltip: 'Emotes',
+            tooltip: context.tr('emotes'),
             onPressed: hub.canSend
                 ? () => showOnlineDuelEmotePicker(context, hub)
                 : null,
@@ -2540,7 +2553,7 @@ class _ArenaBottomControls extends StatelessWidget {
           ),
           const Spacer(),
           _ArenaCircleButton(
-            tooltip: 'Match options',
+            tooltip: context.tr('match_options'),
             onPressed: () => _showOptions(context),
             icon: Icons.more_horiz_rounded,
           ),
@@ -2726,7 +2739,10 @@ class _HeaderPlayer extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            '${score > 0 ? '+' : ''}$score RP',
+            context.tr('rp_signed_value', <Object>[
+              score > 0 ? '+' : '',
+              score,
+            ]),
             style: TextStyle(
               color: score < 0
                   ? const Color(0xFFFF6B62)
@@ -2831,7 +2847,7 @@ class _TimerPillState extends State<_TimerPill> {
                   ),
                 ),
                 Text(
-                  's',
+                  context.tr('seconds_short'),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .52),
                     fontSize: 8,

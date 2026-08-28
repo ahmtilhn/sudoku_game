@@ -242,7 +242,6 @@ async function notifyRematchRecipient(
     const recipient = asObject(body.recipient);
     const sender = asObject(body.sender);
     const recipientPublicId = String(recipient?.publicId ?? '');
-    const senderName = String(sender?.displayName ?? 'A player');
     if (!invitationId || !recipientPublicId) return;
 
     const player = await env.DB.prepare(
@@ -253,8 +252,8 @@ async function notifyRematchRecipient(
     if (!player) return;
 
     await sendPlayerPush(env, player.id, {
-      title: 'Rematch invitation',
-      body: `${senderName} wants to play again. You have 10 seconds to respond.`,
+      titleKey: 'push_rematch_title',
+      bodyKey: 'push_rematch_body',
       tag: `rematch_${invitationId}`,
       data: {
         type: 'rematch_invitation',

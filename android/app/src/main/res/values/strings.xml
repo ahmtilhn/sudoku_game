@@ -131,7 +131,7 @@
     <string name="forfeit_and_leave">Forfeit and leave</string>
     <string name="global">Global</string>
     <string name="leaderboard_empty">No leaderboard entries yet.</string>
-    <string name="leaderboard_row">%1d games · %2d%% win rate</string>
+    <string name="leaderboard_row">%1d games · %2d% win rate</string>
     <string name="leaderboards">Leaderboards</string>
     <string name="online_connection_failed">Online duel connection failed: %1s</string>
     <string name="online_final_score">Final score: %1d - %2d</string>
@@ -516,4 +516,65 @@
     <string name="watch_ad_reward_value" formatted="false">Watch ad · +%1d</string>
     <string name="wins" formatted="false">Wins</string>
     <string name="your_rank" formatted="false">Your rank</string>
+    <string name="online_challenges_channel_name" formatted="false">Online challenges</string>
+    <string name="online_challenges_channel_description" formatted="false">Invitations and updates for online Sudoku challenges and rematches.</string>
+    <string name="push_challenge_accepted_title" formatted="false">Challenge accepted</string>
+    <string name="push_challenge_accepted_body" formatted="false">Your opponent accepted. The duel room is ready.</string>
+    <string name="push_challenge_declined_title" formatted="false">Challenge declined</string>
+    <string name="push_challenge_declined_body" formatted="false">Your opponent declined the Sudoku challenge.</string>
+    <string name="push_challenge_cancelled_title" formatted="false">Challenge cancelled</string>
+    <string name="push_challenge_cancelled_body" formatted="false">The pending Sudoku challenge was cancelled.</string>
+    <string name="push_challenge_updated_title" formatted="false">Challenge updated</string>
+    <string name="push_challenge_updated_body" formatted="false">Your Sudoku challenge status changed.</string>
+    <string name="push_friend_request_title" formatted="false">New friend request</string>
+    <string name="push_friend_request_body" formatted="false">A player sent you a friend request.</string>
+    <string name="push_friend_accepted_title" formatted="false">Friend request accepted</string>
+    <string name="push_friend_accepted_body" formatted="false">Your friend request was accepted.</string>
+    <string name="push_friend_declined_title" formatted="false">Friend request declined</string>
+    <string name="push_friend_declined_body" formatted="false">Your friend request was declined.</string>
+    <string name="push_friend_updated_title" formatted="false">Friend request updated</string>
+    <string name="push_friend_updated_body" formatted="false">Your friend request was updated.</string>
+    <string name="push_rematch_title" formatted="false">Rematch invitation</string>
+    <string name="push_rematch_body" formatted="false">A player wants to play again. Open Sudoku Duel to respond.</string>
+    <string name="push_challenge_title" formatted="false">New Sudoku challenge</string>
+    <string name="push_challenge_body" formatted="false">A player challenged you. Open Sudoku Duel to respond.</string>
+    <string name="push_online_invitation_title" formatted="false">Online invitation</string>
+    <string name="push_online_invitation_body" formatted="false">Open Sudoku Duel to continue.</string>
+    <string name="notification_setup_failed" formatted="false">Notification setup failed. Please try again.</string>
+    <string name="notification_permission_denied" formatted="false">Notification permission was denied.</string>
+    <string name="notification_token_unavailable" formatted="false">Notification registration is temporarily unavailable.</string>
+    <string name="notification_registration_failed" formatted="false">Notification registration failed. Please try again.</string>
+    <string name="rank_emblem_semantics" formatted="false">%1s rank emblem</string>
+    <string name="reminder_opener_01" formatted="false">Your next Sudoku is waiting.</string>
+    <string name="reminder_opener_02" formatted="false">A fresh grid just challenged you.</string>
+    <string name="reminder_opener_03" formatted="false">Your brain deserves a quick workout.</string>
+    <string name="reminder_opener_04" formatted="false">The board is ready when you are.</string>
+    <string name="reminder_opener_05" formatted="false">A new puzzle wants your attention.</string>
+    <string name="reminder_opener_06" formatted="false">Today’s logic challenge has arrived.</string>
+    <string name="reminder_opener_07" formatted="false">Your next winning streak starts here.</string>
+    <string name="reminder_opener_08" formatted="false">One clever move can change the board.</string>
+    <string name="reminder_opener_09" formatted="false">The Sudoku arena is calling.</string>
+    <string name="reminder_opener_10" formatted="false">A quiet challenge is ready for you.</string>
+    <string name="reminder_opener_11" formatted="false">Your daily focus break is here.</string>
+    <string name="reminder_opener_12" formatted="false">Another puzzle is ready to be conquered.</string>
+    <string name="reminder_challenge_01" formatted="false">Can you finish without a single mistake?</string>
+    <string name="reminder_challenge_02" formatted="false">Can you beat your latest performance?</string>
+    <string name="reminder_challenge_03" formatted="false">Try a harder difficulty this time.</string>
+    <string name="reminder_challenge_04" formatted="false">See how far pure logic can take you.</string>
+    <string name="reminder_challenge_05" formatted="false">Protect your three-mistake limit.</string>
+    <string name="reminder_challenge_06" formatted="false">Build a cleaner winning streak today.</string>
+    <string name="reminder_challenge_07" formatted="false">Find the first hidden number now.</string>
+    <string name="reminder_challenge_08" formatted="false">Challenge yourself before someone else does.</string>
+    <string name="reminder_challenge_09" formatted="false">Prove that this grid cannot stop you.</string>
+    <string name="reminder_challenge_10" formatted="false">Turn a few focused minutes into a win.</string>
+    <string name="reminder_challenge_11" formatted="false">Solve one row and let momentum take over.</string>
+    <string name="reminder_challenge_12" formatted="false">Show the board who is in control.</string>
+    <string name="reminder_closer_01" formatted="false">Open Sudoku Duel and take the first move.</string>
+    <string name="reminder_closer_02" formatted="false">Your next victory may be one tap away.</string>
+    <string name="reminder_closer_03" formatted="false">Start now and keep your streak alive.</string>
+    <string name="reminder_closer_04" formatted="false">The challenge only begins when you open it.</string>
+    <string name="reminder_closer_05" formatted="false">A focused minute is all you need to begin.</string>
+    <string name="reminder_closer_06" formatted="false">Step into the grid and prove it.</string>
+    <string name="reminder_closer_07" formatted="false">Play now before the puzzle wins by default.</string>
+    <string name="reminder_closer_08" formatted="false">Tap in and claim today’s challenge.</string>
 </resources>

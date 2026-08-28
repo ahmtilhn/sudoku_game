@@ -67,9 +67,9 @@ class _RankedProgressScreenState extends State<RankedProgressScreen> {
   }
 
   Future<void> _openLeaderboards() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const LeaderboardsScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const LeaderboardsScreen()));
     if (mounted) await _refresh();
   }
 
@@ -121,7 +121,9 @@ class _RankedProgressScreenState extends State<RankedProgressScreen> {
                           color: const Color(0xFFFFC73D).withValues(alpha: .08),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: const Color(0xFFFFC73D).withValues(alpha: .22),
+                            color: const Color(
+                              0xFFFFC73D,
+                            ).withValues(alpha: .22),
                           ),
                         ),
                         child: Row(
@@ -183,8 +185,11 @@ class _RankedPurposeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final next = profile.nextRankName;
     final message = next == null
-        ? 'You are at the top division. Keep playing ranked duels to build your peak RP and leaderboard position.'
-        : '${profile.pointsToNext ?? 0} RP until $next. Ranked duels change your visible RP and determine your competitive division.';
+        ? context.tr('ranked_top_division_body')
+        : context.tr('ranked_next_division_body', <Object>[
+            profile.pointsToNext ?? 0,
+            next,
+          ]);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -206,8 +211,8 @@ class _RankedPurposeCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Competitive progression',
+                Text(
+                  context.tr('competitive_progression'),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,

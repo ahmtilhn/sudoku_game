@@ -654,8 +654,8 @@ async function createChallenge(
 
   ctx.waitUntil(
     sendPlayerNotification(env, recipient.id, {
-      title: 'New Sudoku challenge',
-      body: `${current.display_name} challenged you on ${difficulty}.`,
+      titleKey: 'push_challenge_title',
+      bodyKey: 'push_challenge_body',
       data: {
         type: 'challenge',
         challengeId: id,
@@ -747,8 +747,8 @@ async function cancelChallenge(
   if ((updated.meta.changes ?? 0) > 0) {
     ctx.waitUntil(
       sendPlayerNotification(env, challenge.recipient_id, {
-        title: 'Challenge cancelled',
-        body: `${current.display_name} cancelled the Sudoku challenge.`,
+        titleKey: 'push_challenge_cancelled_title',
+        bodyKey: 'push_challenge_cancelled_body',
         data: {
           type: 'challenge_response',
           challengeId: challenge.id,
@@ -810,8 +810,8 @@ async function respondChallenge(
     }
     ctx.waitUntil(
       sendPlayerNotification(env, challenge.challenger_id, {
-        title: 'Challenge declined',
-        body: `${current.display_name} declined your Sudoku challenge.`,
+        titleKey: 'push_challenge_declined_title',
+        bodyKey: 'push_challenge_declined_body',
         data: {
           type: 'challenge_response',
           challengeId: challenge.id,
@@ -885,8 +885,8 @@ async function respondChallenge(
   if ((transitioned.meta.changes ?? 0) > 0) {
     ctx.waitUntil(
       sendPlayerNotification(env, challenge.challenger_id, {
-        title: 'Challenge accepted',
-        body: `${current.display_name} accepted your Sudoku challenge.`,
+        titleKey: 'push_challenge_accepted_title',
+        bodyKey: 'push_challenge_accepted_body',
         data: {
           type: 'challenge_response',
           challengeId: challenge.id,
@@ -1490,8 +1490,8 @@ async function enforceRateLimit(
 }
 
 type PushMessage = {
-  title: string;
-  body: string;
+  titleKey: string;
+  bodyKey: string;
   data: Record<string, string>;
 };
 
@@ -1532,7 +1532,6 @@ async function sendPlayerNotification(
           body: JSON.stringify({
             message: {
               token: device.token,
-              notification: { title: message.title, body: message.body },
               data: message.data,
               android: {
                 priority: 'high',
@@ -1540,12 +1539,18 @@ async function sendPlayerNotification(
                   channel_id: 'online_challenges',
                   tag: `challenge_${message.data.challengeId ?? 'update'}`,
                   sound: 'default',
+                  title_loc_key: message.titleKey,
+                  body_loc_key: message.bodyKey,
                 },
               },
               apns: {
                 headers: { 'apns-priority': '10' },
                 payload: {
                   aps: {
+                    alert: {
+                      'title-loc-key': message.titleKey,
+                      'loc-key': message.bodyKey,
+                    },
                     sound: 'default',
                     badge: 1,
                     'thread-id': 'online-challenges',

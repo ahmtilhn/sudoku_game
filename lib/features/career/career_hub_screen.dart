@@ -1472,7 +1472,7 @@ class _LevelCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Level ${level.number}',
+                          context.tr('level_number', <Object>[level.number]),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

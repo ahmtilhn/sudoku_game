@@ -16598,133 +16598,133 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games · %2d%% win rate"
+            "value": "%1d games · %2d% win rate"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d maç · %2d%% kazanma oranı"
+            "value": "%1d maç · %2d% kazanma oranı"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d Spiele · %2d%% Siegquote"
+            "value": "%1d Spiele · %2d% Siegquote"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d parties · %2d%% de victoires"
+            "value": "%1d parties · %2d% de victoires"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d partidas · %2d%% de victorias"
+            "value": "%1d partidas · %2d% de victorias"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d jogos · %2d%% de vitórias"
+            "value": "%1d jogos · %2d% de vitórias"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d partite · %2d%% vittorie"
+            "value": "%1d partite · %2d% vittorie"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d spellen · %2d%% winst"
+            "value": "%1d spellen · %2d% winst"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d gier · %2d%% wygranych"
+            "value": "%1d gier · %2d% wygranych"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d игр · %2d%% побед"
+            "value": "%1d игр · %2d% побед"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d ігор · %2d%% перемог"
+            "value": "%1d ігор · %2d% перемог"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d مباريات · نسبة فوز %2d%%"
+            "value": "%1d مباريات · نسبة فوز %2d%"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d खेल · %2d%% जीत दर"
+            "value": "%1d खेल · %2d% जीत दर"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d game · %2d%% menang"
+            "value": "%1d game · %2d% menang"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d試合 · 勝率%2d%%"
+            "value": "%1d試合 · 勝率%2d%"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d게임 · 승률 %2d%%"
+            "value": "%1d게임 · 승률 %2d%"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d 场 · %2d%% 胜率"
+            "value": "%1d 场 · %2d% 胜率"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d 場 · %2d%% 勝率"
+            "value": "%1d 場 · %2d% 勝率"
           }
         },
         "th": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d เกม · ชนะ %2d%%"
+            "value": "%1d เกม · ชนะ %2d%"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d trận · thắng %2d%%"
+            "value": "%1d trận · thắng %2d%"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d ম্যাচ · %2d%% জয়"
+            "value": "%1d ম্যাচ · %2d% জয়"
           }
         },
         "ur": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d میچ · %2d%% جیت"
+            "value": "%1d میچ · %2d% جیت"
           }
         }
       }
@@ -69800,6 +69800,5596 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1d ELO · %2d گیمز · %3dW %4dL"
+          }
+        }
+      }
+    },
+    "fantasy_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A long 16×16 board with symbols 1–9 and A–G."
+          }
+        }
+      }
+    },
+    "generic_try_again_moment": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again in a moment."
+          }
+        }
+      }
+    },
+    "connection_try_again": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check your connection and try again."
+          }
+        }
+      }
+    },
+    "player_account_try_again": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Player account unavailable. Try again."
+          }
+        }
+      }
+    },
+    "service_busy_try_again": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service busy. Try again shortly."
+          }
+        }
+      }
+    },
+    "profile_not_ready": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile not ready yet."
+          }
+        }
+      }
+    },
+    "platform_connected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platform connected"
+          }
+        }
+      }
+    },
+    "platform_not_connected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platform not connected"
+          }
+        }
+      }
+    },
+    "overview": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overview"
+          }
+        }
+      }
+    },
+    "performance": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Performance"
+          }
+        }
+      }
+    },
+    "account_social": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account & social"
+          }
+        }
+      }
+    },
+    "matches": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matches"
+          }
+        }
+      }
+    },
+    "country_rank": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country rank"
+          }
+        }
+      }
+    },
+    "no_data_yet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No data yet."
+          }
+        }
+      }
+    },
+    "emotes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emotes"
+          }
+        }
+      }
+    },
+    "restore_default_emotes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore default emotes"
+          }
+        }
+      }
+    },
+    "default_emotes_restored": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default emotes restored."
+          }
+        }
+      }
+    },
+    "emote_selection_load_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emote selection could not be loaded."
+          }
+        }
+      }
+    },
+    "quick_emotes_limit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can equip up to 8 quick emotes. Remove one first."
+          }
+        }
+      }
+    },
+    "keep_one_quick_emote": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep at least one quick emote equipped."
+          }
+        }
+      }
+    },
+    "emote_change_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That emote could not be changed."
+          }
+        }
+      }
+    },
+    "your_loadout": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YOUR LOADOUT"
+          }
+        }
+      }
+    },
+    "quick_emotes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quick Emotes"
+          }
+        }
+      }
+    },
+    "quick_emotes_reorder_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The same 4 × 2 layout is used when you open emotes during a duel. Hold and drag to reorder."
+          }
+        }
+      }
+    },
+    "collection": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "COLLECTION"
+          }
+        }
+      }
+    },
+    "choose_reactions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose your reactions"
+          }
+        }
+      }
+    },
+    "choose_reactions_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a card to equip it. Tap an equipped card again to remove it from your quick slots."
+          }
+        }
+      }
+    },
+    "empty_quick_emote_slot": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empty quick emote slot %1d"
+          }
+        }
+      }
+    },
+    "quick_emote_slot_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s, quick emote slot %2d"
+          }
+        }
+      }
+    },
+    "all": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All"
+          }
+        }
+      }
+    },
+    "reactions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reactions"
+          }
+        }
+      }
+    },
+    "taunts": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taunts"
+          }
+        }
+      }
+    },
+    "status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        }
+      }
+    },
+    "emote_equipped_slot": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s, equipped in slot %2d"
+          }
+        }
+      }
+    },
+    "match_options": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MATCH OPTIONS"
+          }
+        }
+      }
+    },
+    "unmute": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unmute"
+          }
+        }
+      }
+    },
+    "mute": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mute"
+          }
+        }
+      }
+    },
+    "forfeit_match": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forfeit match"
+          }
+        }
+      }
+    },
+    "confirmation_required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A confirmation is required."
+          }
+        }
+      }
+    },
+    "your_turn_make_move": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YOUR TURN · Make your move"
+          }
+        }
+      }
+    },
+    "opponent_turn_waiting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OPPONENT’S TURN · Waiting…"
+          }
+        }
+      }
+    },
+    "duel_controls": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DUEL CONTROLS"
+          }
+        }
+      }
+    },
+    "unmute_opponent_emotes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unmute opponent emotes"
+          }
+        }
+      }
+    },
+    "mute_opponent_emotes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mute opponent emotes"
+          }
+        }
+      }
+    },
+    "open_emotes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open emotes"
+          }
+        }
+      }
+    },
+    "profile_server_unavailable_preview": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile server is unavailable. Preview is local until reconnect."
+          }
+        }
+      }
+    },
+    "profile_settings_saved": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile settings saved."
+          }
+        }
+      }
+    },
+    "profile_customization": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile customization"
+          }
+        }
+      }
+    },
+    "refresh_profile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh profile"
+          }
+        }
+      }
+    },
+    "profile_reconnecting_preview": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online profile is reconnecting. All profile options remain previewable."
+          }
+        }
+      }
+    },
+    "avatars": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatars"
+          }
+        }
+      }
+    },
+    "frames": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frames"
+          }
+        }
+      }
+    },
+    "badges": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Badges"
+          }
+        }
+      }
+    },
+    "titles": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titles"
+          }
+        }
+      }
+    },
+    "max_three_frame_badges": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can equip up to 3 frame badges."
+          }
+        }
+      }
+    },
+    "country_flag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country flag"
+          }
+        }
+      }
+    },
+    "rank_points_format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s · %2d RP"
+          }
+        }
+      }
+    },
+    "sudoku_player": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sudoku Player"
+          }
+        }
+      }
+    },
+    "avatar_number": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatar %1s"
+          }
+        }
+      }
+    },
+    "lifetime_rank_coins": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d lifetime Rank Coins"
+          }
+        }
+      }
+    },
+    "rank_frames_info": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every division has its own frame. Rank rewards are first-time-only and cannot be farmed by dropping and climbing again."
+          }
+        }
+      }
+    },
+    "auto_current_rank": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto · current rank"
+          }
+        }
+      }
+    },
+    "frame_follows_current_rank": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frame follows your current rank automatically."
+          }
+        }
+      }
+    },
+    "permanently_unlocked_rp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permanently unlocked at %1d RP."
+          }
+        }
+      }
+    },
+    "unlock_reaching_rp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlock by reaching %1d RP."
+          }
+        }
+      }
+    },
+    "three_achievement_slots": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3 achievement slots"
+          }
+        }
+      }
+    },
+    "achievement_badges_info": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Earned badges can be attached directly to your frame. Locked badges stay visible here so you always know what can be earned."
+          }
+        }
+      }
+    },
+    "no_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No title"
+          }
+        }
+      }
+    },
+    "prestige_titles": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prestige titles"
+          }
+        }
+      }
+    },
+    "prestige_titles_info": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Master and Master I titles are permanent account unlocks. Your actual current rank is always shown separately."
+          }
+        }
+      }
+    },
+    "choose_country": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose country"
+          }
+        }
+      }
+    },
+    "country_flag_info": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the country you want to represent. It appears before your name in Ranked Ladder and is never inferred from your location."
+          }
+        }
+      }
+    },
+    "no_country_flag_until_chosen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No country flag will be shown until you choose one."
+          }
+        }
+      }
+    },
+    "flag_before_player_name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your flag can be shown before your player name."
+          }
+        }
+      }
+    },
+    "clear_country": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear country"
+          }
+        }
+      }
+    },
+    "show_flag_ranked_ladder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show flag on Ranked Ladder"
+          }
+        }
+      }
+    },
+    "choose_country_first": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a country first."
+          }
+        }
+      }
+    },
+    "flag_only_before_name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the flag appears before your name. No country abbreviation is shown."
+          }
+        }
+      }
+    },
+    "country_saved_flag_hidden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your country stays saved, but the flag is hidden from the ladder."
+          }
+        }
+      }
+    },
+    "search_country": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search country"
+          }
+        }
+      }
+    },
+    "no_country_found": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No country found."
+          }
+        }
+      }
+    },
+    "profile_save_ready_info": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatars come only from the bundled avatar collection. Rank cosmetics are earned."
+          }
+        }
+      }
+    },
+    "profile_preview_reconnect": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview mode · reconnect to save changes."
+          }
+        }
+      }
+    },
+    "saving": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving"
+          }
+        }
+      }
+    },
+    "preview": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview"
+          }
+        }
+      }
+    },
+    "rarity_common": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "COMMON"
+          }
+        }
+      }
+    },
+    "rarity_rare": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RARE"
+          }
+        }
+      }
+    },
+    "rarity_epic": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EPIC"
+          }
+        }
+      }
+    },
+    "rarity_legendary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LEGENDARY"
+          }
+        }
+      }
+    },
+    "rank_decoration_undefeated_10_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbeaten 10"
+          }
+        }
+      }
+    },
+    "rank_decoration_undefeated_10_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish 10 ranked duels in a row without a loss."
+          }
+        }
+      }
+    },
+    "rank_decoration_undefeated_25_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbeaten 25"
+          }
+        }
+      }
+    },
+    "rank_decoration_undefeated_25_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish 25 ranked duels in a row without a loss."
+          }
+        }
+      }
+    },
+    "rank_decoration_undefeated_50_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbeaten 50"
+          }
+        }
+      }
+    },
+    "rank_decoration_undefeated_50_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish 50 ranked duels in a row without a loss."
+          }
+        }
+      }
+    },
+    "rank_decoration_win_streak_5_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Five Win Streak"
+          }
+        }
+      }
+    },
+    "rank_decoration_win_streak_5_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Win 5 ranked duels in a row."
+          }
+        }
+      }
+    },
+    "rank_decoration_win_streak_10_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ten Win Streak"
+          }
+        }
+      }
+    },
+    "rank_decoration_win_streak_10_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Win 10 ranked duels in a row."
+          }
+        }
+      }
+    },
+    "rank_decoration_win_streak_25_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Twenty Five Win Streak"
+          }
+        }
+      }
+    },
+    "rank_decoration_win_streak_25_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Win 25 ranked duels in a row."
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_silver_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silver Competitor"
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_silver_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reach Silver III for the first time."
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_gold_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gold Competitor"
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_gold_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reach Gold III for the first time."
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_platinum_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platinum Competitor"
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_platinum_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reach Platinum III for the first time."
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_master_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Master Competitor"
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_master_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reach Master III for the first time."
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_master_i_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Master I"
+          }
+        }
+      }
+    },
+    "rank_decoration_rank_master_i_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reach Master I for the first time."
+          }
+        }
+      }
+    },
+    "rank_decoration_giant_slayer_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giant Slayer"
+          }
+        }
+      }
+    },
+    "rank_decoration_giant_slayer_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Defeat a ranked opponent at least 251 MMR above you."
+          }
+        }
+      }
+    },
+    "rank_decoration_ranked_veteran_100_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ranked Veteran"
+          }
+        }
+      }
+    },
+    "rank_decoration_ranked_veteran_100_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish 100 ranked duels."
+          }
+        }
+      }
+    },
+    "rank_decoration_ranked_veteran_500_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elite Veteran"
+          }
+        }
+      }
+    },
+    "rank_decoration_ranked_veteran_500_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish 500 ranked duels."
+          }
+        }
+      }
+    },
+    "rank_decoration_ranked_veteran_1000_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Legendary Veteran"
+          }
+        }
+      }
+    },
+    "rank_decoration_ranked_veteran_1000_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish 1000 ranked duels."
+          }
+        }
+      }
+    },
+    "rank_decoration_perfect_ranked_win_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfect Duel"
+          }
+        }
+      }
+    },
+    "rank_decoration_perfect_ranked_win_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Win a ranked duel without a mistake or timeout."
+          }
+        }
+      }
+    },
+    "rank_decoration_perfect_ranked_wins_10_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perfect Ten"
+          }
+        }
+      }
+    },
+    "rank_decoration_perfect_ranked_wins_10_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Win 10 ranked duels without a mistake or timeout."
+          }
+        }
+      }
+    },
+    "emote_smile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smile"
+          }
+        }
+      }
+    },
+    "emote_laugh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laugh"
+          }
+        }
+      }
+    },
+    "emote_smug": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smug"
+          }
+        }
+      }
+    },
+    "emote_bored": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bored"
+          }
+        }
+      }
+    },
+    "emote_fire": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fire"
+          }
+        }
+      }
+    },
+    "emote_crown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crown"
+          }
+        }
+      }
+    },
+    "emote_shocked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shocked"
+          }
+        }
+      }
+    },
+    "emote_respect": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respect"
+          }
+        }
+      }
+    },
+    "emote_angry": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Angry"
+          }
+        }
+      }
+    },
+    "emote_clap": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slow Clap"
+          }
+        }
+      }
+    },
+    "emote_facepalm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Facepalm"
+          }
+        }
+      }
+    },
+    "emote_eye_roll": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eye Roll"
+          }
+        }
+      }
+    },
+    "emote_shush": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shush"
+          }
+        }
+      }
+    },
+    "emote_salty_cry": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salty Cry"
+          }
+        }
+      }
+    },
+    "emote_love": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Love"
+          }
+        }
+      }
+    },
+    "emote_plotting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plotting"
+          }
+        }
+      }
+    },
+    "emote_dizzy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dizzy"
+          }
+        }
+      }
+    },
+    "emote_victory": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Victory"
+          }
+        }
+      }
+    },
+    "emote_gg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GG"
+          }
+        }
+      }
+    },
+    "emote_ez": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EZ"
+          }
+        }
+      }
+    },
+    "emote_noob": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NOOB"
+          }
+        }
+      }
+    },
+    "emote_oops": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OOPS"
+          }
+        }
+      }
+    },
+    "emote_rekt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REKT"
+          }
+        }
+      }
+    },
+    "emote_bruh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BRUH"
+          }
+        }
+      }
+    },
+    "emote_one_v_one": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1V1"
+          }
+        }
+      }
+    },
+    "emote_clutch": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CLUTCH"
+          }
+        }
+      }
+    },
+    "emote_afk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AFK"
+          }
+        }
+      }
+    },
+    "emote_lag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LAG"
+          }
+        }
+      }
+    },
+    "country_name_af": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afghanistan"
+          }
+        }
+      }
+    },
+    "country_name_al": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Albania"
+          }
+        }
+      }
+    },
+    "country_name_dz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algeria"
+          }
+        }
+      }
+    },
+    "country_name_as": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "American Samoa"
+          }
+        }
+      }
+    },
+    "country_name_ad": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Andorra"
+          }
+        }
+      }
+    },
+    "country_name_ao": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Angola"
+          }
+        }
+      }
+    },
+    "country_name_ai": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anguilla"
+          }
+        }
+      }
+    },
+    "country_name_aq": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antarctica"
+          }
+        }
+      }
+    },
+    "country_name_ag": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antigua and Barbuda"
+          }
+        }
+      }
+    },
+    "country_name_ar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Argentina"
+          }
+        }
+      }
+    },
+    "country_name_am": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Armenia"
+          }
+        }
+      }
+    },
+    "country_name_aw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aruba"
+          }
+        }
+      }
+    },
+    "country_name_au": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Australia"
+          }
+        }
+      }
+    },
+    "country_name_at": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Austria"
+          }
+        }
+      }
+    },
+    "country_name_az": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Azerbaijan"
+          }
+        }
+      }
+    },
+    "country_name_bs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bahamas"
+          }
+        }
+      }
+    },
+    "country_name_bh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bahrain"
+          }
+        }
+      }
+    },
+    "country_name_bd": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bangladesh"
+          }
+        }
+      }
+    },
+    "country_name_bb": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barbados"
+          }
+        }
+      }
+    },
+    "country_name_by": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belarus"
+          }
+        }
+      }
+    },
+    "country_name_be": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belgium"
+          }
+        }
+      }
+    },
+    "country_name_bz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belize"
+          }
+        }
+      }
+    },
+    "country_name_bj": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benin"
+          }
+        }
+      }
+    },
+    "country_name_bm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bermuda"
+          }
+        }
+      }
+    },
+    "country_name_bt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bhutan"
+          }
+        }
+      }
+    },
+    "country_name_bo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bolivia"
+          }
+        }
+      }
+    },
+    "country_name_bq": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bonaire, Sint Eustatius and Saba"
+          }
+        }
+      }
+    },
+    "country_name_ba": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bosnia and Herzegovina"
+          }
+        }
+      }
+    },
+    "country_name_bw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Botswana"
+          }
+        }
+      }
+    },
+    "country_name_bv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bouvet Island"
+          }
+        }
+      }
+    },
+    "country_name_br": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brazil"
+          }
+        }
+      }
+    },
+    "country_name_io": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "British Indian Ocean Territory"
+          }
+        }
+      }
+    },
+    "country_name_bn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brunei"
+          }
+        }
+      }
+    },
+    "country_name_bg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bulgaria"
+          }
+        }
+      }
+    },
+    "country_name_bf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Burkina Faso"
+          }
+        }
+      }
+    },
+    "country_name_bi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Burundi"
+          }
+        }
+      }
+    },
+    "country_name_cv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cabo Verde"
+          }
+        }
+      }
+    },
+    "country_name_kh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambodia"
+          }
+        }
+      }
+    },
+    "country_name_cm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cameroon"
+          }
+        }
+      }
+    },
+    "country_name_ca": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canada"
+          }
+        }
+      }
+    },
+    "country_name_ky": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cayman Islands"
+          }
+        }
+      }
+    },
+    "country_name_cf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Central African Republic"
+          }
+        }
+      }
+    },
+    "country_name_td": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chad"
+          }
+        }
+      }
+    },
+    "country_name_cl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chile"
+          }
+        }
+      }
+    },
+    "country_name_cn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "China"
+          }
+        }
+      }
+    },
+    "country_name_cx": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Christmas Island"
+          }
+        }
+      }
+    },
+    "country_name_cc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cocos (Keeling) Islands"
+          }
+        }
+      }
+    },
+    "country_name_co": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colombia"
+          }
+        }
+      }
+    },
+    "country_name_km": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comoros"
+          }
+        }
+      }
+    },
+    "country_name_cg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Congo"
+          }
+        }
+      }
+    },
+    "country_name_cd": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Congo (DRC)"
+          }
+        }
+      }
+    },
+    "country_name_ck": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cook Islands"
+          }
+        }
+      }
+    },
+    "country_name_cr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Costa Rica"
+          }
+        }
+      }
+    },
+    "country_name_hr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Croatia"
+          }
+        }
+      }
+    },
+    "country_name_cu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuba"
+          }
+        }
+      }
+    },
+    "country_name_cw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Curaçao"
+          }
+        }
+      }
+    },
+    "country_name_cy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cyprus"
+          }
+        }
+      }
+    },
+    "country_name_cz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Czechia"
+          }
+        }
+      }
+    },
+    "country_name_ci": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Côte d’Ivoire"
+          }
+        }
+      }
+    },
+    "country_name_dk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Denmark"
+          }
+        }
+      }
+    },
+    "country_name_dj": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Djibouti"
+          }
+        }
+      }
+    },
+    "country_name_dm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dominica"
+          }
+        }
+      }
+    },
+    "country_name_do": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dominican Republic"
+          }
+        }
+      }
+    },
+    "country_name_ec": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ecuador"
+          }
+        }
+      }
+    },
+    "country_name_eg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Egypt"
+          }
+        }
+      }
+    },
+    "country_name_sv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El Salvador"
+          }
+        }
+      }
+    },
+    "country_name_gq": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equatorial Guinea"
+          }
+        }
+      }
+    },
+    "country_name_er": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eritrea"
+          }
+        }
+      }
+    },
+    "country_name_ee": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estonia"
+          }
+        }
+      }
+    },
+    "country_name_sz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eswatini"
+          }
+        }
+      }
+    },
+    "country_name_et": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ethiopia"
+          }
+        }
+      }
+    },
+    "country_name_fk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falkland Islands"
+          }
+        }
+      }
+    },
+    "country_name_fo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faroe Islands"
+          }
+        }
+      }
+    },
+    "country_name_fj": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fiji"
+          }
+        }
+      }
+    },
+    "country_name_fi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finland"
+          }
+        }
+      }
+    },
+    "country_name_fr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "France"
+          }
+        }
+      }
+    },
+    "country_name_gf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "French Guiana"
+          }
+        }
+      }
+    },
+    "country_name_pf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "French Polynesia"
+          }
+        }
+      }
+    },
+    "country_name_tf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "French Southern Territories"
+          }
+        }
+      }
+    },
+    "country_name_ga": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gabon"
+          }
+        }
+      }
+    },
+    "country_name_gm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gambia"
+          }
+        }
+      }
+    },
+    "country_name_ge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Georgia"
+          }
+        }
+      }
+    },
+    "country_name_de": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Germany"
+          }
+        }
+      }
+    },
+    "country_name_gh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghana"
+          }
+        }
+      }
+    },
+    "country_name_gi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gibraltar"
+          }
+        }
+      }
+    },
+    "country_name_gr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Greece"
+          }
+        }
+      }
+    },
+    "country_name_gl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Greenland"
+          }
+        }
+      }
+    },
+    "country_name_gd": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grenada"
+          }
+        }
+      }
+    },
+    "country_name_gp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guadeloupe"
+          }
+        }
+      }
+    },
+    "country_name_gu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guam"
+          }
+        }
+      }
+    },
+    "country_name_gt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guatemala"
+          }
+        }
+      }
+    },
+    "country_name_gg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guernsey"
+          }
+        }
+      }
+    },
+    "country_name_gn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guinea"
+          }
+        }
+      }
+    },
+    "country_name_gw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guinea-Bissau"
+          }
+        }
+      }
+    },
+    "country_name_gy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guyana"
+          }
+        }
+      }
+    },
+    "country_name_ht": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haiti"
+          }
+        }
+      }
+    },
+    "country_name_hm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heard Island and McDonald Islands"
+          }
+        }
+      }
+    },
+    "country_name_va": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vatican City"
+          }
+        }
+      }
+    },
+    "country_name_hn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Honduras"
+          }
+        }
+      }
+    },
+    "country_name_hk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hong Kong"
+          }
+        }
+      }
+    },
+    "country_name_hu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hungary"
+          }
+        }
+      }
+    },
+    "country_name_is": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iceland"
+          }
+        }
+      }
+    },
+    "country_name_in": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "India"
+          }
+        }
+      }
+    },
+    "country_name_id": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indonesia"
+          }
+        }
+      }
+    },
+    "country_name_ir": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iran"
+          }
+        }
+      }
+    },
+    "country_name_iq": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iraq"
+          }
+        }
+      }
+    },
+    "country_name_ie": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ireland"
+          }
+        }
+      }
+    },
+    "country_name_im": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Isle of Man"
+          }
+        }
+      }
+    },
+    "country_name_il": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Israel"
+          }
+        }
+      }
+    },
+    "country_name_it": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Italy"
+          }
+        }
+      }
+    },
+    "country_name_jm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jamaica"
+          }
+        }
+      }
+    },
+    "country_name_jp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Japan"
+          }
+        }
+      }
+    },
+    "country_name_je": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jersey"
+          }
+        }
+      }
+    },
+    "country_name_jo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jordan"
+          }
+        }
+      }
+    },
+    "country_name_kz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kazakhstan"
+          }
+        }
+      }
+    },
+    "country_name_ke": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kenya"
+          }
+        }
+      }
+    },
+    "country_name_ki": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kiribati"
+          }
+        }
+      }
+    },
+    "country_name_kp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "North Korea"
+          }
+        }
+      }
+    },
+    "country_name_kr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "South Korea"
+          }
+        }
+      }
+    },
+    "country_name_kw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kuwait"
+          }
+        }
+      }
+    },
+    "country_name_kg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kyrgyzstan"
+          }
+        }
+      }
+    },
+    "country_name_la": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laos"
+          }
+        }
+      }
+    },
+    "country_name_lv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latvia"
+          }
+        }
+      }
+    },
+    "country_name_lb": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lebanon"
+          }
+        }
+      }
+    },
+    "country_name_ls": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lesotho"
+          }
+        }
+      }
+    },
+    "country_name_lr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liberia"
+          }
+        }
+      }
+    },
+    "country_name_ly": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Libya"
+          }
+        }
+      }
+    },
+    "country_name_li": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liechtenstein"
+          }
+        }
+      }
+    },
+    "country_name_lt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lithuania"
+          }
+        }
+      }
+    },
+    "country_name_lu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luxembourg"
+          }
+        }
+      }
+    },
+    "country_name_mo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Macao"
+          }
+        }
+      }
+    },
+    "country_name_mg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Madagascar"
+          }
+        }
+      }
+    },
+    "country_name_mw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Malawi"
+          }
+        }
+      }
+    },
+    "country_name_my": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Malaysia"
+          }
+        }
+      }
+    },
+    "country_name_mv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maldives"
+          }
+        }
+      }
+    },
+    "country_name_ml": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mali"
+          }
+        }
+      }
+    },
+    "country_name_mt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Malta"
+          }
+        }
+      }
+    },
+    "country_name_mh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marshall Islands"
+          }
+        }
+      }
+    },
+    "country_name_mq": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Martinique"
+          }
+        }
+      }
+    },
+    "country_name_mr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mauritania"
+          }
+        }
+      }
+    },
+    "country_name_mu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mauritius"
+          }
+        }
+      }
+    },
+    "country_name_yt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mayotte"
+          }
+        }
+      }
+    },
+    "country_name_mx": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mexico"
+          }
+        }
+      }
+    },
+    "country_name_fm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micronesia, Federated States of"
+          }
+        }
+      }
+    },
+    "country_name_md": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moldova"
+          }
+        }
+      }
+    },
+    "country_name_mc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monaco"
+          }
+        }
+      }
+    },
+    "country_name_mn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mongolia"
+          }
+        }
+      }
+    },
+    "country_name_me": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montenegro"
+          }
+        }
+      }
+    },
+    "country_name_ms": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montserrat"
+          }
+        }
+      }
+    },
+    "country_name_ma": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morocco"
+          }
+        }
+      }
+    },
+    "country_name_mz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mozambique"
+          }
+        }
+      }
+    },
+    "country_name_mm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Myanmar"
+          }
+        }
+      }
+    },
+    "country_name_na": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Namibia"
+          }
+        }
+      }
+    },
+    "country_name_nr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nauru"
+          }
+        }
+      }
+    },
+    "country_name_np": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nepal"
+          }
+        }
+      }
+    },
+    "country_name_nl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Netherlands"
+          }
+        }
+      }
+    },
+    "country_name_nc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Caledonia"
+          }
+        }
+      }
+    },
+    "country_name_nz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Zealand"
+          }
+        }
+      }
+    },
+    "country_name_ni": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicaragua"
+          }
+        }
+      }
+    },
+    "country_name_ne": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niger"
+          }
+        }
+      }
+    },
+    "country_name_ng": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nigeria"
+          }
+        }
+      }
+    },
+    "country_name_nu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niue"
+          }
+        }
+      }
+    },
+    "country_name_nf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Norfolk Island"
+          }
+        }
+      }
+    },
+    "country_name_mk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "North Macedonia"
+          }
+        }
+      }
+    },
+    "country_name_mp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Northern Mariana Islands"
+          }
+        }
+      }
+    },
+    "country_name_no": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Norway"
+          }
+        }
+      }
+    },
+    "country_name_om": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oman"
+          }
+        }
+      }
+    },
+    "country_name_pk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pakistan"
+          }
+        }
+      }
+    },
+    "country_name_pw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palau"
+          }
+        }
+      }
+    },
+    "country_name_ps": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palestine"
+          }
+        }
+      }
+    },
+    "country_name_pa": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panama"
+          }
+        }
+      }
+    },
+    "country_name_pg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Papua New Guinea"
+          }
+        }
+      }
+    },
+    "country_name_py": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paraguay"
+          }
+        }
+      }
+    },
+    "country_name_pe": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peru"
+          }
+        }
+      }
+    },
+    "country_name_ph": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Philippines"
+          }
+        }
+      }
+    },
+    "country_name_pn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pitcairn"
+          }
+        }
+      }
+    },
+    "country_name_pl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poland"
+          }
+        }
+      }
+    },
+    "country_name_pt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portugal"
+          }
+        }
+      }
+    },
+    "country_name_pr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puerto Rico"
+          }
+        }
+      }
+    },
+    "country_name_qa": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qatar"
+          }
+        }
+      }
+    },
+    "country_name_ro": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Romania"
+          }
+        }
+      }
+    },
+    "country_name_ru": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Russia"
+          }
+        }
+      }
+    },
+    "country_name_rw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rwanda"
+          }
+        }
+      }
+    },
+    "country_name_re": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunion"
+          }
+        }
+      }
+    },
+    "country_name_bl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saint Barthélemy"
+          }
+        }
+      }
+    },
+    "country_name_sh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saint Helena, Ascension and Tristan da Cunha"
+          }
+        }
+      }
+    },
+    "country_name_kn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saint Kitts and Nevis"
+          }
+        }
+      }
+    },
+    "country_name_lc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saint Lucia"
+          }
+        }
+      }
+    },
+    "country_name_mf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saint Martin (French part)"
+          }
+        }
+      }
+    },
+    "country_name_pm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saint Pierre and Miquelon"
+          }
+        }
+      }
+    },
+    "country_name_vc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saint Vincent and the Grenadines"
+          }
+        }
+      }
+    },
+    "country_name_ws": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samoa"
+          }
+        }
+      }
+    },
+    "country_name_sm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "San Marino"
+          }
+        }
+      }
+    },
+    "country_name_st": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sao Tome and Principe"
+          }
+        }
+      }
+    },
+    "country_name_sa": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saudi Arabia"
+          }
+        }
+      }
+    },
+    "country_name_sn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senegal"
+          }
+        }
+      }
+    },
+    "country_name_rs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Serbia"
+          }
+        }
+      }
+    },
+    "country_name_sc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seychelles"
+          }
+        }
+      }
+    },
+    "country_name_sl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sierra Leone"
+          }
+        }
+      }
+    },
+    "country_name_sg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Singapore"
+          }
+        }
+      }
+    },
+    "country_name_sx": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sint Maarten (Dutch part)"
+          }
+        }
+      }
+    },
+    "country_name_sk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slovakia"
+          }
+        }
+      }
+    },
+    "country_name_si": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Slovenia"
+          }
+        }
+      }
+    },
+    "country_name_sb": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solomon Islands"
+          }
+        }
+      }
+    },
+    "country_name_so": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Somalia"
+          }
+        }
+      }
+    },
+    "country_name_za": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "South Africa"
+          }
+        }
+      }
+    },
+    "country_name_gs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "South Georgia and the South Sandwich Islands"
+          }
+        }
+      }
+    },
+    "country_name_ss": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "South Sudan"
+          }
+        }
+      }
+    },
+    "country_name_es": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spain"
+          }
+        }
+      }
+    },
+    "country_name_lk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sri Lanka"
+          }
+        }
+      }
+    },
+    "country_name_sd": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sudan"
+          }
+        }
+      }
+    },
+    "country_name_sr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suriname"
+          }
+        }
+      }
+    },
+    "country_name_sj": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Svalbard and Jan Mayen"
+          }
+        }
+      }
+    },
+    "country_name_se": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sweden"
+          }
+        }
+      }
+    },
+    "country_name_ch": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switzerland"
+          }
+        }
+      }
+    },
+    "country_name_sy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syria"
+          }
+        }
+      }
+    },
+    "country_name_tw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taiwan"
+          }
+        }
+      }
+    },
+    "country_name_tj": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tajikistan"
+          }
+        }
+      }
+    },
+    "country_name_tz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tanzania"
+          }
+        }
+      }
+    },
+    "country_name_th": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thailand"
+          }
+        }
+      }
+    },
+    "country_name_tl": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timor-Leste"
+          }
+        }
+      }
+    },
+    "country_name_tg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Togo"
+          }
+        }
+      }
+    },
+    "country_name_tk": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tokelau"
+          }
+        }
+      }
+    },
+    "country_name_to": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tonga"
+          }
+        }
+      }
+    },
+    "country_name_tt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trinidad and Tobago"
+          }
+        }
+      }
+    },
+    "country_name_tn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tunisia"
+          }
+        }
+      }
+    },
+    "country_name_tm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turkmenistan"
+          }
+        }
+      }
+    },
+    "country_name_tc": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turks and Caicos Islands"
+          }
+        }
+      }
+    },
+    "country_name_tv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuvalu"
+          }
+        }
+      }
+    },
+    "country_name_tr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Türkiye"
+          }
+        }
+      }
+    },
+    "country_name_ug": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uganda"
+          }
+        }
+      }
+    },
+    "country_name_ua": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukraine"
+          }
+        }
+      }
+    },
+    "country_name_ae": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "United Arab Emirates"
+          }
+        }
+      }
+    },
+    "country_name_gb": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "United Kingdom"
+          }
+        }
+      }
+    },
+    "country_name_us": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "United States"
+          }
+        }
+      }
+    },
+    "country_name_um": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "United States Minor Outlying Islands"
+          }
+        }
+      }
+    },
+    "country_name_uy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uruguay"
+          }
+        }
+      }
+    },
+    "country_name_uz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uzbekistan"
+          }
+        }
+      }
+    },
+    "country_name_vu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vanuatu"
+          }
+        }
+      }
+    },
+    "country_name_ve": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Venezuela"
+          }
+        }
+      }
+    },
+    "country_name_vn": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vietnam"
+          }
+        }
+      }
+    },
+    "country_name_vg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virgin Islands, British"
+          }
+        }
+      }
+    },
+    "country_name_vi": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Virgin Islands, U.S."
+          }
+        }
+      }
+    },
+    "country_name_wf": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallis and Futuna"
+          }
+        }
+      }
+    },
+    "country_name_eh": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Western Sahara"
+          }
+        }
+      }
+    },
+    "country_name_ye": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yemen"
+          }
+        }
+      }
+    },
+    "country_name_zm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zambia"
+          }
+        }
+      }
+    },
+    "country_name_zw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zimbabwe"
+          }
+        }
+      }
+    },
+    "country_name_ax": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Åland Islands"
+          }
+        }
+      }
+    },
+    "level_number": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Level %1d"
+          }
+        }
+      }
+    },
+    "rp_value": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d RP"
+          }
+        }
+      }
+    },
+    "rp_signed_value": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s%2d RP"
+          }
+        }
+      }
+    },
+    "rp_above_master_i": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d RP above Master I"
+          }
+        }
+      }
+    },
+    "rp_progress_fraction": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d/%2d RP"
+          }
+        }
+      }
+    },
+    "rp_to_rank": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d RP to %2s"
+          }
+        }
+      }
+    },
+    "global_upper": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GLOBAL"
+          }
+        }
+      }
+    },
+    "visible_rp_rank_info": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Visible RP determines your displayed rank. Matchmaking skill stays hidden."
+          }
+        }
+      }
+    },
+    "rank_win_rate_line": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s · %2d% wins"
+          }
+        }
+      }
+    },
+    "you_upper": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YOU"
+          }
+        }
+      }
+    },
+    "loading_player_rankings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading player rankings…"
+          }
+        }
+      }
+    },
+    "opponent_search": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opponent search"
+          }
+        }
+      }
+    },
+    "opponent_search_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We look for an available player close to your competitive level. Keep this screen open while matchmaking is active."
+          }
+        }
+      }
+    },
+    "matchmaking_info": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Matchmaking info"
+          }
+        }
+      }
+    },
+    "searching_for_opponent_multiline": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching\nfor opponent"
+          }
+        }
+      }
+    },
+    "vs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VS"
+          }
+        }
+      }
+    },
+    "rank_points_auto_update": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rank Points will update automatically."
+          }
+        }
+      }
+    },
+    "rank_points": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rank Points"
+          }
+        }
+      }
+    },
+    "leave_penalty_rp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Includes -%1d RP leave penalty."
+          }
+        }
+      }
+    },
+    "repeat_opponent_no_rp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repeat-opponent protection: no farmable RP this match."
+          }
+        }
+      }
+    },
+    "repeat_opponent_reduced_rp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repeat-opponent protection reduced positive RP."
+          }
+        }
+      }
+    },
+    "rematch_request_seconds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s wants a rematch · %2ds"
+          }
+        }
+      }
+    },
+    "second_confirmation_required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A second confirmation is required."
+          }
+        }
+      }
+    },
+    "seconds_value": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d s"
+          }
+        }
+      }
+    },
+    "leave_ready_room_question": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave ready room?"
+          }
+        }
+      }
+    },
+    "leave_ready_room_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You will leave this duel room. The match will not start from this screen."
+          }
+        }
+      }
+    },
+    "leave_room": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave room"
+          }
+        }
+      }
+    },
+    "opponent_found": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opponent found"
+          }
+        }
+      }
+    },
+    "ready_upper": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "READY"
+          }
+        }
+      }
+    },
+    "match_found": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match found"
+          }
+        }
+      }
+    },
+    "opponent_ready_confirm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s is ready. Confirm when you are ready."
+          }
+        }
+      }
+    },
+    "opponent_matched_near_level": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s matched near your competitive level."
+          }
+        }
+      }
+    },
+    "waiting_both_players": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for both players to confirm"
+          }
+        }
+      }
+    },
+    "players_ready_count": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d/2 players ready"
+          }
+        }
+      }
+    },
+    "ready_room_options": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "READY ROOM OPTIONS"
+          }
+        }
+      }
+    },
+    "leave_ready_room": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave ready room"
+          }
+        }
+      }
+    },
+    "competitive_progression": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Competitive progression"
+          }
+        }
+      }
+    },
+    "platform_global_compete_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compete with the best players worldwide"
+          }
+        }
+      }
+    },
+    "achievement_highlights_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View your highlights and milestones"
+          }
+        }
+      }
+    },
+    "social_services_init_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Social services could not be initialized. Please try again."
+          }
+        }
+      }
+    },
+    "wants_rematch": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "wants a rematch"
+          }
+        }
+      }
+    },
+    "coin_fee_each_player": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d Coin from each player"
+          }
+        }
+      }
+    },
+    "profile_style": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profile style"
+          }
+        }
+      }
+    },
+    "profile_style_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatar, rank frame, badges and country"
+          }
+        }
+      }
+    },
+    "quick_emotes_profile_subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose and order your 8 quick duel emotes"
+          }
+        }
+      }
+    },
+    "rank_points_division_progress": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rank Points and division progress"
+          }
+        }
+      }
+    },
+    "native_platform_services": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Native platform services"
+          }
+        }
+      }
+    },
+    "profile_avatar_count": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d avatars"
+          }
+        }
+      }
+    },
+    "quick_emote_slots_count": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d slots"
+          }
+        }
+      }
+    },
+    "play_games_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play Games"
+          }
+        }
+      }
+    },
+    "profile_badge_policy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rank frames and achievement badges are earned, not purchased. You can equip up to 3 earned badges on your frame. %1d/3 badge slots are currently in use."
+          }
+        }
+      }
+    },
+    "player_id_copied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Player ID copied"
+          }
+        }
+      }
+    },
+    "ranked_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ranked"
+          }
+        }
+      }
+    },
+    "wins_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wins"
+          }
+        }
+      }
+    },
+    "best_streak": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Best streak"
+          }
+        }
+      }
+    },
+    "best_unbeaten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Best unbeaten"
+          }
+        }
+      }
+    },
+    "unranked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unranked"
+          }
+        }
+      }
+    },
+    "games_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Games"
+          }
+        }
+      }
+    },
+    "last_played": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last played"
+          }
+        }
+      }
+    },
+    "all_caught_up": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All caught up"
+          }
+        }
+      }
+    },
+    "find_players": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find players"
+          }
+        }
+      }
+    },
+    "no_friends_yet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No friends yet"
+          }
+        }
+      }
+    },
+    "no_friends_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add friends to challenge, compare scores and climb the ranks together."
+          }
+        }
+      }
+    },
+    "find_friends": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find friends"
+          }
+        }
+      }
+    },
+    "no_recent_opponents": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No recent opponents"
+          }
+        }
+      }
+    },
+    "no_active_challenges": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No active challenges"
+          }
+        }
+      }
+    },
+    "incoming_challenges_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incoming duel challenges will appear here."
+          }
+        }
+      }
+    },
+    "view_challenge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View challenge"
+          }
+        }
+      }
+    },
+    "search_username_friend_id": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search username or Friend ID"
+          }
+        }
+      }
+    },
+    "view": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View"
+          }
+        }
+      }
+    },
+    "achievement_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Achievements"
+          }
+        }
+      }
+    },
+    "rank_points_short": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RP"
+          }
+        }
+      }
+    },
+    "online_challenges_channel_name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online challenges"
+          }
+        }
+      }
+    },
+    "online_challenges_channel_description": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitations and updates for online Sudoku challenges and rematches."
+          }
+        }
+      }
+    },
+    "push_challenge_accepted_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Challenge accepted"
+          }
+        }
+      }
+    },
+    "push_challenge_accepted_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your opponent accepted. The duel room is ready."
+          }
+        }
+      }
+    },
+    "push_challenge_declined_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Challenge declined"
+          }
+        }
+      }
+    },
+    "push_challenge_declined_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your opponent declined the Sudoku challenge."
+          }
+        }
+      }
+    },
+    "push_challenge_cancelled_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Challenge cancelled"
+          }
+        }
+      }
+    },
+    "push_challenge_cancelled_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The pending Sudoku challenge was cancelled."
+          }
+        }
+      }
+    },
+    "push_challenge_updated_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Challenge updated"
+          }
+        }
+      }
+    },
+    "push_challenge_updated_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Sudoku challenge status changed."
+          }
+        }
+      }
+    },
+    "push_friend_request_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New friend request"
+          }
+        }
+      }
+    },
+    "push_friend_request_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A player sent you a friend request."
+          }
+        }
+      }
+    },
+    "push_friend_accepted_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend request accepted"
+          }
+        }
+      }
+    },
+    "push_friend_accepted_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your friend request was accepted."
+          }
+        }
+      }
+    },
+    "push_friend_declined_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend request declined"
+          }
+        }
+      }
+    },
+    "push_friend_declined_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your friend request was declined."
+          }
+        }
+      }
+    },
+    "push_friend_updated_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Friend request updated"
+          }
+        }
+      }
+    },
+    "push_friend_updated_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your friend request was updated."
+          }
+        }
+      }
+    },
+    "push_rematch_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rematch invitation"
+          }
+        }
+      }
+    },
+    "push_rematch_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A player wants to play again. Open Sudoku Duel to respond."
+          }
+        }
+      }
+    },
+    "push_challenge_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Sudoku challenge"
+          }
+        }
+      }
+    },
+    "push_challenge_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A player challenged you. Open Sudoku Duel to respond."
+          }
+        }
+      }
+    },
+    "push_online_invitation_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Online invitation"
+          }
+        }
+      }
+    },
+    "push_online_invitation_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Sudoku Duel to continue."
+          }
+        }
+      }
+    },
+    "notification_setup_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification setup failed. Please try again."
+          }
+        }
+      }
+    },
+    "notification_permission_denied": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification permission was denied."
+          }
+        }
+      }
+    },
+    "notification_token_unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification registration is temporarily unavailable."
+          }
+        }
+      }
+    },
+    "notification_registration_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification registration failed. Please try again."
+          }
+        }
+      }
+    },
+    "rank_emblem_semantics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s rank emblem"
+          }
+        }
+      }
+    },
+    "reminder_opener_01": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your next Sudoku is waiting."
+          }
+        }
+      }
+    },
+    "reminder_opener_02": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A fresh grid just challenged you."
+          }
+        }
+      }
+    },
+    "reminder_opener_03": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your brain deserves a quick workout."
+          }
+        }
+      }
+    },
+    "reminder_opener_04": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The board is ready when you are."
+          }
+        }
+      }
+    },
+    "reminder_opener_05": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A new puzzle wants your attention."
+          }
+        }
+      }
+    },
+    "reminder_opener_06": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today’s logic challenge has arrived."
+          }
+        }
+      }
+    },
+    "reminder_opener_07": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your next winning streak starts here."
+          }
+        }
+      }
+    },
+    "reminder_opener_08": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One clever move can change the board."
+          }
+        }
+      }
+    },
+    "reminder_opener_09": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Sudoku arena is calling."
+          }
+        }
+      }
+    },
+    "reminder_opener_10": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A quiet challenge is ready for you."
+          }
+        }
+      }
+    },
+    "reminder_opener_11": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your daily focus break is here."
+          }
+        }
+      }
+    },
+    "reminder_opener_12": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another puzzle is ready to be conquered."
+          }
+        }
+      }
+    },
+    "reminder_challenge_01": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can you finish without a single mistake?"
+          }
+        }
+      }
+    },
+    "reminder_challenge_02": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can you beat your latest performance?"
+          }
+        }
+      }
+    },
+    "reminder_challenge_03": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try a harder difficulty this time."
+          }
+        }
+      }
+    },
+    "reminder_challenge_04": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See how far pure logic can take you."
+          }
+        }
+      }
+    },
+    "reminder_challenge_05": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect your three-mistake limit."
+          }
+        }
+      }
+    },
+    "reminder_challenge_06": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Build a cleaner winning streak today."
+          }
+        }
+      }
+    },
+    "reminder_challenge_07": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find the first hidden number now."
+          }
+        }
+      }
+    },
+    "reminder_challenge_08": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Challenge yourself before someone else does."
+          }
+        }
+      }
+    },
+    "reminder_challenge_09": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prove that this grid cannot stop you."
+          }
+        }
+      }
+    },
+    "reminder_challenge_10": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn a few focused minutes into a win."
+          }
+        }
+      }
+    },
+    "reminder_challenge_11": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solve one row and let momentum take over."
+          }
+        }
+      }
+    },
+    "reminder_challenge_12": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show the board who is in control."
+          }
+        }
+      }
+    },
+    "reminder_closer_01": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Sudoku Duel and take the first move."
+          }
+        }
+      }
+    },
+    "reminder_closer_02": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your next victory may be one tap away."
+          }
+        }
+      }
+    },
+    "reminder_closer_03": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start now and keep your streak alive."
+          }
+        }
+      }
+    },
+    "reminder_closer_04": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The challenge only begins when you open it."
+          }
+        }
+      }
+    },
+    "reminder_closer_05": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A focused minute is all you need to begin."
+          }
+        }
+      }
+    },
+    "reminder_closer_06": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Step into the grid and prove it."
+          }
+        }
+      }
+    },
+    "reminder_closer_07": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play now before the puzzle wins by default."
+          }
+        }
+      }
+    },
+    "reminder_closer_08": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap in and claim today’s challenge."
+          }
+        }
+      }
+    },
+    "leaderboard_server_unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leaderboard server is unavailable."
+          }
+        }
+      }
+    },
+    "no_ranked_players_yet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No ranked players yet."
+          }
+        }
+      }
+    },
+    "leaderboard_offline_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your current rank remains visible locally. Pull down or tap refresh after the backend reconnects."
+          }
+        }
+      }
+    },
+    "leaderboard_empty_ranked_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete a ranked duel to enter the RP leaderboard."
+          }
+        }
+      }
+    },
+    "matchmaking_cancelling_search": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelling search..."
+          }
+        }
+      }
+    },
+    "matchmaking_searching_opponent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching for opponent..."
+          }
+        }
+      }
+    },
+    "matchmaking_looking_near_rank": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Looking for a player near your rank"
+          }
+        }
+      }
+    },
+    "matchmaking_leaving_queue": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leaving the matchmaking queue..."
+          }
+        }
+      }
+    },
+    "matchmaking_preparing_duel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing the duel..."
+          }
+        }
+      }
+    },
+    "matchmaking_may_take_seconds": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This may take a few seconds."
+          }
+        }
+      }
+    },
+    "matchmaking_tip": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tip:"
+          }
+        }
+      }
+    },
+    "matchmaking_keep_open": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep this screen open while we search."
+          }
+        }
+      }
+    },
+    "syncing_your_move": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syncing your move"
+          }
+        }
+      }
+    },
+    "make_your_move": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make your move"
+          }
+        }
+      }
+    },
+    "waiting_for_opponent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for opponent"
+          }
+        }
+      }
+    },
+    "rp_unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— RP"
+          }
+        }
+      }
+    },
+    "ranked_top_division_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You are at the top division. Keep playing ranked duels to build your peak RP and leaderboard position."
+          }
+        }
+      }
+    },
+    "ranked_next_division_body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d RP until %2s. Ranked duels change your visible RP and determine your competitive division."
+          }
+        }
+      }
+    },
+    "not_configured": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not configured"
+          }
+        }
+      }
+    },
+    "checking_connection": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking connection"
+          }
+        }
+      }
+    },
+    "game_center": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Game Center"
+          }
+        }
+      }
+    },
+    "google_play_games": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google Play Games"
+          }
+        }
+      }
+    },
+    "platform_connects_on_open": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connects when a feature is opened"
+          }
+        }
+      }
+    },
+    "rank_name_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s rank"
+          }
+        }
+      }
+    },
+    "your_turn_make_move_compact": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YOUR TURN · Make your move"
+          }
+        }
+      }
+    },
+    "opponent_turn_waiting_compact": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OPPONENT’S TURN · Waiting…"
           }
         }
       }

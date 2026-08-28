@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../localization/app_strings.dart';
 
 import '../../models/rank_identity_models.dart';
 import '../../widgets/player_avatar.dart';
@@ -320,8 +321,8 @@ class _PublicIdPill extends StatelessWidget {
               ScaffoldMessenger.of(context)
                 ..hideCurrentSnackBar()
                 ..showSnackBar(
-                  const SnackBar(
-                    content: Text('Player ID copied'),
+                  SnackBar(
+                    content: Text(context.tr('player_id_copied')),
                     duration: Duration(milliseconds: 900),
                   ),
                 );
@@ -390,7 +391,7 @@ class _RpHighlight extends StatelessWidget {
           const SizedBox(width: 7),
           Flexible(
             child: Text(
-              '${profile.rankPoints} RP',
+              context.tr('rp_value', <Object>[profile.rankPoints]),
               maxLines: 1,
               overflow: TextOverflow.fade,
               softWrap: false,
@@ -430,7 +431,9 @@ class _RankShowcase extends StatelessWidget {
           RankEmblem(
             rankKey: profile.rankKey,
             size: 49,
-            semanticLabel: '${profile.rankName} rank',
+            semanticLabel: context.tr('rank_name_label', <Object>[
+              profile.rankName,
+            ]),
           ),
           const SizedBox(height: 4),
           Text(
@@ -478,8 +481,13 @@ class _ProgressStrip extends StatelessWidget {
             Expanded(
               child: Text(
                 profile.divisionSize == null
-                    ? '${profile.pointsInDivision} RP above Master I'
-                    : '${profile.pointsInDivision}/${profile.divisionSize} RP',
+                    ? context.tr('rp_above_master_i', <Object>[
+                        profile.pointsInDivision,
+                      ])
+                    : context.tr('rp_progress_fraction', <Object>[
+                        profile.pointsInDivision,
+                        profile.divisionSize ?? 0,
+                      ]),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -493,8 +501,11 @@ class _ProgressStrip extends StatelessWidget {
             Expanded(
               child: Text(
                 next == null
-                    ? 'Top rank'
-                    : '${profile.pointsToNext ?? 0} RP to $next',
+                    ? context.tr('top_rank')
+                    : context.tr('rp_to_rank', <Object>[
+                        profile.pointsToNext ?? 0,
+                        next,
+                      ]),
                 maxLines: 1,
                 textAlign: TextAlign.end,
                 overflow: TextOverflow.ellipsis,
@@ -539,7 +550,7 @@ class _CompactMetricGrid extends StatelessWidget {
               child: _MetricChip(
                 asset: 'assets/profile/ranked.png',
                 value: '$ranked',
-                label: 'Ranked',
+                label: context.tr('ranked_label'),
                 accent: accent,
               ),
             ),
@@ -548,7 +559,7 @@ class _CompactMetricGrid extends StatelessWidget {
               child: _MetricChip(
                 asset: 'assets/profile/wins.png',
                 value: '$wins',
-                label: 'Wins',
+                label: context.tr('wins_label'),
                 accent: accent,
               ),
             ),
@@ -557,7 +568,7 @@ class _CompactMetricGrid extends StatelessWidget {
               child: _MetricChip(
                 asset: 'assets/profile/winrate.png',
                 value: '$winRate%',
-                label: 'Win rate',
+                label: context.tr('win_rate'),
                 accent: accent,
               ),
             ),
@@ -570,7 +581,7 @@ class _CompactMetricGrid extends StatelessWidget {
               child: _MetricChip(
                 asset: 'assets/profile/beststreake.png',
                 value: '$bestStreak',
-                label: 'Best streak',
+                label: context.tr('best_streak'),
                 accent: accent,
               ),
             ),
@@ -579,7 +590,7 @@ class _CompactMetricGrid extends StatelessWidget {
               child: _MetricChip(
                 asset: 'assets/profile/bestunbeaten.png',
                 value: '$bestUnbeaten',
-                label: 'Best unbeaten',
+                label: context.tr('best_unbeaten'),
                 accent: accent,
               ),
             ),
@@ -621,11 +632,8 @@ class _MetricChip extends StatelessWidget {
             height: 23,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.medium,
-            errorBuilder: (_, _, _) => Icon(
-              Icons.auto_awesome_rounded,
-              size: 19,
-              color: accent,
-            ),
+            errorBuilder: (_, _, _) =>
+                Icon(Icons.auto_awesome_rounded, size: 19, color: accent),
           ),
           const SizedBox(width: 6),
           Expanded(
@@ -714,7 +722,10 @@ class _GlowOrb extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color.withValues(alpha: opacity), Colors.transparent],
+          colors: [
+            color.withValues(alpha: opacity),
+            Colors.transparent,
+          ],
         ),
       ),
     );

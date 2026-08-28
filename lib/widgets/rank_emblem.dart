@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../localization/app_strings.dart';
 import '../models/rank_identity_models.dart';
 
 /// Official competitive rank artwork shipped with the app.
@@ -55,10 +56,7 @@ class RankEmblem extends StatelessWidget {
   Widget build(BuildContext context) {
     final tier = rankTierForKey(rankKey);
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-    final decodedSize = (size * devicePixelRatio)
-        .ceil()
-        .clamp(64, 512)
-        .toInt();
+    final decodedSize = (size * devicePixelRatio).ceil().clamp(64, 512).toInt();
 
     return SizedBox.square(
       dimension: size,
@@ -72,7 +70,11 @@ class RankEmblem extends StatelessWidget {
         gaplessPlayback: true,
         cacheWidth: decodedSize,
         cacheHeight: decodedSize,
-        semanticLabel: semanticLabel ?? '${tier.label} rank emblem',
+        semanticLabel:
+            semanticLabel ??
+            context.tr('rank_emblem_semantics', <Object>[
+              context.tr('rank_${tier.key}'),
+            ]),
       ),
     );
   }

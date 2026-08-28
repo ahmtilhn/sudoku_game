@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/user_safe_error.dart';
+import '../../localization/app_strings.dart';
 import '../../models/avatar_preset_catalog.dart';
 import '../../models/country_catalog.dart';
 import '../../models/rank_identity_fallback.dart';
@@ -80,8 +81,8 @@ class _ProfileCustomizationScreenState
       }(),
       () async {
         try {
-          loadedCountry =
-              await RankIdentityService.instance.loadCountryPreference();
+          loadedCountry = await RankIdentityService.instance
+              .loadCountryPreference();
         } catch (error) {
           firstError ??= error;
         }
@@ -107,10 +108,8 @@ class _ProfileCustomizationScreenState
     if (_saving) return;
     if (!_serverReady) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Profile server is unavailable. Preview is local until reconnect.',
-          ),
+        SnackBar(
+          content: Text(context.tr('profile_server_unavailable_preview')),
         ),
       );
       return;
@@ -140,7 +139,7 @@ class _ProfileCustomizationScreenState
         _countryFlagVisible = country.flagVisible;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile settings saved.')),
+        SnackBar(content: Text(context.tr('profile_settings_saved'))),
       );
     } catch (error) {
       if (!mounted) return;
@@ -171,10 +170,10 @@ class _ProfileCustomizationScreenState
                       child: Column(
                         children: [
                           InPageHeader(
-                            title: 'Profile customization',
+                            title: context.tr('profile_customization'),
                             actions: [
                               IconButton(
-                                tooltip: 'Refresh profile',
+                                tooltip: context.tr('refresh_profile'),
                                 onPressed: _hydrating ? null : _hydrate,
                                 icon: _hydrating
                                     ? const SizedBox.square(
@@ -202,7 +201,7 @@ class _ProfileCustomizationScreenState
                             _OfflineNotice(
                               message:
                                   _error ??
-                                  'Online profile is reconnecting. All profile options remain previewable.',
+                                  context.tr('profile_reconnecting_preview'),
                               busy: _hydrating,
                               onRetry: _hydrate,
                             ),
@@ -221,38 +220,38 @@ class _ProfileCustomizationScreenState
                               tabAlignment: TabAlignment.fill,
                               labelPadding: EdgeInsets.zero,
                               tabs: [
-                                const Tab(
+                                Tab(
                                   icon: _CustomizationTabIcon(
                                     assetPath:
                                         'assets/profilecustomization/avatars.png',
                                   ),
-                                  text: 'Avatars',
+                                  text: context.tr('avatars'),
                                 ),
-                                const Tab(
+                                Tab(
                                   icon: _CustomizationTabIcon(
                                     assetPath:
                                         'assets/profilecustomization/framers.png',
                                   ),
-                                  text: 'Frames',
+                                  text: context.tr('frames'),
                                 ),
-                                const Tab(
+                                Tab(
                                   icon: _CustomizationTabIcon(
                                     assetPath:
                                         'assets/profilecustomization/badges.png',
                                   ),
-                                  text: 'Badges',
+                                  text: context.tr('badges'),
                                 ),
                                 if (_showTitles)
-                                  const Tab(
+                                  Tab(
                                     icon: Icon(Icons.title_rounded),
-                                    text: 'Titles',
+                                    text: context.tr('titles'),
                                   ),
-                                const Tab(
+                                Tab(
                                   icon: _CustomizationTabIcon(
                                     assetPath:
                                         'assets/profilecustomization/country.png',
                                   ),
-                                  text: 'Country',
+                                  text: context.tr('country'),
                                 ),
                               ],
                             ),
@@ -294,9 +293,8 @@ class _ProfileCustomizationScreenState
                             flagVisible: _countryFlagVisible,
                             onCountryChanged: (code) =>
                                 setState(() => _countryCode = code),
-                            onVisibilityChanged: (value) => setState(
-                              () => _countryFlagVisible = value,
-                            ),
+                            onVisibilityChanged: (value) =>
+                                setState(() => _countryFlagVisible = value),
                           ),
                         ],
                       ),
@@ -324,7 +322,7 @@ class _ProfileCustomizationScreenState
       }
       if (_achievementIds.length >= 3) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You can equip up to 3 frame badges.')),
+          SnackBar(content: Text(context.tr('max_three_frame_badges'))),
         );
         return;
       }
@@ -420,7 +418,7 @@ class _PreviewCard extends StatelessWidget {
                       Text(
                         flag,
                         style: const TextStyle(fontSize: 18, height: 1),
-                        semanticsLabel: 'Country flag',
+                        semanticsLabel: context.tr('country_flag'),
                       ),
                       const SizedBox(width: 6),
                     ],
@@ -440,7 +438,10 @@ class _PreviewCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${profile.rankName} · ${profile.rankPoints} RP',
+                  context.tr('rank_points_format', <Object>[
+                    profile.rankName,
+                    profile.rankPoints,
+                  ]),
                   style: const TextStyle(
                     color: Color(0xFF66C7FF),
                     fontWeight: FontWeight.w900,
@@ -449,7 +450,7 @@ class _PreviewCard extends StatelessWidget {
                 if (title != null) ...[
                   const SizedBox(height: 3),
                   Text(
-                    title,
+                    context.tr(title),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .62),
                       fontSize: 12,
@@ -545,13 +546,15 @@ class _AvatarTab extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       PlayerAvatar(
-                        displayName: 'Sudoku Player',
+                        displayName: context.tr('sudoku_player'),
                         avatarKey: avatar.key,
                         radius: 27,
                       ),
                       const SizedBox(height: 7),
                       Text(
-                        avatar.label,
+                        context.tr('avatar_number', <Object>[
+                          avatar.number.toString().padLeft(2, '0'),
+                        ]),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
@@ -604,9 +607,10 @@ class _FrameTab extends StatelessWidget {
         if (index == 0) {
           return _InfoCard(
             icon: Icons.paid_rounded,
-            title: '${profile.totalLifetimeRankReward} lifetime Rank Coins',
-            body:
-                'Every division has its own frame. Rank rewards are first-time-only and cannot be farmed by dropping and climbing again.',
+            title: context.tr('lifetime_rank_coins', <Object>[
+              profile.totalLifetimeRankReward,
+            ]),
+            body: context.tr('rank_frames_info'),
           );
         }
 
@@ -654,7 +658,7 @@ class _FrameTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          auto ? 'Auto · current rank' : tier.label,
+                          auto ? context.tr('auto_current_rank') : tier.label,
                           style: TextStyle(
                             color: unlocked
                                 ? Colors.white
@@ -666,10 +670,14 @@ class _FrameTab extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           auto
-                              ? 'Frame follows your current rank automatically.'
+                              ? context.tr('frame_follows_current_rank')
                               : unlocked
-                              ? 'Permanently unlocked at ${tier.minPoints} RP.'
-                              : 'Unlock by reaching ${tier.minPoints} RP.',
+                              ? context.tr('permanently_unlocked_rp', <Object>[
+                                  tier.minPoints,
+                                ])
+                              : context.tr('unlock_reaching_rp', <Object>[
+                                  tier.minPoints,
+                                ]),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: .48),
                             fontSize: 11,
@@ -726,11 +734,10 @@ class _DecorationTab extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index == 0) {
-          return const _InfoCard(
+          return _InfoCard(
             icon: Icons.workspace_premium_rounded,
-            title: '3 achievement slots',
-            body:
-                'Earned badges can be attached directly to your frame. Locked badges stay visible here so you always know what can be earned.',
+            title: context.tr('three_achievement_slots'),
+            body: context.tr('achievement_badges_info'),
           );
         }
 
@@ -778,7 +785,7 @@ class _DecorationTab extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                decoration.title,
+                                context.tr(decoration.title),
                                 style: TextStyle(
                                   color: enabled
                                       ? Colors.white
@@ -792,7 +799,7 @@ class _DecorationTab extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          decoration.description,
+                          context.tr(decoration.description),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -844,7 +851,7 @@ class _TitleTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final options = <RankTitleOption>[
-      const RankTitleOption(key: '', label: 'No title'),
+      const RankTitleOption(key: '', label: 'no_title'),
       ...profile.unlockedTitles,
     ];
 
@@ -855,11 +862,10 @@ class _TitleTab extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index == 0) {
-          return const _InfoCard(
+          return _InfoCard(
             icon: Icons.title_rounded,
-            title: 'Prestige titles',
-            body:
-                'Master and Master I titles are permanent account unlocks. Your actual current rank is always shown separately.',
+            title: context.tr('prestige_titles'),
+            body: context.tr('prestige_titles_info'),
           );
         }
 
@@ -887,17 +893,14 @@ class _TitleTab extends StatelessWidget {
                 : Colors.white.withValues(alpha: .55),
           ),
           title: Text(
-            option.label,
+            context.tr(option.label),
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w900,
             ),
           ),
           trailing: selected
-              ? const Icon(
-                  Icons.check_circle_rounded,
-                  color: Color(0xFFD9A5FF),
-                )
+              ? const Icon(Icons.check_circle_rounded, color: Color(0xFFD9A5FF))
               : null,
         );
       },
@@ -925,11 +928,10 @@ class _CountryTab extends StatelessWidget {
       key: const PageStorageKey<String>('profile-country-list'),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
-        const _InfoCard(
+        _InfoCard(
           icon: Icons.public_rounded,
-          title: 'Country flag',
-          body:
-              'Choose the country you want to represent. It appears before your name in Ranked Ladder and is never inferred from your location.',
+          title: context.tr('country_flag'),
+          body: context.tr('country_flag_info'),
         ),
         const SizedBox(height: 10),
         Material(
@@ -960,7 +962,11 @@ class _CountryTab extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          selected?.name ?? 'Choose country',
+                          selected == null
+                              ? context.tr('choose_country')
+                              : context.tr(
+                                  'country_name_${selected.code.toLowerCase()}',
+                                ),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
@@ -970,8 +976,8 @@ class _CountryTab extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           selected == null
-                              ? 'No country flag will be shown until you choose one.'
-                              : 'Your flag can be shown before your player name.',
+                              ? context.tr('no_country_flag_until_chosen')
+                              : context.tr('flag_before_player_name'),
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: .48),
                             fontSize: 11,
@@ -997,7 +1003,7 @@ class _CountryTab extends StatelessWidget {
             child: TextButton.icon(
               onPressed: () => onCountryChanged(null),
               icon: const Icon(Icons.close_rounded, size: 18),
-              label: const Text('Clear country'),
+              label: Text(context.tr('clear_country')),
             ),
           ),
         ],
@@ -1016,19 +1022,16 @@ class _CountryTab extends StatelessWidget {
                 ? Colors.white.withValues(alpha: .28)
                 : const Color(0xFF66C7FF),
           ),
-          title: const Text(
-            'Show flag on Ranked Ladder',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-            ),
+          title: Text(
+            context.tr('show_flag_ranked_ladder'),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
           ),
           subtitle: Text(
             selected == null
-                ? 'Choose a country first.'
+                ? context.tr('choose_country_first')
                 : flagVisible
-                ? 'Only the flag appears before your name. No country abbreviation is shown.'
-                : 'Your country stays saved, but the flag is hidden from the ladder.',
+                ? context.tr('flag_only_before_name')
+                : context.tr('country_saved_flag_hidden'),
             style: TextStyle(
               color: Colors.white.withValues(alpha: .50),
               fontSize: 11,
@@ -1072,7 +1075,12 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
     final choices = query.isEmpty
         ? countryOptions
         : countryOptions
-              .where((country) => country.name.toLowerCase().contains(query))
+              .where(
+                (country) => context
+                    .tr('country_name_${country.code.toLowerCase()}')
+                    .toLowerCase()
+                    .contains(query),
+              )
               .toList(growable: false);
 
     return SafeArea(
@@ -1084,8 +1092,8 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Choose country',
+                Text(
+                  context.tr('choose_country'),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -1097,8 +1105,8 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
                   autofocus: true,
                   onChanged: (value) => setState(() => _query = value),
                   textInputAction: TextInputAction.search,
-                  decoration: const InputDecoration(
-                    hintText: 'Search country',
+                  decoration: InputDecoration(
+                    hintText: context.tr('search_country'),
                     prefixIcon: Icon(Icons.search_rounded),
                   ),
                 ),
@@ -1109,7 +1117,7 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
             child: choices.isEmpty
                 ? Center(
                     child: Text(
-                      'No country found.',
+                      context.tr('no_country_found'),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: .55),
                         fontWeight: FontWeight.w700,
@@ -1138,7 +1146,9 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
                           ),
                         ),
                         title: Text(
-                          country.name,
+                          context.tr(
+                            'country_name_${country.code.toLowerCase()}',
+                          ),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
@@ -1184,8 +1194,8 @@ class _SaveBar extends StatelessWidget {
           Expanded(
             child: Text(
               serverReady
-                  ? 'Avatars come only from the bundled avatar collection. Rank cosmetics are earned.'
-                  : 'Preview mode · reconnect to save changes.',
+                  ? context.tr('profile_save_ready_info')
+                  : context.tr('profile_preview_reconnect'),
               style: TextStyle(
                 color: Colors.white.withValues(alpha: .56),
                 fontSize: 11,
@@ -1206,10 +1216,10 @@ class _SaveBar extends StatelessWidget {
                   ),
             label: Text(
               saving
-                  ? 'Saving'
+                  ? context.tr('saving')
                   : serverReady
-                  ? 'Save'
-                  : 'Preview',
+                  ? context.tr('save')
+                  : context.tr('preview'),
             ),
           ),
         ],
@@ -1264,7 +1274,7 @@ class _OfflineNotice extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           IconButton(
-            tooltip: 'Retry',
+            tooltip: context.tr('retry'),
             onPressed: busy ? null : onRetry,
             icon: busy
                 ? const SizedBox.square(
@@ -1280,7 +1290,11 @@ class _OfflineNotice extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.icon, required this.title, required this.body});
+  const _InfoCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
 
   final IconData icon;
   final String title;
@@ -1348,7 +1362,7 @@ class _CoinPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        '${reward.amount} Coin${reward.claimed ? ' ✓' : ''}',
+        '${context.tr('coin_amount', <Object>[reward.amount])}${reward.claimed ? ' ✓' : ''}',
         style: TextStyle(
           color: reward.claimed
               ? const Color(0xFF69E5BA)
@@ -1381,7 +1395,7 @@ class _RarityPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        rarity.toUpperCase(),
+        context.tr('rarity_${rarity.toLowerCase()}'),
         style: TextStyle(
           color: color,
           fontSize: 8,
