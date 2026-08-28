@@ -624,7 +624,6 @@ class AppStrings {
   };
 
   final Map<String, String> _values;
-
   static Future<AppStrings> load() async {
     final values = Map<String, String>.from(english);
     final catalogLocales = defaultTargetPlatform == TargetPlatform.iOS
@@ -633,8 +632,8 @@ class AppStrings {
     await _loadStringCatalog(values, catalogLocales);
 
     // Google Play can provide Android resource translations at runtime.
-    // iOS is deliberately resolved only from the bundled String Catalog so
-    // a native English resource can never overwrite the selected iOS locale.
+    // iOS uses only the bundled String Catalog after locale resolution so a
+    // native English resource can never overwrite the selected iOS language.
     if (defaultTargetPlatform == TargetPlatform.android) {
       try {
         final response = await _channel.invokeMethod<Map<Object?, Object?>>(
@@ -654,9 +653,9 @@ class AppStrings {
           }
         }
       } on MissingPluginException {
-        // Unit tests and unsupported platforms use catalog/English fallback.
+        // Tests and unsupported platforms use catalog/English fallback.
       } on PlatformException {
-        // Localization failures must never block startup.
+        // Localization failure must never block startup.
       }
     }
     return AppStrings._(values);
@@ -678,9 +677,9 @@ class AppStrings {
         }
       }
     } on MissingPluginException {
-      // Use Flutter's platform locales if the bridge is unavailable.
+      // Fall through to Flutter's platform locales.
     } on PlatformException {
-      // Use Flutter's platform locales if native lookup fails.
+      // Fall through to Flutter's platform locales.
     }
     return flutterLocales.isNotEmpty
         ? flutterLocales

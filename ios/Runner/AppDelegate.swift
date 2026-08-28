@@ -58,27 +58,26 @@ import UIKit
       configureGameServicesChannel(messenger: messenger)
     }
   }
-
   private func configureLocalizationChannel(messenger: FlutterBinaryMessenger) {
-  let channel = FlutterMethodChannel(
-    name: "com.devovia.sudoku/localization",
-    binaryMessenger: messenger
-  )
-  channel.setMethodCallHandler { call, result in
-    switch call.method {
-    case "getPreferredLocales":
-      result(Locale.preferredLanguages)
-    case "getStrings":
-      // The Flutter String Catalog is the single iOS source of app copy.
-      result([String: String]())
-    default:
-      result(FlutterMethodNotImplemented)
+    let channel = FlutterMethodChannel(
+      name: "com.devovia.sudoku/localization",
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "getPreferredLocales":
+        result(Locale.preferredLanguages)
+      case "getStrings":
+        // Flutter's String Catalog is the single iOS source of app copy.
+        result([String: String]())
+      default:
+        result(FlutterMethodNotImplemented)
+      }
     }
+    localizationChannel = channel
   }
-  localizationChannel = channel
-}
 
-private func configureGameServicesChannel(messenger: FlutterBinaryMessenger) {
+  private func configureGameServicesChannel(messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
       name: "com.devoviastudio.sudoku/game_services",
       binaryMessenger: messenger
