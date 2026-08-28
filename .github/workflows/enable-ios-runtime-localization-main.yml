@@ -1,0 +1,72 @@
+name: Enable iOS runtime localization on main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/enable-ios-runtime-localization-main.yml'
+      - 'tool/enable_ios_runtime_localization.py'
+      - 'lib/localization/app_strings.dart'
+      - 'assets/localization/Localizable.xcstrings'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: enable-ios-runtime-localization-main
+  cancel-in-progress: false
+
+jobs:
+  localize-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Enable iOS locale resolution and sync Android source
+        run: python3 tool/enable_ios_runtime_localization.py
+
+      - name: Format localized Dart sources
+        run: dart format lib/app.dart lib/localization/app_strings.dart test/localization_locale_consistency_test.dart
+
+      - name: Validate localization source keys
+        run: python3 tool/validate_localizations.py
+
+      - name: Verify localization catalog coverage
+        run: flutter test test/localization_catalog_test.dart test/localization_locale_consistency_test.dart
+
+      - name: Analyze localization runtime
+        run: flutter analyze lib/app.dart lib/localization/app_strings.dart test/localization_locale_consistency_test.dart
+
+      - name: Commit directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            lib/app.dart \
+            lib/localization/app_strings.dart \
+            test/localization_locale_consistency_test.dart \
+            android/app/src/main/res/values/strings.xml
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'iOS runtime localization is already active and synchronized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Activate iOS runtime localization'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
