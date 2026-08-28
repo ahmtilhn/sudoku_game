@@ -132,6 +132,15 @@ def should_skip(value: str) -> bool:
         return True
     if any(marker in value for marker in LOCALIZED_EXPRESSION_MARKERS):
         return True
+    # STRING_RE intentionally stays lightweight and can see fragments created by
+    # quotes inside a Dart interpolation such as:
+    #   '${context.tr('key', <Object>[value])}'
+    # These fragments are expression syntax, not displayed copy. Never let them
+    # block the localization migration.
+    if '<Object>[' in value:
+        return True
+    if value.startswith(('${', '@${')) and value.count('${') > value.count('}'):
+        return True
     # Dynamic localization key templates are keys, not displayed English.
     if value.startswith(('country_name_${', 'rarity_${', 'rank_${', 'emote_')):
         return True
