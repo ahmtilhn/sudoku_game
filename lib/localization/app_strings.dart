@@ -628,32 +628,89 @@ class AppStrings {
   static Future<AppStrings> load() async {
     final values = Map<String, String>.from(english);
     final catalogLocales = defaultTargetPlatform == TargetPlatform.iOS
-        ? PlatformDispatcher.instance.locales
+        ? await _preferredIosLocales()
         : const <Locale>[Locale('en')];
     await _loadStringCatalog(values, catalogLocales);
-    try {
-      final response = await _channel.invokeMethod<Map<Object?, Object?>>(
-        'getStrings',
-        <String, Object>{'keys': english.keys.toList(growable: false)},
-      );
-      if (response != null) {
-        for (final entry in response.entries) {
-          final key = entry.key;
-          final value = entry.value;
-          if (key is String &&
-              value is String &&
-              value.isNotEmpty &&
-              value != key) {
-            values[key] = value;
+
+    // Google Play can provide Android resource translations at runtime.
+    // iOS is deliberately resolved only from the bundled String Catalog so
+    // a native English resource can never overwrite the selected iOS locale.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        final response = await _channel.invokeMethod<Map<Object?, Object?>>(
+          'getStrings',
+          <String, Object>{'keys': english.keys.toList(growable: false)},
+        );
+        if (response != null) {
+          for (final entry in response.entries) {
+            final key = entry.key;
+            final value = entry.value;
+            if (key is String &&
+                value is String &&
+                value.isNotEmpty &&
+                value != key) {
+              values[key] = value;
+            }
           }
+        }
+      } on MissingPluginException {
+        // Unit tests and unsupported platforms use catalog/English fallback.
+      } on PlatformException {
+        // Localization failures must never block startup.
+      }
+    }
+    return AppStrings._(values);
+  }
+
+  static Future<List<Locale>> _preferredIosLocales() async {
+    final flutterLocales = PlatformDispatcher.instance.locales;
+    try {
+      final preferredLanguages = await _channel.invokeListMethod<String>(
+        'getPreferredLocales',
+      );
+      if (preferredLanguages != null && preferredLanguages.isNotEmpty) {
+        final nativeLocales = preferredLanguages
+            .map(_localeFromLanguageTag)
+            .whereType<Locale>()
+            .toList(growable: false);
+        if (nativeLocales.isNotEmpty) {
+          return <Locale>[...nativeLocales, ...flutterLocales];
         }
       }
     } on MissingPluginException {
-      // Unit tests and unsupported platforms use the catalog or English fallback.
+      // Use Flutter's platform locales if the bridge is unavailable.
     } on PlatformException {
-      // A platform localization failure must never block app startup.
+      // Use Flutter's platform locales if native lookup fails.
     }
-    return AppStrings._(values);
+    return flutterLocales.isNotEmpty
+        ? flutterLocales
+        : const <Locale>[Locale('en')];
+  }
+
+  static Locale? _localeFromLanguageTag(String rawTag) {
+    final tag = rawTag.trim().replaceAll('_', '-');
+    if (tag.isEmpty) return null;
+    final parts = tag
+        .split('-')
+        .where((part) => part.isNotEmpty)
+        .toList(growable: false);
+    if (parts.isEmpty) return null;
+
+    final language = parts.first.toLowerCase();
+    String? script;
+    String? country;
+    for (final part in parts.skip(1)) {
+      if (part.length == 4 && script == null) {
+        script = '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}';
+      } else if ((part.length == 2 || part.length == 3) && country == null) {
+        country = part.toUpperCase();
+      }
+    }
+    return Locale.fromSubtags(
+      languageCode: language,
+      scriptCode: script,
+      countryCode: country,
+    );
   }
 
   static Future<void> _loadStringCatalog(

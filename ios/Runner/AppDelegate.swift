@@ -60,46 +60,25 @@ import UIKit
   }
 
   private func configureLocalizationChannel(messenger: FlutterBinaryMessenger) {
-    let channel = FlutterMethodChannel(
-      name: "com.devovia.sudoku/localization",
-      binaryMessenger: messenger
-    )
-    channel.setMethodCallHandler { call, result in
-      guard call.method == "getStrings" else {
-        result(FlutterMethodNotImplemented)
-        return
-      }
-      guard
-        let arguments = call.arguments as? [String: Any],
-        let keys = arguments["keys"] as? [String]
-      else {
-        result(FlutterError(
-          code: "invalid_arguments",
-          message: "Localization keys are missing.",
-          details: nil
-        ))
-        return
-      }
-
-      var values: [String: String] = [:]
-      for key in keys {
-        let localized = NSLocalizedString(
-          key,
-          tableName: nil,
-          bundle: .main,
-          value: key,
-          comment: ""
-        )
-        if localized != key {
-          values[key] = localized
-        }
-      }
-      result(values)
+  let channel = FlutterMethodChannel(
+    name: "com.devovia.sudoku/localization",
+    binaryMessenger: messenger
+  )
+  channel.setMethodCallHandler { call, result in
+    switch call.method {
+    case "getPreferredLocales":
+      result(Locale.preferredLanguages)
+    case "getStrings":
+      // The Flutter String Catalog is the single iOS source of app copy.
+      result([String: String]())
+    default:
+      result(FlutterMethodNotImplemented)
     }
-    localizationChannel = channel
   }
+  localizationChannel = channel
+}
 
-  private func configureGameServicesChannel(messenger: FlutterBinaryMessenger) {
+private func configureGameServicesChannel(messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
       name: "com.devoviastudio.sudoku/game_services",
       binaryMessenger: messenger

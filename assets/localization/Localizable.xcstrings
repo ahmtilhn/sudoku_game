@@ -238,7 +238,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Settings"
+            "value": "Ayarlar"
           }
         },
         "uk": {
@@ -374,7 +374,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Career"
+            "value": "Kariyer"
           }
         },
         "uk": {
@@ -510,7 +510,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Progress from beginner to expert"
+            "value": "Acemiden uzmana ilerleme"
           }
         },
         "uk": {
@@ -646,7 +646,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose a difficulty and get a new puzzle"
+            "value": "Bir zorluk seçin ve yeni bir bulmaca edinin"
           }
         },
         "uk": {
@@ -782,7 +782,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose a difficulty. A fresh, unique Sudoku will be generated for every game."
+            "value": "Bir zorluk seçin. Her oyun için taze, benzersiz bir Sudoku üretilecek."
           }
         },
         "uk": {
@@ -918,7 +918,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Career rule: the round ends after 3 wrong moves."
+            "value": "Kariyer kuralı: Tur 3 yanlış hamleden sonra sona erer."
           }
         },
         "uk": {
@@ -1190,7 +1190,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "About %1d starting clues"
+            "value": "Hakkında%1dbaşlangıç ipuçları"
           }
         },
         "uk": {
@@ -1326,7 +1326,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Local Duel"
+            "value": "Yerel Düello"
           }
         },
         "uk": {
@@ -1462,7 +1462,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Take 10-second turns on the same device"
+            "value": "Aynı cihazda 10 saniyelik dönüşler yapın"
           }
         },
         "uk": {
@@ -1598,7 +1598,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online Duel"
+            "value": "Online Düello"
           }
         },
         "uk": {
@@ -1734,7 +1734,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose a difficulty and match with the same queue"
+            "value": "Bir zorluk seçin ve aynı kuyrukla eşleştirin"
           }
         },
         "uk": {
@@ -1870,7 +1870,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose your duel difficulty"
+            "value": "Düello zorluğunuzu seçin"
           }
         },
         "uk": {
@@ -2006,7 +2006,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You will only be matched with players who selected the same difficulty."
+            "value": "Sadece aynı zorluğu seçen oyuncularla eşleşeceksiniz."
           }
         },
         "uk": {
@@ -2142,7 +2142,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1s difficulty queue"
+            "value": "%1szorluk kuyruğu"
           }
         },
         "uk": {
@@ -2278,7 +2278,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Searching for an opponent…"
+            "value": "Bir rakip aranıyor..."
           }
         },
         "uk": {
@@ -2414,7 +2414,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Queue: %1s"
+            "value": "Kuyruk:%1s"
           }
         },
         "uk": {
@@ -2550,7 +2550,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "The online connection will use this queue when the matchmaking backend is enabled."
+            "value": "Eşleştirme arka ucu etkinleştirildiğinde çevrimiçi bağlantı bu kuyruğu kullanacaktır."
           }
         },
         "uk": {
@@ -2686,7 +2686,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cancel search"
+            "value": "Aramayı iptal et"
           }
         },
         "uk": {
@@ -2822,7 +2822,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Find opponent"
+            "value": "Rakibi bul"
           }
         },
         "uk": {
@@ -2958,7 +2958,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Play local practice"
+            "value": "Yerel uygulamayı oynat"
           }
         },
         "uk": {
@@ -3094,7 +3094,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daily Sudoku"
+            "value": "Günlük Sudoku"
           }
         },
         "uk": {
@@ -3230,7 +3230,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "One fresh puzzle every day"
+            "value": "Her gün yeni bir bulmaca"
           }
         },
         "uk": {
@@ -3366,7 +3366,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "How to play"
+            "value": "Nasıl oynanır"
           }
         },
         "uk": {
@@ -3502,7 +3502,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open the tutorial again"
+            "value": "Öğreticiyi tekrar aç"
           }
         },
         "uk": {
@@ -3638,7 +3638,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Learn in minutes with a 4×4 board"
+            "value": "44 tahta ile dakikalar içinde öğrenin"
           }
         },
         "uk": {
@@ -3774,7 +3774,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready for a Sudoku?"
+            "value": "Sudoku için hazır mısınız?"
           }
         },
         "uk": {
@@ -3910,7 +3910,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You don't need to know Sudoku."
+            "value": "Sudoku bilmenize gerek yok."
           }
         },
         "uk": {
@@ -4046,7 +4046,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Continue your career or challenge another player."
+            "value": "Kariyerinize devam edin veya başka bir oyuncuya meydan okuyun."
           }
         },
         "uk": {
@@ -4182,7 +4182,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Learn the rules with a quick tutorial, then start your career."
+            "value": "Hızlı bir öğretici ile kuralları öğrenin, ardından kariyerinize başlayın."
           }
         },
         "uk": {
@@ -4318,7 +4318,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Start with the easiest puzzles and progress step by step."
+            "value": "En kolay bulmacalarla başlayın ve adım adım ilerleyin."
           }
         },
         "uk": {
@@ -4454,7 +4454,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Beginner"
+            "value": "Başlangıç"
           }
         },
         "uk": {
@@ -4590,7 +4590,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Easy"
+            "value": "Kolay"
           }
         },
         "uk": {
@@ -4726,7 +4726,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Medium"
+            "value": "Orta"
           }
         },
         "uk": {
@@ -4862,7 +4862,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hard"
+            "value": "Sert"
           }
         },
         "uk": {
@@ -4998,7 +4998,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Expert"
+            "value": "Uzman"
           }
         },
         "uk": {
@@ -5134,7 +5134,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Complete the previous level"
+            "value": "Önceki seviyeyi tamamla"
           }
         },
         "uk": {
@@ -5270,7 +5270,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "New level"
+            "value": "Yeni seviye"
           }
         },
         "uk": {
@@ -5406,7 +5406,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Best: %1s"
+            "value": "En iyi:%1s"
           }
         },
         "uk": {
@@ -5678,7 +5678,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daily Sudoku"
+            "value": "Günlük Sudoku"
           }
         },
         "uk": {
@@ -5814,7 +5814,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Duel"
+            "value": "Düello"
           }
         },
         "uk": {
@@ -6086,7 +6086,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Congratulations!"
+            "value": "Tebrik ederim!"
           }
         },
         "uk": {
@@ -6222,7 +6222,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Time"
+            "value": "Zaman"
           }
         },
         "uk": {
@@ -6358,7 +6358,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mistakes"
+            "value": "Hatalar"
           }
         },
         "uk": {
@@ -6494,7 +6494,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hints"
+            "value": "İpucu"
           }
         },
         "uk": {
@@ -6630,7 +6630,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Continue"
+            "value": "Devam et"
           }
         },
         "uk": {
@@ -6766,7 +6766,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mistakes: %1d"
+            "value": "Hatalar:%1d"
           }
         },
         "uk": {
@@ -6902,7 +6902,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mistakes: %1d/%2d"
+            "value": "Hatalar:%1d/%2d"
           }
         },
         "uk": {
@@ -7038,7 +7038,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hints: %1d"
+            "value": "İpucu:%1d"
           }
         },
         "uk": {
@@ -7174,7 +7174,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Round lost"
+            "value": "Yuvarlak kayıp"
           }
         },
         "uk": {
@@ -7310,7 +7310,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You made %1d wrong moves. Choose how you want to continue."
+            "value": "Sen yaptın.%1dyanlış hamleler. Nasıl devam etmek istediğinizi seçin."
           }
         },
         "uk": {
@@ -7446,7 +7446,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Continue for %1d coins"
+            "value": "Devam et%1d coins"
           }
         },
         "uk": {
@@ -7582,7 +7582,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Watch rewarded ad"
+            "value": "İzle ödüllendirilmiş reklam"
           }
         },
         "uk": {
@@ -7718,7 +7718,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Restart from the beginning"
+            "value": "Baştan Başla"
           }
         },
         "uk": {
@@ -7854,7 +7854,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You do not have enough coins."
+            "value": "Yeterince paran yok.coins."
           }
         },
         "uk": {
@@ -7990,7 +7990,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "The rewarded ad is not available right now."
+            "value": "Ödüllü reklam şu anda mevcut değil."
           }
         },
         "uk": {
@@ -8126,7 +8126,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "The rewarded ad provider will be connected in the monetization phase. Continue now to test the recovery flow."
+            "value": "Ödüllendirilen reklam sağlayıcısı para kazanma aşamasında bağlanacaktır. Kurtarma akışını test etmek için şimdi devam edin."
           }
         },
         "uk": {
@@ -8262,7 +8262,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Time is up. The turn passed to the other player."
+            "value": "Zaman doldu, sıra diğer oyuncuya geçti."
           }
         },
         "uk": {
@@ -8398,7 +8398,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Draw!"
+            "value": "Çekin!"
           }
         },
         "uk": {
@@ -8534,7 +8534,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Player %1d won!"
+            "value": "Oyuncu%1dKazandı!"
           }
         },
         "uk": {
@@ -8670,7 +8670,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d turns played."
+            "value": "%1dturns oynandı."
           }
         },
         "uk": {
@@ -8806,7 +8806,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Main menu"
+            "value": "Ana menü"
           }
         },
         "uk": {
@@ -8942,7 +8942,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn %1d"
+            "value": "Dön%1d"
           }
         },
         "uk": {
@@ -9078,7 +9078,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d seconds"
+            "value": "%1dsaniye"
           }
         },
         "uk": {
@@ -9214,7 +9214,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Player %1d: Select a cell and make one move."
+            "value": "Oyuncu%1dBir hücre seçin ve bir hamle yapın."
           }
         },
         "uk": {
@@ -9350,7 +9350,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Player %1d"
+            "value": "Oyuncu%1d"
           }
         },
         "uk": {
@@ -9486,7 +9486,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Today's puzzle is complete!"
+            "value": "Bugünün puzzle'ı tamamlandı!"
           }
         },
         "uk": {
@@ -9622,7 +9622,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "How to play Sudoku"
+            "value": "Sudoku nasıl oynanır"
           }
         },
         "uk": {
@@ -9758,7 +9758,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Complete each row"
+            "value": "Her satırı tamamla"
           }
         },
         "uk": {
@@ -9894,7 +9894,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Each number can appear only once in every row."
+            "value": "Her sayı her satırda sadece bir kez görünebilir."
           }
         },
         "uk": {
@@ -10030,7 +10030,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Check each column"
+            "value": "Her sütunu kontrol et"
           }
         },
         "uk": {
@@ -10166,7 +10166,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "The same number cannot appear twice in a column."
+            "value": "Aynı sayı bir sütunda iki kez görünemez."
           }
         },
         "uk": {
@@ -10302,7 +10302,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remember the boxes"
+            "value": "Kutuları hatırla"
           }
         },
         "uk": {
@@ -10438,7 +10438,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Each bold box must also contain every number once."
+            "value": "Her cesur kutu aynı zamanda her sayıyı bir kez içermelidir."
           }
         },
         "uk": {
@@ -10574,7 +10574,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ready? Try a 4×4 mini Sudoku."
+            "value": "Hazır mısınız? 44 mini Sudoku deneyin."
           }
         },
         "uk": {
@@ -10710,7 +10710,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You understand Sudoku!"
+            "value": "Sudoku'yu anlıyorsun!"
           }
         },
         "uk": {
@@ -10846,7 +10846,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Start mini tutorial"
+            "value": "Mini öğreticiyi başlat"
           }
         },
         "uk": {
@@ -10982,7 +10982,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Appearance"
+            "value": "Görünüm"
           }
         },
         "uk": {
@@ -11118,7 +11118,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "System"
+            "value": "Sistem"
           }
         },
         "uk": {
@@ -11254,7 +11254,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Light"
+            "value": "Işık"
           }
         },
         "uk": {
@@ -11390,7 +11390,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dark"
+            "value": "Koyu"
           }
         },
         "uk": {
@@ -11526,7 +11526,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "High contrast"
+            "value": "Yüksek kontrast"
           }
         },
         "uk": {
@@ -11662,7 +11662,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Makes the board and text easier to distinguish."
+            "value": "Tahtayı ve metni ayırt etmeyi kolaylaştırır."
           }
         },
         "uk": {
@@ -11798,7 +11798,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Data"
+            "value": "Veri"
           }
         },
         "uk": {
@@ -11934,7 +11934,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clear career progress"
+            "value": "Açık kariyer ilerlemesi"
           }
         },
         "uk": {
@@ -12070,7 +12070,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d completed levels"
+            "value": "%1dtamamlanan seviyeler"
           }
         },
         "uk": {
@@ -12206,7 +12206,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clear progress?"
+            "value": "İlerleme açık mı?"
           }
         },
         "uk": {
@@ -12342,7 +12342,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Completed career levels and records will be removed."
+            "value": "Tamamlanan kariyer seviyeleri ve kayıtları kaldırılacaktır."
           }
         },
         "uk": {
@@ -12478,7 +12478,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cancel"
+            "value": "İptal"
           }
         },
         "uk": {
@@ -12614,7 +12614,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clear"
+            "value": "Temizle"
           }
         },
         "uk": {
@@ -12750,7 +12750,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erase"
+            "value": "Sil"
           }
         },
         "uk": {
@@ -12886,7 +12886,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notes on"
+            "value": "Üzerine notlar"
           }
         },
         "uk": {
@@ -13022,7 +13022,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notes"
+            "value": "Kaynakça"
           }
         },
         "uk": {
@@ -13158,7 +13158,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Undo"
+            "value": "Geri Al"
           }
         },
         "uk": {
@@ -13294,7 +13294,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hint"
+            "value": "İpucu"
           }
         },
         "uk": {
@@ -13430,7 +13430,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d by %1d Sudoku board"
+            "value": "%1dtarafından%1dSudoku tahtası"
           }
         },
         "uk": {
@@ -13566,7 +13566,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Row %1d, column %2d, %3s"
+            "value": "Satır%1d, sütun%2d,%3s"
           }
         },
         "uk": {
@@ -13702,7 +13702,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Empty"
+            "value": "Boş"
           }
         },
         "uk": {
@@ -13838,7 +13838,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notifications"
+            "value": "Bildirimler"
           }
         },
         "uk": {
@@ -13974,7 +13974,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daily Sudoku challenges"
+            "value": "Günlük Sudoku zorlukları"
           }
         },
         "uk": {
@@ -14110,7 +14110,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Three optional reminders each day at 09:00, 15:00, and 20:30. You can turn them off at any time."
+            "value": "Her gün saat 09:00, 15:00 ve 20:30'da üç isteğe bağlı hatırlatıcı. İstediğiniz zaman kapatabilirsiniz."
           }
         },
         "uk": {
@@ -14246,7 +14246,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notification permission was not granted. Daily reminders remain off."
+            "value": "Bildirim izni verilmedi. Günlük hatırlatmalar kapalı kalır."
           }
         },
         "uk": {
@@ -14382,7 +14382,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online challenge notifications"
+            "value": "Çevrimiçi meydan okuma bildirimleri"
           }
         },
         "uk": {
@@ -14518,7 +14518,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shows friend and challenge invitations on this device. You can turn this off at any time."
+            "value": "Bu cihazda arkadaş ve meydan okuma davetlerini gösterir. Bunu istediğiniz zaman kapatabilirsiniz."
           }
         },
         "uk": {
@@ -14654,7 +14654,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Challenge notifications require Firebase and the social backend to be configured."
+            "value": "Meydan okuma bildirimleri Firebase ve sosyal arka ucun yapılandırılmasını gerektirir."
           }
         },
         "uk": {
@@ -14790,7 +14790,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Notification permission was not granted. Online challenge notifications remain off."
+            "value": "Bildirim izni verilmedi. Çevrimiçi meydan okuma bildirimleri kapalı kalır."
           }
         },
         "uk": {
@@ -14926,7 +14926,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Privacy"
+            "value": "Gizlilik"
           }
         },
         "uk": {
@@ -15062,7 +15062,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Analytics sharing"
+            "value": "Analytics paylaşımı"
           }
         },
         "uk": {
@@ -15198,7 +15198,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Allows anonymous usage analytics to help improve Sudoku Duel."
+            "value": "Anonim kullanım analitiğinin geliştirilmesine yardımcı olurSudoku Duel."
           }
         },
         "uk": {
@@ -15334,7 +15334,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Crash reports sharing"
+            "value": "Çökme raporları paylaşımı"
           }
         },
         "uk": {
@@ -15470,7 +15470,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sends crash diagnostics when something fails."
+            "value": "Bir şey başarısız olduğunda kaza teşhisini gönderir."
           }
         },
         "uk": {
@@ -15606,7 +15606,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ad privacy"
+            "value": "Reklam gizliliği"
           }
         },
         "uk": {
@@ -15742,7 +15742,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ad privacy choices"
+            "value": "Reklam gizliliği seçenekleri"
           }
         },
         "uk": {
@@ -15878,7 +15878,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Review or change the privacy choices used for advertising."
+            "value": "Reklam için kullanılan gizlilik seçimlerini gözden geçirin veya değiştirin."
           }
         },
         "uk": {
@@ -20094,7 +20094,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "I am ready"
+            "value": "Hazırım."
           }
         },
         "uk": {
@@ -20230,7 +20230,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Get ready"
+            "value": "Hazır olun."
           }
         },
         "uk": {
@@ -20366,7 +20366,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connecting players"
+            "value": "Oyuncuların bağlanması"
           }
         },
         "uk": {
@@ -20502,7 +20502,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Move time: %1d s"
+            "value": "Hareket süresi:%1ds"
           }
         },
         "uk": {
@@ -20638,7 +20638,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automatic start: %1d s"
+            "value": "Otomatik başlatma:%1ds"
           }
         },
         "uk": {
@@ -20774,7 +20774,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent is connecting"
+            "value": "Karşı taraf bağlanıyor"
           }
         },
         "uk": {
@@ -20910,7 +20910,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent is opening the game"
+            "value": "Karşıt oyunu açıyor"
           }
         },
         "uk": {
@@ -21046,7 +21046,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent is ready"
+            "value": "Karşı taraf hazır"
           }
         },
         "uk": {
@@ -21182,7 +21182,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sending move…"
+            "value": "Hareket gönderiliyor..."
           }
         },
         "uk": {
@@ -21318,7 +21318,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Select an empty cell and enter a number"
+            "value": "Boş bir hücre seçin ve bir sayı girin"
           }
         },
         "uk": {
@@ -21454,7 +21454,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the opponent’s move"
+            "value": "Rakibinin hamlesini beklemek"
           }
         },
         "uk": {
@@ -21590,7 +21590,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Final score"
+            "value": "Son puan"
           }
         },
         "uk": {
@@ -21726,7 +21726,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Entry fee"
+            "value": "Giriş ücreti"
           }
         },
         "uk": {
@@ -21862,7 +21862,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Winner pot"
+            "value": "Kazanan pota"
           }
         },
         "uk": {
@@ -21998,7 +21998,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refund"
+            "value": "Geri ödeme"
           }
         },
         "uk": {
@@ -22134,7 +22134,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Match result"
+            "value": "Maç sonucu"
           }
         },
         "uk": {
@@ -22270,7 +22270,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Current balance"
+            "value": "Mevcut denge"
           }
         },
         "uk": {
@@ -22406,7 +22406,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rating"
+            "value": "Değerlendirme"
           }
         },
         "uk": {
@@ -22542,7 +22542,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Finish reason"
+            "value": "Bitiş nedeni"
           }
         },
         "uk": {
@@ -22814,7 +22814,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "vs %1s"
+            "value": "vs%1s"
           }
         },
         "uk": {
@@ -22950,7 +22950,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for %1s · %2d s"
+            "value": "Bekliyorum%1s%2ds"
           }
         },
         "uk": {
@@ -23086,7 +23086,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1s wants a rematch · %2d s"
+            "value": "%1srövanş istiyor%2ds"
           }
         },
         "uk": {
@@ -23222,7 +23222,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Decline"
+            "value": "Düşür"
           }
         },
         "uk": {
@@ -23358,7 +23358,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Accept"
+            "value": "Kabul et"
           }
         },
         "uk": {
@@ -23494,7 +23494,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Challenge again"
+            "value": "Tekrar meydan oku"
           }
         },
         "uk": {
@@ -23630,7 +23630,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Find new match"
+            "value": "Yeni maç bul"
           }
         },
         "uk": {
@@ -23766,7 +23766,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add friend"
+            "value": "Arkadaş ekle"
           }
         },
         "uk": {
@@ -23902,7 +23902,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open Coin Store"
+            "value": "AçCoinMağaza"
           }
         },
         "uk": {
@@ -24038,7 +24038,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You need at least %1d Coin to play another online match."
+            "value": "En azından ihtiyacın var.%1d CoinBaşka bir online maç oynamak için."
           }
         },
         "uk": {
@@ -24174,7 +24174,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rematch invitation sent."
+            "value": "Rövanş davetiyesi gönderildi."
           }
         },
         "uk": {
@@ -24310,7 +24310,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rematch declined."
+            "value": "Rövanş reddedildi."
           }
         },
         "uk": {
@@ -24446,7 +24446,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rematch invitation"
+            "value": "rövanş daveti"
           }
         },
         "uk": {
@@ -24582,7 +24582,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1s wants to play again."
+            "value": "%1sTekrar oynamak istiyor."
           }
         },
         "uk": {
@@ -24718,7 +24718,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Challenge declined."
+            "value": "Meydan okuma reddedildi."
           }
         },
         "uk": {
@@ -24854,7 +24854,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Challenge timed out."
+            "value": "Meydan okuma zaman aşımına uğradı."
           }
         },
         "uk": {
@@ -24990,7 +24990,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friend request sent."
+            "value": "Arkadaş isteği gönderildi."
           }
         },
         "uk": {
@@ -25126,7 +25126,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "A player no longer has enough Coin."
+            "value": "Bir oyuncu artık yeterli değilCoin."
           }
         },
         "uk": {
@@ -25262,7 +25262,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Player account"
+            "value": "Oyuncu hesabı"
           }
         },
         "uk": {
@@ -25398,7 +25398,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Player account protected"
+            "value": "Oyuncu hesabı korumalı"
           }
         },
         "uk": {
@@ -25534,7 +25534,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protect player account"
+            "value": "Oyuncu hesabını koru"
           }
         },
         "uk": {
@@ -25670,7 +25670,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protect your player account"
+            "value": "Oyuncu hesabınızı koruyun"
           }
         },
         "uk": {
@@ -25806,7 +25806,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Link an email before buying Coins so your wallet, Friend ID and rating can be recovered after reinstall or device change."
+            "value": "Satın almadan önce bir e-posta bağlayınCoinBöylece cüzdanınız, Arkadaş Kimliğiniz ve derecelendirmeniz yeniden yüklendikten veya cihaz değişikliğinden sonra kurtarılabilir."
           }
         },
         "uk": {
@@ -25942,7 +25942,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protect"
+            "value": "Koru"
           }
         },
         "uk": {
@@ -26078,7 +26078,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Coin Store"
+            "value": "CoinMağaza"
           }
         },
         "uk": {
@@ -26214,7 +26214,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Day %1d"
+            "value": "Gün%1d"
           }
         },
         "uk": {
@@ -26350,7 +26350,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claim Hint Refill"
+            "value": "İpucu Doldurma Talebi"
           }
         },
         "uk": {
@@ -26486,7 +26486,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Refill"
+            "value": "Doldur"
           }
         },
         "uk": {
@@ -26622,7 +26622,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hint Refill added."
+            "value": "İpucu Doldurma eklendi."
           }
         },
         "uk": {
@@ -26758,7 +26758,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Coin history"
+            "value": "Cointarih"
           }
         },
         "uk": {
@@ -26894,7 +26894,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protect your account before buying"
+            "value": "Satın almadan önce hesabınızı koruyun"
           }
         },
         "uk": {
@@ -27030,7 +27030,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Paid Coins must be linked to a recoverable email account. Your current guest wallet and Friend ID are preserved when you protect this account."
+            "value": "ÖdenmişCoins kurtarılabilir bir e-posta hesabına bağlanmalıdır. Bu hesabı korurken mevcut konuk cüzdanınız ve Arkadaş Kimliğiniz korunur."
           }
         },
         "uk": {
@@ -27166,7 +27166,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Account & data"
+            "value": "Hesap ve veriler"
           }
         },
         "uk": {
@@ -27302,7 +27302,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protect or recover the player account, sign out, and permanently delete the account and server data."
+            "value": "Oyuncu hesabını koruyun veya kurtarın, oturum açın ve hesabı ve sunucu verilerini kalıcı olarak silin."
           }
         },
         "uk": {
@@ -27438,7 +27438,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Service diagnostics"
+            "value": "Servis tanılama"
           }
         },
         "uk": {
@@ -27574,7 +27574,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Check the installed build, Firebase session and social server."
+            "value": "Yüklü yapı, Firebase oturumu ve sosyal sunucuyu kontrol edin."
           }
         },
         "uk": {
@@ -27710,7 +27710,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online services are reachable"
+            "value": "Online hizmetlere ulaşılabilir"
           }
         },
         "uk": {
@@ -27846,7 +27846,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "One or more online checks need attention"
+            "value": "Bir veya daha fazla online kontroller dikkat gerektirir"
           }
         },
         "uk": {
@@ -27982,7 +27982,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diagnostics copied."
+            "value": "Teşhis kopyalandı."
           }
         },
         "uk": {
@@ -28118,7 +28118,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copy diagnostics"
+            "value": "Teşhisi kopyala"
           }
         },
         "uk": {
@@ -28254,7 +28254,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Create your player profile"
+            "value": "Oyuncu profilinizi oluşturun"
           }
         },
         "uk": {
@@ -28390,7 +28390,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your display name is shown in matches. Your unique username can be searched, while your permanent Friend ID never changes."
+            "value": "Ekran adınız eşleşmelerde gösterilir. Benzersiz kullanıcı adınız aranabilirken, kalıcı Arkadaş Kimliğiniz asla değişmez."
           }
         },
         "uk": {
@@ -28526,7 +28526,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use your Google Play Games or Game Center name"
+            "value": "Sizin kullanınGoogle PlayOyunlar veyaGame Centerisim"
           }
         },
         "uk": {
@@ -28662,7 +28662,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use a custom profile"
+            "value": "Özel bir profil kullan"
           }
         },
         "uk": {
@@ -28798,7 +28798,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Display name"
+            "value": "Görünüm adı"
           }
         },
         "uk": {
@@ -28934,7 +28934,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unique username"
+            "value": "Benzersiz kullanıcı adı"
           }
         },
         "uk": {
@@ -29070,7 +29070,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "3–20 lowercase letters, numbers or underscore"
+            "value": "3 küçük harfler, sayılar veya alt çizgi"
           }
         },
         "uk": {
@@ -29206,7 +29206,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friend ID: %1s"
+            "value": "Arkadaş Kimliği:%1s"
           }
         },
         "uk": {
@@ -29342,7 +29342,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Player profile"
+            "value": "Oyuncu profili"
           }
         },
         "uk": {
@@ -29478,7 +29478,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shown to other players"
+            "value": "Diğer oyunculara gösterilir"
           }
         },
         "uk": {
@@ -29614,7 +29614,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Save"
+            "value": "Kaydet"
           }
         },
         "uk": {
@@ -29750,7 +29750,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friend ID copied."
+            "value": "Arkadaş kimliği kopyalandı."
           }
         },
         "uk": {
@@ -29886,7 +29886,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online account unavailable"
+            "value": "Çevrimiçi hesap kullanılamaz"
           }
         },
         "uk": {
@@ -30022,7 +30022,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Try again when connected."
+            "value": "Bağlandığında tekrar dene."
           }
         },
         "uk": {
@@ -30158,7 +30158,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Retry"
+            "value": "Yeniden dene"
           }
         },
         "uk": {
@@ -30294,7 +30294,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Edit player profile"
+            "value": "Oyuncu profilini düzenle"
           }
         },
         "uk": {
@@ -30430,7 +30430,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friend ID"
+            "value": "Arkadaş Kimliği"
           }
         },
         "uk": {
@@ -30566,7 +30566,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copy Friend ID"
+            "value": "Arkadaş Kimliği Kopyala"
           }
         },
         "uk": {
@@ -30702,7 +30702,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Discoverable by other players"
+            "value": "Diğer oyuncular tarafından keşfedilebilir"
           }
         },
         "uk": {
@@ -30838,7 +30838,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Allow username, display-name and exact Friend ID search. Existing friends remain connected when disabled."
+            "value": "Kullanıcı adı, display-name ve tam Friend ID aramasına izin verin. Mevcut arkadaşlar devre dışı bırakıldığında bağlı kalır."
           }
         },
         "uk": {
@@ -30974,7 +30974,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Server wallet and purchase history"
+            "value": "Sunucu cüzdanı ve satın alma geçmişi"
           }
         },
         "uk": {
@@ -31110,7 +31110,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rematch could not be started."
+            "value": "Rövanş başlatılamadı."
           }
         },
         "uk": {
@@ -31246,7 +31246,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "The rematch invitation could not be loaded."
+            "value": "Rövanş daveti yüklenemedi."
           }
         },
         "uk": {
@@ -31382,7 +31382,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "A new match requires %1d Coin from each player."
+            "value": "Yeni bir maç gerektirir%1d CoinHer oyuncudan."
           }
         },
         "uk": {
@@ -31518,7 +31518,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You"
+            "value": "Siz."
           }
         },
         "uk": {
@@ -31654,7 +31654,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d s"
+            "value": "%1ds"
           }
         },
         "uk": {
@@ -31790,7 +31790,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d s"
+            "value": "%1ds"
           }
         },
         "uk": {
@@ -31926,7 +31926,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online duel match header"
+            "value": "Online düello maç başlığı"
           }
         },
         "uk": {
@@ -32062,7 +32062,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1s player avatar"
+            "value": "%1soyuncu avatarı"
           }
         },
         "uk": {
@@ -32198,7 +32198,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1s winner avatar"
+            "value": "%1skazanan avatar"
           }
         },
         "uk": {
@@ -32334,7 +32334,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Winner: %1s"
+            "value": "Kazanan:%1s"
           }
         },
         "uk": {
@@ -32606,7 +32606,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn"
+            "value": "Dön"
           }
         },
         "uk": {
@@ -32742,7 +32742,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Match"
+            "value": "Maç"
           }
         },
         "uk": {
@@ -32878,7 +32878,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turns"
+            "value": "Dönüşler"
           }
         },
         "uk": {
@@ -33014,7 +33014,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Correct moves"
+            "value": "Doğru hamleler"
           }
         },
         "uk": {
@@ -33150,7 +33150,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Timeouts"
+            "value": "Zaman aşımları"
           }
         },
         "uk": {
@@ -33423,7 +33423,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friend requests"
+            "value": "Arkadaş istekleri"
           }
         },
         "uk": {
@@ -33560,7 +33560,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friends & challenges"
+            "value": "Arkadaşlar ve zorluklar"
           }
         },
         "uk": {
@@ -33697,7 +33697,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dismiss"
+            "value": "Dağılın"
           }
         },
         "uk": {
@@ -33834,7 +33834,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "100 Coin required"
+            "value": "100Coingerekli"
           }
         },
         "uk": {
@@ -33971,7 +33971,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Each player contributes 100 Coin. The winner receives the 200 Coin pot."
+            "value": "Her oyuncu 100 katkı sağlarCoin. Kazanan 200'ü alırCoinTencere."
           }
         },
         "uk": {
@@ -34108,7 +34108,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claim +%1d daily Coin"
+            "value": "Talep +%1dgünlükCoin"
           }
         },
         "uk": {
@@ -34245,7 +34245,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Watch ad for +%1d Coin"
+            "value": "+ için reklam izle%1d Coin"
           }
         },
         "uk": {
@@ -34382,7 +34382,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "The matchmaking server returned an unexpected response."
+            "value": "Çöpçatanlık sunucusu beklenmedik bir yanıt verdi."
           }
         },
         "uk": {
@@ -34519,7 +34519,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Unable to start opponent search. Please try again."
+            "value": "Rakip arama başlatılamadı. Lütfen tekrar deneyin."
           }
         },
         "uk": {
@@ -34656,7 +34656,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "The connection was interrupted. Retrying..."
+            "value": "Bağlantı kesildi. Yeniden deniyor..."
           }
         },
         "uk": {
@@ -34792,7 +34792,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Native"
+            "value": "Yerli"
           }
         },
         "uk": {
@@ -34929,7 +34929,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global ELO"
+            "value": "GenelELO"
           }
         },
         "uk": {
@@ -35066,7 +35066,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friends"
+            "value": "Arkadaşlar"
           }
         },
         "uk": {
@@ -35203,7 +35203,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Country"
+            "value": "Ülke"
           }
         },
         "uk": {
@@ -35340,7 +35340,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Current season"
+            "value": "Mevcut sezon"
           }
         },
         "uk": {
@@ -35477,7 +35477,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daily tournament"
+            "value": "Günlük turnuva"
           }
         },
         "uk": {
@@ -35614,7 +35614,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Weekend tournament"
+            "value": "Hafta sonu turnuvası"
           }
         },
         "uk": {
@@ -35751,7 +35751,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Countries"
+            "value": "Ülkeler"
           }
         },
         "uk": {
@@ -35888,7 +35888,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Current ELO"
+            "value": "GüncelELO"
           }
         },
         "uk": {
@@ -36025,7 +36025,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rank"
+            "value": "Sıralama"
           }
         },
         "uk": {
@@ -36162,7 +36162,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Season peak"
+            "value": "Sezonun zirvesi"
           }
         },
         "uk": {
@@ -36299,7 +36299,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "No country"
+            "value": "Ülke yok"
           }
         },
         "uk": {
@@ -36573,7 +36573,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Win rate"
+            "value": "Kazanma oranı"
           }
         },
         "uk": {
@@ -36710,7 +36710,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Win streak"
+            "value": "Win serisi"
           }
         },
         "uk": {
@@ -36847,7 +36847,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tournament entries"
+            "value": "Turnuva girişleri"
           }
         },
         "uk": {
@@ -36984,7 +36984,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tournament podiums"
+            "value": "Turnuva podyumları"
           }
         },
         "uk": {
@@ -37121,7 +37121,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Country contributions"
+            "value": "Ülke katkıları"
           }
         },
         "uk": {
@@ -37258,7 +37258,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Achievement showcase"
+            "value": "Başarı vitrini"
           }
         },
         "uk": {
@@ -37395,7 +37395,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose up to three unlocked achievements."
+            "value": "Kilitlenmemiş üç başarıya kadar seçin."
           }
         },
         "uk": {
@@ -37531,7 +37531,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Home"
+            "value": "Ana Sayfa"
           }
         },
         "uk": {
@@ -37667,7 +37667,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Play"
+            "value": "Oyna"
           }
         },
         "uk": {
@@ -37803,7 +37803,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compete"
+            "value": "Rekabet"
           }
         },
         "uk": {
@@ -37939,7 +37939,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Profile"
+            "value": "Profil"
           }
         },
         "uk": {
@@ -38075,7 +38075,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quick modes"
+            "value": "Hızlı modlar"
           }
         },
         "uk": {
@@ -38211,7 +38211,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quick Duel"
+            "value": "Hızlı Düello"
           }
         },
         "uk": {
@@ -38347,7 +38347,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Find a ranked opponent at your selected difficulty."
+            "value": "Seçtiğin zorlukta sıralanmış bir rakip bul."
           }
         },
         "uk": {
@@ -38483,7 +38483,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online entry starts at %1d Coin"
+            "value": "Online giriş başlar%1d Coin"
           }
         },
         "uk": {
@@ -38619,7 +38619,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Finding Opponent"
+            "value": "Karşıt Bulmak"
           }
         },
         "uk": {
@@ -38755,7 +38755,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Searching for opponents near your level..."
+            "value": "Sizin seviyenize yakın rakipler aranıyor..."
           }
         },
         "uk": {
@@ -38891,7 +38891,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Searching"
+            "value": "Arama"
           }
         },
         "uk": {
@@ -39027,7 +39027,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Are You Ready?"
+            "value": "Hazır mısınız?"
           }
         },
         "uk": {
@@ -39163,7 +39163,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "The game starts when both players are ready."
+            "value": "Oyun her iki oyuncu da hazır olduğunda başlar."
           }
         },
         "uk": {
@@ -39299,7 +39299,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for your opponent..."
+            "value": "Rakibini bekliyor..."
           }
         },
         "uk": {
@@ -39435,7 +39435,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You are ready. Waiting for your opponent."
+            "value": "Hazırsın, rakibini bekliyorsun."
           }
         },
         "uk": {
@@ -39571,7 +39571,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent is ready. Waiting for you."
+            "value": "Karşı taraf hazır, seni bekliyor."
           }
         },
         "uk": {
@@ -39707,7 +39707,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Everyone is ready. Starting the game..."
+            "value": "Herkes hazır. Oyun başlıyor..."
           }
         },
         "uk": {
@@ -39843,7 +39843,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tap ready when you are set."
+            "value": "Hazır olduğunuzda dokunun."
           }
         },
         "uk": {
@@ -39979,7 +39979,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your ELO rises when you win and falls when you lose."
+            "value": "SeninELOKazandığınızda yükselir ve kaybettiğinizde düşer."
           }
         },
         "uk": {
@@ -40115,7 +40115,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "World"
+            "value": "Dünya"
           }
         },
         "uk": {
@@ -40387,7 +40387,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opponent"
+            "value": "Karşıt"
           }
         },
         "uk": {
@@ -40523,7 +40523,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d career levels · %2d Coin"
+            "value": "%1dkariyer seviyeleri%2d Coin"
           }
         },
         "uk": {
@@ -40841,7 +40841,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claim today's reward from the gift button."
+            "value": "Hediye düğmesinden bugünkü ödülü talep et."
           }
         },
         "ar": {
@@ -41747,7 +41747,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d Coin required"
+            "value": "%1d Coingerekli"
           }
         },
         "uk": {
@@ -41883,7 +41883,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Each player contributes %1d Coin. The winner receives the %2d Coin pot."
+            "value": "Her oyuncu katkıda bulunur%1d Coin. Kazanan alır%2d CoinTencere."
           }
         },
         "uk": {
@@ -42019,7 +42019,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d entry · %2d winner pot"
+            "value": "%1dgiriş%2dkazanan pota"
           }
         },
         "uk": {
@@ -42155,7 +42155,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Balance: ..."
+            "value": "Denge: ..."
           }
         },
         "uk": {
@@ -42291,7 +42291,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Balance: %1d Coin"
+            "value": "Denge:%1d Coin"
           }
         },
         "uk": {
@@ -42427,7 +42427,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Last move"
+            "value": "Son hamle"
           }
         },
         "uk": {
@@ -42699,7 +42699,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Skip"
+            "value": "Atla"
           }
         },
         "uk": {
@@ -42835,7 +42835,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Earn %1d Coin"
+            "value": "Kazan%1d Coin"
           }
         },
         "uk": {
@@ -42971,7 +42971,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Watch an optional rewarded ad after this completed puzzle."
+            "value": "Bu tamamlanmış bulmacadan sonra isteğe bağlı olarak ödüllendirilmiş bir reklam izleyin."
           }
         },
         "uk": {
@@ -43107,7 +43107,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Watch and earn +%1d Coin"
+            "value": "İzle ve kazan +%1d Coin"
           }
         },
         "uk": {
@@ -43243,7 +43243,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d Coin added to your wallet."
+            "value": "%1d CoinCüzdanına ekle."
           }
         },
         "uk": {
@@ -43379,7 +43379,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your balance"
+            "value": "Dengeniz"
           }
         },
         "uk": {
@@ -43515,7 +43515,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Popular"
+            "value": "Popüler"
           }
         },
         "uk": {
@@ -43651,7 +43651,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remove ads"
+            "value": "Reklamları kaldır"
           }
         },
         "uk": {
@@ -43787,7 +43787,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hide rewarded ad offers on this player account."
+            "value": "Bu oyuncu hesabında ödüllendirilmiş reklam tekliflerini gizle."
           }
         },
         "uk": {
@@ -43923,7 +43923,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ads are removed on this player account."
+            "value": "Reklamlar bu oyuncu hesabında kaldırılır."
           }
         },
         "uk": {
@@ -44059,7 +44059,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Restore purchases"
+            "value": "Satın almaları geri yükle"
           }
         },
         "uk": {
@@ -44195,7 +44195,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ranked"
+            "value": "Dereceli"
           }
         },
         "uk": {
@@ -44331,7 +44331,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Practice"
+            "value": "Uygulama"
           }
         },
         "uk": {
@@ -44467,7 +44467,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "No Coin activity yet."
+            "value": "Hayır.CoinHenüz aktivite."
           }
         },
         "uk": {
@@ -44603,7 +44603,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1s · Balance %2s"
+            "value": "%1sDenge%2s"
           }
         },
         "uk": {
@@ -44739,7 +44739,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Starter Coins"
+            "value": "BaşlatıcıCoins"
           }
         },
         "uk": {
@@ -44875,7 +44875,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online match entry"
+            "value": "Online maç girişi"
           }
         },
         "uk": {
@@ -45011,7 +45011,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Match prize"
+            "value": "Maç ödülü"
           }
         },
         "uk": {
@@ -45147,7 +45147,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Match refund"
+            "value": "Maç geri ödemesi"
           }
         },
         "uk": {
@@ -45283,7 +45283,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daily login reward"
+            "value": "Günlük giriş ödülü"
           }
         },
         "uk": {
@@ -45419,7 +45419,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daily ad reward"
+            "value": "Günlük reklam ödülü"
           }
         },
         "uk": {
@@ -45555,7 +45555,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Career ad reward"
+            "value": "Kariyer reklam ödülü"
           }
         },
         "uk": {
@@ -45691,7 +45691,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Achievement reward"
+            "value": "Başarı ödülü"
           }
         },
         "uk": {
@@ -45827,7 +45827,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Career continue"
+            "value": "Kariyer devam ediyor"
           }
         },
         "uk": {
@@ -45963,7 +45963,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hint purchase"
+            "value": "İpucu satın alma"
           }
         },
         "uk": {
@@ -46099,7 +46099,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Coin Store purchase"
+            "value": "CoinMağaza satın alma"
           }
         },
         "uk": {
@@ -46235,7 +46235,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Purchase refund"
+            "value": "Satın alma geri ödemesi"
           }
         },
         "uk": {
@@ -46371,7 +46371,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deploy the social backend and configure Firebase before using friend requests."
+            "value": "Sosyal arka ucu dağıtın ve arkadaş isteklerini kullanmadan önce Firebase'i yapılandırın."
           }
         },
         "uk": {
@@ -46507,7 +46507,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "You have no pending friend requests."
+            "value": "Bekleyen bir arkadaş talebiniz yok."
           }
         },
         "uk": {
@@ -46643,7 +46643,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1s is now your friend."
+            "value": "%1sArtık senin arkadaşın."
           }
         },
         "uk": {
@@ -46779,7 +46779,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friend request declined."
+            "value": "Arkadaş isteği reddedildi."
           }
         },
         "uk": {
@@ -46915,7 +46915,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "@%1s · %2d rating"
+            "value": "@%1s%2dderecelendirme"
           }
         },
         "uk": {
@@ -47051,7 +47051,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "@%1s · %2d rating · %3d/%4d wins"
+            "value": "@%1s%2dderecelendirme%3d/%4dkazanır"
           }
         },
         "uk": {
@@ -47187,7 +47187,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Challenge"
+            "value": "Meydan okuma"
           }
         },
         "uk": {
@@ -47323,7 +47323,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Platform friends"
+            "value": "Platform arkadaşları"
           }
         },
         "uk": {
@@ -47459,7 +47459,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "No platform friends available"
+            "value": "Platform arkadaşı yok"
           }
         },
         "uk": {
@@ -47595,7 +47595,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friend access may not be granted, or no matching Play Games/Game Center friends were returned."
+            "value": "Arkadaş erişimi sağlanamayabilir veya eşleşemezPlay Games/Game CenterArkadaşlar iade edildi."
           }
         },
         "uk": {
@@ -47731,7 +47731,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open native platform profile"
+            "value": "Yerel platform profilini aç"
           }
         },
         "uk": {
@@ -47867,7 +47867,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Try again"
+            "value": "Tekrar dene."
           }
         },
         "uk": {
@@ -49409,7 +49409,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use the name you want shown on leaderboards."
+            "value": "Leaderboard'larda gösterilmesini istediğiniz ismi kullanın."
           }
         },
         "de": {
@@ -49545,7 +49545,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enter at least 2 characters."
+            "value": "En az 2 karakter girin."
           }
         },
         "de": {
@@ -49681,7 +49681,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search name"
+            "value": "Arama adı"
           }
         },
         "de": {
@@ -49953,7 +49953,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use 3-20 letters, numbers or underscore."
+            "value": "3-20 harf, sayı veya alt çizgi kullanın."
           }
         },
         "de": {
@@ -50089,7 +50089,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Let players find me"
+            "value": "Bırakın oyuncular beni bulsun."
           }
         },
         "de": {
@@ -50225,7 +50225,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Other players can find you by name or Friend ID."
+            "value": "Diğer oyuncular sizi isim veya Arkadaş Kimliği ile bulabilir."
           }
         },
         "de": {
@@ -50361,7 +50361,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "New players cannot find you in search. Friends stay connected."
+            "value": "Yeni oyuncular sizi aramada bulamaz. Arkadaşlar bağlı kalır."
           }
         },
         "de": {
@@ -50497,7 +50497,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pause"
+            "value": "Duraklat"
           }
         },
         "de": {
@@ -50633,7 +50633,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Game paused"
+            "value": "Oyun duraklatıldı"
           }
         },
         "de": {
@@ -50769,7 +50769,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pause game"
+            "value": "Duraklat oyunu"
           }
         },
         "de": {
@@ -50905,7 +50905,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Paused. Continue when ready."
+            "value": "Duraklatıldı. Hazır olduğunda devam edin."
           }
         },
         "de": {
@@ -51041,7 +51041,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Restart puzzle?"
+            "value": "Bulmacayı yeniden başlatmak mı?"
           }
         },
         "de": {
@@ -51177,7 +51177,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Moves and time will be cleared."
+            "value": "Hareketler ve zaman temizlenecek."
           }
         },
         "de": {
@@ -51313,7 +51313,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fantasy Mode · 16×16"
+            "value": "Fantezi Modu  1616"
           }
         },
         "de": {
@@ -51449,7 +51449,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Offline special mode"
+            "value": "Çevrimdışı özel mod"
           }
         },
         "de": {
@@ -51585,7 +51585,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Global ELO and difficulty boards"
+            "value": "GenelELOve zorluk panoları"
           }
         },
         "de": {
@@ -51721,7 +51721,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your main platform ranking"
+            "value": "Ana platform sıralamanız"
           }
         },
         "de": {
@@ -51857,7 +51857,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ranking for this difficulty"
+            "value": "Bu zorluk için sıralama"
           }
         },
         "de": {
@@ -51993,7 +51993,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open achievements and progress"
+            "value": "Açık başarılar ve ilerleme"
           }
         },
         "de": {
@@ -52219,7 +52219,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Day %1d reward"
+            "value": "Gün%1dödül"
           }
         },
         "uk": {
@@ -52491,7 +52491,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "+1 Hint Refill"
+            "value": "+1 İpucu Doldurma"
           }
         },
         "uk": {
@@ -52627,7 +52627,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daily reward doubled."
+            "value": "Günlük ödül iki katına çıktı."
           }
         },
         "uk": {
@@ -52763,7 +52763,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Come back tomorrow to continue your 30-day track."
+            "value": "Yarın 30 günlük rotana devam etmek için geri dön."
           }
         },
         "uk": {
@@ -52899,7 +52899,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "A Hint Refill restores an empty hint meter to full."
+            "value": "Bir İpucu Doldurma, boş bir ipucu sayacını tam olarak geri yükler."
           }
         },
         "uk": {
@@ -53035,7 +53035,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Loading..."
+            "value": "Yükleniyor..."
           }
         },
         "uk": {
@@ -53171,7 +53171,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Watch ad · +%1d"
+            "value": "Reklamı izle  +%1d"
           }
         },
         "uk": {
@@ -53307,7 +53307,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Collect"
+            "value": "Topla"
           }
         },
         "uk": {
@@ -53715,7 +53715,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "9x9 · 16x16"
+            "value": "9x916x16"
           }
         },
         "uk": {
@@ -53851,7 +53851,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Top rank"
+            "value": "Üst rütbe"
           }
         },
         "uk": {
@@ -53987,7 +53987,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your rank"
+            "value": "Rütbeniz"
           }
         },
         "uk": {
@@ -54123,7 +54123,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "No score"
+            "value": "Skor yok"
           }
         },
         "uk": {
@@ -54259,7 +54259,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "No ELO"
+            "value": "Hayır.ELO"
           }
         },
         "uk": {
@@ -54395,7 +54395,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Board"
+            "value": "Yönetim Kurulu"
           }
         },
         "uk": {
@@ -54531,7 +54531,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d shown"
+            "value": "%1dgösterilmektedir"
           }
         },
         "uk": {
@@ -54667,7 +54667,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Account"
+            "value": "Hesap"
           }
         },
         "uk": {
@@ -54803,7 +54803,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Private"
+            "value": "Özel"
           }
         },
         "uk": {
@@ -54939,7 +54939,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Record"
+            "value": "Kayıt"
           }
         },
         "uk": {
@@ -55075,7 +55075,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1d games"
+            "value": "%1doyunlar"
           }
         },
         "uk": {
@@ -55211,7 +55211,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wins"
+            "value": "Kazanır"
           }
         },
         "uk": {
@@ -55347,7 +55347,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Losses"
+            "value": "Kayıplar"
           }
         },
         "uk": {
@@ -55483,7 +55483,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Games"
+            "value": "Oyunlar"
           }
         },
         "uk": {
@@ -55619,7 +55619,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "OK"
+            "value": "Tamam."
           }
         },
         "uk": {
@@ -56027,7 +56027,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Master"
+            "value": "Usta."
           }
         },
         "uk": {
@@ -56163,7 +56163,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diamond"
+            "value": "Elmas"
           }
         },
         "uk": {
@@ -56299,7 +56299,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Platinum"
+            "value": "Platin"
           }
         },
         "uk": {
@@ -56435,7 +56435,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gold"
+            "value": "Altın"
           }
         },
         "uk": {
@@ -56571,7 +56571,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Silver"
+            "value": "Gümüş"
           }
         },
         "uk": {
@@ -56707,7 +56707,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bronze"
+            "value": "Bronz"
           }
         },
         "uk": {
@@ -56843,7 +56843,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Challenge sent to %1s."
+            "value": "Meydan okuma gönderildi%1s."
           }
         },
         "uk": {
@@ -56979,7 +56979,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Challenge %1s"
+            "value": "Meydan okuma%1s"
           }
         },
         "uk": {
@@ -57115,7 +57115,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1s challenge · expires %2s"
+            "value": "%1smeydan okuma  süresi doluyor%2s"
           }
         },
         "uk": {
@@ -57251,7 +57251,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Friend request sent to %1s."
+            "value": "Gönderilen arkadaş isteği%1s."
           }
         },
         "uk": {
@@ -57387,7 +57387,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "16x16 Level %1d"
+            "value": "16x16Seviye%1d"
           }
         },
         "uk": {
@@ -57659,7 +57659,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stars"
+            "value": "Yıldızlar"
           }
         },
         "uk": {
@@ -57795,7 +57795,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Track"
+            "value": "Parça"
           }
         },
         "uk": {
@@ -57931,7 +57931,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chapter"
+            "value": "Bölüm"
           }
         },
         "uk": {
@@ -58067,7 +58067,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Next level"
+            "value": "Sonraki seviye"
           }
         },
         "uk": {
@@ -58203,7 +58203,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Daily reminders to return for a fresh Sudoku challenge."
+            "value": "Yeni bir Sudoku meydan okuması için geri dönmek için günlük hatırlatmalar."
           }
         },
         "uk": {
@@ -58339,7 +58339,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Delete player account"
+            "value": "Oyuncu hesabını sil"
           }
         },
         "uk": {
@@ -58475,7 +58475,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Removes wallet, purchases, Friend ID, friends, rating and match history."
+            "value": "Cüzdanı, satın alımları, Arkadaş Kimliği, arkadaşlar, derecelendirme ve eşleştirme geçmişini kaldırır."
           }
         },
         "uk": {
@@ -58611,7 +58611,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sign in to a protected account"
+            "value": "Korumalı bir hesaba giriş yapın"
           }
         },
         "uk": {
@@ -58747,7 +58747,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protect the current guest"
+            "value": "Mevcut misafiri koru"
           }
         },
         "uk": {
@@ -58883,7 +58883,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use the same wallet, Friend ID and rating here."
+            "value": "Burada aynı cüzdan, Arkadaş Kimliği ve derecelendirmeyi kullanın."
           }
         },
         "uk": {
@@ -59019,7 +59019,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Link email and password without changing this player."
+            "value": "Bu oynatıcıyı değiştirmeden e-posta ve şifreyi bağlayın."
           }
         },
         "uk": {
@@ -59155,7 +59155,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Email address"
+            "value": "E-posta adresi"
           }
         },
         "uk": {
@@ -59291,7 +59291,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Password"
+            "value": "Şifre"
           }
         },
         "uk": {
@@ -59427,7 +59427,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "At least 8 characters"
+            "value": "En az 8 karakter"
           }
         },
         "uk": {
@@ -59563,7 +59563,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Show password"
+            "value": "Parolayı göster"
           }
         },
         "uk": {
@@ -59699,7 +59699,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hide password"
+            "value": "Parolayı gizle"
           }
         },
         "uk": {
@@ -59835,7 +59835,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Confirm password"
+            "value": "Parolayı onayla"
           }
         },
         "uk": {
@@ -59971,7 +59971,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Passwords do not match."
+            "value": "Parolalar eşleşmiyor."
           }
         },
         "uk": {
@@ -60107,7 +60107,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Please wait..."
+            "value": "Lütfen bekleyin..."
           }
         },
         "uk": {
@@ -60243,7 +60243,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sign in"
+            "value": "Giriş yap"
           }
         },
         "uk": {
@@ -60379,7 +60379,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protect account"
+            "value": "Hesabı koru"
           }
         },
         "uk": {
@@ -60515,7 +60515,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Forgot password?"
+            "value": "Şifrenizi mi unuttunuz?"
           }
         },
         "uk": {
@@ -60651,7 +60651,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Signing in switches away from this guest. Wallets are not merged."
+            "value": "Bu konuktan uzaklaşan anahtarlar imzalanıyor. Cüzdanlar birleştirilmiyor."
           }
         },
         "uk": {
@@ -60787,7 +60787,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Account protected"
+            "value": "Hesap korumalı"
           }
         },
         "uk": {
@@ -60923,7 +60923,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protected account"
+            "value": "Korumalı hesap"
           }
         },
         "uk": {
@@ -61059,7 +61059,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Email verified"
+            "value": "E-posta doğrulandı"
           }
         },
         "uk": {
@@ -61195,7 +61195,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Email verification required"
+            "value": "E-posta doğrulaması gerekli"
           }
         },
         "uk": {
@@ -61331,7 +61331,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Paid Coin purchases can be recovered on another device."
+            "value": "ÖdenmişCoinSatın alma işlemleri başka bir cihazda geri alınabilir."
           }
         },
         "uk": {
@@ -61467,7 +61467,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verify email before buying Coins."
+            "value": "Satın almadan önce e-postayı doğrulayınCoins."
           }
         },
         "uk": {
@@ -61603,7 +61603,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Resend verification email"
+            "value": "Doğrulama e-postasını yeniden gönder"
           }
         },
         "uk": {
@@ -61739,7 +61739,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "I verified it - refresh"
+            "value": "Doğruladım - refresh"
           }
         },
         "uk": {
@@ -61875,7 +61875,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Send password reset email"
+            "value": "Parola sıfırlama e-postası gönder"
           }
         },
         "uk": {
@@ -62011,7 +62011,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sign out on this device"
+            "value": "Bu cihazda çıkış yap"
           }
         },
         "uk": {
@@ -62147,7 +62147,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protected player account opened."
+            "value": "Korumalı oyuncu hesabı açıldı."
           }
         },
         "uk": {
@@ -62283,7 +62283,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Account protected. Check your inbox to verify the email."
+            "value": "Hesap korumalı. E-postayı doğrulamak için gelen kutunuzu kontrol edin."
           }
         },
         "uk": {
@@ -62419,7 +62419,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verification email sent."
+            "value": "Doğrulama e-postası gönderildi."
           }
         },
         "uk": {
@@ -62555,7 +62555,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Email verified."
+            "value": "E-posta doğrulandı."
           }
         },
         "uk": {
@@ -62691,7 +62691,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Account refreshed."
+            "value": "Hesap yenilendi."
           }
         },
         "uk": {
@@ -62827,7 +62827,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Password reset email sent."
+            "value": "Parola sıfırlama e-posta gönderildi."
           }
         },
         "uk": {
@@ -62963,7 +62963,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sign out?"
+            "value": "Çıkış mı?"
           }
         },
         "uk": {
@@ -63099,7 +63099,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "The protected wallet stays on the account. This device will use a guest until you sign in again."
+            "value": "Korumalı cüzdan hesapta kalır. Bu cihaz siz tekrar oturum açana kadar bir konuk kullanacaktır."
           }
         },
         "uk": {
@@ -63235,7 +63235,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sign out"
+            "value": "Çıkış yap"
           }
         },
         "uk": {
@@ -63371,7 +63371,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Guest player created."
+            "value": "Konuk oyuncu oluşturuldu."
           }
         },
         "uk": {
@@ -63507,7 +63507,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Delete player account permanently?"
+            "value": "Oyuncu hesabı kalıcı olarak silinsin mi?"
           }
         },
         "uk": {
@@ -63643,7 +63643,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "This cannot be undone. Wallet, purchases, friends, rating and match history will be removed. Finish active online matches first."
+            "value": "Bu geri alınamaz. Cüzdan, satın alımlar, arkadaşlar, derecelendirme ve maç geçmişi kaldırılacaktır. Önce aktif çevrimiçi maçları bitirin."
           }
         },
         "uk": {
@@ -63779,7 +63779,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Type DELETE"
+            "value": "Tip DELETE"
           }
         },
         "uk": {
@@ -63915,7 +63915,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Current password"
+            "value": "Geçerli parola"
           }
         },
         "uk": {
@@ -64051,7 +64051,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Delete permanently"
+            "value": "Kalıcı olarak sil"
           }
         },
         "uk": {
@@ -64187,7 +64187,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Player account and online data deleted."
+            "value": "Oyuncu hesabı ve çevrimiçi veriler silindi."
           }
         },
         "uk": {
@@ -64323,7 +64323,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protect current"
+            "value": "Akımı koru"
           }
         },
         "uk": {
@@ -64459,7 +64459,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recoverable account"
+            "value": "Kurtarılabilir hesap"
           }
         },
         "uk": {
@@ -64595,7 +64595,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Guest account"
+            "value": "Misafir hesabı"
           }
         },
         "uk": {
@@ -64731,7 +64731,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "an email account"
+            "value": "bir e-posta hesabı"
           }
         },
         "uk": {
@@ -64867,7 +64867,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Online identity linked to %1s."
+            "value": "Bağlı olan çevrimiçi kimlik%1s."
           }
         },
         "uk": {
@@ -65003,7 +65003,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deleting the app or changing devices can make this guest inaccessible. Protect it before buying Coins."
+            "value": "Uygulamayı silmek veya cihazları değiştirmek bu konuğu erişilemez hale getirebilir. Satın almadan önce koruyunCoins."
           }
         },
         "uk": {
@@ -65139,7 +65139,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Service message"
+            "value": "Servis mesajı"
           }
         },
         "uk": {
@@ -65275,7 +65275,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search results"
+            "value": "Arama sonuçları"
           }
         },
         "uk": {
@@ -65411,7 +65411,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sudoku Duel friends"
+            "value": "Sudoku Duelarkadaşlar"
           }
         },
         "uk": {
@@ -65547,7 +65547,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search a username and send a friend request to build your list."
+            "value": "Bir kullanıcı adı arayın ve listenizi oluşturmak için bir arkadaş isteği gönderin."
           }
         },
         "uk": {
@@ -65683,7 +65683,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recent opponents"
+            "value": "Son rakipler"
           }
         },
         "uk": {
@@ -65819,7 +65819,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Players you finish an online match with will appear here."
+            "value": "Çevrimiçi bir maçı bitirdiğiniz oyuncular burada görünecektir."
           }
         },
         "uk": {
@@ -65955,7 +65955,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cross-platform social service"
+            "value": "Platformlar arası sosyal hizmet"
           }
         },
         "uk": {
@@ -66091,7 +66091,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sudoku Duel usernames, friends, recent opponents, and challenges are connected through the shared backend."
+            "value": "Sudoku DuelKullanıcı adları, arkadaşlar, son rakipler ve zorluklar paylaşılan arka uç üzerinden bağlanır."
           }
         },
         "uk": {
@@ -66227,7 +66227,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Challenge notifications enabled"
+            "value": "Zorluk bildirimleri etkinleştirildi"
           }
         },
         "uk": {
@@ -66363,7 +66363,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enable challenge notifications"
+            "value": "Zorluk bildirimlerini etkinleştir"
           }
         },
         "uk": {
@@ -66499,7 +66499,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Receive invitations and responses even while Sudoku Duel is closed."
+            "value": "Davet ve yanıtları alırken bileSudoku Duelkapalıdır."
           }
         },
         "uk": {
@@ -66635,7 +66635,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enable"
+            "value": "Etkinleştir"
           }
         },
         "uk": {
@@ -66771,7 +66771,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search Sudoku Duel username"
+            "value": "AraSudoku Duelkullanıcı adı"
           }
         },
         "uk": {
@@ -66907,7 +66907,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Enter at least 3 characters."
+            "value": "En az 3 karakter girin."
           }
         },
         "uk": {
@@ -67043,7 +67043,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Search"
+            "value": "Ara"
           }
         },
         "uk": {
@@ -67179,7 +67179,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pending challenges"
+            "value": "Bekleyen zorluklar"
           }
         },
         "uk": {
@@ -67315,7 +67315,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "No pending challenges"
+            "value": "Bekleyen zorluklar yok"
           }
         },
         "uk": {
@@ -67451,7 +67451,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "New invitations will appear here and can also arrive by push notification."
+            "value": "Yeni davetler burada görünecek ve push bildirimi ile de gelebilir."
           }
         },
         "uk": {
@@ -67587,7 +67587,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connect platform profile"
+            "value": "Platform profilini bağlayın"
           }
         },
         "uk": {
@@ -67723,7 +67723,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use Play Games or Game Center for native friends, leaderboards, achievements, and player profiles."
+            "value": "KullanPlay GamesveyaGame CenterYerli arkadaşlar, lider tahtaları, başarılar ve oyuncu profilleri için."
           }
         },
         "uk": {
@@ -67859,7 +67859,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected player"
+            "value": "Bağlı oyuncu"
           }
         },
         "uk": {
@@ -67995,7 +67995,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leaderboard"
+            "value": "Liderlik Tablosu"
           }
         },
         "uk": {
@@ -68131,7 +68131,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Achievements"
+            "value": "Başarımlar"
           }
         },
         "uk": {
@@ -68267,7 +68267,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "This rematch invitation has expired."
+            "value": "Bu rövanş davetinin süresi doldu."
           }
         },
         "uk": {
@@ -68314,7 +68314,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Close"
+            "value": "Kapat"
           }
         },
         "de": {
@@ -68451,7 +68451,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Starting the rematch..."
+            "value": "Rövanş maçı başlıyor..."
           }
         },
         "de": {
@@ -68725,7 +68725,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add Coins to your wallet"
+            "value": "EkleCoinCüzdanına s"
           }
         },
         "de": {
@@ -68862,7 +68862,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use refill · %1d left (+%2d hints)"
+            "value": "Doldurma kullan%1dsol (+%2dipuçları)"
           }
         },
         "de": {
@@ -68999,7 +68999,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hint refill is not available right now."
+            "value": "İpucu dolum şu anda mevcut değil."
           }
         },
         "de": {
