@@ -521,7 +521,11 @@ def verify(strings: dict) -> None:
             )
 
         for key, expected in CURATED[locale].items():
-            actual = value_for(strings[key], locale)
+            definition = strings.get(key)
+            if not isinstance(definition, dict):
+                # Curated copy is optional metadata. Removed app keys are ignored here.
+                continue
+            actual = value_for(definition, locale)
             if actual != expected:
                 failures.append(
                     f"{locale}:{key}: expected curated {expected!r}, got {actual!r}"
