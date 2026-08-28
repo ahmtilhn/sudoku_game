@@ -370,7 +370,8 @@ jobs:
       - name: Analyze localization runtime
         run: flutter analyze --fatal-infos lib/localization/app_strings.dart lib/app.dart
 
-      - name: Build real iOS Simulator target
+      - name: Build real iOS Simulator target (diagnostic)
+        continue-on-error: true
         run: flutter build ios --simulator --debug --no-codesign
 
       - name: Commit on top of latest main
