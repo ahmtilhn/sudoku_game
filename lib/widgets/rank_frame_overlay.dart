@@ -44,10 +44,7 @@ class RankFrameOverlay extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           Positioned.fill(
-            child: Padding(
-              padding: EdgeInsets.all(avatarInset),
-              child: child,
-            ),
+            child: Padding(padding: EdgeInsets.all(avatarInset), child: child),
           ),
           Positioned.fill(
             child: IgnorePointer(
@@ -152,10 +149,7 @@ class _DecorationPin extends StatelessWidget {
         color: const Color(0xFF10181D),
         border: Border.all(color: accent, width: 1.2),
         boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: .28),
-            blurRadius: 5,
-          ),
+          BoxShadow(color: accent.withValues(alpha: .28), blurRadius: 5),
         ],
       ),
       child: Icon(icon, size: size * .58, color: accent),

@@ -87,10 +87,7 @@ class UxGameSession {
     },
     'board': board,
     'notes': notes.map(
-      (index, values) => MapEntry(
-        index.toString(),
-        values.toList()..sort(),
-      ),
+      (index, values) => MapEntry(index.toString(), values.toList()..sort()),
     ),
     'history': history.map((move) => move.toJson()).toList(),
     'hintedIndexes': hintedIndexes.toList()..sort(),
@@ -281,8 +278,5 @@ List<int> _intList(Object? value) {
 
 Set<int> _intSet(Object? value) {
   if (value is! List) return <int>{};
-  return value
-      .map((item) => (item as num?)?.toInt())
-      .whereType<int>()
-      .toSet();
+  return value.map((item) => (item as num?)?.toInt()).whereType<int>().toSet();
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../localization/app_strings.dart';
 import '../../models/online_duel_emote_catalog.dart';
 import '../../services/online_duel_emote_loadout_service.dart';
 import '../../widgets/app_backdrop.dart';
@@ -34,7 +35,7 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
     try {
       await _loadout.initialize();
     } catch (_) {
-      _error = 'Emote selection could not be loaded.';
+      _error = 'emote_selection_load_failed';
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -43,17 +44,17 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
   Future<void> _toggle(OnlineDuelEmoteDefinition emote) async {
     final selected = _loadout.isSelected(emote.id);
     if (!selected && _loadout.isFull) {
-      _showMessage('You can equip up to 8 quick emotes. Remove one first.');
+      _showMessage(context.tr('quick_emotes_limit'));
       return;
     }
     if (selected && _loadout.selectedCount <= 1) {
-      _showMessage('Keep at least one quick emote equipped.');
+      _showMessage(context.tr('keep_one_quick_emote'));
       return;
     }
 
     final changed = await _loadout.toggle(emote.id);
     if (!changed && mounted) {
-      _showMessage('That emote could not be changed.');
+      _showMessage(context.tr('emote_change_failed'));
     }
   }
 
@@ -75,10 +76,7 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(message),
-      ),
+      SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
     );
   }
 
@@ -117,16 +115,19 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
                     children: [
                       InPageHeader(
-                        title: 'Emotes',
+                        title: context.tr('emotes'),
                         actions: [
                           IconButton(
-                            tooltip: 'Restore default emotes',
+                            tooltip: context.tr('restore_default_emotes'),
                             onPressed: _loading
                                 ? null
                                 : () async {
+                                    final restoredMessage = context.tr(
+                                      'default_emotes_restored',
+                                    );
                                     await _loadout.resetToDefaults();
                                     if (mounted) {
-                                      _showMessage('Default emotes restored.');
+                                      _showMessage(restoredMessage);
                                     }
                                   },
                             icon: const Icon(Icons.restart_alt_rounded),
@@ -135,14 +136,13 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
                       ),
                       if (_error != null) ...[
                         const SizedBox(height: 8),
-                        _InlineNotice(message: _error!),
+                        _InlineNotice(message: context.tr(_error!)),
                       ],
                       const SizedBox(height: 12),
                       _SectionTitle(
-                        eyebrow: 'YOUR LOADOUT',
-                        title: 'Quick Emotes',
-                        subtitle:
-                            'The same 4 × 2 layout is used when you open emotes during a duel. Hold and drag to reorder.',
+                        eyebrow: context.tr('your_loadout'),
+                        title: context.tr('quick_emotes'),
+                        subtitle: context.tr('quick_emotes_reorder_body'),
                         trailing:
                             '${_loadout.selectedCount}/${OnlineDuelEmoteLoadoutService.maxSlots}',
                       ),
@@ -152,11 +152,10 @@ class _EmoteLoadoutScreenState extends State<EmoteLoadoutScreen> {
                         onMove: _reorder,
                       ),
                       const SizedBox(height: 22),
-                      const _SectionTitle(
-                        eyebrow: 'COLLECTION',
-                        title: 'Choose your reactions',
-                        subtitle:
-                            'Tap a card to equip it. Tap an equipped card again to remove it from your quick slots.',
+                      _SectionTitle(
+                        eyebrow: context.tr('collection'),
+                        title: context.tr('choose_reactions'),
+                        subtitle: context.tr('choose_reactions_body'),
                       ),
                       const SizedBox(height: 10),
                       _FilterBar(
@@ -405,8 +404,11 @@ class _QuickSlotCard extends StatelessWidget {
     final value = emote;
     return Semantics(
       label: value == null
-          ? 'Empty quick emote slot ${index + 1}'
-          : '${value.label}, quick emote slot ${index + 1}',
+          ? context.tr('empty_quick_emote_slot', <Object>[index + 1])
+          : context.tr('quick_emote_slot_label', <Object>[
+              context.tr(value.labelKey),
+              index + 1,
+            ]),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
         padding: const EdgeInsets.all(6),
@@ -486,25 +488,25 @@ class _FilterBar extends StatelessWidget {
       child: Row(
         children: [
           _FilterChipButton(
-            label: 'All',
+            label: context.tr('all'),
             selected: selected == _EmoteFilter.all,
             onTap: () => onSelected(_EmoteFilter.all),
           ),
           const SizedBox(width: 7),
           _FilterChipButton(
-            label: 'Reactions',
+            label: context.tr('reactions'),
             selected: selected == _EmoteFilter.reactions,
             onTap: () => onSelected(_EmoteFilter.reactions),
           ),
           const SizedBox(width: 7),
           _FilterChipButton(
-            label: 'Taunts',
+            label: context.tr('taunts'),
             selected: selected == _EmoteFilter.taunts,
             onTap: () => onSelected(_EmoteFilter.taunts),
           ),
           const SizedBox(width: 7),
           _FilterChipButton(
-            label: 'Status',
+            label: context.tr('status'),
             selected: selected == _EmoteFilter.status,
             onTap: () => onSelected(_EmoteFilter.status),
           ),
@@ -569,7 +571,12 @@ class _CollectionEmoteCard extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: '${emote.label}${selected ? ', equipped in slot $slot' : ''}',
+      label: selected
+          ? context.tr('emote_equipped_slot', <Object>[
+              context.tr(emote.labelKey),
+              slot,
+            ])
+          : context.tr(emote.labelKey),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -607,7 +614,7 @@ class _CollectionEmoteCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      emote.label,
+                      context.tr(emote.labelKey),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,

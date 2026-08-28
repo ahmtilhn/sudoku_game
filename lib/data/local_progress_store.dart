@@ -217,9 +217,7 @@ class LocalProgressStore extends ChangeNotifier {
   }) {
     if (number < 1) return false;
     return number == 1 ||
-        _progress.containsKey(
-          _storageKey(variant, _careerLevelId(number - 1)),
-        );
+        _progress.containsKey(_storageKey(variant, _careerLevelId(number - 1)));
   }
 
   LevelProgress? progressFor(

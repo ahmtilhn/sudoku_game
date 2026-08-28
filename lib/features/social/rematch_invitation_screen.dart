@@ -298,7 +298,7 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              'wants a rematch',
+                              context.tr('wants_rematch'),
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: .66),
                                 fontSize: 13,
@@ -336,7 +336,7 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                                           ),
                                         ),
                                         Text(
-                                          's',
+                                          context.tr('seconds_short'),
                                           style: TextStyle(
                                             color: Colors.white.withValues(
                                               alpha: .52,
@@ -380,7 +380,10 @@ class _RematchInvitationScreenState extends State<RematchInvitationScreen> {
                                   const SizedBox(width: 7),
                                   Flexible(
                                     child: Text(
-                                      '$fee Coin from each player',
+                                      context.tr(
+                                        'coin_fee_each_player',
+                                        <Object>[fee],
+                                      ),
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         color: Color(0xFFFFD66B),

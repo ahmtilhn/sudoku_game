@@ -59,13 +59,7 @@ class SudokuDifficultyAnalyzer {
           break;
         }
         if (_bitCount(mask) == 1) {
-          _placeValue(
-            puzzle,
-            board,
-            candidates,
-            index,
-            _singleValue(mask),
-          );
+          _placeValue(puzzle, board, candidates, index, _singleValue(mask));
           logicalSteps++;
           progress = true;
         }
@@ -101,8 +95,8 @@ class SudokuDifficultyAnalyzer {
         difficulty: switch (hardest) {
           SudokuTechnique.nakedSingle => SudokuDifficulty.beginner,
           SudokuTechnique.hiddenSingle => SudokuDifficulty.easy,
-          SudokuTechnique.lockedCandidate || SudokuTechnique.nakedPair =>
-            SudokuDifficulty.medium,
+          SudokuTechnique.lockedCandidate ||
+          SudokuTechnique.nakedPair => SudokuDifficulty.medium,
           SudokuTechnique.search => SudokuDifficulty.hard,
         },
         hardestTechnique: hardest,
@@ -345,9 +339,7 @@ class SudokuDifficultyAnalyzer {
         columnOffset++
       ) {
         seen.add(
-          (startRow + rowOffset) * puzzle.size +
-              startColumn +
-              columnOffset,
+          (startRow + rowOffset) * puzzle.size + startColumn + columnOffset,
         );
       }
     }

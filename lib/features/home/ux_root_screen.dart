@@ -1176,7 +1176,7 @@ class _RematchSheetState extends State<_RematchSheet> {
           ),
           const SizedBox(height: 12),
           Text(
-            '$_seconds s',
+            context.tr('seconds_value', <Object>[_seconds]),
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900),
           ),

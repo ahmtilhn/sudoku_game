@@ -259,8 +259,10 @@ class CoinStoreService extends ChangeNotifier {
     }
 
     try {
-      final transactions = await storekit2.SK2Transaction.unfinishedTransactions()
-          .timeout(const Duration(seconds: 4));
+      final transactions =
+          await storekit2.SK2Transaction.unfinishedTransactions().timeout(
+            const Duration(seconds: 4),
+          );
       final relevant = transactions
           .where((transaction) => productIds.contains(transaction.productId))
           .where(
@@ -279,9 +281,9 @@ class CoinStoreService extends ChangeNotifier {
         '${recoveredProductIds.join(',')}',
       );
       await _enqueuePurchases(
-        relevant.map(_purchaseDetailsFromStoreKit2Transaction).toList(
-          growable: false,
-        ),
+        relevant
+            .map(_purchaseDetailsFromStoreKit2Transaction)
+            .toList(growable: false),
       );
       return recoveredProductIds;
     } on TimeoutException {
@@ -508,7 +510,9 @@ class CoinStoreService extends ChangeNotifier {
       );
 
       if (isAppleStorePlatform &&
-          _finishedAppleTransactionKeys.contains(_appleTransactionKey(purchase))) {
+          _finishedAppleTransactionKeys.contains(
+            _appleTransactionKey(purchase),
+          )) {
         debugPrint(
           'Skipping already-finished App Store transaction: '
           'productId=${purchase.productID} purchaseId=${purchase.purchaseID}',
@@ -684,7 +688,8 @@ class CoinStoreService extends ChangeNotifier {
     );
 
     if (code == 'purchase_replayed') {
-      final completed = !purchase.pendingCompletePurchase ||
+      final completed =
+          !purchase.pendingCompletePurchase ||
           await _completePurchaseSafely(purchase);
       if (completed) {
         _markAppleTransactionFinished(purchase);
@@ -699,7 +704,8 @@ class CoinStoreService extends ChangeNotifier {
     }
 
     if (_isPermanentAppleVerificationFailure(exception)) {
-      final completed = !purchase.pendingCompletePurchase ||
+      final completed =
+          !purchase.pendingCompletePurchase ||
           await _completePurchaseSafely(purchase);
       if (completed) {
         _markAppleTransactionFinished(purchase);
@@ -732,8 +738,8 @@ class CoinStoreService extends ChangeNotifier {
   String _appleTransactionKey(PurchaseDetails purchase) {
     final purchaseId = purchase.purchaseID?.trim();
     if (purchaseId != null && purchaseId.isNotEmpty) return purchaseId;
-    final verificationData =
-        purchase.verificationData.serverVerificationData.trim();
+    final verificationData = purchase.verificationData.serverVerificationData
+        .trim();
     return '${purchase.productID}:${purchase.transactionDate ?? 'unknown'}:'
         '${_stableVerificationHash(verificationData)}';
   }

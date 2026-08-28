@@ -194,14 +194,12 @@ class RankMatchResult {
           ? rewardsJson
                 .whereType<Map>()
                 .map(
-                  (value) => RankMatchReward.fromJson(
-                    value.cast<String, dynamic>(),
-                  ),
+                  (value) =>
+                      RankMatchReward.fromJson(value.cast<String, dynamic>()),
                 )
                 .toList(growable: false)
           : const <RankMatchReward>[],
-      abandonmentPenalty:
-          (json['abandonmentPenalty'] as num?)?.toInt() ?? 0,
+      abandonmentPenalty: (json['abandonmentPenalty'] as num?)?.toInt() ?? 0,
       repeatPercent: (json['repeatPercent'] as num?)?.toInt() ?? 100,
     );
   }
@@ -301,10 +299,7 @@ class RankIdentityService {
   Future<RankLeaderboardSnapshot> loadLeaderboard({int limit = 50}) async {
     final safe = limit.clamp(1, 100);
     return RankLeaderboardSnapshot.fromJson(
-      await _request(
-        'GET',
-        '/v1/competitive/rank-leaderboard?limit=$safe',
-      ),
+      await _request('GET', '/v1/competitive/rank-leaderboard?limit=$safe'),
     );
   }
 

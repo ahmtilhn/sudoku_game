@@ -10,16 +10,12 @@ import '../social/rematch_invitation_screen.dart';
 import '../social/social_hub_screen.dart';
 
 class PushRoomNavigationGate extends StatefulWidget {
-  const PushRoomNavigationGate({
-    super.key,
-    required this.child,
-  });
+  const PushRoomNavigationGate({super.key, required this.child});
 
   final Widget child;
 
   @override
-  State<PushRoomNavigationGate> createState() =>
-      _PushRoomNavigationGateState();
+  State<PushRoomNavigationGate> createState() => _PushRoomNavigationGateState();
 }
 
 class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
@@ -158,9 +154,7 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
       } else if (rematchId != null && rematchId.isNotEmpty) {
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
-            builder: (_) => RematchInvitationScreen(
-              invitationId: rematchId,
-            ),
+            builder: (_) => RematchInvitationScreen(invitationId: rematchId),
           ),
         );
       } else if (socialId != null && socialId.isNotEmpty) {

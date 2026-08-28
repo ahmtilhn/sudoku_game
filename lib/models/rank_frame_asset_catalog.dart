@@ -26,8 +26,7 @@ class RankFrameAssetCatalog {
     'master_1': 'assets/frames/master_1.png',
   };
 
-  static List<String> get keys =>
-      List<String>.unmodifiable(_assetPaths.keys);
+  static List<String> get keys => List<String>.unmodifiable(_assetPaths.keys);
 
   static List<String> get assetPaths =>
       List<String>.unmodifiable(_assetPaths.values);
@@ -42,6 +41,5 @@ class RankFrameAssetCatalog {
         : fallbackKey;
   }
 
-  static String assetPathForKey(String? key) =>
-      _assetPaths[normalizeKey(key)]!;
+  static String assetPathForKey(String? key) => _assetPaths[normalizeKey(key)]!;
 }

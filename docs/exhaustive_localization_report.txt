@@ -1,0 +1,9 @@
+Exhaustive user-facing localization audit failed:
+- lib/features/career/career_screen.dart:286: , <Object>[level.hintReward])}
+- lib/features/career/career_screen.dart:1262: , <Object>[completedLevels])} ·
+- lib/features/economy/wallet_history_screen.dart:150: ${positive ?
+- lib/features/social/friend_requests_screen.dart:205: , <Object>[player.gamesPlayed])}
+- lib/features/social/profile_customization_screen.dart:1365: , <Object>[reward.amount])}${reward.claimed ?
+- lib/features/social/social_hub_screen.dart:1068: @${player.username}${rank == null ?
+Every displayed literal above must live in AppStrings and be rendered through localized copy.
+exit_code=1

@@ -32,7 +32,11 @@ class CareerLevel {
     SudokuDifficulty.expert => 50,
   };
 
-  int get hintReward => chapterLevel == 10 ? 2 : chapterLevel == 5 ? 1 : 0;
+  int get hintReward => chapterLevel == 10
+      ? 2
+      : chapterLevel == 5
+      ? 1
+      : 0;
 }
 
 class CareerCatalog {
@@ -117,9 +121,7 @@ class CareerCatalog {
     return previous != null && isCompleted(previous.id);
   }
 
-  static CareerLevel? firstPlayable(
-    bool Function(String levelId) isCompleted,
-  ) {
+  static CareerLevel? firstPlayable(bool Function(String levelId) isCompleted) {
     for (final level in levels) {
       if (!isCompleted(level.id) && isUnlocked(level, isCompleted)) {
         return level;
@@ -147,8 +149,8 @@ class CareerCatalog {
       }
 
       final analysis = SudokuDifficultyAnalyzer.analyze(generated);
-      final distance =
-          (analysis.difficulty.index - level.difficulty.index).abs();
+      final distance = (analysis.difficulty.index - level.difficulty.index)
+          .abs();
       if (distance < closestDistance) {
         closest = generated;
         closestDistance = distance;
@@ -160,10 +162,7 @@ class CareerCatalog {
     return _withCareerId(closest!, level);
   }
 
-  static SudokuPuzzle _withCareerId(
-    SudokuPuzzle source,
-    CareerLevel level,
-  ) {
+  static SudokuPuzzle _withCareerId(SudokuPuzzle source, CareerLevel level) {
     return SudokuPuzzle(
       id: level.id,
       title: source.title,

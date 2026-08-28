@@ -36,8 +36,16 @@ class ResponsiveMetrics {
   bool get hasVeryLargeText => textScale >= 1.7;
   bool get keyboardVisible => viewInsets.bottom > 0;
 
-  double get pagePadding => isTiny ? 12 : isTablet ? 24 : 16;
-  double get contentMaxWidth => isLargeTablet ? 920 : isTablet ? 760 : 680;
+  double get pagePadding => isTiny
+      ? 12
+      : isTablet
+      ? 24
+      : 16;
+  double get contentMaxWidth => isLargeTablet
+      ? 920
+      : isTablet
+      ? 760
+      : 680;
 }
 
 Future<T?> showAdaptiveBottomSheet<T>({

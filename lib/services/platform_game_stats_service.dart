@@ -37,17 +37,14 @@ class PlatformGameStatsProfile {
 abstract interface class PlatformGameStatsMirror {
   void observeSnapshot(OnlineDuelSnapshot snapshot);
 
-  Future<PlatformGameStatsResult> mirrorFinalStats(
-    OnlineDuelSnapshot snapshot,
-  );
+  Future<PlatformGameStatsResult> mirrorFinalStats(OnlineDuelSnapshot snapshot);
 }
 
 typedef PlatformGameStatsConfiguredCheck = Future<bool> Function();
 typedef PlatformGameStatsAuthenticationRefresh = Future<bool> Function();
 typedef PlatformGameStatsAuthenticationRequest = Future<bool> Function();
-typedef PlatformGameStatsRecorder = Future<bool> Function(
-  List<Map<String, Object?>> events,
-);
+typedef PlatformGameStatsRecorder =
+    Future<bool> Function(List<Map<String, Object?>> events);
 typedef PlatformGameStatsProfileLoader =
     Future<PlatformGameStatsProfile> Function();
 
@@ -116,7 +113,10 @@ class PlatformGameStatsService implements PlatformGameStatsMirror {
     if (snapshot.mode != 'ranked') return;
     if (snapshot.status == OnlineDuelStatus.active ||
         snapshot.status == OnlineDuelStatus.paused) {
-      _observedStartTimes.putIfAbsent(snapshot.matchId, () => snapshot.serverTime);
+      _observedStartTimes.putIfAbsent(
+        snapshot.matchId,
+        () => snapshot.serverTime,
+      );
     }
   }
 
@@ -170,20 +170,17 @@ class PlatformGameStatsService implements PlatformGameStatsMirror {
       final durationSeconds = startTime == null
           ? 0.0
           : snapshot.serverTime
-                .difference(startTime)
-                .inMilliseconds
-                .clamp(0, 24 * 60 * 60 * 1000) /
-              1000.0;
+                    .difference(startTime)
+                    .inMilliseconds
+                    .clamp(0, 24 * 60 * 60 * 1000) /
+                1000.0;
 
       final submitted = await _recordEvents(<Map<String, Object?>>[
         <String, Object?>{
           'eventName': 'rankedMatchCompleted',
           'properties': <String, Object?>{
             'matchId': _typed('string', snapshot.matchId),
-            'isWinner': _typed(
-              'bool',
-              snapshot.winnerSeat == snapshot.youSeat,
-            ),
+            'isWinner': _typed('bool', snapshot.winnerSeat == snapshot.youSeat),
             'durationSeconds': _typed('double', durationSeconds),
             'globalEloAfter': _typed('int64', localRating.afterGlobal),
             'winStreakAfter': _typed('int64', profile.winStreak),

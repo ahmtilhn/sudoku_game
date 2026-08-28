@@ -8,8 +8,8 @@ export interface PushEnv {
 }
 
 export type PushMessage = {
-  title: string;
-  body: string;
+  titleKey: string;
+  bodyKey: string;
   data: Record<string, string>;
   tag: string;
 };
@@ -58,7 +58,6 @@ export async function sendPlayerPush(
           body: JSON.stringify({
             message: {
               token: device.token,
-              notification: { title: message.title, body: message.body },
               data: message.data,
               android: {
                 priority: 'high',
@@ -66,12 +65,18 @@ export async function sendPlayerPush(
                   channel_id: 'online_challenges',
                   tag: message.tag,
                   sound: 'default',
+                  title_loc_key: message.titleKey,
+                  body_loc_key: message.bodyKey,
                 },
               },
               apns: {
                 headers: { 'apns-priority': '10' },
                 payload: {
                   aps: {
+                    alert: {
+                      'title-loc-key': message.titleKey,
+                      'loc-key': message.bodyKey,
+                    },
                     sound: 'default',
                     badge: 1,
                     'thread-id': 'online-challenges',

@@ -133,7 +133,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
     } catch (error) {
       if (mounted) {
         setState(() {
-          _error = 'Social services could not be initialized: $error';
+          _error = context.tr('social_services_init_failed');
         });
       }
     } finally {

@@ -112,14 +112,17 @@ class SamuraiBoard extends StatelessWidget {
                       final hinted = hintedIndexes.contains(index);
                       final overlap = SamuraiTopology.isOverlapIndex(index);
                       final hasError = errorIndex == index;
-                      final sameValue = selectedValue > 0 && value == selectedValue;
-                      final related = selectedIndex != null &&
+                      final sameValue =
+                          selectedValue > 0 && value == selectedValue;
+                      final related =
+                          selectedIndex != null &&
                           SamuraiTopology.unitsByCell[index].any(
                             selectedUnits.contains,
                           );
                       final row = SamuraiTopology.rowOf(index);
                       final column = SamuraiTopology.columnOf(index);
-                      final cellExtent = boardExtent / SamuraiTopology.canvasSize;
+                      final cellExtent =
+                          boardExtent / SamuraiTopology.canvasSize;
 
                       return Semantics(
                         button: !fixed && !hinted,
@@ -175,7 +178,10 @@ class SamuraiBoard extends StatelessWidget {
                                 else
                                   _SamuraiNotes(
                                     values: notes[index] ?? const <int>{},
-                                    fontSize: (cellExtent * .19).clamp(5.0, 8.0),
+                                    fontSize: (cellExtent * .19).clamp(
+                                      5.0,
+                                      8.0,
+                                    ),
                                     color: selected
                                         ? _samuraiBoardScheme.onPrimaryContainer
                                         : _samuraiBoardScheme.onSurfaceVariant,
@@ -185,7 +191,10 @@ class SamuraiBoard extends StatelessWidget {
                                     alignment: Alignment.topLeft,
                                     child: Container(
                                       width: (cellExtent * .17).clamp(4.0, 8.0),
-                                      height: (cellExtent * .17).clamp(4.0, 8.0),
+                                      height: (cellExtent * .17).clamp(
+                                        4.0,
+                                        8.0,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: _samuraiBoardScheme.tertiary,
                                         borderRadius: const BorderRadius.only(

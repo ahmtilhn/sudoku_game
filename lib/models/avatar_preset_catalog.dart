@@ -1,12 +1,12 @@
 class AvatarPreset {
   const AvatarPreset({
     required this.key,
-    required this.label,
+    required this.number,
     required this.assetPath,
   });
 
   final String key;
-  final String label;
+  final int number;
   final String assetPath;
 }
 
@@ -27,7 +27,7 @@ class AvatarPresetCatalog {
       final number = index + 1;
       return AvatarPreset(
         key: 'preset_${number.toString().padLeft(3, '0')}',
-        label: 'Avatar ${number.toString().padLeft(2, '0')}',
+        number: number,
         assetPath: number == 1
             ? firstAssetPath
             : 'assets/avatar/avatar ($number).png',

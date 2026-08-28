@@ -57,7 +57,7 @@ class MatchmakingStage extends StatefulWidget {
     required this.currentPlayer,
     required this.actionLabel,
     required this.actionIcon,
-    this.difficultyLabel = 'Easy',
+    this.difficultyLabel = '',
     this.opponent,
     this.searching = true,
     this.actionBusy = false,
@@ -140,9 +140,15 @@ class _MatchmakingStageState extends State<MatchmakingStage>
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
                 final height = constraints.maxHeight;
-                final horizontalScale = (width / 390).clamp(.84, 1.10).toDouble();
-                final verticalScale = (height / 800).clamp(.76, 1.06).toDouble();
-                final scale = math.min(horizontalScale, verticalScale).toDouble();
+                final horizontalScale = (width / 390)
+                    .clamp(.84, 1.10)
+                    .toDouble();
+                final verticalScale = (height / 800)
+                    .clamp(.76, 1.06)
+                    .toDouble();
+                final scale = math
+                    .min(horizontalScale, verticalScale)
+                    .toDouble();
                 final sidePadding = (18 * horizontalScale)
                     .clamp(13.0, 22.0)
                     .toDouble();
@@ -161,7 +167,10 @@ class _MatchmakingStageState extends State<MatchmakingStage>
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _SearchHeader(
-                            difficultyLabel: widget.difficultyLabel,
+                            difficultyLabel:
+                                (widget.difficultyLabel.trim().isEmpty
+                                ? context.tr('difficulty_easy')
+                                : widget.difficultyLabel),
                             onBack: widget.onClose,
                             scale: scale,
                             onHelp: _showSearchInfo,
@@ -255,8 +264,8 @@ class _MatchmakingStageState extends State<MatchmakingStage>
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Opponent search',
+                Text(
+                  context.tr('opponent_search'),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -265,7 +274,7 @@ class _MatchmakingStageState extends State<MatchmakingStage>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'We look for an available player close to your competitive level. Keep this screen open while matchmaking is active.',
+                  context.tr('opponent_search_body'),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .68),
                     height: 1.45,
@@ -340,7 +349,7 @@ class _SearchHeader extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: _HeaderButton(
               size: buttonSize,
-              tooltip: 'Matchmaking info',
+              tooltip: context.tr('matchmaking_info'),
               onTap: onHelp,
               icon: Icons.question_mark_rounded,
               iconSize: (19 * scale).clamp(17.0, 20.0).toDouble(),
@@ -414,12 +423,12 @@ class _SearchStateLine extends StatelessWidget {
       builder: (context, _) {
         final wave = (math.sin(animation.value * math.pi * 2) + 1) / 2;
         final text = busy
-            ? 'Cancelling search...'
+            ? context.tr('matchmaking_cancelling_search')
             : matched
-            ? 'Opponent found'
+            ? context.tr('opponent_found')
             : (status?.trim().isNotEmpty == true
                   ? status!.trim()
-                  : 'Searching for opponent...');
+                  : context.tr('matchmaking_searching_opponent'));
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -427,15 +436,15 @@ class _SearchStateLine extends StatelessWidget {
               width: (8 * scale).clamp(7.0, 9.0).toDouble(),
               height: (8 * scale).clamp(7.0, 9.0).toDouble(),
               decoration: BoxDecoration(
-                color: const Color(0xFF29D398).withValues(
-                  alpha: .58 + wave * .42,
-                ),
+                color: const Color(
+                  0xFF29D398,
+                ).withValues(alpha: .58 + wave * .42),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF29D398).withValues(
-                      alpha: .10 + wave * .12,
-                    ),
+                    color: const Color(
+                      0xFF29D398,
+                    ).withValues(alpha: .10 + wave * .12),
                     blurRadius: 8,
                   ),
                 ],
@@ -554,10 +563,7 @@ class _PlayerSearchCard extends StatelessWidget {
           final dense = constraints.maxHeight < 315;
           final veryDense = constraints.maxHeight < 270;
           final avatarRadius = math
-              .min(
-                constraints.maxWidth * .255,
-                (43 * scale).clamp(35.0, 47.0),
-              )
+              .min(constraints.maxWidth * .255, (43 * scale).clamp(35.0, 47.0))
               .toDouble();
 
           return Padding(
@@ -593,29 +599,27 @@ class _PlayerSearchCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: veryDense ? 2 : 4),
-                _RankLine(
-                  rank: player.rankLabel,
-                  scale: scale,
-                  dense: dense,
-                ),
+                _RankLine(rank: player.rankLabel, scale: scale, dense: dense),
                 SizedBox(height: veryDense ? 2 : 4),
-                _RpLine(
-                  value: player.rating,
-                  scale: scale,
-                  dense: dense,
-                ),
+                _RpLine(value: player.rating, scale: scale, dense: dense),
                 Spacer(flex: veryDense ? 1 : 2),
                 Divider(
                   color: const Color(0xFF47BCFF).withValues(alpha: .36),
                   height: 1,
                 ),
-                SizedBox(height: veryDense ? 6 : dense ? 8 : 12 * scale),
+                SizedBox(
+                  height: veryDense
+                      ? 6
+                      : dense
+                      ? 8
+                      : 12 * scale,
+                ),
                 Row(
                   children: [
                     Expanded(
                       child: _StatBlock(
                         value: '${player.gamesPlayed ?? 0}',
-                        label: 'Matches',
+                        label: context.tr('matches'),
                         scale: scale,
                         dense: dense,
                       ),
@@ -628,7 +632,7 @@ class _PlayerSearchCard extends StatelessWidget {
                     Expanded(
                       child: _StatBlock(
                         value: '${(((player.winRate ?? 0) * 100).round())}%',
-                        label: 'Win rate',
+                        label: context.tr('win_rate'),
                         scale: scale,
                         dense: dense,
                       ),
@@ -708,10 +712,7 @@ class _ScanningOpponentCard extends StatelessWidget {
           final dense = constraints.maxHeight < 315;
           final veryDense = constraints.maxHeight < 270;
           final radarSize = math
-              .min(
-                constraints.maxWidth * .60,
-                (112 * scale).clamp(86.0, 120.0),
-              )
+              .min(constraints.maxWidth * .60, (112 * scale).clamp(86.0, 120.0))
               .toDouble();
 
           return Padding(
@@ -728,9 +729,15 @@ class _ScanningOpponentCard extends StatelessWidget {
                   dimension: radarSize,
                   child: _SearchRadar(animation: animation),
                 ),
-                SizedBox(height: veryDense ? 6 : dense ? 9 : 14 * scale),
+                SizedBox(
+                  height: veryDense
+                      ? 6
+                      : dense
+                      ? 9
+                      : 14 * scale,
+                ),
                 Text(
-                  'Searching\nfor opponent',
+                  context.tr('searching_for_opponent_multiline'),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -750,13 +757,19 @@ class _ScanningOpponentCard extends StatelessWidget {
                   color: const Color(0xFFFFC94D).withValues(alpha: .30),
                   height: 1,
                 ),
-                SizedBox(height: veryDense ? 6 : dense ? 8 : 12 * scale),
+                SizedBox(
+                  height: veryDense
+                      ? 6
+                      : dense
+                      ? 8
+                      : 12 * scale,
+                ),
                 Row(
                   children: [
                     Expanded(
                       child: _StatBlock(
                         value: '--',
-                        label: 'Matches',
+                        label: context.tr('matches'),
                         scale: scale,
                         dense: dense,
                       ),
@@ -769,7 +782,7 @@ class _ScanningOpponentCard extends StatelessWidget {
                     Expanded(
                       child: _StatBlock(
                         value: '--',
-                        label: 'Win rate',
+                        label: context.tr('win_rate'),
                         scale: scale,
                         dense: dense,
                       ),
@@ -808,10 +821,7 @@ class _FoundOpponentCard extends StatelessWidget {
           final dense = constraints.maxHeight < 315;
           final veryDense = constraints.maxHeight < 270;
           final avatarRadius = math
-              .min(
-                constraints.maxWidth * .255,
-                (43 * scale).clamp(35.0, 47.0),
-              )
+              .min(constraints.maxWidth * .255, (43 * scale).clamp(35.0, 47.0))
               .toDouble();
 
           return Padding(
@@ -880,13 +890,19 @@ class _FoundOpponentCard extends StatelessWidget {
                   color: const Color(0xFFFFC94D).withValues(alpha: .30),
                   height: 1,
                 ),
-                SizedBox(height: veryDense ? 6 : dense ? 8 : 12 * scale),
+                SizedBox(
+                  height: veryDense
+                      ? 6
+                      : dense
+                      ? 8
+                      : 12 * scale,
+                ),
                 Row(
                   children: [
                     Expanded(
                       child: _StatBlock(
                         value: '${player.gamesPlayed ?? 0}',
-                        label: 'Matches',
+                        label: context.tr('matches'),
                         scale: scale,
                         dense: dense,
                       ),
@@ -899,7 +915,7 @@ class _FoundOpponentCard extends StatelessWidget {
                     Expanded(
                       child: _StatBlock(
                         value: '${(((player.winRate ?? 0) * 100).round())}%',
-                        label: 'Win rate',
+                        label: context.tr('win_rate'),
                         scale: scale,
                         dense: dense,
                       ),
@@ -933,10 +949,7 @@ class _DuelCardShell extends StatelessWidget {
         borderRadius: BorderRadius.circular(26),
         border: Border.all(color: accent.withValues(alpha: .82), width: 1.4),
         boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: .15),
-            blurRadius: 22,
-          ),
+          BoxShadow(color: accent.withValues(alpha: .15), blurRadius: 22),
           BoxShadow(
             color: Colors.black.withValues(alpha: .44),
             blurRadius: 24,
@@ -969,10 +982,7 @@ class _AvatarHalo extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: accent.withValues(alpha: .94), width: 1.7),
         boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: .22),
-            blurRadius: 15,
-          ),
+          BoxShadow(color: accent.withValues(alpha: .22), blurRadius: 15),
         ],
       ),
       child: PlayerAvatar(
@@ -986,7 +996,11 @@ class _AvatarHalo extends StatelessWidget {
 }
 
 class _RankLine extends StatelessWidget {
-  const _RankLine({required this.rank, required this.scale, required this.dense});
+  const _RankLine({
+    required this.rank,
+    required this.scale,
+    required this.dense,
+  });
 
   final String? rank;
   final double scale;
@@ -1021,7 +1035,11 @@ class _RankLine extends StatelessWidget {
 }
 
 class _RpLine extends StatelessWidget {
-  const _RpLine({required this.value, required this.scale, required this.dense});
+  const _RpLine({
+    required this.value,
+    required this.scale,
+    required this.dense,
+  });
 
   final int? value;
   final double scale;
@@ -1040,7 +1058,7 @@ class _RpLine extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         Text(
-          '${value ?? 0} RP',
+          context.tr('rp_value', <Object>[value ?? 0]),
           style: TextStyle(
             color: const Color(0xFF29D398),
             fontSize: dense ? 10 : (13 * scale).clamp(11.0, 14.0).toDouble(),
@@ -1123,9 +1141,9 @@ class _SearchRadar extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: const Color(0xFF081721).withValues(alpha: .96),
                 border: Border.all(
-                  color: const Color(0xFF29D398).withValues(
-                    alpha: .24 + wave * .12,
-                  ),
+                  color: const Color(
+                    0xFF29D398,
+                  ).withValues(alpha: .24 + wave * .12),
                 ),
               ),
               child: const Icon(
@@ -1166,11 +1184,7 @@ class _RadarPainter extends CustomPainter {
       ..strokeWidth = 3.1
       ..strokeCap = StrokeCap.round
       ..shader = const SweepGradient(
-        colors: [
-          Color(0x0029D398),
-          Color(0xFF29D398),
-          Color(0x0029D398),
-        ],
+        colors: [Color(0x0029D398), Color(0xFF29D398), Color(0x0029D398)],
         stops: [0, .5, 1],
       ).createShader(rect);
     canvas.drawArc(rect, -.7, 1.55, false, arc);
@@ -1218,23 +1232,23 @@ class _VersusBadge extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF2FB6FF).withValues(
-                    alpha: .12 + wave * .035,
-                  ),
+                  color: const Color(
+                    0xFF2FB6FF,
+                  ).withValues(alpha: .12 + wave * .035),
                   blurRadius: 17,
                   offset: const Offset(-6, 0),
                 ),
                 BoxShadow(
-                  color: const Color(0xFFFFC94D).withValues(
-                    alpha: .12 + wave * .035,
-                  ),
+                  color: const Color(
+                    0xFFFFC94D,
+                  ).withValues(alpha: .12 + wave * .035),
                   blurRadius: 17,
                   offset: const Offset(6, 0),
                 ),
               ],
             ),
             child: Text(
-              'VS',
+              context.tr('vs'),
               style: TextStyle(
                 color: const Color(0xFFFFD66B),
                 fontSize: (20 * scale).clamp(17.0, 21.0).toDouble(),
@@ -1269,15 +1283,15 @@ class _RankSearchStatus extends StatelessWidget {
       builder: (context, _) {
         final wave = (math.sin(animation.value * math.pi * 2) + 1) / 2;
         final title = busy
-            ? 'Cancelling search'
+            ? context.tr('matchmaking_cancelling_search')
             : matched
-            ? 'Opponent found'
-            : 'Looking for a player near your rank';
+            ? context.tr('opponent_found')
+            : context.tr('matchmaking_looking_near_rank');
         final subtitle = busy
-            ? 'Leaving the matchmaking queue...'
+            ? context.tr('matchmaking_leaving_queue')
             : matched
-            ? 'Preparing the duel...'
-            : 'This may take a few seconds.';
+            ? context.tr('matchmaking_preparing_duel')
+            : context.tr('matchmaking_may_take_seconds');
 
         return Container(
           constraints: BoxConstraints(
@@ -1347,15 +1361,15 @@ class _RankSearchStatus extends StatelessWidget {
                 width: 9,
                 height: 9,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF29D398).withValues(
-                    alpha: .58 + wave * .42,
-                  ),
+                  color: const Color(
+                    0xFF29D398,
+                  ).withValues(alpha: .58 + wave * .42),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF29D398).withValues(
-                        alpha: .12 + wave * .13,
-                      ),
+                      color: const Color(
+                        0xFF29D398,
+                      ).withValues(alpha: .12 + wave * .13),
                       blurRadius: 8,
                     ),
                   ],
@@ -1483,15 +1497,15 @@ class _SearchTip extends StatelessWidget {
           child: Text.rich(
             TextSpan(
               children: [
-                const TextSpan(
-                  text: 'Tip: ',
+                TextSpan(
+                  text: '${context.tr("matchmaking_tip")} ',
                   style: TextStyle(
                     color: Color(0xFFFFC94D),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 TextSpan(
-                  text: 'Keep this screen open while we search.',
+                  text: context.tr('matchmaking_keep_open'),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .56),
                     fontWeight: FontWeight.w600,
@@ -1522,31 +1536,33 @@ class _MatchmakingEnergyPainter extends CustomPainter {
     final centerY = size.height / 2;
 
     final blueGlow = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          const Color(0xFF2FB6FF).withValues(alpha: .075),
-          Colors.transparent,
-        ],
-      ).createShader(
-        Rect.fromCircle(
-          center: Offset(size.width * .30, centerY),
-          radius: size.width * .31,
-        ),
-      );
+      ..shader =
+          RadialGradient(
+            colors: [
+              const Color(0xFF2FB6FF).withValues(alpha: .075),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(size.width * .30, centerY),
+              radius: size.width * .31,
+            ),
+          );
     canvas.drawRect(Offset.zero & size, blueGlow);
 
     final goldGlow = Paint()
-      ..shader = RadialGradient(
-        colors: [
-          const Color(0xFFFFC94D).withValues(alpha: .070),
-          Colors.transparent,
-        ],
-      ).createShader(
-        Rect.fromCircle(
-          center: Offset(size.width * .70, centerY),
-          radius: size.width * .31,
-        ),
-      );
+      ..shader =
+          RadialGradient(
+            colors: [
+              const Color(0xFFFFC94D).withValues(alpha: .070),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCircle(
+              center: Offset(size.width * .70, centerY),
+              radius: size.width * .31,
+            ),
+          );
     canvas.drawRect(Offset.zero & size, goldGlow);
   }
 

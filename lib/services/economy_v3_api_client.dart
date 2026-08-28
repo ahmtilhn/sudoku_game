@@ -355,7 +355,10 @@ class EconomyV3ApiClient {
           timeout: _timeout,
         );
       } on TimeoutException {
-        throw const EconomyApiException(403, 'App Check verification timed out.');
+        throw const EconomyApiException(
+          403,
+          'App Check verification timed out.',
+        );
       } catch (_) {
         throw const EconomyApiException(
           403,

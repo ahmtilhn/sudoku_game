@@ -187,9 +187,7 @@ class EconomyV3Service extends ChangeNotifier {
     try {
       final earned = await _ads.showRewarded(verificationToken: token);
       if (!earned) return null;
-      final result = await _confirmAfterSsv(
-        () => _api.confirmRecovery(token),
-      );
+      final result = await _confirmAfterSsv(() => _api.confirmRecovery(token));
       _state = result.state;
       _error = null;
       await _syncLegacyWallet();

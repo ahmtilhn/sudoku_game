@@ -83,7 +83,8 @@ class PlayerAvatar extends StatelessWidget {
     // than to Game Center / Play Games imagery.
     if (baseKey.startsWith('professional-home-') ||
         baseKey.startsWith('home-profile-')) {
-      final selected = RankIdentityService.instance.current.value?.selectedAvatarKey;
+      final selected =
+          RankIdentityService.instance.current.value?.selectedAvatarKey;
       if (selected != null) return AvatarPresetCatalog.normalizeKey(selected);
     }
 

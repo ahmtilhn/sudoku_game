@@ -343,13 +343,21 @@ class _ChallengeWaitingScreenState extends State<ChallengeWaitingScreen>
                                       ? context.tr('games_count', <Object>[
                                           recipient.gamesPlayed,
                                         ])
-                                      : '${rank.rankName} · ${rank.rankPoints} RP',
+                                      : context.tr(
+                                          'rank_points_format',
+                                          <Object>[
+                                            rank.rankName,
+                                            rank.rankPoints,
+                                          ],
+                                        ),
                                   accent: const Color(0xFFFFC94D),
                                 ),
                                 if (!_ended)
                                   _InfoChip(
                                     asset: DuelAsset.timer,
-                                    label: '${_secondsLeft}s',
+                                    label: context.tr('seconds_value', <Object>[
+                                      _secondsLeft,
+                                    ]),
                                     accent: const Color(0xFF3AA9FF),
                                   ),
                               ],

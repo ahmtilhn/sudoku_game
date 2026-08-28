@@ -72,10 +72,7 @@ class GameSessionSnapshot {
     'puzzleSignature': puzzleSignature,
     'board': board,
     'notes': notes.map(
-      (index, values) => MapEntry(
-        index.toString(),
-        values.toList()..sort(),
-      ),
+      (index, values) => MapEntry(index.toString(), values.toList()..sort()),
     ),
     'history': history.map((move) => move.toJson()).toList(),
     'hintedIndexes': hintedIndexes.toList()..sort(),
@@ -173,9 +170,7 @@ class GameSessionSnapshot {
       if (move.previousValue < 0 || move.previousValue > puzzle.size) {
         return false;
       }
-      if (move.previousNotes.any(
-        (value) => value < 1 || value > puzzle.size,
-      )) {
+      if (move.previousNotes.any((value) => value < 1 || value > puzzle.size)) {
         return false;
       }
     }
@@ -340,8 +335,5 @@ List<int> _intList(Object? value) {
 
 Set<int> _intSet(Object? value) {
   if (value is! List) return <int>{};
-  return value
-      .map((item) => (item as num?)?.toInt())
-      .whereType<int>()
-      .toSet();
+  return value.map((item) => (item as num?)?.toInt()).whereType<int>().toSet();
 }

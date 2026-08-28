@@ -15,21 +15,111 @@ class RankTierInfo {
 }
 
 const List<RankTierInfo> rankTierCatalog = <RankTierInfo>[
-  RankTierInfo(key: 'bronze_3', label: 'Bronze III', league: 'bronze', division: 3, minPoints: 0),
-  RankTierInfo(key: 'bronze_2', label: 'Bronze II', league: 'bronze', division: 2, minPoints: 300),
-  RankTierInfo(key: 'bronze_1', label: 'Bronze I', league: 'bronze', division: 1, minPoints: 600),
-  RankTierInfo(key: 'silver_3', label: 'Silver III', league: 'silver', division: 3, minPoints: 900),
-  RankTierInfo(key: 'silver_2', label: 'Silver II', league: 'silver', division: 2, minPoints: 1200),
-  RankTierInfo(key: 'silver_1', label: 'Silver I', league: 'silver', division: 1, minPoints: 1500),
-  RankTierInfo(key: 'gold_3', label: 'Gold III', league: 'gold', division: 3, minPoints: 1800),
-  RankTierInfo(key: 'gold_2', label: 'Gold II', league: 'gold', division: 2, minPoints: 2100),
-  RankTierInfo(key: 'gold_1', label: 'Gold I', league: 'gold', division: 1, minPoints: 2400),
-  RankTierInfo(key: 'platinum_3', label: 'Platinum III', league: 'platinum', division: 3, minPoints: 2700),
-  RankTierInfo(key: 'platinum_2', label: 'Platinum II', league: 'platinum', division: 2, minPoints: 3000),
-  RankTierInfo(key: 'platinum_1', label: 'Platinum I', league: 'platinum', division: 1, minPoints: 3300),
-  RankTierInfo(key: 'master_3', label: 'Master III', league: 'master', division: 3, minPoints: 3600),
-  RankTierInfo(key: 'master_2', label: 'Master II', league: 'master', division: 2, minPoints: 3900),
-  RankTierInfo(key: 'master_1', label: 'Master I', league: 'master', division: 1, minPoints: 4200),
+  RankTierInfo(
+    key: 'bronze_3',
+    label: 'Bronze III',
+    league: 'bronze',
+    division: 3,
+    minPoints: 0,
+  ),
+  RankTierInfo(
+    key: 'bronze_2',
+    label: 'Bronze II',
+    league: 'bronze',
+    division: 2,
+    minPoints: 300,
+  ),
+  RankTierInfo(
+    key: 'bronze_1',
+    label: 'Bronze I',
+    league: 'bronze',
+    division: 1,
+    minPoints: 600,
+  ),
+  RankTierInfo(
+    key: 'silver_3',
+    label: 'Silver III',
+    league: 'silver',
+    division: 3,
+    minPoints: 900,
+  ),
+  RankTierInfo(
+    key: 'silver_2',
+    label: 'Silver II',
+    league: 'silver',
+    division: 2,
+    minPoints: 1200,
+  ),
+  RankTierInfo(
+    key: 'silver_1',
+    label: 'Silver I',
+    league: 'silver',
+    division: 1,
+    minPoints: 1500,
+  ),
+  RankTierInfo(
+    key: 'gold_3',
+    label: 'Gold III',
+    league: 'gold',
+    division: 3,
+    minPoints: 1800,
+  ),
+  RankTierInfo(
+    key: 'gold_2',
+    label: 'Gold II',
+    league: 'gold',
+    division: 2,
+    minPoints: 2100,
+  ),
+  RankTierInfo(
+    key: 'gold_1',
+    label: 'Gold I',
+    league: 'gold',
+    division: 1,
+    minPoints: 2400,
+  ),
+  RankTierInfo(
+    key: 'platinum_3',
+    label: 'Platinum III',
+    league: 'platinum',
+    division: 3,
+    minPoints: 2700,
+  ),
+  RankTierInfo(
+    key: 'platinum_2',
+    label: 'Platinum II',
+    league: 'platinum',
+    division: 2,
+    minPoints: 3000,
+  ),
+  RankTierInfo(
+    key: 'platinum_1',
+    label: 'Platinum I',
+    league: 'platinum',
+    division: 1,
+    minPoints: 3300,
+  ),
+  RankTierInfo(
+    key: 'master_3',
+    label: 'Master III',
+    league: 'master',
+    division: 3,
+    minPoints: 3600,
+  ),
+  RankTierInfo(
+    key: 'master_2',
+    label: 'Master II',
+    league: 'master',
+    division: 2,
+    minPoints: 3900,
+  ),
+  RankTierInfo(
+    key: 'master_1',
+    label: 'Master I',
+    league: 'master',
+    division: 1,
+    minPoints: 4200,
+  ),
 ];
 
 RankTierInfo rankTierForKey(String key) {
@@ -64,9 +154,7 @@ class RankIdentityKey {
   factory RankIdentityKey.parse(String raw) {
     final value = raw.trim();
     if (!value.startsWith('idv1|')) {
-      return RankIdentityKey(
-        avatarKey: value.isEmpty ? 'default' : value,
-      );
+      return RankIdentityKey(avatarKey: value.isEmpty ? 'default' : value);
     }
     final parts = value.split('|');
     final avatar = parts.length > 1 && parts[1].trim().isNotEmpty
@@ -301,11 +389,15 @@ class RankIdentityProfile {
       unlockedTitles: titlesJson is List
           ? titlesJson
                 .whereType<Map>()
-                .map((item) => RankTitleOption.fromJson(item.cast<String, dynamic>()))
+                .map(
+                  (item) =>
+                      RankTitleOption.fromJson(item.cast<String, dynamic>()),
+                )
                 .toList(growable: false)
           : const <RankTitleOption>[],
-      selectedDecorationAchievementIds:
-          strings(json['selectedDecorationAchievementIds']),
+      selectedDecorationAchievementIds: strings(
+        json['selectedDecorationAchievementIds'],
+      ),
       selectedDecorationKeys: strings(json['selectedDecorationKeys']),
       rankPoints: (json['rankPoints'] as num?)?.toInt() ?? 0,
       highestRankPoints: (json['highestRankPoints'] as num?)?.toInt() ?? 0,
@@ -322,17 +414,24 @@ class RankIdentityProfile {
       pointsToNext: (json['pointsToNext'] as num?)?.toInt(),
       progress: (json['progress'] as num?)?.toDouble() ?? 0,
       unlockedFrameKeys: strings(json['unlockedFrameKeys']),
-      availableAvatarCount: (json['availableAvatarCount'] as num?)?.toInt() ?? 96,
+      availableAvatarCount:
+          (json['availableAvatarCount'] as num?)?.toInt() ?? 96,
       decorations: decorationsJson is List
           ? decorationsJson
                 .whereType<Map>()
-                .map((item) => RankDecoration.fromJson(item.cast<String, dynamic>()))
+                .map(
+                  (item) =>
+                      RankDecoration.fromJson(item.cast<String, dynamic>()),
+                )
                 .toList(growable: false)
           : const <RankDecoration>[],
       rankRewards: rewardsJson is List
           ? rewardsJson
                 .whereType<Map>()
-                .map((item) => RankRewardState.fromJson(item.cast<String, dynamic>()))
+                .map(
+                  (item) =>
+                      RankRewardState.fromJson(item.cast<String, dynamic>()),
+                )
                 .toList(growable: false)
           : const <RankRewardState>[],
       totalLifetimeRankReward:

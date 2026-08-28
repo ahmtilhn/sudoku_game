@@ -21,12 +21,10 @@ class SamuraiTopology {
     SamuraiBoardOrigin(row: 12, column: 12),
   ];
 
-  static final List<int> activeIndexes = List<int>.unmodifiable(
-    <int>[
-      for (var index = 0; index < canvasCellCount; index++)
-        if (isActiveIndex(index)) index,
-    ],
-  );
+  static final List<int> activeIndexes = List<int>.unmodifiable(<int>[
+    for (var index = 0; index < canvasCellCount; index++)
+      if (isActiveIndex(index)) index,
+  ]);
 
   static final List<List<int>> units = List<List<int>>.unmodifiable(
     _createUnits().map(List<int>.unmodifiable),
@@ -76,15 +74,11 @@ class SamuraiTopology {
     for (final origin in boardOrigins) {
       for (var localRow = 0; localRow < boardSize; localRow++) {
         result.add(<int>[
-          for (var localColumn = 0;
-              localColumn < boardSize;
-              localColumn++)
+          for (var localColumn = 0; localColumn < boardSize; localColumn++)
             indexOf(origin.row + localRow, origin.column + localColumn),
         ]);
       }
-      for (var localColumn = 0;
-          localColumn < boardSize;
-          localColumn++) {
+      for (var localColumn = 0; localColumn < boardSize; localColumn++) {
         result.add(<int>[
           for (var localRow = 0; localRow < boardSize; localRow++)
             indexOf(origin.row + localRow, origin.column + localColumn),
@@ -107,10 +101,7 @@ class SamuraiTopology {
   }
 
   static List<List<int>> _createUnitsByCell() {
-    final result = List<List<int>>.generate(
-      canvasCellCount,
-      (_) => <int>[],
-    );
+    final result = List<List<int>>.generate(canvasCellCount, (_) => <int>[]);
     for (var unitIndex = 0; unitIndex < units.length; unitIndex++) {
       for (final cellIndex in units[unitIndex]) {
         result[cellIndex].add(unitIndex);
@@ -272,8 +263,7 @@ class SamuraiEngine {
         for (var column = 0; column < 9; column++)
           (3 * (row % 3) + row ~/ 3 + column) % 9 + 1,
     ];
-    final digits = List<int>.generate(9, (index) => index + 1)
-      ..shuffle(random);
+    final digits = List<int>.generate(9, (index) => index + 1)..shuffle(random);
     final center = base.map((value) => digits[value - 1]).toList();
 
     final topLeft = _mapGridToOverlap(

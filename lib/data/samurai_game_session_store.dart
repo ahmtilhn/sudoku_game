@@ -97,7 +97,8 @@ class SamuraiGameSession {
       }
     }
 
-    final notesSource = (json['notes'] as Map?)?.cast<String, dynamic>() ??
+    final notesSource =
+        (json['notes'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
     final notes = <int, Set<int>>{};
     for (final entry in notesSource.entries) {
@@ -107,9 +108,9 @@ class SamuraiGameSession {
           board[index] != 0) {
         continue;
       }
-      final values = _intList(entry.value)
-          .where((value) => value >= 1 && value <= 9)
-          .toSet();
+      final values = _intList(
+        entry.value,
+      ).where((value) => value >= 1 && value <= 9).toSet();
       if (values.isNotEmpty) notes[index] = values;
     }
 

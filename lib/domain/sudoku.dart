@@ -259,15 +259,17 @@ class SudokuEngine {
       ..shuffle(random);
     final rows = <int>[
       for (final band in bands)
-        ...(List<int>.generate(boxSize, (index) => index)..shuffle(random)).map(
-          (offset) => band * boxSize + offset,
-        ),
+        ...(List<int>.generate(
+          boxSize,
+          (index) => index,
+        )..shuffle(random)).map((offset) => band * boxSize + offset),
     ];
     final columns = <int>[
       for (final stack in stacks)
-        ...(List<int>.generate(boxSize, (index) => index)..shuffle(random)).map(
-          (offset) => stack * boxSize + offset,
-        ),
+        ...(List<int>.generate(
+          boxSize,
+          (index) => index,
+        )..shuffle(random)).map((offset) => stack * boxSize + offset),
     ];
     final numbers = List<int>.generate(size, (index) => index + 1)
       ..shuffle(random);
@@ -376,9 +378,7 @@ class SudokuEngine {
     final boxColumn = (column ~/ boxColumns) * boxColumns;
     for (var rowOffset = 0; rowOffset < boxRows; rowOffset++) {
       for (var columnOffset = 0; columnOffset < boxColumns; columnOffset++) {
-        used.add(
-          board[(boxRow + rowOffset) * size + boxColumn + columnOffset],
-        );
+        used.add(board[(boxRow + rowOffset) * size + boxColumn + columnOffset]);
       }
     }
 

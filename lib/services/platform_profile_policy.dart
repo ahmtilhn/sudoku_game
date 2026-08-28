@@ -13,8 +13,7 @@ class PlatformProfilePolicy {
     if (profileConfirmed && currentNameSource == 'custom') {
       return PlatformProfileNameDecision.preserveCustom;
     }
-    if (platformName.isEmpty ||
-        platformName == currentDisplayName.trim()) {
+    if (platformName.isEmpty || platformName == currentDisplayName.trim()) {
       return PlatformProfileNameDecision.keepCurrent;
     }
     return PlatformProfileNameDecision.adoptPlatform;

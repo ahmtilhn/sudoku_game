@@ -257,10 +257,7 @@ class WebSocketOnlineDuelTransport implements OnlineDuelTransport {
         'Unable to obtain a Firebase ID token.',
       );
     }
-    return (
-      firebaseIdToken: token,
-      appCheckToken: await _appCheckToken(),
-    );
+    return (firebaseIdToken: token, appCheckToken: await _appCheckToken());
   }
 
   void _setConnectionState(OnlineDuelConnectionState state) {

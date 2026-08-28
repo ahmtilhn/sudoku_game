@@ -51,10 +51,9 @@ class CompetitiveProfileCard extends StatelessWidget {
                   displayName: profile.displayName,
                   avatarKey: profile.avatarKey,
                   radius: 34,
-                  semanticLabel: context.tr(
-                    'player_avatar_semantics',
-                    <Object>[profile.displayName],
-                  ),
+                  semanticLabel: context.tr('player_avatar_semantics', <Object>[
+                    profile.displayName,
+                  ]),
                 ),
               ),
               const SizedBox(width: 13),

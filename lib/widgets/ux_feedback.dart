@@ -86,17 +86,17 @@ class UxStatePanel extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 6),
               Text(
                 message,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
               if (onAction != null && actionLabel != null) ...[
                 const SizedBox(height: 14),
@@ -230,11 +230,7 @@ class UxOutcomeHeader extends StatelessWidget {
                       color: color.withValues(alpha: .16),
                       border: Border.all(color: color.withValues(alpha: .45)),
                     ),
-                    child: Icon(
-                      icon,
-                      size: compact ? 27 : 46,
-                      color: color,
-                    ),
+                    child: Icon(icon, size: compact ? 27 : 46, color: color),
                   ),
           ),
           SizedBox(height: compact ? 2 : 10),
@@ -243,10 +239,11 @@ class UxOutcomeHeader extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: (compact
-                    ? Theme.of(context).textTheme.titleMedium
-                    : Theme.of(context).textTheme.headlineMedium)
-                ?.copyWith(fontWeight: FontWeight.w900),
+            style:
+                (compact
+                        ? Theme.of(context).textTheme.titleMedium
+                        : Theme.of(context).textTheme.headlineMedium)
+                    ?.copyWith(fontWeight: FontWeight.w900),
           ),
           SizedBox(height: compact ? 1 : 6),
           Text(
@@ -254,10 +251,11 @@ class UxOutcomeHeader extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: compact ? 1 : null,
             overflow: compact ? TextOverflow.ellipsis : null,
-            style: (compact
-                    ? Theme.of(context).textTheme.bodySmall
-                    : Theme.of(context).textTheme.bodyMedium)
-                ?.copyWith(color: scheme.onSurfaceVariant),
+            style:
+                (compact
+                        ? Theme.of(context).textTheme.bodySmall
+                        : Theme.of(context).textTheme.bodyMedium)
+                    ?.copyWith(color: scheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -318,14 +316,8 @@ class UxOutcomeSheet extends StatelessWidget {
             children: metrics,
           ),
         ],
-        if (details != null) ...[
-          SizedBox(height: compact ? 4 : 18),
-          details!,
-        ],
-        if (footer != null) ...[
-          SizedBox(height: compact ? 3 : 16),
-          footer!,
-        ],
+        if (details != null) ...[SizedBox(height: compact ? 4 : 18), details!],
+        if (footer != null) ...[SizedBox(height: compact ? 3 : 16), footer!],
         if (onPrimary != null && primaryLabel != null) ...[
           SizedBox(height: compact ? 5 : 20),
           SizedBox(

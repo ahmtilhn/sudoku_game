@@ -37,11 +37,13 @@ class ReminderNotificationService {
 
   bool _initialized = false;
   int _seed = 1;
+  AppStrings? _strings;
 
   bool get _supportsScheduling =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   Future<void> initialize() async {
+    _strings ??= await AppStrings.load();
     _seed =
         await _preferences.getInt(_seedKey) ??
         DateTime.now().microsecondsSinceEpoch & 0x7fffffff;
@@ -133,15 +135,18 @@ class ReminderNotificationService {
 
     final now = tz.TZDateTime.now(tz.local);
     final daySeed = now.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
-    final messages = ReminderMessageCatalog.shuffled(seed: _seed ^ daySeed);
+    final strings = _strings ??= await AppStrings.load();
+    final messages = ReminderMessageCatalog.shuffled(
+      seed: _seed ^ daySeed,
+      strings: strings,
+    );
     final scheduledDates = _nextScheduleDates(now);
 
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
         'daily_sudoku_challenges',
-        AppStrings.english['daily_sudoku_challenges']!,
-        channelDescription:
-            AppStrings.english['daily_sudoku_challenges_channel']!,
+        strings.text('daily_sudoku_challenges'),
+        channelDescription: strings.text('daily_sudoku_challenges_channel'),
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
       ),
@@ -153,7 +158,7 @@ class ReminderNotificationService {
     for (var index = 0; index < scheduledDates.length; index++) {
       await _plugin.zonedSchedule(
         id: _firstNotificationId + index,
-        title: AppStrings.english['app_name']!,
+        title: strings.text('app_name'),
         body: messages[index],
         scheduledDate: scheduledDates[index],
         notificationDetails: details,

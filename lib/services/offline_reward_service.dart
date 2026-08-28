@@ -32,17 +32,14 @@ class OfflineRewardService {
       DateTime.now().microsecondsSinceEpoch,
       _random.nextInt(1 << 31),
     ].join(':');
-    final body = await _request(
-      '/v1/economy/v3/play/claim',
-      <String, Object>{
-        'puzzleId': puzzle.id,
-        'completionId': completionId,
-        'difficulty': puzzle.difficulty.name,
-        'variant': variant.id == SudokuVariantId.classic16
-            ? 'classic16'
-            : 'classic9',
-      },
-    );
+    final body = await _request('/v1/economy/v3/play/claim', <String, Object>{
+      'puzzleId': puzzle.id,
+      'completionId': completionId,
+      'difficulty': puzzle.difficulty.name,
+      'variant': variant.id == SudokuVariantId.classic16
+          ? 'classic16'
+          : 'classic9',
+    });
     await EconomyService.instance.refresh(showLoading: false);
     return (body['amount'] as num?)?.toInt() ?? 0;
   }

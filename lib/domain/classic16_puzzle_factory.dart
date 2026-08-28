@@ -25,15 +25,17 @@ class Classic16PuzzleFactory {
       ..shuffle(random);
     final rows = <int>[
       for (final band in bands)
-        ...(List<int>.generate(boxSize, (index) => index)..shuffle(random)).map(
-          (offset) => band * boxSize + offset,
-        ),
+        ...(List<int>.generate(
+          boxSize,
+          (index) => index,
+        )..shuffle(random)).map((offset) => band * boxSize + offset),
     ];
     final columns = <int>[
       for (final stack in stacks)
-        ...(List<int>.generate(boxSize, (index) => index)..shuffle(random)).map(
-          (offset) => stack * boxSize + offset,
-        ),
+        ...(List<int>.generate(
+          boxSize,
+          (index) => index,
+        )..shuffle(random)).map((offset) => stack * boxSize + offset),
     ];
     final values = List<int>.generate(size, (index) => index + 1)
       ..shuffle(random);

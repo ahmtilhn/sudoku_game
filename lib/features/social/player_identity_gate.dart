@@ -494,7 +494,7 @@ class _RematchPushDialogState extends State<_RematchPushDialog> {
               ),
               const SizedBox(height: 3),
               Text(
-                'wants a rematch',
+                context.tr('wants_rematch'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: .66),
                   fontSize: 13,
@@ -529,7 +529,7 @@ class _RematchPushDialogState extends State<_RematchPushDialog> {
                             ),
                           ),
                           Text(
-                            's',
+                            context.tr('seconds_short'),
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: .52),
                               fontSize: 12,
@@ -557,7 +557,7 @@ class _RematchPushDialogState extends State<_RematchPushDialog> {
                   ),
                 ),
                 child: Text(
-                  '$fee Coin from each player',
+                  context.tr('coin_fee_each_player', <Object>[fee]),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Color(0xFFFFD66B),

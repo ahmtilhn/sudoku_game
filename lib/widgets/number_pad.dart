@@ -156,7 +156,13 @@ class NumberPad extends StatelessWidget {
                   onToggleNotes != null ||
                   onUndo != null ||
                   onHint != null) ...[
-                SizedBox(height: veryShortScreen ? 3 : compact ? 5 : 8),
+                SizedBox(
+                  height: veryShortScreen
+                      ? 3
+                      : compact
+                      ? 5
+                      : 8,
+                ),
                 Wrap(
                   alignment: WrapAlignment.center,
                   spacing: 4,
