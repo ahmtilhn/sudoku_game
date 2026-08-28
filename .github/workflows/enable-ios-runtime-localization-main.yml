@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/enable-ios-runtime-localization-main.yml'
       - 'tool/enable_ios_runtime_localization.py'
+      - 'tool/fill_ios_rank_localizations.py'
       - 'lib/localization/app_strings.dart'
       - 'assets/localization/Localizable.xcstrings'
   workflow_dispatch:
@@ -35,6 +36,9 @@ jobs:
       - name: Resolve packages
         run: flutter pub get
 
+      - name: Fill missing iOS rank translations
+        run: python3 tool/fill_ios_rank_localizations.py
+
       - name: Enable iOS locale resolution and sync Android source
         run: python3 tool/enable_ios_runtime_localization.py
 
@@ -58,6 +62,7 @@ jobs:
             lib/app.dart \
             lib/localization/app_strings.dart \
             test/localization_locale_consistency_test.dart \
+            assets/localization/Localizable.xcstrings \
             android/app/src/main/res/values/strings.xml
           git diff --cached --check
           if git diff --cached --quiet; then
