@@ -7,6 +7,7 @@ on:
       - '.github/workflows/localize-all-user-copy-main.yml'
       - 'tool/localize_all_user_copy.py'
       - 'tool/verify_localized_user_copy.py'
+      - 'tool/sync_missing_ios_localization_keys.py'
   workflow_dispatch:
 
 permissions:
@@ -36,6 +37,9 @@ jobs:
 
       - name: Migrate remaining user copy
         run: python3 tool/localize_all_user_copy.py
+
+      - name: Sync pre-existing iOS localization gaps
+        run: python3 tool/sync_missing_ios_localization_keys.py
 
       - name: Format changed Dart sources
         run: dart format lib/localization lib/features/social/emote_loadout_screen.dart lib/features/social/profile_customization_screen.dart lib/services/online_duel_emote_hub.dart lib/models/avatar_preset_catalog.dart lib/models/country_catalog.dart lib/models/online_duel_emote_catalog.dart lib/models/rank_identity_fallback.dart
