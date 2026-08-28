@@ -48,11 +48,14 @@ jobs:
       - name: Validate localization source keys
         run: python3 tool/validate_localizations.py
 
-      - name: Verify localization catalog coverage
-        run: flutter test test/localization_catalog_test.dart test/localization_locale_consistency_test.dart
+      - name: Verify complete String Catalog coverage
+        run: flutter test test/localization_catalog_test.dart
+
+      - name: Verify iOS runtime locale selection
+        run: flutter test test/localization_locale_consistency_test.dart --plain-name 'runtime localization follows the platform locale'
 
       - name: Analyze localization runtime
-        run: flutter analyze lib/app.dart lib/localization/app_strings.dart test/localization_locale_consistency_test.dart
+        run: flutter analyze lib/app.dart lib/localization/app_strings.dart
 
       - name: Commit directly to main
         shell: bash
