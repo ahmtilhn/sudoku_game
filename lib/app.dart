@@ -28,6 +28,14 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
     super.initState();
     _strings = widget.strings;
     WidgetsBinding.instance.addObserver(this);
+
+    // AppStrings is first loaded before runApp(). On iOS the native Flutter
+    // bridge can still be registering at that moment, which would leave the
+    // English fallback in memory for the entire session. Retry once after the
+    // first frame, when the iOS bridge is guaranteed to be available.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_reloadStringsForPlatformLocale());
+    });
   }
 
   @override
