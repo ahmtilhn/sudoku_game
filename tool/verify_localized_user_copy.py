@@ -30,8 +30,6 @@ LOCALIZATION_KEYS = set(
     )
 )
 
-# Direct presentation literals. The regexes deliberately require an alphabetic
-# character so counters, symbols and purely numeric labels are not rejected.
 PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "Text literal",
@@ -81,12 +79,16 @@ def looks_user_facing(value: str) -> bool:
     value = value.strip()
     if value in ALLOWED_LITERAL_VALUES or value in LOCALIZATION_KEYS:
         return False
-    # A regex can see the opening quote of an interpolated context.tr expression
-    # before it sees the nested localization-key quote. Treat that fragment as
-    # already localized instead of reporting a false positive.
     if "context.tr(" in value or "context.strings" in value:
         return False
-    # Interpolated strings are user copy if the static portion contains words.
+    # Regex string matching cannot parse nested quote literals inside a Dart
+    # interpolation such as '${positive ? '+' : '-'}$amount'. When the captured
+    # fragment starts an interpolation but does not contain its closing brace,
+    # defer to the surrounding static copy instead of treating variable names as
+    # visible words. Complete interpolations such as '${points} RP' are still
+    # checked and correctly report the visible 'RP' suffix.
+    if value.startswith("${") and "}" not in value:
+        return False
     static = re.sub(r"\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_.]*", "", value)
     return re.search(r"[A-Za-zÀ-ÖØ-öø-ÿ]", static) is not None
 
