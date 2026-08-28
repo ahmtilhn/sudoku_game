@@ -1,0 +1,367 @@
+name: Repair Turkish iOS localization on main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-ios-turkish-runtime-v2-main.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repair-turkish-ios-localization-main
+  cancel-in-progress: false
+
+jobs:
+  repair-test-and-commit:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter packages
+        run: flutter pub get
+
+      - name: Harden iOS locale resolution
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          app_path = Path('lib/localization/app_strings.dart')
+          app = app_path.read_text(encoding='utf-8')
+
+          replacement = r'''  static Future<AppStrings> load() async {
+            final values = Map<String, String>.from(english);
+            final catalogLocales = defaultTargetPlatform == TargetPlatform.iOS
+                ? await _preferredIosLocales()
+                : const <Locale>[Locale('en')];
+            await _loadStringCatalog(values, catalogLocales);
+
+            // Google Play can provide Android resource translations at runtime.
+            // iOS is deliberately resolved only from the bundled String Catalog so
+            // a native English resource can never overwrite the selected iOS locale.
+            if (defaultTargetPlatform == TargetPlatform.android) {
+              try {
+                final response = await _channel.invokeMethod<Map<Object?, Object?>>(
+                  'getStrings',
+                  <String, Object>{'keys': english.keys.toList(growable: false)},
+                );
+                if (response != null) {
+                  for (final entry in response.entries) {
+                    final key = entry.key;
+                    final value = entry.value;
+                    if (key is String &&
+                        value is String &&
+                        value.isNotEmpty &&
+                        value != key) {
+                      values[key] = value;
+                    }
+                  }
+                }
+              } on MissingPluginException {
+                // Unit tests and unsupported platforms use catalog/English fallback.
+              } on PlatformException {
+                // Localization failures must never block startup.
+              }
+            }
+            return AppStrings._(values);
+          }
+
+          static Future<List<Locale>> _preferredIosLocales() async {
+            final flutterLocales = PlatformDispatcher.instance.locales;
+            try {
+              final preferredLanguages = await _channel.invokeListMethod<String>(
+                'getPreferredLocales',
+              );
+              if (preferredLanguages != null && preferredLanguages.isNotEmpty) {
+                final nativeLocales = preferredLanguages
+                    .map(_localeFromLanguageTag)
+                    .whereType<Locale>()
+                    .toList(growable: false);
+                if (nativeLocales.isNotEmpty) {
+                  return <Locale>[...nativeLocales, ...flutterLocales];
+                }
+              }
+            } on MissingPluginException {
+              // Use Flutter's platform locales if the bridge is unavailable.
+            } on PlatformException {
+              // Use Flutter's platform locales if native lookup fails.
+            }
+            return flutterLocales.isNotEmpty
+                ? flutterLocales
+                : const <Locale>[Locale('en')];
+          }
+
+          static Locale? _localeFromLanguageTag(String rawTag) {
+            final tag = rawTag.trim().replaceAll('_', '-');
+            if (tag.isEmpty) return null;
+            final parts = tag
+                .split('-')
+                .where((part) => part.isNotEmpty)
+                .toList(growable: false);
+            if (parts.isEmpty) return null;
+
+            final language = parts.first.toLowerCase();
+            String? script;
+            String? country;
+            for (final part in parts.skip(1)) {
+              if (part.length == 4 && script == null) {
+                script = '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}';
+              } else if ((part.length == 2 || part.length == 3) && country == null) {
+                country = part.toUpperCase();
+              }
+            }
+            return Locale.fromSubtags(
+              languageCode: language,
+              scriptCode: script,
+              countryCode: country,
+            );
+          }
+
+          static Future<void> _loadStringCatalog('''
+
+          pattern = re.compile(
+              r"  static Future<AppStrings> load\(\) async \{.*?\n  static Future<void> _loadStringCatalog\(",
+              re.S,
+          )
+          updated, count = pattern.subn(replacement, app, count=1)
+          if count != 1:
+              raise SystemExit('Could not locate AppStrings.load exactly once.')
+          app_path.write_text(updated, encoding='utf-8')
+
+          swift_path = Path('ios/Runner/AppDelegate.swift')
+          swift = swift_path.read_text(encoding='utf-8')
+          swift_replacement = r'''  private func configureLocalizationChannel(messenger: FlutterBinaryMessenger) {
+            let channel = FlutterMethodChannel(
+              name: "com.devovia.sudoku/localization",
+              binaryMessenger: messenger
+            )
+            channel.setMethodCallHandler { call, result in
+              switch call.method {
+              case "getPreferredLocales":
+                result(Locale.preferredLanguages)
+              case "getStrings":
+                // The Flutter String Catalog is the single iOS source of app copy.
+                result([String: String]())
+              default:
+                result(FlutterMethodNotImplemented)
+              }
+            }
+            localizationChannel = channel
+          }
+
+          private func configureGameServicesChannel'''
+          swift_pattern = re.compile(
+              r"  private func configureLocalizationChannel\(messenger: FlutterBinaryMessenger\) \{.*?\n  private func configureGameServicesChannel",
+              re.S,
+          )
+          swift_updated, swift_count = swift_pattern.subn(swift_replacement, swift, count=1)
+          if swift_count != 1:
+              raise SystemExit('Could not locate iOS localization bridge exactly once.')
+          swift_path.write_text(swift_updated, encoding='utf-8')
+          PY
+          dart format lib/localization/app_strings.dart
+
+      - name: Create isolated translation environment
+        shell: bash
+        run: |
+          python3 -m venv .translation-venv
+          .translation-venv/bin/python -m pip install --disable-pip-version-check --quiet --upgrade pip
+          .translation-venv/bin/python -m pip install --disable-pip-version-check --quiet 'transformers<5' sentencepiece torch sacremoses
+
+      - name: Translate English-copy Turkish catalog entries
+        shell: bash
+        run: |
+          .translation-venv/bin/python <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          import torch
+          from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+          CATALOG = Path('assets/localization/Localizable.xcstrings')
+          MODEL = 'Helsinki-NLP/opus-mt-tc-big-en-tr'
+          TOKEN_RE = re.compile(
+              r'(%(?:\d+\$?)?[sd]|%%|\n|Sudoku Duel|Game Center|Play Games|'
+              r'Google Play|ELO|MMR|RP|Coin|9x9|16x16|4x4)',
+              re.IGNORECASE,
+          )
+          PLACEHOLDER_RE = re.compile(r'%(?:\d+\$?)?[sd]|%%')
+          catalog = json.loads(CATALOG.read_text(encoding='utf-8'))
+          strings = catalog['strings']
+
+          def value_for(definition, locale):
+              return (
+                  definition.get('localizations', {})
+                  .get(locale, {})
+                  .get('stringUnit', {})
+                  .get('value', '')
+              )
+
+          pending = []
+          for key, definition in strings.items():
+              en = value_for(definition, 'en')
+              tr = value_for(definition, 'tr')
+              if isinstance(en, str) and en.strip() and (
+                  not isinstance(tr, str) or not tr.strip() or tr == en
+              ):
+                  pending.append((key, en))
+
+          print(f'Turkish English-copy/missing entries: {len(pending)} / {len(strings)}')
+          tokenizer = AutoTokenizer.from_pretrained(MODEL)
+          model = AutoModelForSeq2SeqLM.from_pretrained(MODEL)
+          device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+          model.to(device)
+          model.eval()
+
+          segments = []
+          plans = []
+          for key, source in pending:
+              parts = TOKEN_RE.split(source)
+              plan = []
+              for part in parts:
+                  if not part:
+                      continue
+                  if TOKEN_RE.fullmatch(part):
+                      plan.append(('token', part))
+                  elif part.strip():
+                      index = len(segments)
+                      segments.append(part)
+                      plan.append(('segment', index))
+                  else:
+                      plan.append(('token', part))
+              plans.append((key, source, plan))
+
+          translations = [''] * len(segments)
+          batch_size = 32
+          for start in range(0, len(segments), batch_size):
+              batch = segments[start:start + batch_size]
+              encoded = tokenizer(
+                  batch,
+                  return_tensors='pt',
+                  padding=True,
+                  truncation=True,
+                  max_length=256,
+              ).to(device)
+              with torch.inference_mode():
+                  generated = model.generate(
+                      **encoded,
+                      max_new_tokens=256,
+                      num_beams=4,
+                      early_stopping=True,
+                  )
+              decoded = tokenizer.batch_decode(generated, skip_special_tokens=True)
+              translations[start:start + len(decoded)] = decoded
+              print(f'Translated text segments {min(start + batch_size, len(segments))}/{len(segments)}')
+
+          changed = 0
+          for key, source, plan in plans:
+              pieces = []
+              for kind, payload in plan:
+                  if kind == 'token':
+                      pieces.append(payload)
+                  else:
+                      pieces.append(translations[payload])
+              translated = ''.join(pieces).strip()
+              if not translated:
+                  raise SystemExit(f'Empty Turkish translation generated for {key}')
+              if PLACEHOLDER_RE.findall(source) != PLACEHOLDER_RE.findall(translated):
+                  raise SystemExit(
+                      f'Placeholder mismatch for {key}: {source!r} -> {translated!r}'
+                  )
+              unit = strings[key].setdefault('localizations', {}).setdefault(
+                  'tr', {}
+              ).setdefault('stringUnit', {})
+              unit['state'] = 'translated'
+              unit['value'] = translated
+              changed += 1
+
+          CATALOG.write_text(
+              json.dumps(catalog, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          print(f'Updated Turkish catalog entries: {changed}')
+          PY
+
+      - name: Verify Turkish catalog and placeholders
+        shell: bash
+        run: |
+          python3 <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          placeholder_re = re.compile(r'%(?:\d+\$?)?[sd]|%%')
+          catalog = json.loads(Path('assets/localization/Localizable.xcstrings').read_text(encoding='utf-8'))
+          strings = catalog['strings']
+          identical = []
+          for key, definition in strings.items():
+              loc = definition.get('localizations', {})
+              en = loc.get('en', {}).get('stringUnit', {}).get('value', '')
+              tr = loc.get('tr', {}).get('stringUnit', {}).get('value', '')
+              if not isinstance(tr, str) or not tr.strip():
+                  raise SystemExit(f'Missing Turkish value for {key}')
+              if placeholder_re.findall(en) != placeholder_re.findall(tr):
+                  raise SystemExit(f'Placeholder mismatch for {key}: {en!r} -> {tr!r}')
+              if tr == en:
+                  identical.append(key)
+
+          for key in ('home', 'play', 'settings'):
+              loc = strings[key]['localizations']
+              en = loc['en']['stringUnit']['value']
+              tr = loc['tr']['stringUnit']['value']
+              print(f'{key}: en={en!r} tr={tr!r}')
+              if tr == en:
+                  raise SystemExit(f'{key} is still English in Turkish catalog')
+
+          print(f'Turkish non-empty entries: {len(strings)}')
+          print(f'Entries still identical to English (brands/abbreviations may be valid): {len(identical)}')
+          print('Identical sample:', ', '.join(identical[:50]))
+          PY
+
+      - name: Validate localization sources
+        run: python3 tool/validate_localizations.py
+
+      - name: Run locale consistency tests
+        run: flutter test test/localization_locale_consistency_test.dart
+
+      - name: Analyze localization runtime
+        run: flutter analyze --fatal-infos lib/localization/app_strings.dart lib/app.dart
+
+      - name: Build real iOS Simulator target
+        run: flutter build ios --simulator --debug --no-codesign
+
+      - name: Commit on top of latest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
+          rm -rf .translation-venv
+          git add \
+            lib/localization/app_strings.dart \
+            ios/Runner/AppDelegate.swift \
+            assets/localization/Localizable.xcstrings
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Turkish iOS localization already matches the intended runtime.'
+            exit 0
+          fi
+
+          git commit -m "Fix Turkish iOS localization on Simulator"
+          git pull --rebase origin main
+          git push origin HEAD:main
