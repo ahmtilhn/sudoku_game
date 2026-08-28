@@ -34,19 +34,55 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q "context.tr('matchmaking_looking_near_rank')" lib/features/duel/matchmaking_stage.dart
-          grep -q "context.tr('matchmaking_tip')" lib/features/duel/matchmaking_stage.dart
-          grep -q "context.tr('profile_customization')" lib/features/social/profile_customization_screen.dart
-          grep -q "context.tr('avatars')" lib/features/social/profile_customization_screen.dart
-          grep -q "context.tr('frames')" lib/features/social/profile_customization_screen.dart
-          grep -q "context.tr('badges')" lib/features/social/profile_customization_screen.dart
-          grep -q "context.tr('emotes')" lib/features/social/emote_loadout_screen.dart
-          grep -q "context.tr('quick_emotes')" lib/features/social/emote_loadout_screen.dart
-          grep -q "context.tr('visible_rp_rank_info')" lib/features/duel/leaderboards_screen.dart
-          grep -q 'Rütbene yakın bir oyuncu aranıyor' android/app/src/main/res/values-tr/strings.xml
-          grep -q 'Görünen RP, gösterilen rütbeni belirler' android/app/src/main/res/values-tr/strings.xml
-          grep -q '"Rütbene yakın bir oyuncu aranıyor"' assets/localization/Localizable.xcstrings
-          grep -q '"Görünen RP, gösterilen rütbeni belirler' assets/localization/Localizable.xcstrings
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+
+          checks = {
+              'lib/features/duel/matchmaking_stage.dart': [
+                  'matchmaking_looking_near_rank',
+                  'matchmaking_tip',
+                  'matchmaking_keep_open',
+                  'opponent_search',
+                  'opponent_search_body',
+              ],
+              'lib/features/social/profile_customization_screen.dart': [
+                  'profile_customization',
+                  'avatars',
+                  'frames',
+                  'badges',
+                  'country',
+              ],
+              'lib/features/social/emote_loadout_screen.dart': [
+                  'emotes',
+                  'quick_emotes',
+                  'quick_emotes_reorder_body',
+                  'choose_reactions',
+              ],
+              'lib/features/duel/leaderboards_screen.dart': [
+                  'visible_rp_rank_info',
+                  'ranked_ladder',
+                  'global_rp_leaderboard',
+              ],
+          }
+
+          failures = []
+          for path, keys in checks.items():
+              source = Path(path).read_text(encoding='utf-8')
+              for key in keys:
+                  pattern = rf"context\.tr\(\s*['\"]{re.escape(key)}['\"]"
+                  if not re.search(pattern, source):
+                      failures.append(f'{path}: missing context.tr for {key}')
+
+          if failures:
+              raise SystemExit('\n'.join(failures))
+          print('Requested screens are wired to localization keys.')
+          PY
+
+          grep -Fq 'Rütbene yakın bir oyuncu aranıyor' android/app/src/main/res/values-tr/strings.xml
+          grep -Fq 'Görünen RP, gösterilen rütbeni belirler' android/app/src/main/res/values-tr/strings.xml
+          grep -Fq '"Rütbene yakın bir oyuncu aranıyor"' assets/localization/Localizable.xcstrings
+          grep -Fq '"Görünen RP, gösterilen rütbeni belirler' assets/localization/Localizable.xcstrings
 
       - uses: subosito/flutter-action@v2
         with:
