@@ -12,6 +12,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+APP_STRINGS = ROOT / "lib" / "localization" / "app_strings.dart"
 SCAN_ROOTS = (
     ROOT / "lib" / "features",
     ROOT / "lib" / "widgets",
@@ -19,6 +20,14 @@ SCAN_ROOTS = (
 EXTRA_FILES = (
     ROOT / "lib" / "localization" / "ux_copy.dart",
     ROOT / "lib" / "services" / "online_duel_emote_hub.dart",
+)
+
+LOCALIZATION_KEYS = set(
+    re.findall(
+        r"^\s*'([a-z0-9_]+)'\s*:",
+        APP_STRINGS.read_text(encoding="utf-8"),
+        flags=re.MULTILINE,
+    )
 )
 
 # Direct presentation literals. The regexes deliberately require an alphabetic
@@ -54,8 +63,6 @@ PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
 )
 
-# These are presentation widgets whose label can legitimately be a non-user
-# protocol key only when the literal is one of these exact values.
 ALLOWED_LITERAL_VALUES = {
     "custom",
     "auto",
@@ -71,7 +78,13 @@ def without_comments(source: str) -> str:
 
 
 def looks_user_facing(value: str) -> bool:
-    if value in ALLOWED_LITERAL_VALUES:
+    value = value.strip()
+    if value in ALLOWED_LITERAL_VALUES or value in LOCALIZATION_KEYS:
+        return False
+    # A regex can see the opening quote of an interpolated context.tr expression
+    # before it sees the nested localization-key quote. Treat that fragment as
+    # already localized instead of reporting a false positive.
+    if "context.tr(" in value or "context.strings" in value:
         return False
     # Interpolated strings are user copy if the static portion contains words.
     static = re.sub(r"\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_.]*", "", value)
