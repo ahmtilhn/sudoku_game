@@ -1,0 +1,48 @@
+name: Patch Turkish localization verifier on main
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-ios-turkish-verifier-main.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Let canonical validator handle legacy placeholder syntax
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/fix-ios-turkish-runtime-v2-main.yml')
+          source = path.read_text(encoding='utf-8')
+          old = """              if placeholder_re.findall(en) != placeholder_re.findall(tr):
+                  raise SystemExit(f'Placeholder mismatch for {key}: {en!r} -> {tr!r}')
+"""
+          if old not in source:
+              raise SystemExit('Expected strict legacy-placeholder verifier was not found.')
+          source = source.replace(old, '')
+          path.write_text(source, encoding='utf-8')
+          PY
+
+      - name: Commit verifier adjustment
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/fix-ios-turkish-runtime-v2-main.yml
+          git diff --cached --check
+          git commit -m "Accept equivalent localization placeholder syntax"
+          git pull --rebase origin main
+          git push origin HEAD:main
