@@ -89,10 +89,6 @@ jobs:
               "        for key, expected in CURATED[locale].items():\n            actual = value_for(strings[key], locale)",
               "        for key, expected in CURATED[locale].items():\n            if key not in strings:\n                continue\n            actual = value_for(strings[key], locale)",
           )
-          text = text.replace(
-              'CATALOG = Path("assets/localization/Localizable.xcstrings")',
-              'CATALOG = Path("assets/localization/Localizable.xcstrings")',
-          )
           path.write_text(text, encoding='utf-8')
           PY
           python3 /tmp/verify_locales.py --verify-only
