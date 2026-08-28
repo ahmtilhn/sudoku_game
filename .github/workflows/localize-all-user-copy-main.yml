@@ -7,6 +7,7 @@ on:
       - '.github/workflows/localize-all-user-copy-main.yml'
       - 'tool/localize_all_user_copy.py'
       - 'tool/localize_remaining_presentation_copy.py'
+      - 'tool/localize_final_presentation_copy.py'
       - 'tool/fix_localization_dart_escapes.py'
       - 'tool/verify_localized_user_copy.py'
       - 'tool/sync_missing_ios_localization_keys.py'
@@ -42,6 +43,9 @@ jobs:
 
       - name: Migrate remaining presentation literals
         run: python3 tool/localize_remaining_presentation_copy.py
+
+      - name: Close final presentation gaps
+        run: python3 tool/localize_final_presentation_copy.py
 
       - name: Normalize Dart localization escapes
         run: python3 tool/fix_localization_dart_escapes.py
