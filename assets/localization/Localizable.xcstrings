@@ -2006,7 +2006,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sadece aynı zorluğu seçen oyuncularla eşleşeceksiniz."
+            "value": "Yalnızca aynı zorluk seviyesini seçen oyuncularla eşleşirsin."
           }
         },
         "uk": {
@@ -2142,7 +2142,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1szorluk kuyruğu"
+            "value": "%1s zorluk kuyruğu"
           }
         },
         "uk": {
@@ -2278,7 +2278,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bir rakip aranıyor..."
+            "value": "Rakip aranıyor…"
           }
         },
         "uk": {
@@ -2822,7 +2822,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rakibi bul"
+            "value": "Rakip bul"
           }
         },
         "uk": {
@@ -18372,7 +18372,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ranked kuyruğundasın. Uygulama birkaç saniyede bir eşleşme kontrol eder."
+            "value": "Dereceli eşleştirme kuyruğundasın. Uygulama birkaç saniyede bir eşleşme kontrolü yapar."
           }
         },
         "de": {
@@ -20230,7 +20230,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hazır olun."
+            "value": "Hazırlan"
           }
         },
         "uk": {
@@ -20366,7 +20366,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Oyuncuların bağlanması"
+            "value": "Oyuncular bağlanıyor"
           }
         },
         "uk": {
@@ -20774,7 +20774,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karşı taraf bağlanıyor"
+            "value": "Rakip bağlanıyor"
           }
         },
         "uk": {
@@ -20910,7 +20910,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karşıt oyunu açıyor"
+            "value": "Rakip oyunu açıyor"
           }
         },
         "uk": {
@@ -21046,7 +21046,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karşı taraf hazır"
+            "value": "Rakip hazır"
           }
         },
         "uk": {
@@ -30158,7 +30158,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Yeniden dene"
+            "value": "Tekrar dene"
           }
         },
         "uk": {
@@ -38347,7 +38347,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seçtiğin zorlukta sıralanmış bir rakip bul."
+            "value": "Seçtiğin zorluk seviyesinde dereceli bir rakip bul."
           }
         },
         "uk": {
@@ -38619,7 +38619,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karşıt Bulmak"
+            "value": "Rakip Bulunuyor"
           }
         },
         "uk": {
@@ -38755,7 +38755,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sizin seviyenize yakın rakipler aranıyor..."
+            "value": "Seviyene yakın rakipler aranıyor..."
           }
         },
         "uk": {
@@ -38891,7 +38891,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Arama"
+            "value": "Aranıyor"
           }
         },
         "uk": {
@@ -39027,7 +39027,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hazır mısınız?"
+            "value": "Hazır mısın?"
           }
         },
         "uk": {
@@ -39163,7 +39163,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Oyun her iki oyuncu da hazır olduğunda başlar."
+            "value": "Her iki oyuncu da hazır olduğunda oyun başlar."
           }
         },
         "uk": {
@@ -39299,7 +39299,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rakibini bekliyor..."
+            "value": "Rakibin bekleniyor..."
           }
         },
         "uk": {
@@ -39435,7 +39435,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hazırsın, rakibini bekliyorsun."
+            "value": "Hazırsın. Rakibin bekleniyor."
           }
         },
         "uk": {
@@ -39571,7 +39571,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Karşı taraf hazır, seni bekliyor."
+            "value": "Rakibin hazır. Seni bekliyor."
           }
         },
         "uk": {
@@ -39843,7 +39843,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hazır olduğunuzda dokunun."
+            "value": "Hazır olduğunda hazır düğmesine dokun."
           }
         },
         "uk": {
@@ -53851,7 +53851,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Üst rütbe"
+            "value": "En üst rütbe"
           }
         },
         "uk": {
@@ -69543,7 +69543,7 @@
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Küresel RP liderlik tablosu"
+            "value": "Global RP sıralaması"
           }
         },
         "de": {
@@ -69951,6 +69951,12 @@
             "state": "translated",
             "value": "Emotes"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İfadeler"
+          }
         }
       }
     },
@@ -69960,6 +69966,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Restore default emotes"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varsayılan ifadeleri geri yükle"
           }
         }
       }
@@ -69971,6 +69983,12 @@
             "state": "translated",
             "value": "Default emotes restored."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varsayılan ifadeler geri yüklendi."
+          }
         }
       }
     },
@@ -69980,6 +69998,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Emote selection could not be loaded."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İfade seçimi yüklenemedi."
           }
         }
       }
@@ -69991,6 +70015,12 @@
             "state": "translated",
             "value": "You can equip up to 8 quick emotes. Remove one first."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En fazla 8 hızlı ifade takabilirsin. Önce birini kaldır."
+          }
         }
       }
     },
@@ -70000,6 +70030,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keep at least one quick emote equipped."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En az bir hızlı ifade takılı kalmalı."
           }
         }
       }
@@ -70011,6 +70047,12 @@
             "state": "translated",
             "value": "That emote could not be changed."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu ifade değiştirilemedi."
+          }
         }
       }
     },
@@ -70020,6 +70062,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "YOUR LOADOUT"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "DİZİLİMİN"
           }
         }
       }
@@ -70031,6 +70079,12 @@
             "state": "translated",
             "value": "Quick Emotes"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hızlı İfadeler"
+          }
         }
       }
     },
@@ -70040,6 +70094,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "The same 4 × 2 layout is used when you open emotes during a duel. Hold and drag to reorder."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Düello sırasında ifadeleri açtığında aynı 4 × 2 düzen kullanılır. Sıralamak için basılı tutup sürükle."
           }
         }
       }
@@ -70051,6 +70111,12 @@
             "state": "translated",
             "value": "COLLECTION"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KOLEKSİYON"
+          }
         }
       }
     },
@@ -70060,6 +70126,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choose your reactions"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tepkilerini seç"
           }
         }
       }
@@ -70071,6 +70143,12 @@
             "state": "translated",
             "value": "Tap a card to equip it. Tap an equipped card again to remove it from your quick slots."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Düelloda hızlıca kullanmak istediğin ifadeleri seç."
+          }
         }
       }
     },
@@ -70080,6 +70158,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Empty quick emote slot %1d"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boş hızlı ifade yuvası %1d"
           }
         }
       }
@@ -70091,6 +70175,12 @@
             "state": "translated",
             "value": "%1s, quick emote slot %2d"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s, hızlı ifade yuvası %2d"
+          }
         }
       }
     },
@@ -70100,6 +70190,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "All"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tümü"
           }
         }
       }
@@ -70111,6 +70207,12 @@
             "state": "translated",
             "value": "Reactions"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tepkiler"
+          }
         }
       }
     },
@@ -70121,6 +70223,12 @@
             "state": "translated",
             "value": "Taunts"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kışkırtmalar"
+          }
         }
       }
     },
@@ -70130,6 +70238,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Status"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durum"
           }
         }
       }
@@ -70261,6 +70375,12 @@
             "state": "translated",
             "value": "Profile server is unavailable. Preview is local until reconnect."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profil sunucusuna ulaşılamıyor. Yeniden bağlanana kadar önizleme yalnızca bu cihazda kalır."
+          }
         }
       }
     },
@@ -70270,6 +70390,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Profile settings saved."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profil ayarları kaydedildi."
           }
         }
       }
@@ -70281,6 +70407,12 @@
             "state": "translated",
             "value": "Profile customization"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profil özelleştirme"
+          }
         }
       }
     },
@@ -70290,6 +70422,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Refresh profile"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profili yenile"
           }
         }
       }
@@ -70301,6 +70439,12 @@
             "state": "translated",
             "value": "Online profile is reconnecting. All profile options remain previewable."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çevrimiçi profile yeniden bağlanılıyor. Tüm profil seçeneklerini önizlemeye devam edebilirsin."
+          }
         }
       }
     },
@@ -70310,6 +70454,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avatars"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatarlar"
           }
         }
       }
@@ -70321,6 +70471,12 @@
             "state": "translated",
             "value": "Frames"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çerçeveler"
+          }
         }
       }
     },
@@ -70330,6 +70486,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Badges"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rozetler"
           }
         }
       }
@@ -70341,6 +70503,12 @@
             "state": "translated",
             "value": "Titles"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unvanlar"
+          }
         }
       }
     },
@@ -70351,6 +70519,12 @@
             "state": "translated",
             "value": "You can equip up to 3 frame badges."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çerçevene en fazla 3 rozet takabilirsin."
+          }
         }
       }
     },
@@ -70360,6 +70534,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Country flag"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ülke bayrağı"
           }
         }
       }
@@ -70381,12 +70561,24 @@
             "state": "translated",
             "value": "Sudoku Player"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sudoku Oyuncusu"
+          }
         }
       }
     },
     "avatar_number": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatar %1s"
+          }
+        },
+        "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "Avatar %1s"
@@ -70401,6 +70593,12 @@
             "state": "translated",
             "value": "%1d lifetime Rank Coins"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d toplam Rütbe Coini"
+          }
         }
       }
     },
@@ -70410,6 +70608,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Every division has its own frame. Rank rewards are first-time-only and cannot be farmed by dropping and climbing again."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Her kademenin kendine ait bir çerçevesi vardır. Rütbe ödülleri yalnızca ilk kez kazanılır; düşüp yeniden yükselerek tekrar toplanamaz."
           }
         }
       }
@@ -70421,6 +70625,12 @@
             "state": "translated",
             "value": "Auto · current rank"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otomatik · mevcut rütbe"
+          }
         }
       }
     },
@@ -70430,6 +70640,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Frame follows your current rank automatically."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çerçeve mevcut rütbeni otomatik olarak takip eder."
           }
         }
       }
@@ -70441,6 +70657,12 @@
             "state": "translated",
             "value": "Permanently unlocked at %1d RP."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d RP'de kalıcı olarak açıldı."
+          }
         }
       }
     },
@@ -70450,6 +70672,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Unlock by reaching %1d RP."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d RP'ye ulaşınca açılır."
           }
         }
       }
@@ -70461,6 +70689,12 @@
             "state": "translated",
             "value": "3 achievement slots"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3 başarım rozeti yuvası"
+          }
         }
       }
     },
@@ -70470,6 +70704,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Earned badges can be attached directly to your frame. Locked badges stay visible here so you always know what can be earned."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Açtığın başarım rozetlerinden en fazla 3 tanesini rütbe çerçevene ekleyebilirsin."
           }
         }
       }
@@ -70481,6 +70721,12 @@
             "state": "translated",
             "value": "No title"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unvan yok"
+          }
         }
       }
     },
@@ -70490,6 +70736,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Prestige titles"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prestij unvanları"
           }
         }
       }
@@ -70501,6 +70753,12 @@
             "state": "translated",
             "value": "Master and Master I titles are permanent account unlocks. Your actual current rank is always shown separately."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Master ve Master I unvanları kalıcı hesap ödülleridir. Gerçek mevcut rütben ayrıca gösterilmeye devam eder."
+          }
         }
       }
     },
@@ -70510,6 +70768,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choose country"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ülke seç"
           }
         }
       }
@@ -70521,6 +70785,12 @@
             "state": "translated",
             "value": "Choose the country you want to represent. It appears before your name in Ranked Ladder and is never inferred from your location."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ülke bayrağın, istersen oyuncu adının önünde gösterilir."
+          }
         }
       }
     },
@@ -70530,6 +70800,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No country flag will be shown until you choose one."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bir ülke seçene kadar ülke bayrağı gösterilmez."
           }
         }
       }
@@ -70541,6 +70817,12 @@
             "state": "translated",
             "value": "Your flag can be shown before your player name."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bayrağın oyuncu adının önünde gösterilebilir."
+          }
         }
       }
     },
@@ -70550,6 +70832,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Clear country"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ülkeyi temizle"
           }
         }
       }
@@ -70561,6 +70849,12 @@
             "state": "translated",
             "value": "Show flag on Ranked Ladder"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dereceli sıralamada bayrağı göster"
+          }
         }
       }
     },
@@ -70570,6 +70864,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choose a country first."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önce bir ülke seç."
           }
         }
       }
@@ -70581,6 +70881,12 @@
             "state": "translated",
             "value": "Only the flag appears before your name. No country abbreviation is shown."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adının önünde yalnızca bayrak görünür; ülke kısaltması gösterilmez."
+          }
         }
       }
     },
@@ -70590,6 +70896,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Your country stays saved, but the flag is hidden from the ladder."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ülken kayıtlı kalır ancak bayrak sıralamada gizlenir."
           }
         }
       }
@@ -70601,6 +70913,12 @@
             "state": "translated",
             "value": "Search country"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ülke ara"
+          }
         }
       }
     },
@@ -70610,6 +70928,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No country found."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ülke bulunamadı."
           }
         }
       }
@@ -70621,6 +70945,12 @@
             "state": "translated",
             "value": "Avatars come only from the bundled avatar collection. Rank cosmetics are earned."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatarlar yalnızca uygulamadaki avatar koleksiyonundan seçilir. Rütbe kozmetikleri oynayarak kazanılır."
+          }
         }
       }
     },
@@ -70630,6 +70960,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Preview mode · reconnect to save changes."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önizleme modu · değişiklikleri kaydetmek için yeniden bağlan."
           }
         }
       }
@@ -70641,6 +70977,12 @@
             "state": "translated",
             "value": "Saving"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydediliyor"
+          }
         }
       }
     },
@@ -70650,6 +70992,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Preview"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önizleme"
           }
         }
       }
@@ -70661,6 +71009,12 @@
             "state": "translated",
             "value": "COMMON"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YAYGIN"
+          }
         }
       }
     },
@@ -70670,6 +71024,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "RARE"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NADİR"
           }
         }
       }
@@ -70681,6 +71041,12 @@
             "state": "translated",
             "value": "EPIC"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EPİK"
+          }
         }
       }
     },
@@ -70690,6 +71056,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "LEGENDARY"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EFSANEVİ"
           }
         }
       }
@@ -70701,6 +71073,12 @@
             "state": "translated",
             "value": "Unbeaten 10"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "10 Maç Yenilmez"
+          }
         }
       }
     },
@@ -70710,6 +71088,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Finish 10 ranked duels in a row without a loss."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arka arkaya 10 dereceli düelloyu yenilmeden tamamla."
           }
         }
       }
@@ -70721,6 +71105,12 @@
             "state": "translated",
             "value": "Unbeaten 25"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "25 Maç Yenilmez"
+          }
         }
       }
     },
@@ -70730,6 +71120,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Finish 25 ranked duels in a row without a loss."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arka arkaya 25 dereceli düelloyu yenilmeden tamamla."
           }
         }
       }
@@ -70741,6 +71137,12 @@
             "state": "translated",
             "value": "Unbeaten 50"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "50 Maç Yenilmez"
+          }
         }
       }
     },
@@ -70750,6 +71152,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Finish 50 ranked duels in a row without a loss."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arka arkaya 50 dereceli düelloyu yenilmeden tamamla."
           }
         }
       }
@@ -70761,6 +71169,12 @@
             "state": "translated",
             "value": "Five Win Streak"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 Galibiyet Serisi"
+          }
         }
       }
     },
@@ -70770,6 +71184,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Win 5 ranked duels in a row."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arka arkaya 5 dereceli düello kazan."
           }
         }
       }
@@ -70781,6 +71201,12 @@
             "state": "translated",
             "value": "Ten Win Streak"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "10 Galibiyet Serisi"
+          }
         }
       }
     },
@@ -70790,6 +71216,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Win 10 ranked duels in a row."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arka arkaya 10 dereceli düello kazan."
           }
         }
       }
@@ -70801,6 +71233,12 @@
             "state": "translated",
             "value": "Twenty Five Win Streak"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "25 Galibiyet Serisi"
+          }
         }
       }
     },
@@ -70810,6 +71248,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Win 25 ranked duels in a row."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arka arkaya 25 dereceli düello kazan."
           }
         }
       }
@@ -70821,6 +71265,12 @@
             "state": "translated",
             "value": "Silver Competitor"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gümüş Rakip"
+          }
         }
       }
     },
@@ -70830,6 +71280,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reach Silver III for the first time."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlk kez Silver III rütbesine ulaş."
           }
         }
       }
@@ -70841,6 +71297,12 @@
             "state": "translated",
             "value": "Gold Competitor"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Altın Rakip"
+          }
         }
       }
     },
@@ -70850,6 +71312,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reach Gold III for the first time."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlk kez Gold III rütbesine ulaş."
           }
         }
       }
@@ -70861,6 +71329,12 @@
             "state": "translated",
             "value": "Platinum Competitor"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Platinum Rakip"
+          }
         }
       }
     },
@@ -70870,6 +71344,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Reach Platinum III for the first time."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlk kez Platinum III rütbesine ulaş."
           }
         }
       }
@@ -70881,6 +71361,12 @@
             "state": "translated",
             "value": "Master Competitor"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Master Rakip"
+          }
         }
       }
     },
@@ -70891,12 +71377,24 @@
             "state": "translated",
             "value": "Reach Master III for the first time."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlk kez Master III rütbesine ulaş."
+          }
         }
       }
     },
     "rank_decoration_rank_master_i_title": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Master I"
+          }
+        },
+        "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "Master I"
@@ -70911,6 +71409,12 @@
             "state": "translated",
             "value": "Reach Master I for the first time."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İlk kez Master I rütbesine ulaş."
+          }
         }
       }
     },
@@ -70920,6 +71424,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Giant Slayer"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dev Avcısı"
           }
         }
       }
@@ -70931,6 +71441,12 @@
             "state": "translated",
             "value": "Defeat a ranked opponent at least 251 MMR above you."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senden en az 251 MMR yüksek dereceli bir rakibi yen."
+          }
         }
       }
     },
@@ -70940,6 +71456,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ranked Veteran"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dereceli Veteran"
           }
         }
       }
@@ -70951,6 +71473,12 @@
             "state": "translated",
             "value": "Finish 100 ranked duels."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "100 dereceli düello tamamla."
+          }
         }
       }
     },
@@ -70960,6 +71488,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Elite Veteran"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elit Veteran"
           }
         }
       }
@@ -70971,6 +71505,12 @@
             "state": "translated",
             "value": "Finish 500 ranked duels."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "500 dereceli düello tamamla."
+          }
         }
       }
     },
@@ -70980,6 +71520,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Legendary Veteran"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Efsanevi Veteran"
           }
         }
       }
@@ -70991,6 +71537,12 @@
             "state": "translated",
             "value": "Finish 1000 ranked duels."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1000 dereceli düello tamamla."
+          }
         }
       }
     },
@@ -71000,6 +71552,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Perfect Duel"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kusursuz Düello"
           }
         }
       }
@@ -71011,6 +71569,12 @@
             "state": "translated",
             "value": "Win a ranked duel without a mistake or timeout."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hata veya zaman aşımı yapmadan dereceli bir düello kazan."
+          }
         }
       }
     },
@@ -71020,6 +71584,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Perfect Ten"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kusursuz Onlu"
           }
         }
       }
@@ -71031,6 +71601,12 @@
             "state": "translated",
             "value": "Win 10 ranked duels without a mistake or timeout."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hata veya zaman aşımı yapmadan 10 dereceli düello kazan."
+          }
         }
       }
     },
@@ -71040,6 +71616,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Smile"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gülümse"
           }
         }
       }
@@ -71051,6 +71633,12 @@
             "state": "translated",
             "value": "Laugh"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kahkaha"
+          }
         }
       }
     },
@@ -71060,6 +71648,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Smug"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kendinden emin"
           }
         }
       }
@@ -71071,6 +71665,12 @@
             "state": "translated",
             "value": "Bored"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sıkılmış"
+          }
         }
       }
     },
@@ -71080,6 +71680,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fire"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ateş"
           }
         }
       }
@@ -71091,6 +71697,12 @@
             "state": "translated",
             "value": "Crown"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taç"
+          }
         }
       }
     },
@@ -71100,6 +71712,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Shocked"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şaşkın"
           }
         }
       }
@@ -71111,6 +71729,12 @@
             "state": "translated",
             "value": "Respect"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saygı"
+          }
         }
       }
     },
@@ -71120,6 +71744,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Angry"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kızgın"
           }
         }
       }
@@ -71131,6 +71761,12 @@
             "state": "translated",
             "value": "Slow Clap"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yavaş Alkış"
+          }
         }
       }
     },
@@ -71140,6 +71776,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Facepalm"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yüzünü Kapatma"
           }
         }
       }
@@ -71151,6 +71793,12 @@
             "state": "translated",
             "value": "Eye Roll"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Göz Devirme"
+          }
         }
       }
     },
@@ -71160,6 +71808,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Shush"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Şşşt"
           }
         }
       }
@@ -71171,6 +71825,12 @@
             "state": "translated",
             "value": "Salty Cry"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ağlama"
+          }
         }
       }
     },
@@ -71180,6 +71840,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Love"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sevgi"
           }
         }
       }
@@ -71191,6 +71857,12 @@
             "state": "translated",
             "value": "Plotting"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plan Yapıyor"
+          }
         }
       }
     },
@@ -71200,6 +71872,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dizzy"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sersem"
           }
         }
       }
@@ -71211,12 +71889,24 @@
             "state": "translated",
             "value": "Victory"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zafer"
+          }
         }
       }
     },
     "emote_gg": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GG"
+          }
+        },
+        "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "GG"
@@ -71231,12 +71921,24 @@
             "state": "translated",
             "value": "EZ"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EZ"
+          }
         }
       }
     },
     "emote_noob": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NOOB"
+          }
+        },
+        "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "NOOB"
@@ -71251,12 +71953,24 @@
             "state": "translated",
             "value": "OOPS"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HOPPALA"
+          }
         }
       }
     },
     "emote_rekt": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "REKT"
+          }
+        },
+        "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "REKT"
@@ -71271,12 +71985,24 @@
             "state": "translated",
             "value": "BRUH"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BRUH"
+          }
         }
       }
     },
     "emote_one_v_one": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1V1"
+          }
+        },
+        "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "1V1"
@@ -71291,6 +72017,12 @@
             "state": "translated",
             "value": "CLUTCH"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CLUTCH"
+          }
         }
       }
     },
@@ -71301,12 +72033,24 @@
             "state": "translated",
             "value": "AFK"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AFK"
+          }
         }
       }
     },
     "emote_lag": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LAG"
+          }
+        },
+        "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "LAG"
@@ -73841,12 +74585,24 @@
             "state": "translated",
             "value": "%1d RP above Master I"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Master I üzerinde %1d RP"
+          }
         }
       }
     },
     "rp_progress_fraction": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d/%2d RP"
+          }
+        },
+        "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "%1d/%2d RP"
@@ -73861,12 +74617,24 @@
             "state": "translated",
             "value": "%1d RP to %2s"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2s için %1d RP"
+          }
         }
       }
     },
     "global_upper": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GLOBAL"
+          }
+        },
+        "tr": {
           "stringUnit": {
             "state": "translated",
             "value": "GLOBAL"
@@ -73880,6 +74648,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Visible RP determines your displayed rank. Matchmaking skill stays hidden."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görünen RP, gösterilen rütbeni belirler. Eşleştirme beceri puanı gizli kalır."
           }
         }
       }
@@ -73921,6 +74695,12 @@
             "state": "translated",
             "value": "Opponent search"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rakip arama"
+          }
         }
       }
     },
@@ -73930,6 +74710,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "We look for an available player close to your competitive level. Keep this screen open while matchmaking is active."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rekabet seviyene yakın uygun bir oyuncu arıyoruz. Eşleştirme etkin olduğu sürece bu ekranı açık tut."
           }
         }
       }
@@ -73941,6 +74727,12 @@
             "state": "translated",
             "value": "Matchmaking info"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eşleştirme bilgisi"
+          }
         }
       }
     },
@@ -73950,6 +74742,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Searching\nfor opponent"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rakip\naranıyor"
           }
         }
       }
@@ -73980,6 +74778,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rank Points"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rütbe Puanı"
           }
         }
       }
@@ -74081,6 +74885,12 @@
             "state": "translated",
             "value": "Opponent found"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rakip bulundu"
+          }
         }
       }
     },
@@ -74101,6 +74911,12 @@
             "state": "translated",
             "value": "Match found"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eşleşme bulundu"
+          }
         }
       }
     },
@@ -74120,6 +74936,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1s matched near your competitive level."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s, rekabet seviyene yakın bir rakiple eşleşti."
           }
         }
       }
@@ -74231,6 +75053,12 @@
             "state": "translated",
             "value": "Profile style"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profil stili"
+          }
         }
       }
     },
@@ -74240,6 +75068,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Avatar, rank frame, badges and country"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avatar, rütbe çerçevesi, rozetler ve ülke"
           }
         }
       }
@@ -74251,6 +75085,12 @@
             "state": "translated",
             "value": "Choose and order your 8 quick duel emotes"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "8 hızlı düello ifadeni seç ve sırala"
+          }
         }
       }
     },
@@ -74260,6 +75100,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rank Points and division progress"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rütbe Puanı ve kademe ilerlemesi"
           }
         }
       }
@@ -74281,6 +75127,12 @@
             "state": "translated",
             "value": "%1d avatars"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d avatar"
+          }
         }
       }
     },
@@ -74290,6 +75142,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1d slots"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1d yuva"
           }
         }
       }
@@ -74310,6 +75168,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rank frames and achievement badges are earned, not purchased. You can equip up to 3 earned badges on your frame. %1d/3 badge slots are currently in use."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rütbe çerçeveleri ve başarım rozetleri satın alınmaz, kazanılır. Çerçevene en fazla 3 kazanılmış rozet takabilirsin. Şu anda %1d/3 rozet yuvası kullanılıyor."
           }
         }
       }
@@ -75141,6 +76005,12 @@
             "state": "translated",
             "value": "Leaderboard server is unavailable."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liderlik tablosu sunucusuna ulaşılamıyor."
+          }
         }
       }
     },
@@ -75150,6 +76020,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No ranked players yet."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Henüz dereceli oyuncu yok."
           }
         }
       }
@@ -75161,6 +76037,12 @@
             "state": "translated",
             "value": "Your current rank remains visible locally. Pull down or tap refresh after the backend reconnects."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mevcut rütben cihazda görünmeye devam eder. Sunucu yeniden bağlandıktan sonra aşağı çek veya yenile düğmesine dokun."
+          }
         }
       }
     },
@@ -75170,6 +76052,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Complete a ranked duel to enter the RP leaderboard."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RP sıralamasına girmek için bir dereceli düello tamamla."
           }
         }
       }
@@ -75181,6 +76069,12 @@
             "state": "translated",
             "value": "Cancelling search..."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arama iptal ediliyor..."
+          }
         }
       }
     },
@@ -75190,6 +76084,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Searching for opponent..."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rakip aranıyor..."
           }
         }
       }
@@ -75201,6 +76101,12 @@
             "state": "translated",
             "value": "Looking for a player near your rank"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rütbene yakın bir oyuncu aranıyor"
+          }
         }
       }
     },
@@ -75210,6 +76116,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Leaving the matchmaking queue..."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eşleştirme kuyruğundan çıkılıyor..."
           }
         }
       }
@@ -75221,6 +76133,12 @@
             "state": "translated",
             "value": "Preparing the duel..."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Düello hazırlanıyor..."
+          }
         }
       }
     },
@@ -75230,6 +76148,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "This may take a few seconds."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu işlem birkaç saniye sürebilir."
           }
         }
       }
@@ -75241,6 +76165,12 @@
             "state": "translated",
             "value": "Tip:"
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İpucu:"
+          }
         }
       }
     },
@@ -75250,6 +76180,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keep this screen open while we search."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arama sürerken bu ekranı açık tut."
           }
         }
       }
@@ -75301,6 +76237,12 @@
             "state": "translated",
             "value": "You are at the top division. Keep playing ranked duels to build your peak RP and leaderboard position."
           }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En üst kademedesin. En yüksek RP değerini ve sıralamadaki yerini geliştirmek için dereceli düellolara devam et."
+          }
         }
       }
     },
@@ -75310,6 +76252,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1d RP until %2s. Ranked duels change your visible RP and determine your competitive division."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2s için %1d RP kaldı. Dereceli düellolar görünen RP değerini değiştirir ve rekabetçi kademeni belirler."
           }
         }
       }
@@ -75370,6 +76318,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1s rank"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1s rütbesi"
           }
         }
       }

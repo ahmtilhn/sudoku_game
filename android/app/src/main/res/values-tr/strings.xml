@@ -1,0 +1,194 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="achievement_badges_info">Açtığın başarım rozetlerinden en fazla 3 tanesini rütbe çerçevene ekleyebilirsin.</string>
+    <string name="all">Tümü</string>
+    <string name="auto_current_rank">Otomatik · mevcut rütbe</string>
+    <string name="avatar_number" formatted="false">Avatar %1$s</string>
+    <string name="avatars">Avatarlar</string>
+    <string name="badges">Rozetler</string>
+    <string name="cancel">İptal</string>
+    <string name="cancel_search">Aramayı iptal et</string>
+    <string name="choose_country">Ülke seç</string>
+    <string name="choose_country_first">Önce bir ülke seç.</string>
+    <string name="choose_reactions">Tepkilerini seç</string>
+    <string name="choose_reactions_body">Düelloda hızlıca kullanmak istediğin ifadeleri seç.</string>
+    <string name="clear_country">Ülkeyi temizle</string>
+    <string name="collection">KOLEKSİYON</string>
+    <string name="connecting_players">Oyuncular bağlanıyor</string>
+    <string name="country">Ülke</string>
+    <string name="country_flag">Ülke bayrağı</string>
+    <string name="country_flag_info">Ülke bayrağın, istersen oyuncu adının önünde gösterilir.</string>
+    <string name="country_saved_flag_hidden">Ülken kayıtlı kalır ancak bayrak sıralamada gizlenir.</string>
+    <string name="default_emotes_restored">Varsayılan ifadeler geri yüklendi.</string>
+    <string name="difficulty_queue" formatted="false">%1$s zorluk kuyruğu</string>
+    <string name="emote_afk">AFK</string>
+    <string name="emote_angry">Kızgın</string>
+    <string name="emote_bored">Sıkılmış</string>
+    <string name="emote_bruh">BRUH</string>
+    <string name="emote_change_failed">Bu ifade değiştirilemedi.</string>
+    <string name="emote_clap">Yavaş Alkış</string>
+    <string name="emote_clutch">CLUTCH</string>
+    <string name="emote_crown">Taç</string>
+    <string name="emote_dizzy">Sersem</string>
+    <string name="emote_eye_roll">Göz Devirme</string>
+    <string name="emote_ez">EZ</string>
+    <string name="emote_facepalm">Yüzünü Kapatma</string>
+    <string name="emote_fire">Ateş</string>
+    <string name="emote_gg">GG</string>
+    <string name="emote_lag">LAG</string>
+    <string name="emote_laugh">Kahkaha</string>
+    <string name="emote_love">Sevgi</string>
+    <string name="emote_noob">NOOB</string>
+    <string name="emote_one_v_one">1V1</string>
+    <string name="emote_oops">HOPPALA</string>
+    <string name="emote_plotting">Plan Yapıyor</string>
+    <string name="emote_rekt">REKT</string>
+    <string name="emote_respect">Saygı</string>
+    <string name="emote_salty_cry">Ağlama</string>
+    <string name="emote_selection_load_failed">İfade seçimi yüklenemedi.</string>
+    <string name="emote_shocked">Şaşkın</string>
+    <string name="emote_shush">Şşşt</string>
+    <string name="emote_smile">Gülümse</string>
+    <string name="emote_smug">Kendinden emin</string>
+    <string name="emote_victory">Zafer</string>
+    <string name="emotes">İfadeler</string>
+    <string name="empty_quick_emote_slot" formatted="false">Boş hızlı ifade yuvası %1$d</string>
+    <string name="everyone_ready_starting">Herkes hazır. Oyun başlıyor...</string>
+    <string name="find_opponent">Rakip bul</string>
+    <string name="finding_opponent_title">Rakip Bulunuyor</string>
+    <string name="flag_before_player_name">Bayrağın oyuncu adının önünde gösterilebilir.</string>
+    <string name="flag_only_before_name">Adının önünde yalnızca bayrak görünür; ülke kısaltması gösterilmez.</string>
+    <string name="frame_follows_current_rank">Çerçeve mevcut rütbeni otomatik olarak takip eder.</string>
+    <string name="frames">Çerçeveler</string>
+    <string name="get_ready">Hazırlan</string>
+    <string name="global_rp_leaderboard">Global RP sıralaması</string>
+    <string name="global_upper">GLOBAL</string>
+    <string name="keep_one_quick_emote">En az bir hızlı ifade takılı kalmalı.</string>
+    <string name="leaderboard_empty_ranked_body">RP sıralamasına girmek için bir dereceli düello tamamla.</string>
+    <string name="leaderboard_offline_body">Mevcut rütben cihazda görünmeye devam eder. Sunucu yeniden bağlandıktan sonra aşağı çek veya yenile düğmesine dokun.</string>
+    <string name="leaderboard_server_unavailable">Liderlik tablosu sunucusuna ulaşılamıyor.</string>
+    <string name="lifetime_rank_coins" formatted="false">%1$d toplam Rütbe Coini</string>
+    <string name="match_found">Eşleşme bulundu</string>
+    <string name="match_ready_prompt">Hazır olduğunda hazır düğmesine dokun.</string>
+    <string name="matchmaking_cancelling_search">Arama iptal ediliyor...</string>
+    <string name="matchmaking_info">Eşleştirme bilgisi</string>
+    <string name="matchmaking_keep_open">Arama sürerken bu ekranı açık tut.</string>
+    <string name="matchmaking_leaving_queue">Eşleştirme kuyruğundan çıkılıyor...</string>
+    <string name="matchmaking_looking_near_rank">Rütbene yakın bir oyuncu aranıyor</string>
+    <string name="matchmaking_may_take_seconds">Bu işlem birkaç saniye sürebilir.</string>
+    <string name="matchmaking_preparing_duel">Düello hazırlanıyor...</string>
+    <string name="matchmaking_searching_opponent">Rakip aranıyor...</string>
+    <string name="matchmaking_tip">İpucu:</string>
+    <string name="max_three_frame_badges">Çerçevene en fazla 3 rozet takabilirsin.</string>
+    <string name="no_country_flag_until_chosen">Bir ülke seçene kadar ülke bayrağı gösterilmez.</string>
+    <string name="no_country_found">Ülke bulunamadı.</string>
+    <string name="no_ranked_players_yet">Henüz dereceli oyuncu yok.</string>
+    <string name="no_title">Unvan yok</string>
+    <string name="opponent_connecting">Rakip bağlanıyor</string>
+    <string name="opponent_found">Rakip bulundu</string>
+    <string name="opponent_matched_near_level" formatted="false">%1$s, rekabet seviyene yakın bir rakiple eşleşti.</string>
+    <string name="opponent_opening_game">Rakip oyunu açıyor</string>
+    <string name="opponent_ready">Rakip hazır</string>
+    <string name="opponent_ready_waiting_you">Rakibin hazır. Seni bekliyor.</string>
+    <string name="opponent_search">Rakip arama</string>
+    <string name="opponent_search_body">Rekabet seviyene yakın uygun bir oyuncu arıyoruz. Eşleştirme etkin olduğu sürece bu ekranı açık tut.</string>
+    <string name="permanently_unlocked_rp" formatted="false">%1$d RP\'de kalıcı olarak açıldı.</string>
+    <string name="prestige_titles">Prestij unvanları</string>
+    <string name="prestige_titles_info">Master ve Master I unvanları kalıcı hesap ödülleridir. Gerçek mevcut rütben ayrıca gösterilmeye devam eder.</string>
+    <string name="preview">Önizleme</string>
+    <string name="profile_avatar_count" formatted="false">%1$d avatar</string>
+    <string name="profile_badge_policy" formatted="false">Rütbe çerçeveleri ve başarım rozetleri satın alınmaz, kazanılır. Çerçevene en fazla 3 kazanılmış rozet takabilirsin. Şu anda %1$d/3 rozet yuvası kullanılıyor.</string>
+    <string name="profile_customization">Profil özelleştirme</string>
+    <string name="profile_preview_reconnect">Önizleme modu · değişiklikleri kaydetmek için yeniden bağlan.</string>
+    <string name="profile_reconnecting_preview">Çevrimiçi profile yeniden bağlanılıyor. Tüm profil seçeneklerini önizlemeye devam edebilirsin.</string>
+    <string name="profile_save_ready_info">Avatarlar yalnızca uygulamadaki avatar koleksiyonundan seçilir. Rütbe kozmetikleri oynayarak kazanılır.</string>
+    <string name="profile_server_unavailable_preview">Profil sunucusuna ulaşılamıyor. Yeniden bağlanana kadar önizleme yalnızca bu cihazda kalır.</string>
+    <string name="profile_settings_saved">Profil ayarları kaydedildi.</string>
+    <string name="profile_style">Profil stili</string>
+    <string name="profile_style_subtitle">Avatar, rütbe çerçevesi, rozetler ve ülke</string>
+    <string name="quick_duel">Hızlı Düello</string>
+    <string name="quick_duel_body">Seçtiğin zorluk seviyesinde dereceli bir rakip bul.</string>
+    <string name="quick_emote_slot_label" formatted="false">%1$s, hızlı ifade yuvası %2$d</string>
+    <string name="quick_emote_slots_count" formatted="false">%1$d yuva</string>
+    <string name="quick_emotes">Hızlı İfadeler</string>
+    <string name="quick_emotes_limit">En fazla 8 hızlı ifade takabilirsin. Önce birini kaldır.</string>
+    <string name="quick_emotes_profile_subtitle">8 hızlı düello ifadeni seç ve sırala</string>
+    <string name="quick_emotes_reorder_body">Düello sırasında ifadeleri açtığında aynı 4 × 2 düzen kullanılır. Sıralamak için basılı tutup sürükle.</string>
+    <string name="rank_decoration_giant_slayer_body">Senden en az 251 MMR yüksek dereceli bir rakibi yen.</string>
+    <string name="rank_decoration_giant_slayer_title">Dev Avcısı</string>
+    <string name="rank_decoration_perfect_ranked_win_body">Hata veya zaman aşımı yapmadan dereceli bir düello kazan.</string>
+    <string name="rank_decoration_perfect_ranked_win_title">Kusursuz Düello</string>
+    <string name="rank_decoration_perfect_ranked_wins_10_body">Hata veya zaman aşımı yapmadan 10 dereceli düello kazan.</string>
+    <string name="rank_decoration_perfect_ranked_wins_10_title">Kusursuz Onlu</string>
+    <string name="rank_decoration_rank_gold_body">İlk kez Gold III rütbesine ulaş.</string>
+    <string name="rank_decoration_rank_gold_title">Altın Rakip</string>
+    <string name="rank_decoration_rank_master_body">İlk kez Master III rütbesine ulaş.</string>
+    <string name="rank_decoration_rank_master_i_body">İlk kez Master I rütbesine ulaş.</string>
+    <string name="rank_decoration_rank_master_i_title">Master I</string>
+    <string name="rank_decoration_rank_master_title">Master Rakip</string>
+    <string name="rank_decoration_rank_platinum_body">İlk kez Platinum III rütbesine ulaş.</string>
+    <string name="rank_decoration_rank_platinum_title">Platinum Rakip</string>
+    <string name="rank_decoration_rank_silver_body">İlk kez Silver III rütbesine ulaş.</string>
+    <string name="rank_decoration_rank_silver_title">Gümüş Rakip</string>
+    <string name="rank_decoration_ranked_veteran_1000_body">1000 dereceli düello tamamla.</string>
+    <string name="rank_decoration_ranked_veteran_1000_title">Efsanevi Veteran</string>
+    <string name="rank_decoration_ranked_veteran_100_body">100 dereceli düello tamamla.</string>
+    <string name="rank_decoration_ranked_veteran_100_title">Dereceli Veteran</string>
+    <string name="rank_decoration_ranked_veteran_500_body">500 dereceli düello tamamla.</string>
+    <string name="rank_decoration_ranked_veteran_500_title">Elit Veteran</string>
+    <string name="rank_decoration_undefeated_10_body">Arka arkaya 10 dereceli düelloyu yenilmeden tamamla.</string>
+    <string name="rank_decoration_undefeated_10_title">10 Maç Yenilmez</string>
+    <string name="rank_decoration_undefeated_25_body">Arka arkaya 25 dereceli düelloyu yenilmeden tamamla.</string>
+    <string name="rank_decoration_undefeated_25_title">25 Maç Yenilmez</string>
+    <string name="rank_decoration_undefeated_50_body">Arka arkaya 50 dereceli düelloyu yenilmeden tamamla.</string>
+    <string name="rank_decoration_undefeated_50_title">50 Maç Yenilmez</string>
+    <string name="rank_decoration_win_streak_10_body">Arka arkaya 10 dereceli düello kazan.</string>
+    <string name="rank_decoration_win_streak_10_title">10 Galibiyet Serisi</string>
+    <string name="rank_decoration_win_streak_25_body">Arka arkaya 25 dereceli düello kazan.</string>
+    <string name="rank_decoration_win_streak_25_title">25 Galibiyet Serisi</string>
+    <string name="rank_decoration_win_streak_5_body">Arka arkaya 5 dereceli düello kazan.</string>
+    <string name="rank_decoration_win_streak_5_title">5 Galibiyet Serisi</string>
+    <string name="rank_frames_info">Her kademenin kendine ait bir çerçevesi vardır. Rütbe ödülleri yalnızca ilk kez kazanılır; düşüp yeniden yükselerek tekrar toplanamaz.</string>
+    <string name="rank_name_label" formatted="false">%1$s rütbesi</string>
+    <string name="rank_points">Rütbe Puanı</string>
+    <string name="rank_points_division_progress">Rütbe Puanı ve kademe ilerlemesi</string>
+    <string name="rank_progression">Rütbe ilerlemesi</string>
+    <string name="ranked_ladder">Dereceli sıralama</string>
+    <string name="ranked_next_division_body" formatted="false">%2$s için %1$d RP kaldı. Dereceli düellolar görünen RP değerini değiştirir ve rekabetçi kademeni belirler.</string>
+    <string name="ranked_progress_title">Dereceli İlerleme</string>
+    <string name="ranked_top_division_body">En üst kademedesin. En yüksek RP değerini ve sıralamadaki yerini geliştirmek için dereceli düellolara devam et.</string>
+    <string name="rarity_common">YAYGIN</string>
+    <string name="rarity_epic">EPİK</string>
+    <string name="rarity_legendary">EFSANEVİ</string>
+    <string name="rarity_rare">NADİR</string>
+    <string name="reactions">Tepkiler</string>
+    <string name="ready_question">Hazır mısın?</string>
+    <string name="ready_when_opponent_ready">Her iki oyuncu da hazır olduğunda oyun başlar.</string>
+    <string name="refresh_profile">Profili yenile</string>
+    <string name="restore_default_emotes">Varsayılan ifadeleri geri yükle</string>
+    <string name="retry">Tekrar dene</string>
+    <string name="rp_above_master_i" formatted="false">Master I üzerinde %1$d RP</string>
+    <string name="rp_progress_fraction" formatted="false">%1$d/%2$d RP</string>
+    <string name="rp_to_rank" formatted="false">%2$s için %1$d RP</string>
+    <string name="same_difficulty_match">Yalnızca aynı zorluk seviyesini seçen oyuncularla eşleşirsin.</string>
+    <string name="saving">Kaydediliyor</string>
+    <string name="search_country">Ülke ara</string>
+    <string name="searching_for_opponent_multiline">Rakip
+aranıyor</string>
+    <string name="searching_opponent">Rakip aranıyor…</string>
+    <string name="searching_opponent_short">Aranıyor</string>
+    <string name="searching_similar_opponents">Seviyene yakın rakipler aranıyor...</string>
+    <string name="show_flag_ranked_ladder">Dereceli sıralamada bayrağı göster</string>
+    <string name="status">Durum</string>
+    <string name="sudoku_player">Sudoku Oyuncusu</string>
+    <string name="taunts">Kışkırtmalar</string>
+    <string name="three_achievement_slots">3 başarım rozeti yuvası</string>
+    <string name="titles">Unvanlar</string>
+    <string name="top_rank">En üst rütbe</string>
+    <string name="unlock_reaching_rp" formatted="false">%1$d RP\'ye ulaşınca açılır.</string>
+    <string name="visible_rp_rank_info">Görünen RP, gösterilen rütbeni belirler. Eşleştirme beceri puanı gizli kalır.</string>
+    <string name="waiting_for_ranked_opponent">Dereceli eşleştirme kuyruğundasın. Uygulama birkaç saniyede bir eşleşme kontrolü yapar.</string>
+    <string name="waiting_opponent_ready">Rakibin bekleniyor...</string>
+    <string name="you_ready_waiting_opponent">Hazırsın. Rakibin bekleniyor.</string>
+    <string name="your_loadout">DİZİLİMİN</string>
+</resources>
