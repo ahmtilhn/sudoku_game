@@ -1,0 +1,83 @@
+name: Materialize localization output
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/materialize-localization-output.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: |
+          flutter pub get
+          cd backend/social_worker && npm ci
+
+      - name: Apply every localization migration
+        run: |
+          python3 tool/localize_all_user_copy.py
+          python3 tool/localize_remaining_presentation_copy.py
+          python3 tool/localize_final_presentation_copy.py
+          python3 tool/localize_user_safe_errors.py
+          python3 tool/localize_non_widget_user_copy.py
+          python3 tool/localize_exhaustive_user_copy.py
+          python3 tool/fix_percent_localization_literals.py
+          python3 tool/fix_localization_dart_escapes.py
+          python3 tool/sync_missing_ios_localization_keys.py
+          python3 tool/fix_localization_analyzer_warnings.py
+          python3 tool/fix_social_hub_localization_lint.py
+
+      - name: Format migrated Dart
+        run: dart format lib
+
+      - name: Capture exhaustive audit report
+        shell: bash
+        run: |
+          set +e
+          python3 tool/verify_exhaustive_user_copy.py > /tmp/exhaustive.txt 2>&1
+          code=$?
+          set -e
+          mkdir -p docs
+          cp /tmp/exhaustive.txt docs/exhaustive_localization_report.txt
+          echo "exit_code=$code" >> docs/exhaustive_localization_report.txt
+          cat docs/exhaustive_localization_report.txt
+
+      - name: Run mandatory safety and build checks
+        run: |
+          python3 tool/validate_localizations.py
+          python3 tool/verify_localized_user_copy.py
+          python3 tool/verify_user_facing_messages.py
+          python3 tool/verify_non_widget_user_copy.py
+          (cd backend/social_worker && npm run typecheck)
+          flutter analyze
+
+      - name: Commit generated localization to materialized branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib android/app/src/main/res/values/strings.xml assets/localization/Localizable.xcstrings ios/Runner.xcodeproj/project.pbxproj backend/social_worker/src docs/exhaustive_localization_report.txt
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m 'Materialize centralized user-facing copy'
+          fi
+          git push --force origin HEAD:refs/heads/localization-materialized
