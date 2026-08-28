@@ -111,7 +111,7 @@ android {
 }
 
 dependencies {
-    implementation("com.google.android.gms:play-services-games-v2:21.0.0")
+    implementation("com.google.android.gms:play-services-games-v2:22.0.0")
 
     // Pin AndroidX startup/background components to current stable releases.
     // Older transitive WorkManager/Room combinations crashed during eager startup
