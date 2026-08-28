@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: repair-ios-localization-main
+  group: repair-turkish-ios-localization-main
   cancel-in-progress: true
 
 jobs:
