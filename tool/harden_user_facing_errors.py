@@ -51,6 +51,22 @@ def harden_feature_error_state() -> list[str]:
             "errorText = error.toString()",
             "errorText = UserSafeError.message(context, error)",
         ),
+        (
+            "_snack(error.message)",
+            "_snack(UserSafeError.message(context, error))",
+        ),
+        (
+            "_snack(error.toString())",
+            "_snack(UserSafeError.message(context, error))",
+        ),
+        (
+            "Text(error.message)",
+            "Text(UserSafeError.message(context, error))",
+        ),
+        (
+            "Text(error.toString())",
+            "Text(UserSafeError.message(context, error))",
+        ),
     )
 
     for path in sorted(FEATURES.rglob("*.dart")):
@@ -197,6 +213,13 @@ ADDITIONAL_RAW_RENDER_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         "raw ternary error message",
         re.compile(r":\s*(?:_?error|snapshot\.error)\s*\.\s*message\s*[;,]"),
     ),
+    (
+        "raw snackbar/helper error message",
+        re.compile(
+            r"\b(?:_snack|Text)\s*\(\s*(?:_?error|snapshot\.error)\s*\.\s*"
+            r"(?:message|toString\s*\(\s*\))"
+        ),
+    ),
 )
 
 PUSH_SERVICE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -269,6 +292,8 @@ def verify_postconditions() -> None:
             r"\b(?:_error|errorText|_statusMessage)\s*=\s*error\.toString\(\)",
             r"\bfallback\s*:\s*error\.message\b",
             r"\breturn\s+error\.message\s*;",
+            r"\b_snack\s*\(\s*error\.(?:message|toString\(\))",
+            r"\bText\s*\(\s*error\.(?:message|toString\(\))",
         ):
             if re.search(pattern, text):
                 violations.append(str(path.relative_to(ROOT)))
