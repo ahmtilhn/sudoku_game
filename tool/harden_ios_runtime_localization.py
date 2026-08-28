@@ -101,10 +101,10 @@ def patch_app_strings() -> None:
   static Future<void> _loadStringCatalog('''
 
     pattern = re.compile(
-        r"  static Future<AppStrings> load\(\) async \{.*?\n  static Future<void> _loadStringCatalog\(",
+        r"\s*static Future<AppStrings> load\(\) async \{.*?\n\s*static Future<void> _loadStringCatalog\(",
         re.S,
     )
-    updated, count = pattern.subn(replacement, source, count=1)
+    updated, count = pattern.subn("\n" + replacement, source, count=1)
     if count != 1:
         raise SystemExit("Could not patch AppStrings.load exactly once")
     APP_STRINGS.write_text(updated, encoding="utf-8")
@@ -134,10 +134,10 @@ def patch_app_delegate() -> None:
   private func configureGameServicesChannel'''
 
     pattern = re.compile(
-        r"  private func configureLocalizationChannel\(messenger: FlutterBinaryMessenger\) \{.*?\n  private func configureGameServicesChannel",
+        r"\s*private func configureLocalizationChannel\(messenger: FlutterBinaryMessenger\) \{.*?\n\s*private func configureGameServicesChannel",
         re.S,
     )
-    updated, count = pattern.subn(replacement, source, count=1)
+    updated, count = pattern.subn("\n" + replacement, source, count=1)
     if count != 1:
         raise SystemExit("Could not patch iOS localization bridge exactly once")
     APP_DELEGATE.write_text(updated, encoding="utf-8")
