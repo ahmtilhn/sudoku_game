@@ -41,14 +41,23 @@ describe('competitive economy hardening', () => {
     expect(activeQuery).not.toContain('AND variant = ?');
   });
 
-  it('keeps pairing alive when the rolling ranked pair allowance is exhausted', () => {
+  it('skips ranked queue candidates whose rolling pair allowance is exhausted', () => {
     expect(matchmaking).toContain('MAX_RATED_PAIR_MATCHES_24H');
     expect(matchmaking).toContain('rankedPairCutoff');
-    expect(matchmaking).toContain('recentRatedPairMatchCount');
+    expect(matchmaking).toContain("recent.mode = 'ranked'");
+    expect(matchmaking).toContain('recent.started_at IS NOT NULL');
     expect(matchmaking).toContain(
+      "recent.status IN ('completed', 'forfeited', 'abandoned')",
+    );
+    expect(matchmaking).toContain(
+      'julianday(COALESCE(recent.finished_at, recent.updated_at, recent.created_at))',
+    );
+    expect(matchmaking).toContain(') < ?');
+    expect(matchmaking).toContain("mode: 'ranked'");
+    expect(matchmaking).not.toContain('recentRatedPairMatchCount');
+    expect(matchmaking).not.toContain(
       "recentPairMatches >= MAX_RATED_PAIR_MATCHES_24H ? 'friendly' : 'ranked'",
     );
-    expect(matchmaking).toContain("recent.mode = 'ranked'");
   });
 
   it('enforces one active room and the pair cap at the database boundary', () => {

@@ -363,6 +363,19 @@ async function coordinateRankedMatch(
              AND b.player_high_id = CASE WHEN q.player_id < ? THEN ? ELSE q.player_id END
              AND b.status = 'blocked'
          )
+         AND (
+           SELECT COUNT(*)
+           FROM matches recent
+           WHERE recent.mode = 'ranked'
+             AND recent.started_at IS NOT NULL
+             AND recent.status IN ('completed', 'forfeited', 'abandoned')
+             AND julianday(COALESCE(recent.finished_at, recent.updated_at, recent.created_at))
+                   >= julianday(?)
+             AND (
+               (recent.player_a_id = q.player_id AND recent.player_b_id = ?)
+               OR (recent.player_a_id = ? AND recent.player_b_id = q.player_id)
+             )
+         ) < ?
         ORDER BY
           CASE WHEN q.difficulty = ? THEN 0 ELSE 1 END,
           ABS(q.rating - ?),
@@ -385,6 +398,10 @@ async function coordinateRankedMatch(
         input.playerId,
         input.playerId,
         input.playerId,
+        rankedPairCutoff,
+        input.playerId,
+        input.playerId,
+        MAX_RATED_PAIR_MATCHES_24H,
         input.difficulty,
         input.rating,
       )
@@ -445,14 +462,6 @@ async function coordinateRankedMatch(
 
   const roomId = roomIdForVariant(input.variant);
   const matchId = crypto.randomUUID();
-  const recentPairMatches = await recentRatedPairMatchCount(
-    env,
-    opponent.player_id,
-    input.playerId,
-    rankedPairCutoff,
-  );
-  const matchMode =
-    recentPairMatches >= MAX_RATED_PAIR_MATCHES_24H ? 'friendly' : 'ranked';
   try {
     await createVariantFundedMatch(
       env,
@@ -460,7 +469,7 @@ async function coordinateRankedMatch(
         matchId,
         roomId,
         challengeId: null,
-        mode: matchMode,
+        mode: 'ranked',
         difficulty: matchDifficulty,
         variant: input.variant,
         playerAId: opponent.player_id,
@@ -483,29 +492,6 @@ async function coordinateRankedMatch(
     roomId,
     onlineCoins: await coinBalance(env, input.playerId),
   };
-}
-
-async function recentRatedPairMatchCount(
-  env: VariantMatchmakingEnv,
-  playerAId: string,
-  playerBId: string,
-  cutoff: string,
-): Promise<number> {
-  const pair = await env.DB.prepare(
-    `SELECT COUNT(*) AS value
-     FROM matches recent
-     WHERE recent.mode = 'ranked'
-       AND recent.rated = 1
-       AND recent.finished_at IS NOT NULL
-       AND recent.finished_at >= ?
-       AND (
-         (recent.player_a_id = ? AND recent.player_b_id = ?)
-         OR (recent.player_a_id = ? AND recent.player_b_id = ?)
-       )`,
-  )
-    .bind(cutoff, playerAId, playerBId, playerBId, playerAId)
-    .first<{ value: number }>();
-  return Number(pair?.value ?? 0);
 }
 
 function easierDifficulty(left: string, right: string): string {
