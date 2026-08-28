@@ -142,7 +142,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          context.tr('same_difficulty_match'),
+                          context.tr('same_variant_match'),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
