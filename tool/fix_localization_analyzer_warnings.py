@@ -23,16 +23,21 @@ def replace(path: str, old: str, new: str) -> None:
 def fix_country_compatibility() -> None:
     path = ROOT / 'lib/models/country_catalog.dart'
     source = path.read_text(encoding='utf-8')
-    if "../localization/app_strings.dart" not in source:
-        source = "import '../localization/app_strings.dart';\n\n" + source
     marker = '  final String code;\n\n  String get flag => countryFlagEmoji(code);'
     replacement = (
         '  final String code;\n\n'
         "  String get name => AppStrings.english['country_name_${code.toLowerCase()}'] ?? code;\n\n"
         '  String get flag => countryFlagEmoji(code);'
     )
+    # Only add AppStrings when this compatibility getter is actually needed.
+    # Current catalog variants may already have a concrete `name` field; adding
+    # the import in that case creates an unused-import analyzer warning.
     if marker in source:
+        if "../localization/app_strings.dart" not in source:
+            source = "import '../localization/app_strings.dart';\n\n" + source
         source = source.replace(marker, replacement, 1)
+    elif 'AppStrings.' not in source:
+        source = source.replace("import '../localization/app_strings.dart';\n\n", '')
     path.write_text(source, encoding='utf-8')
 
 
