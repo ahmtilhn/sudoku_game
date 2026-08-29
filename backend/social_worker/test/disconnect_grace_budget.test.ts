@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { nextAlarmAt } from '../src/cost_retention';
 import {
   DISCONNECT_GRACE_MS,
   MAX_GRACE_BUDGET_MS,
@@ -118,19 +119,37 @@ describe('cumulative disconnect grace budget', () => {
     expect(duel.playerA.lastSeenAt).toBe(firstDisconnectedAt);
   });
 
-  it('forfeits almost immediately when the cumulative budget is exhausted', () => {
+  it('makes an exhausted cumulative budget immediately due for forfeit', () => {
     const duel = state();
     startDuel(duel);
     duel.playerA.graceRemainingMs = 0;
 
     markDisconnected(duel, 'A', 5_000);
 
-    expect(duel.playerA.disconnectDeadline).toBe(5_001);
-    applyDueDeadlines(duel, 5_001);
+    expect(duel.playerA.disconnectDeadline).toBe(5_000);
+    applyDueDeadlines(duel, 5_000);
 
     expect(duel.status).toBe('forfeited');
     expect(duel.winnerSeat).toBe('B');
     expect(duel.finishReason).toBe('disconnect_forfeit');
+  });
+
+  it('schedules an already-due disconnect deadline instead of dropping it', () => {
+    expect(
+      nextAlarmAt(
+        {
+          status: 'paused',
+          lobbyDeadline: null,
+          readyDeadline: null,
+          turnDeadline: null,
+          playerADisconnectDeadline: 5_000,
+          playerBDisconnectDeadline: null,
+          finishedAt: null,
+          settled: false,
+        },
+        5_010,
+      ),
+    ).toBe(5_011);
   });
 
   it('restores the full budget for legacy stored state that lacks the field', () => {
