@@ -785,126 +785,164 @@ class _DailyRewardDialogState extends State<_DailyRewardDialog> {
     final canDouble =
         state?.canDoubleLastCoinReward == true && !widget.economy.noAds;
 
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.width < 380 || size.height < 680;
+    final horizontalInset = size.width < 360 ? 8.0 : 16.0;
+    final verticalInset = size.height < 620 ? 8.0 : 24.0;
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: horizontalInset,
+        vertical: verticalInset,
+      ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 540),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: const Color(0xFF081522),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: const Color(0xFFFFC73D).withValues(alpha: .34),
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black54,
-                blurRadius: 32,
-                offset: Offset(0, 18),
+        constraints: BoxConstraints(
+          maxWidth: 540,
+          maxHeight: size.height - (verticalInset * 2),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(compact ? 20 : 28),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF081522),
+              borderRadius: BorderRadius.circular(compact ? 20 : 28),
+              border: Border.all(
+                color: const Color(0xFFFFC73D).withValues(alpha: .34),
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    const DuelAssetIcon(DuelAsset.dailyRewardPro, size: 54),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            context.tr('home_daily_reward_title'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          Text(
-                            state?.nextDailyResetAt == null
-                                ? context.tr('daily_reward_track_body')
-                                : '${context.tr('time')}: ${DateFormat.Hm().format(state!.nextDailyResetAt!.toLocal())}',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: .66),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: context.tr('close'),
-                      onPressed: _busy
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
-                ),
-                if (calendar.isNotEmpty) ...[
-                  const SizedBox(height: 14),
-                  _RewardCalendar(
-                    calendar: calendar,
-                    cycleDay: cycleDay,
-                    completedInCycle: completed,
-                  ),
-                ],
-                if (_message != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _message!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF29D398),
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: state?.dailyAvailable == true && !_busy
-                          ? _claim
-                          : null,
-                      icon: _busy
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.card_giftcard_rounded),
-                      label: Text(
-                        state?.nextReward.isHintRefill == true
-                            ? context.tr('claim_hint_refill')
-                            : context.tr('claim_daily_coin', <Object>[
-                                state?.nextReward.amount ?? 0,
-                              ]),
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: canDouble && !_busy ? _double : null,
-                      icon: const Icon(Icons.ondemand_video_rounded),
-                      label: Text(
-                        context.tr('watch_ad_reward_value', <Object>[
-                          state?.dailyLastClaimAmount ?? 0,
-                        ]),
-                      ),
-                    ),
-                  ],
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black54,
+                  blurRadius: 32,
+                  offset: Offset(0, 18),
                 ),
               ],
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(compact ? 12 : 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      DuelAssetIcon(
+                        DuelAsset.dailyRewardPro,
+                        size: compact ? 42 : 54,
+                      ),
+                      SizedBox(width: compact ? 9 : 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr('home_daily_reward_title'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: compact ? 19 : 22,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            Text(
+                              state?.nextDailyResetAt == null
+                                  ? context.tr('daily_reward_track_body')
+                                  : '${context.tr('time')}: ${DateFormat.Hm().format(state!.nextDailyResetAt!.toLocal())}',
+                              maxLines: compact ? 3 : 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: .66),
+                                fontSize: compact ? 12 : null,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: context.tr('close'),
+                        onPressed: _busy
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
+                  if (calendar.isNotEmpty) ...[
+                    SizedBox(height: compact ? 10 : 14),
+                    _RewardCalendar(
+                      calendar: calendar,
+                      cycleDay: cycleDay,
+                      completedInCycle: completed,
+                    ),
+                  ],
+                  if (_message != null) ...[
+                    SizedBox(height: compact ? 10 : 12),
+                    Text(
+                      _message!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF29D398),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                  SizedBox(height: compact ? 12 : 14),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final stacked = constraints.maxWidth < 360;
+                      final claimButton = FilledButton.icon(
+                        onPressed: state?.dailyAvailable == true && !_busy
+                            ? _claim
+                            : null,
+                        icon: _busy
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.card_giftcard_rounded),
+                        label: Text(
+                          state?.nextReward.isHintRefill == true
+                              ? context.tr('claim_hint_refill')
+                              : context.tr('claim_daily_coin', <Object>[
+                                  state?.nextReward.amount ?? 0,
+                                ]),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                      final doubleButton = OutlinedButton.icon(
+                        onPressed: canDouble && !_busy ? _double : null,
+                        icon: const Icon(Icons.ondemand_video_rounded),
+                        label: Text(
+                          context.tr('watch_ad_reward_value', <Object>[
+                            state?.dailyLastClaimAmount ?? 0,
+                          ]),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                      if (stacked) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            claimButton,
+                            const SizedBox(height: 8),
+                            doubleButton,
+                          ],
+                        );
+                      }
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: [claimButton, doubleButton],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -928,11 +966,19 @@ class _RewardCalendar extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 420 ? 6 : 5;
-        final width = (constraints.maxWidth - ((columns - 1) * 7)) / columns;
+        final columns = constraints.maxWidth >= 460
+            ? 6
+            : constraints.maxWidth >= 360
+            ? 5
+            : constraints.maxWidth >= 280
+            ? 4
+            : 3;
+        final spacing = constraints.maxWidth < 340 ? 5.0 : 7.0;
+        final width =
+            (constraints.maxWidth - ((columns - 1) * spacing)) / columns;
         return Wrap(
-          spacing: 7,
-          runSpacing: 7,
+          spacing: spacing,
+          runSpacing: spacing,
           children: [
             for (var index = 0; index < calendar.length; index++)
               SizedBox(
@@ -966,6 +1012,7 @@ class _RewardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 340;
     final accent = current
         ? const Color(0xFFFFC73D)
         : claimed
@@ -978,7 +1025,10 @@ class _RewardTile extends StatelessWidget {
         border: Border.all(color: accent.withValues(alpha: .38)),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 4 : 5,
+          vertical: compact ? 6 : 8,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -988,11 +1038,11 @@ class _RewardTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: accent,
-                fontSize: 10,
+                fontSize: compact ? 9 : 10,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 5),
+            SizedBox(height: compact ? 4 : 5),
             Icon(
               claimed
                   ? Icons.check_circle_rounded
@@ -1000,9 +1050,9 @@ class _RewardTile extends StatelessWidget {
                   ? Icons.refresh_rounded
                   : Icons.monetization_on_rounded,
               color: accent,
-              size: 17,
+              size: compact ? 15 : 17,
             ),
-            const SizedBox(height: 3),
+            SizedBox(height: compact ? 2 : 3),
             Text(
               reward.isCoin
                   ? '${reward.amount}'

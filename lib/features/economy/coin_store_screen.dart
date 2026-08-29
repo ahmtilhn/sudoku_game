@@ -314,43 +314,54 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _StorePanel(
-      accent: const Color(0xFFFFC94D),
-      padding: const EdgeInsets.all(18),
-      child: Row(
-        children: [
-          const DuelAssetIcon(DuelAsset.coinStoreBalancePro, size: 58),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr('your_balance'),
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .68),
-                    fontWeight: FontWeight.w800,
-                  ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 360;
+        return _StorePanel(
+          accent: const Color(0xFFFFC94D),
+          padding: EdgeInsets.all(compact ? 14 : 18),
+          child: Row(
+            children: [
+              DuelAssetIcon(
+                DuelAsset.coinStoreBalancePro,
+                size: compact ? 46 : 58,
+              ),
+              SizedBox(width: compact ? 10 : 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('your_balance'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .68),
+                        fontSize: compact ? 12 : null,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      loading
+                          ? '...'
+                          : context.tr('coin_amount', <Object>[
+                              NumberFormat.decimalPattern().format(balance),
+                            ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: compact ? 21 : 25,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  loading
-                      ? '...'
-                      : context.tr('coin_amount', <Object>[
-                          NumberFormat.decimalPattern().format(balance),
-                        ]),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 25,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -374,81 +385,120 @@ class _NoAdsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _StorePanel(
-      accent: const Color(0xFF3AA9FF),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: const DuelAssetIcon(
-              DuelAsset.storeNoAds,
-              size: 86,
-              fit: BoxFit.cover,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 380;
+        final compact = constraints.maxWidth < 340;
+        final art = ClipRRect(
+          borderRadius: BorderRadius.circular(compact ? 14 : 18),
+          child: DuelAssetIcon(
+            DuelAsset.storeNoAds,
+            size: stacked ? (compact ? 72 : 92) : 86,
+            fit: BoxFit.cover,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr('no_ads_title'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  owned
-                      ? context.tr('no_ads_owned')
-                      : context.tr('no_ads_body'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .68),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (owned)
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: Color(0xFF29D398),
-                  )
-                else
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      FilledButton.tonal(
-                        onPressed: enabled && !pending ? onBuy : null,
-                        child: pending
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                product?.price ??
-                                    context.tr('not_available_short'),
-                              ),
-                      ),
-                      TextButton(
-                        onPressed: enabled ? onRestore : null,
-                        child: Text(context.tr('restore_purchases')),
-                      ),
-                    ],
-                  ),
-              ],
+        );
+        final body = Column(
+          crossAxisAlignment: stacked
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr('no_ads_title'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: stacked ? TextAlign.center : TextAlign.start,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: compact ? 17 : 18,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-          ),
-        ],
-      ),
+            Text(
+              owned ? context.tr('no_ads_owned') : context.tr('no_ads_body'),
+              maxLines: stacked ? 3 : 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: stacked ? TextAlign.center : TextAlign.start,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .68),
+                fontSize: compact ? 12 : null,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (owned)
+              const Icon(Icons.check_circle_rounded, color: Color(0xFF29D398))
+            else if (compact)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FilledButton.tonal(
+                    onPressed: enabled && !pending ? onBuy : null,
+                    child: pending
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            product?.price ?? context.tr('not_available_short'),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                  ),
+                  TextButton(
+                    onPressed: enabled ? onRestore : null,
+                    child: Text(
+                      context.tr('restore_purchases'),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                alignment: stacked ? WrapAlignment.center : WrapAlignment.start,
+                children: [
+                  FilledButton.tonal(
+                    onPressed: enabled && !pending ? onBuy : null,
+                    child: pending
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            product?.price ?? context.tr('not_available_short'),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                  ),
+                  TextButton(
+                    onPressed: enabled ? onRestore : null,
+                    child: Text(context.tr('restore_purchases')),
+                  ),
+                ],
+              ),
+          ],
+        );
+        return _StorePanel(
+          accent: const Color(0xFF3AA9FF),
+          padding: EdgeInsets.all(compact ? 10 : 12),
+          child: stacked
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(child: art),
+                    const SizedBox(height: 10),
+                    body,
+                  ],
+                )
+              : Row(
+                  children: [
+                    art,
+                    const SizedBox(width: 12),
+                    Expanded(child: body),
+                  ],
+                ),
+        );
+      },
     );
   }
 }
@@ -490,92 +540,97 @@ class _CoinPackageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final popular = product.id == 'coins_5000';
     final accent = popular ? const Color(0xFFFFC94D) : const Color(0xFF29D398);
-    return _StorePanel(
-      accent: accent,
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.asset(
-                    _coinArtForAmount(coins),
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    filterQuality: FilterQuality.medium,
-                    gaplessPlayback: true,
-                  ),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: .42),
-                        ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 180;
+        return _StorePanel(
+          accent: accent,
+          padding: EdgeInsets.all(compact ? 8 : 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(compact ? 14 : 18),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        _coinArtForAmount(coins),
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        filterQuality: FilterQuality.medium,
+                        gaplessPlayback: true,
                       ),
-                    ),
-                  ),
-                  if (popular)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: _StoreChip(
-                        label: context.tr('popular'),
-                        asset: DuelAsset.diamond,
-                        color: accent,
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: .42),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                ],
+                      if (popular)
+                        Positioned(
+                          top: compact ? 6 : 8,
+                          right: compact ? 6 : 8,
+                          child: _StoreChip(
+                            label: context.tr('popular'),
+                            asset: DuelAsset.diamond,
+                            color: accent,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              SizedBox(height: compact ? 7 : 10),
+              Text(
+                _coinPackLabel(context, coins),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: compact ? 14 : 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                context.tr('coin_pack_body'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .62),
+                  fontSize: compact ? 10 : 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: compact ? 7 : 9),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: enabled && !pending ? onBuy : null,
+                  child: pending
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          product.price,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            _coinPackLabel(context, coins),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            context.tr('coin_pack_body'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .62),
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 9),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: enabled && !pending ? onBuy : null,
-              child: pending
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      product.price,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
