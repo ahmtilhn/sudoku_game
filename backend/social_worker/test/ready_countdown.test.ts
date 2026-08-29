@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   READY_DEADLINE_MS,
+  TURN_DURATION_MS,
   applyDueDeadlines,
   applyReady,
   applyScreenLoaded,
@@ -63,7 +64,7 @@ describe('ready countdown', () => {
     );
   });
 
-  it('keeps the duel in the ready window for the full 10 seconds', () => {
+  it('finishes Ready countdown before arming the first playable turn', () => {
     const duel = state();
     markConnected(duel, 'A', 1_001);
     markConnected(duel, 'B', 1_002);
@@ -86,10 +87,28 @@ describe('ready countdown', () => {
     expect(duel.startedAt).toBeNull();
 
     const deadline = duel.readyDeadline!;
-    applyDueDeadlines(duel, deadline);
+    const handoffEvents = applyDueDeadlines(duel, deadline);
 
     expect(duel.status).toBe('active');
-    expect(duel.startedAt).toBe(deadline);
+    expect(duel.startedAt).toBeNull();
+    expect(duel.turnStartedAt).toBeNull();
+    expect(duel.turnDeadline).toBeNull();
     expect(duel.readyDeadline).toBeNull();
+    expect(duel.playerA.screenLoaded).toBe(false);
+    expect(duel.playerB.screenLoaded).toBe(false);
+    expect(handoffEvents.map((event) => event.type)).toEqual(['snapshot']);
+
+    applyScreenLoaded(duel, 'A', deadline + 20);
+    expect(duel.startedAt).toBeNull();
+    expect(duel.turnDeadline).toBeNull();
+
+    const startAt = deadline + 40;
+    const startEvents = applyScreenLoaded(duel, 'B', startAt);
+
+    expect(duel.startedAt).toBe(startAt);
+    expect(duel.turnStartedAt).toBe(startAt);
+    expect(duel.turnDeadline).toBe(startAt + TURN_DURATION_MS);
+    expect(startEvents.filter((event) => event.type === 'match_started')).toHaveLength(1);
+    expect(startEvents.filter((event) => event.type === 'game_started')).toHaveLength(1);
   });
 });
