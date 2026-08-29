@@ -28,11 +28,11 @@ export async function claimPlayReward(
     variant: 'classic9' | 'classic16';
   },
 ): Promise<Record<string, unknown>> {
-  const expectedPrefix =
+  const validPrefixes =
     input.variant === 'classic16'
-      ? `classic16-${input.difficulty}-`
-      : `generated-${input.difficulty}-`;
-  if (!input.puzzleId.startsWith(expectedPrefix)) {
+      ? [`classic16-${input.difficulty}-`]
+      : [`generated-${input.difficulty}-`, `career-random-${input.difficulty}-`];
+  if (!validPrefixes.some((prefix) => input.puzzleId.startsWith(prefix))) {
     throw new EconomyV3Error(
       400,
       'The Quick Play puzzle does not match the selected mode.',

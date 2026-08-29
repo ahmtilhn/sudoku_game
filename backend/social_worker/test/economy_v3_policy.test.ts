@@ -72,6 +72,16 @@ describe('Economy V3 policy', () => {
     expect(careerDifficulty(17, 'classic16')).toBe('expert');
   });
 
+  it('accepts generated and Career Hub practice puzzles for play rewards', async () => {
+    const source = await import('node:fs/promises').then((fs) =>
+      fs.readFile('src/economy_v3_play.ts', 'utf8'),
+    );
+
+    expect(source).toContain('generated-${input.difficulty}-');
+    expect(source).toContain('career-random-${input.difficulty}-');
+    expect(source).toContain('classic16-${input.difficulty}-');
+  });
+
   it('locks Recovery caps and stake-scaled rewards', () => {
     expect(RECOVERY_DAILY_COIN_CAP).toBe(150);
     expect(RECOVERY_DAILY_POPUP_CAP).toBe(3);

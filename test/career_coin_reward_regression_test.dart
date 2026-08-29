@@ -97,6 +97,9 @@ void main() {
     ).readAsStringSync();
 
     expect(game, contains('balanceBeforeCompletion'));
+    expect(game, contains("widget.puzzle.id.startsWith('generated-')"));
+    expect(game, contains("widget.puzzle.id.startsWith('career-random-')"));
+    expect(game, contains("widget.puzzle.id.startsWith('classic16-')"));
     expect(game, contains('completionCoinReward'));
     expect(game, contains('initialEarnedCoins'));
     expect(

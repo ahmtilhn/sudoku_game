@@ -95,6 +95,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
   bool get _earnsRepeatCompletionCoins =>
       widget.puzzle.id.startsWith('generated-') ||
+      widget.puzzle.id.startsWith('career-random-') ||
       widget.puzzle.id.startsWith('classic16-');
 
   SudokuVariant get _variant => widget.puzzle.size == 16
@@ -708,7 +709,9 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   @override
   Widget build(BuildContext context) {
     final enabled = _ready && !_completed && !_paused && !_roundLost;
-    final difficulty = context.strings.difficultyLabel(widget.puzzle.difficulty);
+    final difficulty = context.strings.difficultyLabel(
+      widget.puzzle.difficulty,
+    );
     final mistakes = widget.mistakeLimit == null
         ? '$_mistakes'
         : '$_mistakes/${widget.mistakeLimit!}';
@@ -985,7 +988,9 @@ class _SoloBoardFrame extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3AA9FF).withValues(alpha: enabled ? .09 : .03),
+            color: const Color(
+              0xFF3AA9FF,
+            ).withValues(alpha: enabled ? .09 : .03),
             blurRadius: 18,
           ),
           BoxShadow(

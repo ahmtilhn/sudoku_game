@@ -914,7 +914,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
                     localValue: coinLabel(localNetCoin),
                     opponentValue: coinLabel(opponentNetCoin),
                     icon: Icons.monetization_on_outlined,
-                    asset: 'assets/images/ui/coin.png',
+                    asset: DuelAsset.coin,
                   ),
                 ],
                 rankResult: _rankResult,
