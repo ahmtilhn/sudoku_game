@@ -1,0 +1,48 @@
+name: Offline responsive diagnostics
+
+on:
+  push:
+    branches: [responsive-nonscroll-ui]
+    paths:
+      - '.github/workflows/offline-responsive-diagnostics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  overflow-context:
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [main, responsive-nonscroll-ui]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Resolve packages
+        run: flutter pub get
+      - name: Analyze
+        if: matrix.ref == 'responsive-nonscroll-ui'
+        run: flutter analyze --no-fatal-infos
+      - name: Capture full test overflow context
+        shell: bash
+        run: |
+          set +e
+          timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1 > /tmp/tests.log 2>&1
+          status=$?
+          set -e
+          echo "ref=${{ matrix.ref }} test_exit=$status"
+          echo '--- render overflow contexts ---'
+          grep -n -B45 -A90 -E 'RenderFlex overflowed|A RenderFlex overflowed' /tmp/tests.log || true
+          echo '--- failing test names ---'
+          grep -E '^  /home/runner/.+\.dart:' /tmp/tests.log | tail -80 || true
+          echo '--- summary ---'
+          grep -E 'Some tests failed|All tests passed|\+[0-9]+ -[0-9]+' /tmp/tests.log | tail -5 || true
+          exit 0
