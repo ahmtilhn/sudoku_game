@@ -48,7 +48,10 @@ function startDuel(duel: ReturnType<typeof state>, now = -10_000) {
   applyScreenLoaded(duel, 'B', now + 4);
   applyReady(duel, 'A', now + 5);
   applyReady(duel, 'B', now + 6);
-  applyDueDeadlines(duel, duel.readyDeadline!);
+  const readyDeadline = duel.readyDeadline!;
+  applyDueDeadlines(duel, readyDeadline);
+  applyScreenLoaded(duel, 'A', readyDeadline + 1);
+  applyScreenLoaded(duel, 'B', readyDeadline + 2);
 }
 
 describe('cumulative disconnect grace budget', () => {
