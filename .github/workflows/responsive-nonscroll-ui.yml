@@ -65,8 +65,20 @@ jobs:
       - name: Test
         shell: bash
         run: |
-          set -euo pipefail
-          timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
+          set +e
+          timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1 > /tmp/flutter-tests.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo '--- concise failure markers ---'
+            grep -n -E 'FAILED|TestFailure|Expected:|Actual:|Some tests failed|EXCEPTION|Error:|TimeoutException|timed out' /tmp/flutter-tests.log | tail -120 || true
+            echo '--- last 180 test log lines ---'
+            tail -180 /tmp/flutter-tests.log
+          else
+            echo '--- test tail ---'
+            tail -40 /tmp/flutter-tests.log
+          fi
+          exit "$status"
 
       - name: Commit validated layout changes
         shell: bash
