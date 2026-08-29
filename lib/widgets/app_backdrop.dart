@@ -55,11 +55,10 @@ class AppBackdrop extends StatelessWidget {
   }
 }
 
-/// Keeps the duel countdown reactive without forcing the whole backdrop to
-/// repaint. `OnlineDuelController.activeSnapshot` is intentionally a cheap
-/// synchronous getter, so this lightweight watcher bridges it into the widget
-/// tree. Once the ready window appears, the countdown overlay owns its own
-/// 100 ms ticker for smooth 3-2-1 transitions.
+/// Keeps the pre-match countdown visible even if the ready-window event is
+/// delayed or missed. The server deadline always wins when it is available;
+/// until then, the first two-player pre-match snapshot supplies a deterministic
+/// ten-second fallback anchored to the snapshot's server clock.
 class _DuelCountdownLayer extends StatefulWidget {
   const _DuelCountdownLayer();
 
@@ -70,13 +69,15 @@ class _DuelCountdownLayer extends StatefulWidget {
 class _DuelCountdownLayerState extends State<_DuelCountdownLayer> {
   Timer? _snapshotWatcher;
   OnlineDuelSnapshot? _snapshot;
+  DateTime? _fallbackReadyDeadline;
+  String? _fallbackMatchId;
 
   @override
   void initState() {
     super.initState();
-    _snapshot = OnlineDuelController.activeSnapshot;
+    _adoptSnapshot(OnlineDuelController.activeSnapshot, notify: false);
     _snapshotWatcher = Timer.periodic(
-      const Duration(milliseconds: 200),
+      const Duration(milliseconds: 150),
       (_) => _syncSnapshot(),
     );
   }
@@ -91,7 +92,72 @@ class _DuelCountdownLayerState extends State<_DuelCountdownLayer> {
     if (!mounted) return;
     final next = OnlineDuelController.activeSnapshot;
     if (identical(next, _snapshot)) return;
-    setState(() => _snapshot = next);
+    _adoptSnapshot(next);
+  }
+
+  void _adoptSnapshot(
+    OnlineDuelSnapshot? next, {
+    bool notify = true,
+  }) {
+    if (next == null) {
+      if (notify) {
+        setState(() {
+          _snapshot = null;
+          _fallbackReadyDeadline = null;
+          _fallbackMatchId = null;
+        });
+      } else {
+        _snapshot = null;
+        _fallbackReadyDeadline = null;
+        _fallbackMatchId = null;
+      }
+      return;
+    }
+
+    final prematch = _isPrematchStatus(next.status);
+    final hasPlayers = _hasTwoPlayers(next);
+    var fallbackDeadline = _fallbackReadyDeadline;
+    var fallbackMatchId = _fallbackMatchId;
+
+    if (prematch && hasPlayers) {
+      final matchChanged = fallbackMatchId != next.matchId;
+      fallbackMatchId = next.matchId;
+      if (next.readyDeadline != null) {
+        fallbackDeadline = next.readyDeadline;
+      } else if (matchChanged || fallbackDeadline == null) {
+        fallbackDeadline = next.serverTime.add(const Duration(seconds: 10));
+      }
+    } else if (!prematch) {
+      fallbackDeadline = null;
+      fallbackMatchId = null;
+    }
+
+    if (notify) {
+      setState(() {
+        _snapshot = next;
+        _fallbackReadyDeadline = fallbackDeadline;
+        _fallbackMatchId = fallbackMatchId;
+      });
+    } else {
+      _snapshot = next;
+      _fallbackReadyDeadline = fallbackDeadline;
+      _fallbackMatchId = fallbackMatchId;
+    }
+  }
+
+  bool _isPrematchStatus(OnlineDuelStatus status) {
+    return status == OnlineDuelStatus.waiting ||
+        status == OnlineDuelStatus.readyWindow ||
+        status == OnlineDuelStatus.countdown;
+  }
+
+  bool _hasTwoPlayers(OnlineDuelSnapshot snapshot) {
+    final playerA = snapshot.players[OnlineDuelSeat.a];
+    final playerB = snapshot.players[OnlineDuelSeat.b];
+    return playerA != null &&
+        playerB != null &&
+        playerA.publicId.trim().isNotEmpty &&
+        playerB.publicId.trim().isNotEmpty;
   }
 
   @override
@@ -99,9 +165,11 @@ class _DuelCountdownLayerState extends State<_DuelCountdownLayer> {
     final snapshot = _snapshot;
     if (snapshot == null) return const SizedBox.shrink();
 
+    final prematch = _isPrematchStatus(snapshot.status);
+    final countdownDeadline =
+        snapshot.readyDeadline ?? _fallbackReadyDeadline;
     final showReadyCountdown =
-        snapshot.status == OnlineDuelStatus.readyWindow &&
-        snapshot.readyDeadline != null;
+        prematch && _hasTwoPlayers(snapshot) && countdownDeadline != null;
     final showStartingFlash =
         snapshot.status == OnlineDuelStatus.active &&
         snapshot.turnNumber == 1 &&
@@ -109,14 +177,29 @@ class _DuelCountdownLayerState extends State<_DuelCountdownLayer> {
         snapshot.correctMoves.values.every((value) => value == 0) &&
         snapshot.mistakes.values.every((value) => value == 0);
 
-    if (!showReadyCountdown && !showStartingFlash) {
-      return const SizedBox.shrink();
+    if (showReadyCountdown) {
+      final countdownSnapshot =
+          snapshot.status == OnlineDuelStatus.readyWindow &&
+              snapshot.readyDeadline != null
+          ? snapshot
+          : snapshot.copyWith(
+              status: OnlineDuelStatus.readyWindow,
+              readyDeadline: countdownDeadline,
+            );
+      return OnlineReadyCountdownOverlay(
+        snapshot: countdownSnapshot,
+        showStartingFlash: false,
+      );
     }
 
-    return OnlineReadyCountdownOverlay(
-      snapshot: snapshot,
-      showStartingFlash: showStartingFlash,
-    );
+    if (showStartingFlash) {
+      return OnlineReadyCountdownOverlay(
+        snapshot: snapshot,
+        showStartingFlash: true,
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 
