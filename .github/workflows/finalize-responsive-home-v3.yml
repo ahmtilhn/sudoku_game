@@ -1,0 +1,49 @@
+name: Finalize responsive home v3
+
+on:
+  push:
+    branches: [responsive-nonscroll-ui]
+    paths:
+      - '.github/workflows/finalize-responsive-home-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: responsive-nonscroll-ui
+          fetch-depth: 0
+      - name: Apply compact Home layout
+        run: python3 tool/finalize_home_v3.py
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Format and analyze
+        run: |
+          dart format lib/features/home/professional_home_screen.dart test/widget_test.dart test/career_variant_progress_test.dart test/profile_hub_artwork_layout_test.dart
+          flutter analyze --no-fatal-infos
+      - name: Focused responsive tests
+        run: flutter test test/widget_test.dart test/career_variant_progress_test.dart test/profile_hub_artwork_layout_test.dart --reporter expanded --concurrency=1
+      - name: Commit validated Home source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib/features/home/professional_home_screen.dart test/widget_test.dart test/career_variant_progress_test.dart test/profile_hub_artwork_layout_test.dart
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'Harden offline layouts for compact viewports'
+          fi
+          git reset --hard HEAD
+          git clean -fd
+          git fetch origin responsive-nonscroll-ui
+          git rebase origin/responsive-nonscroll-ui
+          git push origin HEAD:responsive-nonscroll-ui
