@@ -32,13 +32,11 @@ jobs:
 
           service_import = "import '../../services/haptic_feedback_service.dart';"
           service_file = Path('lib/services/haptic_feedback_service.dart')
-          targets = []
 
           for path in Path('lib/features').rglob('*.dart'):
               text = path.read_text(encoding='utf-8')
               if 'HapticFeedback.' not in text:
                   continue
-              targets.append(path)
               text = text.replace('HapticFeedback.', 'HapticFeedbackService.instance.')
               if service_import not in text:
                   lines = text.splitlines()
@@ -48,9 +46,6 @@ jobs:
                   lines.insert(import_indexes[-1] + 1, service_import)
                   text = '\n'.join(lines) + ('\n' if text.endswith('\n') else '')
               path.write_text(text, encoding='utf-8')
-
-          if not targets:
-              raise SystemExit('No HapticFeedback call sites were found.')
 
           for path in Path('lib').rglob('*.dart'):
               if path == service_file:
@@ -66,8 +61,6 @@ jobs:
           )
           settings.write_text(text, encoding='utf-8')
 
-          # Route the older HomeScreen compatibility surface to the one live
-          # Settings implementation instead of the deleted legacy screen.
           home = Path('lib/features/home/home_screen.dart')
           text = home.read_text(encoding='utf-8')
           text = text.replace(
@@ -80,9 +73,6 @@ jobs:
           )
           home.write_text(text, encoding='utf-8')
 
-          # Dark mode is now the single product theme. Tests may still emulate
-          # OS brightness/high-contrast through MediaQuery, but the app theme
-          # itself stays dark-only.
           online_test = Path('test/online_duel_screen_test.dart')
           text = online_test.read_text(encoding='utf-8')
           text = text.replace(
@@ -140,10 +130,11 @@ jobs:
       - name: Resolve packages
         run: flutter pub get
 
-      - name: Apply safe analyzer fixes and format
+      - name: Restore tool-managed files and format source changes
         shell: bash
         run: |
           set -euo pipefail
+          git restore -- pubspec.lock analysis_options.yaml || true
           dart fix --apply
           mapfile -t files < <(git diff --diff-filter=ACMRT --name-only -- '*.dart')
           if (( ${#files[@]} )); then dart format "${files[@]}"; fi
@@ -168,6 +159,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git restore -- pubspec.lock analysis_options.yaml || true
           git add -A lib docs test
           if git diff --cached --quiet; then
             echo 'No source changes were required.'
