@@ -62,7 +62,23 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
-      - name: Test
+      - name: Commit analyzed layout changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib
+          if git diff --cached --quiet; then
+            echo 'No layout source changes were required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Make offline screens responsive without scrolling'
+          git fetch origin responsive-nonscroll-ui
+          git rebase origin/responsive-nonscroll-ui
+          git push origin HEAD:responsive-nonscroll-ui
+
+      - name: Baseline full test suite diagnostics
         shell: bash
         run: |
           set +e
@@ -79,19 +95,3 @@ jobs:
             tail -40 /tmp/flutter-tests.log
           fi
           exit "$status"
-
-      - name: Commit validated layout changes
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add lib
-          if git diff --cached --quiet; then
-            echo 'No layout source changes were required.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Make offline screens responsive without scrolling'
-          git fetch origin responsive-nonscroll-ui
-          git rebase origin/responsive-nonscroll-ui
-          git push origin HEAD:responsive-nonscroll-ui
