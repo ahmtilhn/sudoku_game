@@ -651,10 +651,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     }
   }
 
-  void _openOnlineRoom(
-    String roomId, {
-    required String requestedDifficulty,
-  }) {
+  void _openOnlineRoom(String roomId, {required String requestedDifficulty}) {
     if (_openingRoom || !mounted) return;
     _openingRoom = true;
     _pollTimer?.cancel();

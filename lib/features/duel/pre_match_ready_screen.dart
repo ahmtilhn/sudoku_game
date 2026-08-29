@@ -456,7 +456,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     final action = _actionForState(context, failed);
     final showOpponentFound =
         !failed && _readyStage && opponent != null && !_youReady;
-    final requestedDifficulty = _normalizeDifficulty(widget.requestedDifficulty);
+    final requestedDifficulty = _normalizeDifficulty(
+      widget.requestedDifficulty,
+    );
     final actualDifficulty = _normalizeDifficulty(_snapshot?.difficulty);
     final showMatchTerms =
         requestedDifficulty != null && actualDifficulty != null;

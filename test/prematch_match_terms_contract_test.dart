@@ -14,10 +14,7 @@ void main() {
         '_openOnlineRoom(roomId, requestedDifficulty: _difficulty.name)',
       ),
     );
-    expect(
-      matchmaking,
-      contains('requestedDifficulty: requestedDifficulty'),
-    );
+    expect(matchmaking, contains('requestedDifficulty: requestedDifficulty'));
   });
 
   test('pre-match terms use the authoritative room difficulty', () {
@@ -28,15 +25,21 @@ void main() {
     expect(prematch, contains('final String? requestedDifficulty;'));
     expect(
       prematch,
-      contains("final actualDifficulty = _normalizeDifficulty(_snapshot?.difficulty)"),
+      contains(
+        "final actualDifficulty = _normalizeDifficulty(_snapshot?.difficulty)",
+      ),
     );
     expect(
       prematch,
-      contains('EconomyService.instance.entryFeeForDifficulty(actualDifficulty)'),
+      contains(
+        'EconomyService.instance.entryFeeForDifficulty(actualDifficulty)',
+      ),
     );
     expect(
       prematch,
-      contains('EconomyService.instance.winnerPotForDifficulty(actualDifficulty)'),
+      contains(
+        'EconomyService.instance.winnerPotForDifficulty(actualDifficulty)',
+      ),
     );
     expect(prematch, contains('requested == actual'));
     expect(prematch, contains('PrematchMatchTermsCard('));

@@ -73,10 +73,7 @@ class PrematchMatchTermsCard extends StatelessWidget {
               ],
             ),
             SizedBox(height: 5 * scale),
-            Divider(
-              height: 1,
-              color: Colors.white.withValues(alpha: .08),
-            ),
+            Divider(height: 1, color: Colors.white.withValues(alpha: .08)),
             SizedBox(height: 5 * scale),
           ],
           Row(
