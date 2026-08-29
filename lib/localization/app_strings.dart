@@ -1421,11 +1421,15 @@ class AppStrings {
     if (puzzle.id.startsWith('duel-')) {
       return text('duel_puzzle_title');
     }
-    if (puzzle.id.startsWith('career-random-') ||
+    if (puzzle.id.startsWith('generated-') ||
+        puzzle.id.startsWith('career-random-') ||
+        puzzle.id.startsWith('classic16-') ||
         puzzle.id.startsWith('sample-')) {
       return difficultyLabel(puzzle.difficulty);
     }
-    final level = int.tryParse(puzzle.id.split('-').last);
+    final level = puzzle.id.startsWith('career-')
+        ? int.tryParse(puzzle.id.substring('career-'.length))
+        : null;
     if (level != null) {
       return text('level_title', <Object>[
         difficultyLabel(puzzle.difficulty),
