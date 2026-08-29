@@ -1,0 +1,71 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  READY_DEADLINE_MS,
+  applyDueDeadlines,
+  applyReady,
+  applyScreenLoaded,
+  createInitialDuelState,
+  markConnected,
+} from '../src/online_duel';
+
+function state() {
+  return createInitialDuelState({
+    roomId: 'room-ready-countdown',
+    matchId: 'match-ready-countdown',
+    challengeId: null,
+    mode: 'ranked',
+    difficulty: 'medium',
+    playerA: {
+      id: 'a',
+      publicId: 'A',
+      username: 'alice',
+      displayName: 'Alice',
+      avatarKey: 'default',
+    },
+    playerB: {
+      id: 'b',
+      publicId: 'B',
+      username: 'bob',
+      displayName: 'Bob',
+      avatarKey: 'default',
+    },
+    now: 1_000,
+    randomBytes: new Uint8Array([
+      1, 2, 3, 4, 5, 6, 7, 8,
+      9, 1, 2, 3, 4, 5, 6, 7,
+    ]),
+  });
+}
+
+describe('ready countdown', () => {
+  it('keeps the duel in the ready window for the full 10 seconds', () => {
+    const duel = state();
+    markConnected(duel, 'A', 1_001);
+    markConnected(duel, 'B', 1_002);
+    applyScreenLoaded(duel, 'A', 1_003);
+    applyScreenLoaded(duel, 'B', 1_004);
+
+    expect(duel.status).toBe('ready_window');
+    expect(duel.readyDeadline).toBe(1_004 + READY_DEADLINE_MS);
+
+    applyReady(duel, 'A', 1_100);
+    applyReady(duel, 'B', 1_200);
+
+    expect(duel.playerA.ready).toBe(true);
+    expect(duel.playerB.ready).toBe(true);
+    expect(duel.status).toBe('ready_window');
+    expect(duel.startedAt).toBeNull();
+
+    applyDueDeadlines(duel, duel.readyDeadline! - 1);
+    expect(duel.status).toBe('ready_window');
+    expect(duel.startedAt).toBeNull();
+
+    const deadline = duel.readyDeadline!;
+    applyDueDeadlines(duel, deadline);
+
+    expect(duel.status).toBe('active');
+    expect(duel.startedAt).toBe(deadline);
+    expect(duel.readyDeadline).toBeNull();
+  });
+});
