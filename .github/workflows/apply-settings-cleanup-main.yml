@@ -41,21 +41,16 @@ jobs:
               if service_import not in text:
                   lines = text.splitlines()
                   import_indexes = [i for i, line in enumerate(lines) if line.startswith('import ')]
-                  if not import_indexes:
-                      raise SystemExit(f'No import block found in {path}')
                   lines.insert(import_indexes[-1] + 1, service_import)
                   text = '\n'.join(lines) + ('\n' if text.endswith('\n') else '')
               path.write_text(text, encoding='utf-8')
 
           for path in Path('lib').rglob('*.dart'):
-              if path == service_file:
-                  continue
-              if 'HapticFeedback.' in path.read_text(encoding='utf-8'):
+              if path != service_file and 'HapticFeedback.' in path.read_text(encoding='utf-8'):
                   raise SystemExit(f'Unrouted haptic call remains in {path}')
 
           settings = Path('lib/features/settings/ux_settings_screen.dart')
-          text = settings.read_text(encoding='utf-8')
-          text = text.replace(
+          text = settings.read_text(encoding='utf-8').replace(
               'crossAxisSize: CrossAxisSize.stretch,',
               'crossAxisAlignment: CrossAxisAlignment.stretch,',
           )
@@ -63,58 +58,29 @@ jobs:
 
           home = Path('lib/features/home/home_screen.dart')
           text = home.read_text(encoding='utf-8')
-          text = text.replace(
-              "import '../settings/settings_screen.dart';",
-              "import '../settings/ux_settings_screen.dart';",
-          )
-          text = text.replace(
-              'SettingsScreen(store: widget.store)',
-              'UxSettingsScreen(store: widget.store)',
-          )
+          text = text.replace("import '../settings/settings_screen.dart';", "import '../settings/ux_settings_screen.dart';")
+          text = text.replace('SettingsScreen(store: widget.store)', 'UxSettingsScreen(store: widget.store)')
           home.write_text(text, encoding='utf-8')
 
           online_test = Path('test/online_duel_screen_test.dart')
           text = online_test.read_text(encoding='utf-8')
-          text = text.replace(
-              "theme: brightness == Brightness.dark\n            ? AppTheme.dark(highContrast: highContrast)\n            : AppTheme.light(highContrast: highContrast),",
-              'theme: AppTheme.dark(),',
-          )
-          text = text.replace(
-              'highContrast: highContrast,\n            textScaler:',
-              'highContrast: highContrast,\n            platformBrightness: brightness,\n            textScaler:',
-          )
+          text = text.replace("theme: brightness == Brightness.dark\n            ? AppTheme.dark(highContrast: highContrast)\n            : AppTheme.light(highContrast: highContrast),", 'theme: AppTheme.dark(),')
+          text = text.replace('highContrast: highContrast,\n            textScaler:', 'highContrast: highContrast,\n            platformBrightness: brightness,\n            textScaler:')
           online_test.write_text(text, encoding='utf-8')
 
           ready_test = Path('test/pre_match_ready_emote_screen_test.dart')
-          text = ready_test.read_text(encoding='utf-8')
-          text = text.replace(
-              'theme: AppTheme.light(highContrast: false),',
-              'theme: AppTheme.dark(),',
-          )
+          text = ready_test.read_text(encoding='utf-8').replace('theme: AppTheme.light(highContrast: false),', 'theme: AppTheme.dark(),')
           ready_test.write_text(text, encoding='utf-8')
 
           settings_test = Path('test/settings_screen_test.dart')
           text = settings_test.read_text(encoding='utf-8')
-          text = text.replace(
-              "import 'package:sudoku_game/features/settings/settings_screen.dart';",
-              "import 'package:sudoku_game/features/settings/ux_settings_screen.dart';",
-          )
-          text = text.replace(
-              'MaterialApp(home: SettingsScreen(store: store))',
-              'MaterialApp(home: UxSettingsScreen(store: store))',
-          )
-          text = text.replace(
-              "    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);\n    await tester.scrollUntilVisible(notificationTitle, 300);\n    await tester.pump();",
-              "    await tester.tap(find.text(strings.text('notifications')).first);\n    await tester.pump();\n\n    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);",
-          )
+          text = text.replace("import 'package:sudoku_game/features/settings/settings_screen.dart';", "import 'package:sudoku_game/features/settings/ux_settings_screen.dart';")
+          text = text.replace('MaterialApp(home: SettingsScreen(store: store))', 'MaterialApp(home: UxSettingsScreen(store: store))')
+          text = text.replace("    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);\n    await tester.scrollUntilVisible(notificationTitle, 300);\n    await tester.pump();", "    await tester.tap(find.text(strings.text('notifications')).first);\n    await tester.pump();\n\n    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);")
           settings_test.write_text(text, encoding='utf-8')
 
-          for obsolete in (
-              Path('lib/features/settings/service_diagnostics_screen.dart'),
-              Path('lib/services/service_diagnostics_service.dart'),
-          ):
-              if obsolete.exists():
-                  obsolete.unlink()
+          for obsolete in (Path('lib/features/settings/service_diagnostics_screen.dart'), Path('lib/services/service_diagnostics_service.dart')):
+              if obsolete.exists(): obsolete.unlink()
           PY
 
       - uses: actions/setup-java@v5
@@ -150,25 +116,10 @@ jobs:
         run: flutter analyze --fatal-infos
 
       - name: Test
-        id: tests
-        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          timeout --signal=TERM 12m flutter test --reporter expanded --concurrency=1 2>&1 | tee /tmp/settings-cleanup-tests.txt
-
-      - name: Upload test output
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: settings-cleanup-test-output
-          path: /tmp/settings-cleanup-tests.txt
-          if-no-files-found: ignore
-          retention-days: 1
-
-      - name: Enforce test result
-        if: steps.tests.outcome != 'success'
-        run: exit 1
+          timeout --signal=TERM 12m flutter test --reporter expanded --concurrency=1
 
       - name: Commit verified cleanup directly to main
         shell: bash
@@ -176,10 +127,7 @@ jobs:
           set -euo pipefail
           git restore -- pubspec.lock analysis_options.yaml || true
           git add -A lib docs test
-          if git diff --cached --quiet; then
-            echo 'No source changes were required.'
-            exit 0
-          fi
+          if git diff --cached --quiet; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'Finish settings cleanup and centralize haptics'
