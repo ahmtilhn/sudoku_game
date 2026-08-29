@@ -23,7 +23,7 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Route all game haptics through the user preference
+      - name: Apply final settings and haptics cleanup
         shell: bash
         run: |
           set -euo pipefail
@@ -52,7 +52,6 @@ jobs:
           if not targets:
               raise SystemExit('No HapticFeedback call sites were found.')
 
-          # The central service must remain the only direct Flutter haptic caller.
           for path in Path('lib').rglob('*.dart'):
               if path == service_file:
                   continue
@@ -67,7 +66,59 @@ jobs:
           )
           settings.write_text(text, encoding='utf-8')
 
-          # These were only reachable from the removed legacy SettingsScreen.
+          # Route the older HomeScreen compatibility surface to the one live
+          # Settings implementation instead of the deleted legacy screen.
+          home = Path('lib/features/home/home_screen.dart')
+          text = home.read_text(encoding='utf-8')
+          text = text.replace(
+              "import '../settings/settings_screen.dart';",
+              "import '../settings/ux_settings_screen.dart';",
+          )
+          text = text.replace(
+              'SettingsScreen(store: widget.store)',
+              'UxSettingsScreen(store: widget.store)',
+          )
+          home.write_text(text, encoding='utf-8')
+
+          # Dark mode is now the single product theme. Tests may still emulate
+          # OS brightness/high-contrast through MediaQuery, but the app theme
+          # itself stays dark-only.
+          online_test = Path('test/online_duel_screen_test.dart')
+          text = online_test.read_text(encoding='utf-8')
+          text = text.replace(
+              "theme: brightness == Brightness.dark\n            ? AppTheme.dark(highContrast: highContrast)\n            : AppTheme.light(highContrast: highContrast),",
+              'theme: AppTheme.dark(),',
+          )
+          text = text.replace(
+              'highContrast: highContrast,\n            textScaler:',
+              'highContrast: highContrast,\n            platformBrightness: brightness,\n            textScaler:',
+          )
+          online_test.write_text(text, encoding='utf-8')
+
+          ready_test = Path('test/pre_match_ready_emote_screen_test.dart')
+          text = ready_test.read_text(encoding='utf-8')
+          text = text.replace(
+              'theme: AppTheme.light(highContrast: false),',
+              'theme: AppTheme.dark(),',
+          )
+          ready_test.write_text(text, encoding='utf-8')
+
+          settings_test = Path('test/settings_screen_test.dart')
+          text = settings_test.read_text(encoding='utf-8')
+          text = text.replace(
+              "import 'package:sudoku_game/features/settings/settings_screen.dart';",
+              "import 'package:sudoku_game/features/settings/ux_settings_screen.dart';",
+          )
+          text = text.replace(
+              'MaterialApp(home: SettingsScreen(store: store))',
+              'MaterialApp(home: UxSettingsScreen(store: store))',
+          )
+          text = text.replace(
+              "    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);\n    await tester.scrollUntilVisible(notificationTitle, 300);\n    await tester.pump();",
+              "    await tester.tap(find.text(strings.text('notifications')).first);\n    await tester.pump();\n\n    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);",
+          )
+          settings_test.write_text(text, encoding='utf-8')
+
           for obsolete in (
               Path('lib/features/settings/service_diagnostics_screen.dart'),
               Path('lib/services/service_diagnostics_service.dart'),
@@ -94,7 +145,7 @@ jobs:
         run: |
           set -euo pipefail
           dart fix --apply
-          mapfile -t files < <(git diff --name-only -- '*.dart')
+          mapfile -t files < <(git diff --diff-filter=ACMRT --name-only -- '*.dart')
           if (( ${#files[@]} )); then dart format "${files[@]}"; fi
           git diff --check
 
