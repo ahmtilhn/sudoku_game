@@ -198,7 +198,10 @@ class _LargeReadyCountdown extends StatelessWidget {
         curve: Curves.easeOutBack,
         builder: (context, scale, child) => Transform.scale(
           scale: scale,
-          child: Opacity(opacity: scale, child: child),
+          child: Opacity(
+            opacity: scale.clamp(0.0, 1.0).toDouble(),
+            child: child,
+          ),
         ),
         child: Container(
           width: 142,
