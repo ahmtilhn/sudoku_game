@@ -1,0 +1,85 @@
+name: Responsive non-scroll UI validation
+
+on:
+  push:
+    branches: [responsive-nonscroll-ui]
+    paths:
+      - 'tool/responsive_patches/**'
+      - 'tool/verify_non_scroll_layouts.py'
+      - '.github/workflows/responsive-nonscroll-ui.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: responsive-nonscroll-ui
+  cancel-in-progress: false
+
+jobs:
+  apply-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: responsive-nonscroll-ui
+          fetch-depth: 0
+
+      - name: Apply targeted layout patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          for patch in tool/responsive_patches/*.py; do
+            echo "Applying $patch"
+            python3 "$patch"
+          done
+
+      - name: Verify non-scroll contract
+        run: python3 tool/verify_non_scroll_layouts.py
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Format changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git diff --name-only -- '*.dart')
+          if (( ${#files[@]} )); then dart format "${files[@]}"; fi
+          git diff --check
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 10m flutter test --reporter expanded --concurrency=1
+
+      - name: Commit validated layout changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib
+          if git diff --cached --quiet; then
+            echo 'No layout source changes were required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Make offline screens responsive without scrolling'
+          git fetch origin responsive-nonscroll-ui
+          git rebase origin/responsive-nonscroll-ui
+          git push origin HEAD:responsive-nonscroll-ui
