@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../debug/debug_economy.dart';
@@ -132,8 +132,6 @@ class LocalProgressStore extends ChangeNotifier {
 
   static const _progressKey = 'career_progress_v2';
   static const _legacyProgressKey = 'career_progress_v1';
-  static const _themeKey = 'theme_mode_v1';
-  static const _highContrastKey = 'high_contrast_v1';
   static const _tutorialKey = 'tutorial_complete_v1';
   static const _coinsKey = 'career_coins_v1';
   static const _hintsKey = 'hint_inventory_v1';
@@ -146,8 +144,6 @@ class LocalProgressStore extends ChangeNotifier {
   final bool unlimitedHints;
   final Map<String, LevelProgress> _progress = <String, LevelProgress>{};
 
-  ThemeMode themeMode = ThemeMode.system;
-  bool highContrast = false;
   bool tutorialCompleted = false;
   int coins = initialCoins;
   int hints = initialHints;
@@ -336,18 +332,6 @@ class LocalProgressStore extends ChangeNotifier {
     return true;
   }
 
-  Future<void> setThemeMode(ThemeMode value) async {
-    themeMode = value;
-    await _preferences.setInt(_themeKey, value.index);
-    notifyListeners();
-  }
-
-  Future<void> setHighContrast(bool value) async {
-    highContrast = value;
-    await _preferences.setBool(_highContrastKey, value);
-    notifyListeners();
-  }
-
   Future<void> markTutorialComplete() async {
     tutorialCompleted = true;
     await _preferences.setBool(_tutorialKey, true);
@@ -372,13 +356,6 @@ class LocalProgressStore extends ChangeNotifier {
   }
 
   Future<void> _load() async {
-    final themeIndex = await _preferences.getInt(_themeKey);
-    if (themeIndex != null &&
-        themeIndex >= 0 &&
-        themeIndex < ThemeMode.values.length) {
-      themeMode = ThemeMode.values[themeIndex];
-    }
-    highContrast = await _preferences.getBool(_highContrastKey) ?? false;
     tutorialCompleted = await _preferences.getBool(_tutorialKey) ?? false;
     coins = await _preferences.getInt(_coinsKey) ?? initialCoins;
     if (unlimitedCoins) coins = debugUnlimitedCoinBalance;
