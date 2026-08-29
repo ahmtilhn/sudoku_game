@@ -17,6 +17,7 @@ class WalletHistoryScreen extends StatefulWidget {
 
 class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
   Future<List<CoinLedgerEntry>>? _entries;
+  int _page = 0;
 
   @override
   void initState() {
@@ -26,6 +27,7 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
 
   void _reload() {
     setState(() {
+      _page = 0;
       _entries = EconomyApiClient.instance.loadLedger(limit: 100);
     });
   }
@@ -66,33 +68,102 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
                 ),
               );
             }
+
             return LayoutBuilder(
               builder: (context, constraints) {
+                final compact = constraints.maxHeight < 680;
                 final maxWidth = constraints.maxWidth >= 840 ? 720.0 : 640.0;
+                final availableForRows =
+                    (constraints.maxHeight - (compact ? 114 : 132)).clamp(
+                      190.0,
+                      double.infinity,
+                    );
+                final targetRowHeight = compact ? 76.0 : 90.0;
+                final itemsPerPage = (availableForRows / targetRowHeight)
+                    .floor()
+                    .clamp(2, 7);
+                final pageCount = (entries.length / itemsPerPage).ceil();
+                final safePage = _page.clamp(0, pageCount - 1);
+                if (safePage != _page) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted && _page != safePage) {
+                      setState(() => _page = safePage);
+                    }
+                  });
+                }
+                final start = safePage * itemsPerPage;
+                final end = (start + itemsPerPage).clamp(0, entries.length);
+                final visibleEntries = entries.sublist(start, end);
+
                 return Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: maxWidth),
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                      children: [
-                        InPageHeader(
-                          title: context.tr('coin_history'),
-                          actions: [
-                            IconButton(
-                              tooltip: context.tr('refresh'),
-                              onPressed: _reload,
-                              icon: const DuelAssetIcon(
-                                DuelAsset.refresh,
-                                size: 22,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        constraints.maxWidth < 360 ? 12 : 16,
+                        compact ? 4 : 8,
+                        constraints.maxWidth < 360 ? 12 : 16,
+                        compact ? 8 : 14,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          InPageHeader(
+                            title: context.tr('coin_history'),
+                            padding: EdgeInsets.only(bottom: compact ? 4 : 8),
+                            actions: [
+                              IconButton(
+                                tooltip: context.tr('refresh'),
+                                onPressed: _reload,
+                                icon: const DuelAssetIcon(
+                                  DuelAsset.refresh,
+                                  size: 22,
+                                ),
                               ),
+                            ],
+                          ),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                for (
+                                  var index = 0;
+                                  index < visibleEntries.length;
+                                  index++
+                                )
+                                  Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        bottom:
+                                            index == visibleEntries.length - 1
+                                            ? 0
+                                            : compact
+                                            ? 5
+                                            : 8,
+                                      ),
+                                      child: _LedgerTile(
+                                        entry: visibleEntries[index],
+                                        compact: compact,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          if (pageCount > 1) ...[
+                            SizedBox(height: compact ? 6 : 10),
+                            _HistoryPager(
+                              page: safePage,
+                              pageCount: pageCount,
+                              onPrevious: safePage > 0
+                                  ? () => setState(() => _page = safePage - 1)
+                                  : null,
+                              onNext: safePage < pageCount - 1
+                                  ? () => setState(() => _page = safePage + 1)
+                                  : null,
                             ),
                           ],
-                        ),
-                        for (final entry in entries) ...[
-                          _LedgerTile(entry: entry),
-                          const SizedBox(height: 8),
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 );
@@ -105,10 +176,55 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
   }
 }
 
+class _HistoryPager extends StatelessWidget {
+  const _HistoryPager({
+    required this.page,
+    required this.pageCount,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int page;
+  final int pageCount;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          IconButton.filledTonal(
+            tooltip: MaterialLocalizations.of(context).previousPageTooltip,
+            onPressed: onPrevious,
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
+          Expanded(
+            child: Text(
+              '${page + 1} / $pageCount',
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+          IconButton.filledTonal(
+            tooltip: MaterialLocalizations.of(context).nextPageTooltip,
+            onPressed: onNext,
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LedgerTile extends StatelessWidget {
-  const _LedgerTile({required this.entry});
+  const _LedgerTile({required this.entry, required this.compact});
 
   final CoinLedgerEntry entry;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -116,42 +232,76 @@ class _LedgerTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final amount = NumberFormat.decimalPattern().format(entry.amount.abs());
     final balance = NumberFormat.decimalPattern().format(entry.balanceAfter);
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .045),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(compact ? 14 : 18),
         border: Border.all(color: scheme.outlineVariant.withValues(alpha: .45)),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        leading: CircleAvatar(
-          backgroundColor: positive
-              ? scheme.primaryContainer.withValues(alpha: .72)
-              : scheme.surfaceContainerHighest.withValues(alpha: .72),
-          child: DuelAssetIcon(
-            DuelAsset.coin,
-            size: 22,
-            color: positive
-                ? scheme.onPrimaryContainer
-                : scheme.onSurfaceVariant,
-          ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 9 : 12,
+          vertical: compact ? 6 : 8,
         ),
-        title: Text(
-          _reasonLabel(context, entry),
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text(
-          context.tr('coin_history_balance_after', <Object>[
-            DateFormat.yMMMd().add_Hm().format(entry.createdAt.toLocal()),
-            balance,
-          ]),
-        ),
-        trailing: Text(
-          '${positive ? '+' : '-'}$amount',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w900,
-            color: positive ? scheme.primary : scheme.onSurface,
-          ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: compact ? 17 : 20,
+              backgroundColor: positive
+                  ? scheme.primaryContainer.withValues(alpha: .72)
+                  : scheme.surfaceContainerHighest.withValues(alpha: .72),
+              child: DuelAssetIcon(
+                DuelAsset.coin,
+                size: compact ? 18 : 22,
+                color: positive
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
+            ),
+            SizedBox(width: compact ? 8 : 11),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _reasonLabel(context, entry),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: compact ? 12 : 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    context.tr('coin_history_balance_after', <Object>[
+                      DateFormat.yMMMd().add_Hm().format(
+                        entry.createdAt.toLocal(),
+                      ),
+                      balance,
+                    ]),
+                    maxLines: compact ? 1 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: compact ? 6 : 10),
+            Text(
+              '${positive ? '+' : '-'}$amount',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: compact ? 13 : null,
+                fontWeight: FontWeight.w900,
+                color: positive ? scheme.primary : scheme.onSurface,
+              ),
+            ),
+          ],
         ),
       ),
     );

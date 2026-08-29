@@ -743,17 +743,18 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
               final width = constraints.maxWidth > 760
                   ? 700.0
                   : constraints.maxWidth;
-              final compact = constraints.maxHeight < 720;
-              return SingleChildScrollView(
+              final compact = constraints.maxHeight < 760;
+              return Padding(
                 padding: EdgeInsets.fromLTRB(
                   10,
-                  compact ? 4 : 7,
+                  compact ? 3 : 7,
                   10,
-                  compact ? 12 : 22,
+                  compact ? 4 : 10,
                 ),
                 child: Center(
                   child: SizedBox(
                     width: width,
+                    height: constraints.maxHeight,
                     child: Column(
                       children: [
                         if (!_ready) ...[
@@ -761,11 +762,11 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
                             borderRadius: BorderRadius.circular(999),
                             child: const LinearProgressIndicator(minHeight: 3),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: compact ? 3 : 6),
                         ],
                         InPageHeader(
                           title: context.strings.puzzleTitle(widget.puzzle),
-                          padding: EdgeInsets.only(bottom: compact ? 6 : 9),
+                          padding: EdgeInsets.only(bottom: compact ? 4 : 7),
                           actions: [
                             IconButton(
                               key: const ValueKey<String>('action-pause'),
@@ -791,18 +792,22 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
                             compact: compact,
                           ),
                         ),
-                        SizedBox(height: compact ? 8 : 12),
-                        _SoloBoardFrame(
-                          enabled: enabled,
-                          child: SudokuBoard(
-                            puzzle: widget.puzzle,
-                            board: _board,
-                            selectedIndex: _selectedIndex,
-                            notes: _notes,
-                            errorIndex: _errorIndex,
-                            hintedIndexes: _hintedIndexes,
-                            enabled: enabled,
-                            onCellTap: _selectCell,
+                        SizedBox(height: compact ? 5 : 9),
+                        Expanded(
+                          child: Center(
+                            child: _SoloBoardFrame(
+                              enabled: enabled,
+                              child: SudokuBoard(
+                                puzzle: widget.puzzle,
+                                board: _board,
+                                selectedIndex: _selectedIndex,
+                                notes: _notes,
+                                errorIndex: _errorIndex,
+                                hintedIndexes: _hintedIndexes,
+                                enabled: enabled,
+                                onCellTap: _selectCell,
+                              ),
+                            ),
                           ),
                         ),
                       ],

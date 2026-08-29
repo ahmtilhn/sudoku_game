@@ -23,8 +23,6 @@ class ProfileCustomizationScreen extends StatefulWidget {
 
 class _ProfileCustomizationScreenState
     extends State<ProfileCustomizationScreen> {
-  // Titles stay implemented and can be re-enabled later without rebuilding the
-  // tab. A getter keeps the hidden branch analyzer-visible without dead code.
   static bool get _showTitles => false;
 
   late RankIdentityProfile _profile;
@@ -158,156 +156,192 @@ class _ProfileCustomizationScreenState
       backgroundColor: const Color(0xFF0B1215),
       body: AppBackdrop(
         child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 860),
-              child: DefaultTabController(
-                length: _showTitles ? 5 : 4,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-                      child: Column(
-                        children: [
-                          InPageHeader(
-                            title: context.tr('profile_customization'),
-                            actions: [
-                              IconButton(
-                                tooltip: context.tr('refresh_profile'),
-                                onPressed: _hydrating ? null : _hydrate,
-                                icon: _hydrating
-                                    ? const SizedBox.square(
-                                        dimension: 19,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.refresh_rounded),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight < 720;
+              final tight = constraints.maxHeight < 610;
+              final horizontal = constraints.maxWidth < 360 ? 10.0 : 16.0;
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
+                  child: DefaultTabController(
+                    length: _showTitles ? 5 : 4,
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            horizontal,
+                            tight ? 2 : 6,
+                            horizontal,
+                            0,
+                          ),
+                          child: Column(
+                            children: [
+                              InPageHeader(
+                                title: context.tr('profile_customization'),
+                                padding: EdgeInsets.only(
+                                  bottom: tight
+                                      ? 2
+                                      : compact
+                                      ? 4
+                                      : 8,
+                                ),
+                                actions: [
+                                  IconButton(
+                                    tooltip: context.tr('refresh_profile'),
+                                    onPressed: _hydrating ? null : _hydrate,
+                                    icon: _hydrating
+                                        ? const SizedBox.square(
+                                            dimension: 19,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(Icons.refresh_rounded),
+                                  ),
+                                ],
+                              ),
+                              _PreviewCard(
+                                profile: _profile,
+                                avatarKey: _avatarKey,
+                                frameKey: _frameKey,
+                                titleKey: _titleKey,
+                                achievementIds: _achievementIds,
+                                countryCode: _countryCode,
+                                countryFlagVisible: _countryFlagVisible,
+                                compact: compact,
+                                tight: tight,
+                              ),
+                              if ((!_serverReady || _error != null) &&
+                                  !tight) ...[
+                                const SizedBox(height: 5),
+                                _OfflineNotice(
+                                  message:
+                                      _error ??
+                                      context.tr(
+                                        'profile_reconnecting_preview',
+                                      ),
+                                  busy: _hydrating,
+                                  onRetry: _hydrate,
+                                  compact: compact,
+                                ),
+                              ],
+                              SizedBox(height: tight ? 3 : 6),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: .18),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: .06),
+                                  ),
+                                ),
+                                child: TabBar(
+                                  isScrollable: false,
+                                  tabAlignment: TabAlignment.fill,
+                                  labelPadding: EdgeInsets.zero,
+                                  tabs: [
+                                    Tab(
+                                      height: tight ? 43 : 52,
+                                      icon: _CustomizationTabIcon(
+                                        assetPath:
+                                            'assets/profilecustomization/avatars.png',
+                                        compact: tight,
+                                      ),
+                                      text: context.tr('avatars'),
+                                    ),
+                                    Tab(
+                                      height: tight ? 43 : 52,
+                                      icon: _CustomizationTabIcon(
+                                        assetPath:
+                                            'assets/profilecustomization/framers.png',
+                                        compact: tight,
+                                      ),
+                                      text: context.tr('frames'),
+                                    ),
+                                    Tab(
+                                      height: tight ? 43 : 52,
+                                      icon: _CustomizationTabIcon(
+                                        assetPath:
+                                            'assets/profilecustomization/badges.png',
+                                        compact: tight,
+                                      ),
+                                      text: context.tr('badges'),
+                                    ),
+                                    if (_showTitles)
+                                      Tab(
+                                        height: tight ? 43 : 52,
+                                        icon: const Icon(Icons.title_rounded),
+                                        text: context.tr('titles'),
+                                      ),
+                                    Tab(
+                                      height: tight ? 43 : 52,
+                                      icon: _CustomizationTabIcon(
+                                        assetPath:
+                                            'assets/profilecustomization/country.png',
+                                        compact: tight,
+                                      ),
+                                      text: context.tr('country'),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          _PreviewCard(
-                            profile: _profile,
-                            avatarKey: _avatarKey,
-                            frameKey: _frameKey,
-                            titleKey: _titleKey,
-                            achievementIds: _achievementIds,
-                            countryCode: _countryCode,
-                            countryFlagVisible: _countryFlagVisible,
-                          ),
-                          if (!_serverReady || _error != null) ...[
-                            const SizedBox(height: 8),
-                            _OfflineNotice(
-                              message:
-                                  _error ??
-                                  context.tr('profile_reconnecting_preview'),
-                              busy: _hydrating,
-                              onRetry: _hydrate,
-                            ),
-                          ],
-                          const SizedBox(height: 10),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: .18),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: .06),
+                        ),
+                        SizedBox(height: tight ? 2 : 5),
+                        Expanded(
+                          child: TabBarView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              _AvatarTab(
+                                selectedKey: _avatarKey,
+                                onSelected: (key) =>
+                                    setState(() => _avatarKey = key),
                               ),
-                            ),
-                            child: TabBar(
-                              isScrollable: false,
-                              tabAlignment: TabAlignment.fill,
-                              labelPadding: EdgeInsets.zero,
-                              tabs: [
-                                Tab(
-                                  icon: _CustomizationTabIcon(
-                                    assetPath:
-                                        'assets/profilecustomization/avatars.png',
-                                  ),
-                                  text: context.tr('avatars'),
+                              _FrameTab(
+                                profile: _profile,
+                                avatarKey: _avatarKey,
+                                selectedKey: _frameKey,
+                                onSelected: (key) =>
+                                    setState(() => _frameKey = key),
+                              ),
+                              _DecorationTab(
+                                profile: _profile,
+                                avatarKey: _avatarKey,
+                                selectedAchievementIds: _achievementIds,
+                                onToggle: _toggleDecoration,
+                              ),
+                              if (_showTitles)
+                                _TitleTab(
+                                  profile: _profile,
+                                  selectedKey: _titleKey,
+                                  onSelected: (key) =>
+                                      setState(() => _titleKey = key),
                                 ),
-                                Tab(
-                                  icon: _CustomizationTabIcon(
-                                    assetPath:
-                                        'assets/profilecustomization/framers.png',
-                                  ),
-                                  text: context.tr('frames'),
-                                ),
-                                Tab(
-                                  icon: _CustomizationTabIcon(
-                                    assetPath:
-                                        'assets/profilecustomization/badges.png',
-                                  ),
-                                  text: context.tr('badges'),
-                                ),
-                                if (_showTitles)
-                                  Tab(
-                                    icon: Icon(Icons.title_rounded),
-                                    text: context.tr('titles'),
-                                  ),
-                                Tab(
-                                  icon: _CustomizationTabIcon(
-                                    assetPath:
-                                        'assets/profilecustomization/country.png',
-                                  ),
-                                  text: context.tr('country'),
-                                ),
-                              ],
-                            ),
+                              _CountryTab(
+                                countryCode: _countryCode,
+                                flagVisible: _countryFlagVisible,
+                                onCountryChanged: (code) =>
+                                    setState(() => _countryCode = code),
+                                onVisibilityChanged: (value) =>
+                                    setState(() => _countryFlagVisible = value),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        _SaveBar(
+                          serverReady: _serverReady,
+                          saving: _saving,
+                          onSave: _save,
+                          compact: compact,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: TabBarView(
-                        children: [
-                          _AvatarTab(
-                            selectedKey: _avatarKey,
-                            onSelected: (key) =>
-                                setState(() => _avatarKey = key),
-                          ),
-                          _FrameTab(
-                            profile: _profile,
-                            avatarKey: _avatarKey,
-                            selectedKey: _frameKey,
-                            onSelected: (key) =>
-                                setState(() => _frameKey = key),
-                          ),
-                          _DecorationTab(
-                            profile: _profile,
-                            avatarKey: _avatarKey,
-                            selectedAchievementIds: _achievementIds,
-                            onToggle: _toggleDecoration,
-                          ),
-                          if (_showTitles)
-                            _TitleTab(
-                              profile: _profile,
-                              selectedKey: _titleKey,
-                              onSelected: (key) =>
-                                  setState(() => _titleKey = key),
-                            ),
-                          _CountryTab(
-                            countryCode: _countryCode,
-                            flagVisible: _countryFlagVisible,
-                            onCountryChanged: (code) =>
-                                setState(() => _countryCode = code),
-                            onVisibilityChanged: (value) =>
-                                setState(() => _countryFlagVisible = value),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _SaveBar(
-                      serverReady: _serverReady,
-                      saving: _saving,
-                      onSave: _save,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -332,22 +366,24 @@ class _ProfileCustomizationScreenState
 }
 
 class _CustomizationTabIcon extends StatelessWidget {
-  const _CustomizationTabIcon({required this.assetPath});
+  const _CustomizationTabIcon({required this.assetPath, required this.compact});
 
   final String assetPath;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final size = compact ? 21.0 : 26.0;
     return Image.asset(
       assetPath,
-      width: 28,
-      height: 28,
+      width: size,
+      height: size,
       fit: BoxFit.contain,
       cacheWidth: 96,
       cacheHeight: 96,
       filterQuality: FilterQuality.high,
       gaplessPlayback: true,
-      errorBuilder: (_, _, _) => const SizedBox.square(dimension: 28),
+      errorBuilder: (_, _, _) => SizedBox.square(dimension: size),
     );
   }
 }
@@ -361,6 +397,8 @@ class _PreviewCard extends StatelessWidget {
     required this.achievementIds,
     required this.countryCode,
     required this.countryFlagVisible,
+    required this.compact,
+    required this.tight,
   });
 
   final RankIdentityProfile profile;
@@ -370,6 +408,8 @@ class _PreviewCard extends StatelessWidget {
   final List<String> achievementIds;
   final String? countryCode;
   final bool countryFlagVisible;
+  final bool compact;
+  final bool tight;
 
   @override
   Widget build(BuildContext context) {
@@ -394,10 +434,16 @@ class _PreviewCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(
+        tight
+            ? 8
+            : compact
+            ? 10
+            : 14,
+      ),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: .22),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white.withValues(alpha: .075)),
       ),
       child: Row(
@@ -405,11 +451,16 @@ class _PreviewCard extends StatelessWidget {
           PlayerAvatar(
             displayName: profile.displayName,
             avatarKey: identity,
-            radius: 39,
+            radius: tight
+                ? 25
+                : compact
+                ? 31
+                : 39,
           ),
-          const SizedBox(width: 15),
+          SizedBox(width: tight ? 9 : 13),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -417,60 +468,70 @@ class _PreviewCard extends StatelessWidget {
                     if (flag.isNotEmpty) ...[
                       Text(
                         flag,
-                        style: const TextStyle(fontSize: 18, height: 1),
+                        style: TextStyle(fontSize: tight ? 14 : 18, height: 1),
                         semanticsLabel: context.tr('country_flag'),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 5),
                     ],
                     Expanded(
                       child: Text(
                         profile.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: tight
+                              ? 14
+                              : compact
+                              ? 16
+                              : 18,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 2),
                 Text(
                   context.tr('rank_points_format', <Object>[
                     profile.rankName,
                     profile.rankPoints,
                   ]),
-                  style: const TextStyle(
-                    color: Color(0xFF66C7FF),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF66C7FF),
+                    fontSize: tight ? 10 : 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                if (title != null) ...[
-                  const SizedBox(height: 3),
+                if (!tight && title != null)
                   Text(
                     context.tr(title),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .62),
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                ],
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+            padding: EdgeInsets.symmetric(
+              horizontal: tight ? 6 : 9,
+              vertical: tight ? 4 : 6,
+            ),
             decoration: BoxDecoration(
               color: const Color(0xFFB7A9FF).withValues(alpha: .10),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               '${achievementIds.length}/3',
-              style: const TextStyle(
-                color: Color(0xFFD7CCFF),
+              style: TextStyle(
+                color: const Color(0xFFD7CCFF),
+                fontSize: tight ? 10 : 12,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -489,16 +550,22 @@ class _PreviewCard extends StatelessWidget {
   }
 }
 
-class _AvatarTab extends StatelessWidget {
+class _AvatarTab extends StatefulWidget {
   const _AvatarTab({required this.selectedKey, required this.onSelected});
 
   final String selectedKey;
   final ValueChanged<String> onSelected;
 
   @override
+  State<_AvatarTab> createState() => _AvatarTabState();
+}
+
+class _AvatarTabState extends State<_AvatarTab> {
+  int _page = 0;
+
+  @override
   Widget build(BuildContext context) {
     final choices = AvatarPresetCatalog.all;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 720
@@ -508,77 +575,112 @@ class _AvatarTab extends StatelessWidget {
             : constraints.maxWidth >= 360
             ? 4
             : 3;
+        final rows = constraints.maxHeight < 250
+            ? 1
+            : constraints.maxHeight < 390
+            ? 2
+            : 3;
+        final pageSize = columns * rows;
+        final pageCount = (choices.length / pageSize).ceil();
+        final page = _page.clamp(0, pageCount - 1);
+        final start = page * pageSize;
+        final end = (start + pageSize).clamp(0, choices.length);
+        final visible = choices.sublist(start, end);
 
-        return GridView.builder(
-          key: const PageStorageKey<String>('profile-avatar-grid'),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: .84,
-          ),
-          itemCount: choices.length,
-          itemBuilder: (context, index) {
-            final avatar = choices[index];
-            final selected = selectedKey == avatar.key;
-
-            return Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => onSelected(avatar.key),
-                borderRadius: BorderRadius.circular(16),
-                child: Ink(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? const Color(0xFF3AA9FF).withValues(alpha: .12)
-                        : Colors.black.withValues(alpha: .14),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: selected
-                          ? const Color(0xFF66C7FF)
-                          : Colors.white.withValues(alpha: .06),
-                      width: selected ? 1.6 : 1,
-                    ),
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+          child: Column(
+            children: [
+              Expanded(
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    mainAxisSpacing: 7,
+                    crossAxisSpacing: 7,
+                    childAspectRatio: constraints.maxHeight < 300 ? .95 : .84,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      PlayerAvatar(
-                        displayName: context.tr('sudoku_player'),
-                        avatarKey: avatar.key,
-                        radius: 27,
-                      ),
-                      const SizedBox(height: 7),
-                      Text(
-                        context.tr('avatar_number', <Object>[
-                          avatar.number.toString().padLeft(2, '0'),
-                        ]),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withValues(
-                            alpha: selected ? .94 : .64,
+                  itemCount: visible.length,
+                  itemBuilder: (context, index) {
+                    final avatar = visible[index];
+                    final selected = widget.selectedKey == avatar.key;
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => widget.onSelected(avatar.key),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Ink(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? const Color(0xFF3AA9FF).withValues(alpha: .12)
+                                : Colors.black.withValues(alpha: .14),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: selected
+                                  ? const Color(0xFF66C7FF)
+                                  : Colors.white.withValues(alpha: .06),
+                              width: selected ? 1.6 : 1,
+                            ),
                           ),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: PlayerAvatar(
+                                    displayName: context.tr('sudoku_player'),
+                                    avatarKey: avatar.key,
+                                    radius: 27,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                context.tr('avatar_number', <Object>[
+                                  avatar.number.toString().padLeft(2, '0'),
+                                ]),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(
+                                    alpha: selected ? .94 : .64,
+                                  ),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
-            );
-          },
+              if (pageCount > 1)
+                _Pager(
+                  page: page,
+                  pageCount: pageCount,
+                  onPrevious: page > 0
+                      ? () => setState(() => _page = page - 1)
+                      : null,
+                  onNext: page < pageCount - 1
+                      ? () => setState(() => _page = page + 1)
+                      : null,
+                ),
+            ],
+          ),
         );
       },
     );
   }
 }
 
-class _FrameTab extends StatelessWidget {
+class _FrameTab extends StatefulWidget {
   const _FrameTab({
     required this.profile,
     required this.avatarKey,
@@ -592,119 +694,86 @@ class _FrameTab extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   @override
+  State<_FrameTab> createState() => _FrameTabState();
+}
+
+class _FrameTabState extends State<_FrameTab> {
+  int _page = 0;
+
+  @override
   Widget build(BuildContext context) {
     final rewards = <String, RankRewardState>{
-      for (final reward in profile.rankRewards) reward.rankKey: reward,
+      for (final reward in widget.profile.rankRewards) reward.rankKey: reward,
     };
     final frames = <String>['auto', ...rankTierCatalog.map((tier) => tier.key)];
 
-    return ListView.separated(
-      key: const PageStorageKey<String>('profile-frame-list'),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-      itemCount: frames.length + 1,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _InfoCard(
-            icon: Icons.paid_rounded,
-            title: context.tr('lifetime_rank_coins', <Object>[
-              profile.totalLifetimeRankReward,
-            ]),
-            body: context.tr('rank_frames_info'),
-          );
-        }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final pageSize = constraints.maxHeight < 300
+            ? 2
+            : constraints.maxHeight < 430
+            ? 3
+            : 4;
+        final pageCount = (frames.length / pageSize).ceil();
+        final page = _page.clamp(0, pageCount - 1);
+        final start = page * pageSize;
+        final end = (start + pageSize).clamp(0, frames.length);
+        final visible = frames.sublist(start, end);
 
-        final key = frames[index - 1];
-        final auto = key == 'auto';
-        final tier = auto
-            ? rankTierForKey(profile.rankKey)
-            : rankTierForKey(key);
-        final unlocked = auto || profile.unlockedFrameKeys.contains(tier.key);
-        final selected = selectedKey == key;
-        final reward = rewards[tier.key];
-        final previewFrame = auto ? profile.rankKey : tier.key;
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: unlocked ? () => onSelected(key) : null,
-            borderRadius: BorderRadius.circular(17),
-            child: Ink(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-              decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFF3AA9FF).withValues(alpha: .11)
-                    : Colors.black.withValues(alpha: .14),
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(
-                  color: selected
-                      ? const Color(0xFF66C7FF).withValues(alpha: .75)
-                      : Colors.white.withValues(alpha: .06),
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+          child: Column(
+            children: [
+              if (constraints.maxHeight >= 390) ...[
+                _InfoCard(
+                  icon: Icons.paid_rounded,
+                  title: context.tr('lifetime_rank_coins', <Object>[
+                    widget.profile.totalLifetimeRankReward,
+                  ]),
+                  body: context.tr('rank_frames_info'),
+                  compact: true,
+                ),
+                const SizedBox(height: 6),
+              ],
+              Expanded(
+                child: Column(
+                  children: [
+                    for (var index = 0; index < visible.length; index++)
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == visible.length - 1 ? 0 : 6,
+                          ),
+                          child: _FrameTile(
+                            keyValue: visible[index],
+                            profile: widget.profile,
+                            avatarKey: widget.avatarKey,
+                            selectedKey: widget.selectedKey,
+                            reward:
+                                rewards[rankTierForKey(
+                                  visible[index] == 'auto'
+                                      ? widget.profile.rankKey
+                                      : visible[index],
+                                ).key],
+                            onSelected: widget.onSelected,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  PlayerAvatar(
-                    displayName: profile.displayName,
-                    avatarKey: RankIdentityKey(
-                      avatarKey: AvatarPresetCatalog.normalizeKey(avatarKey),
-                      frameKey: previewFrame,
-                    ).encode(),
-                    radius: 29,
-                  ),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          auto ? context.tr('auto_current_rank') : tier.label,
-                          style: TextStyle(
-                            color: unlocked
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: .42),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          auto
-                              ? context.tr('frame_follows_current_rank')
-                              : unlocked
-                              ? context.tr('permanently_unlocked_rp', <Object>[
-                                  tier.minPoints,
-                                ])
-                              : context.tr('unlock_reaching_rp', <Object>[
-                                  tier.minPoints,
-                                ]),
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .48),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (reward != null && reward.amount > 0) ...[
-                    const SizedBox(width: 8),
-                    _CoinPill(reward: reward),
-                  ],
-                  const SizedBox(width: 8),
-                  Icon(
-                    unlocked
-                        ? selected
-                              ? Icons.check_circle_rounded
-                              : Icons.radio_button_unchecked_rounded
-                        : Icons.lock_rounded,
-                    color: unlocked
-                        ? const Color(0xFF66C7FF)
-                        : Colors.white.withValues(alpha: .28),
-                  ),
-                ],
-              ),
-            ),
+              if (pageCount > 1)
+                _Pager(
+                  page: page,
+                  pageCount: pageCount,
+                  onPrevious: page > 0
+                      ? () => setState(() => _page = page - 1)
+                      : null,
+                  onNext: page < pageCount - 1
+                      ? () => setState(() => _page = page + 1)
+                      : null,
+                ),
+            ],
           ),
         );
       },
@@ -712,7 +781,125 @@ class _FrameTab extends StatelessWidget {
   }
 }
 
-class _DecorationTab extends StatelessWidget {
+class _FrameTile extends StatelessWidget {
+  const _FrameTile({
+    required this.keyValue,
+    required this.profile,
+    required this.avatarKey,
+    required this.selectedKey,
+    required this.reward,
+    required this.onSelected,
+  });
+
+  final String keyValue;
+  final RankIdentityProfile profile;
+  final String avatarKey;
+  final String selectedKey;
+  final RankRewardState? reward;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final auto = keyValue == 'auto';
+    final tier = auto
+        ? rankTierForKey(profile.rankKey)
+        : rankTierForKey(keyValue);
+    final unlocked = auto || profile.unlockedFrameKeys.contains(tier.key);
+    final selected = selectedKey == keyValue;
+    final previewFrame = auto ? profile.rankKey : tier.key;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: unlocked ? () => onSelected(keyValue) : null,
+        borderRadius: BorderRadius.circular(15),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFF3AA9FF).withValues(alpha: .11)
+                : Colors.black.withValues(alpha: .14),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF66C7FF).withValues(alpha: .75)
+                  : Colors.white.withValues(alpha: .06),
+            ),
+          ),
+          child: Row(
+            children: [
+              PlayerAvatar(
+                displayName: profile.displayName,
+                avatarKey: RankIdentityKey(
+                  avatarKey: AvatarPresetCatalog.normalizeKey(avatarKey),
+                  frameKey: previewFrame,
+                ).encode(),
+                radius: 24,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      auto ? context.tr('auto_current_rank') : tier.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: unlocked
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: .42),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      auto
+                          ? context.tr('frame_follows_current_rank')
+                          : unlocked
+                          ? context.tr('permanently_unlocked_rp', <Object>[
+                              tier.minPoints,
+                            ])
+                          : context.tr('unlock_reaching_rp', <Object>[
+                              tier.minPoints,
+                            ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .48),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (reward != null && reward!.amount > 0) ...[
+                const SizedBox(width: 5),
+                _CoinPill(reward: reward!),
+              ],
+              const SizedBox(width: 5),
+              Icon(
+                unlocked
+                    ? selected
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded
+                    : Icons.lock_rounded,
+                size: 20,
+                color: unlocked
+                    ? const Color(0xFF66C7FF)
+                    : Colors.white.withValues(alpha: .28),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DecorationTab extends StatefulWidget {
   const _DecorationTab({
     required this.profile,
     required this.avatarKey,
@@ -726,108 +913,79 @@ class _DecorationTab extends StatelessWidget {
   final ValueChanged<String> onToggle;
 
   @override
+  State<_DecorationTab> createState() => _DecorationTabState();
+}
+
+class _DecorationTabState extends State<_DecorationTab> {
+  int _page = 0;
+
+  @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      key: const PageStorageKey<String>('profile-badge-list'),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-      itemCount: profile.decorations.length + 1,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _InfoCard(
-            icon: Icons.workspace_premium_rounded,
-            title: context.tr('three_achievement_slots'),
-            body: context.tr('achievement_badges_info'),
-          );
-        }
+    final decorations = widget.profile.decorations;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final pageSize = constraints.maxHeight < 300
+            ? 2
+            : constraints.maxHeight < 430
+            ? 3
+            : 4;
+        final pageCount = decorations.isEmpty
+            ? 1
+            : (decorations.length / pageSize).ceil();
+        final page = _page.clamp(0, pageCount - 1);
+        final start = page * pageSize;
+        final end = (start + pageSize).clamp(0, decorations.length);
+        final visible = decorations.sublist(start, end);
 
-        final decoration = profile.decorations[index - 1];
-        final selected = selectedAchievementIds.contains(
-          decoration.achievementId,
-        );
-        final enabled = decoration.unlocked;
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: enabled ? () => onToggle(decoration.achievementId) : null,
-            borderRadius: BorderRadius.circular(17),
-            child: Ink(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: selected
-                    ? const Color(0xFFB7A9FF).withValues(alpha: .11)
-                    : Colors.black.withValues(alpha: .14),
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(
-                  color: selected
-                      ? const Color(0xFFB7A9FF).withValues(alpha: .62)
-                      : Colors.white.withValues(alpha: .06),
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+          child: Column(
+            children: [
+              if (constraints.maxHeight >= 390) ...[
+                _InfoCard(
+                  icon: Icons.workspace_premium_rounded,
+                  title: context.tr('three_achievement_slots'),
+                  body: context.tr('achievement_badges_info'),
+                  compact: true,
                 ),
-              ),
-              child: Row(
-                children: [
-                  PlayerAvatar(
-                    displayName: profile.displayName,
-                    avatarKey: RankIdentityKey(
-                      avatarKey: AvatarPresetCatalog.normalizeKey(avatarKey),
-                      frameKey: profile.rankKey,
-                      decorationKeys: <String>[decoration.decorationKey],
-                    ).encode(),
-                    radius: 27,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
+                const SizedBox(height: 6),
+              ],
+              Expanded(
+                child: visible.isEmpty
+                    ? const SizedBox.shrink()
+                    : Column(
+                        children: [
+                          for (var index = 0; index < visible.length; index++)
                             Expanded(
-                              child: Text(
-                                context.tr(decoration.title),
-                                style: TextStyle(
-                                  color: enabled
-                                      ? Colors.white
-                                      : Colors.white.withValues(alpha: .46),
-                                  fontWeight: FontWeight.w900,
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: index == visible.length - 1 ? 0 : 6,
+                                ),
+                                child: _DecorationTile(
+                                  decoration: visible[index],
+                                  profile: widget.profile,
+                                  avatarKey: widget.avatarKey,
+                                  selected: widget.selectedAchievementIds
+                                      .contains(visible[index].achievementId),
+                                  onToggle: widget.onToggle,
                                 ),
                               ),
                             ),
-                            _RarityPill(rarity: decoration.rarity),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          context.tr(decoration.description),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .50),
-                            fontSize: 11,
-                            height: 1.25,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    !enabled
-                        ? Icons.lock_rounded
-                        : selected
-                        ? Icons.check_circle_rounded
-                        : Icons.add_circle_outline_rounded,
-                    color: !enabled
-                        ? Colors.white.withValues(alpha: .25)
-                        : selected
-                        ? const Color(0xFFB7A9FF)
-                        : Colors.white.withValues(alpha: .55),
-                  ),
-                ],
+                        ],
+                      ),
               ),
-            ),
+              if (pageCount > 1)
+                _Pager(
+                  page: page,
+                  pageCount: pageCount,
+                  onPrevious: page > 0
+                      ? () => setState(() => _page = page - 1)
+                      : null,
+                  onNext: page < pageCount - 1
+                      ? () => setState(() => _page = page + 1)
+                      : null,
+                ),
+            ],
           ),
         );
       },
@@ -835,9 +993,114 @@ class _DecorationTab extends StatelessWidget {
   }
 }
 
-// Kept intentionally for future re-enablement. Titles remain supported by the
-// profile model and save flow, but the user-facing tab is hidden for now.
-class _TitleTab extends StatelessWidget {
+class _DecorationTile extends StatelessWidget {
+  const _DecorationTile({
+    required this.decoration,
+    required this.profile,
+    required this.avatarKey,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final RankDecoration decoration;
+  final RankIdentityProfile profile;
+  final String avatarKey;
+  final bool selected;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = decoration.unlocked;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? () => onToggle(decoration.achievementId) : null,
+        borderRadius: BorderRadius.circular(15),
+        child: Ink(
+          padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFFB7A9FF).withValues(alpha: .11)
+                : Colors.black.withValues(alpha: .14),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFFB7A9FF).withValues(alpha: .62)
+                  : Colors.white.withValues(alpha: .06),
+            ),
+          ),
+          child: Row(
+            children: [
+              PlayerAvatar(
+                displayName: profile.displayName,
+                avatarKey: RankIdentityKey(
+                  avatarKey: AvatarPresetCatalog.normalizeKey(avatarKey),
+                  frameKey: profile.rankKey,
+                  decorationKeys: <String>[decoration.decorationKey],
+                ).encode(),
+                radius: 23,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            context.tr(decoration.title),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: enabled
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: .46),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        _RarityPill(rarity: decoration.rarity),
+                      ],
+                    ),
+                    Text(
+                      context.tr(decoration.description),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .50),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 5),
+              Icon(
+                !enabled
+                    ? Icons.lock_rounded
+                    : selected
+                    ? Icons.check_circle_rounded
+                    : Icons.add_circle_outline_rounded,
+                size: 20,
+                color: !enabled
+                    ? Colors.white.withValues(alpha: .25)
+                    : selected
+                    ? const Color(0xFFB7A9FF)
+                    : Colors.white.withValues(alpha: .55),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TitleTab extends StatefulWidget {
   const _TitleTab({
     required this.profile,
     required this.selectedKey,
@@ -849,32 +1112,30 @@ class _TitleTab extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   @override
+  State<_TitleTab> createState() => _TitleTabState();
+}
+
+class _TitleTabState extends State<_TitleTab> {
+  int _page = 0;
+
+  @override
   Widget build(BuildContext context) {
     final options = <RankTitleOption>[
       const RankTitleOption(key: '', label: 'no_title'),
-      ...profile.unlockedTitles,
+      ...widget.profile.unlockedTitles,
     ];
 
-    return ListView.separated(
-      key: const PageStorageKey<String>('profile-title-list'),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-      itemCount: options.length + 1,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _InfoCard(
-            icon: Icons.title_rounded,
-            title: context.tr('prestige_titles'),
-            body: context.tr('prestige_titles_info'),
-          );
-        }
-
-        final option = options[index - 1];
-        final selected = selectedKey == option.key;
+    return _SimplePagedList<RankTitleOption>(
+      items: options,
+      page: _page,
+      onPageChanged: (value) => setState(() => _page = value),
+      itemBuilder: (context, option) {
+        final selected = widget.selectedKey == option.key;
         return ListTile(
-          onTap: () => onSelected(option.key),
+          dense: true,
+          onTap: () => widget.onSelected(option.key),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             side: BorderSide(
               color: selected
                   ? const Color(0xFFD9A5FF).withValues(alpha: .62)
@@ -888,20 +1149,13 @@ class _TitleTab extends StatelessWidget {
             option.key.isEmpty
                 ? Icons.remove_circle_outline_rounded
                 : Icons.workspace_premium_rounded,
-            color: selected
-                ? const Color(0xFFD9A5FF)
-                : Colors.white.withValues(alpha: .55),
           ),
           title: Text(
             context.tr(option.label),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-          trailing: selected
-              ? const Icon(Icons.check_circle_rounded, color: Color(0xFFD9A5FF))
-              : null,
+          trailing: selected ? const Icon(Icons.check_circle_rounded) : null,
         );
       },
     );
@@ -924,123 +1178,147 @@ class _CountryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = countryOptionForCode(countryCode);
-    return ListView(
-      key: const PageStorageKey<String>('profile-country-list'),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-      children: [
-        _InfoCard(
-          icon: Icons.public_rounded,
-          title: context.tr('country_flag'),
-          body: context.tr('country_flag_info'),
-        ),
-        const SizedBox(height: 10),
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _chooseCountry(context),
-            borderRadius: BorderRadius.circular(17),
-            child: Ink(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: .14),
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(color: Colors.white.withValues(alpha: .06)),
-              ),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 42,
-                    child: Text(
-                      selected?.flag ?? '🌐',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 27),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxHeight < 320;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!compact) ...[
+                _InfoCard(
+                  icon: Icons.public_rounded,
+                  title: context.tr('country_flag'),
+                  body: context.tr('country_flag_info'),
+                  compact: true,
+                ),
+                const SizedBox(height: 7),
+              ],
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _chooseCountry(context),
+                  borderRadius: BorderRadius.circular(15),
+                  child: Ink(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: .14),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .06),
+                      ),
+                    ),
+                    child: Row(
                       children: [
-                        Text(
-                          selected == null
-                              ? context.tr('choose_country')
-                              : context.tr(
-                                  'country_name_${selected.code.toLowerCase()}',
-                                ),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
+                        SizedBox(
+                          width: 38,
+                          child: Text(
+                            selected?.flag ?? '🌐',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 24),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          selected == null
-                              ? context.tr('no_country_flag_until_chosen')
-                              : context.tr('flag_before_player_name'),
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .48),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                selected == null
+                                    ? context.tr('choose_country')
+                                    : context.tr(
+                                        'country_name_${selected.code.toLowerCase()}',
+                                      ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              Text(
+                                selected == null
+                                    ? context.tr('no_country_flag_until_chosen')
+                                    : context.tr('flag_before_player_name'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: .48),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white54,
                         ),
                       ],
                     ),
                   ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.white54,
-                  ),
-                ],
+                ),
               ),
-            ),
+              if (selected != null)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => onCountryChanged(null),
+                    icon: const Icon(Icons.close_rounded, size: 17),
+                    label: Text(context.tr('clear_country')),
+                  ),
+                ),
+              const SizedBox(height: 3),
+              SwitchListTile.adaptive(
+                dense: compact,
+                value: flagVisible,
+                onChanged: selected == null ? null : onVisibilityChanged,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  side: BorderSide(color: Colors.white.withValues(alpha: .06)),
+                ),
+                tileColor: Colors.black.withValues(alpha: .14),
+                secondary: Icon(
+                  Icons.flag_rounded,
+                  color: selected == null
+                      ? Colors.white.withValues(alpha: .28)
+                      : const Color(0xFF66C7FF),
+                ),
+                title: Text(
+                  context.tr('show_flag_ranked_ladder'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                subtitle: Text(
+                  selected == null
+                      ? context.tr('choose_country_first')
+                      : flagVisible
+                      ? context.tr('flag_only_before_name')
+                      : context.tr('country_saved_flag_hidden'),
+                  maxLines: compact ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .50),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        if (selected != null) ...[
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => onCountryChanged(null),
-              icon: const Icon(Icons.close_rounded, size: 18),
-              label: Text(context.tr('clear_country')),
-            ),
-          ),
-        ],
-        const SizedBox(height: 8),
-        SwitchListTile.adaptive(
-          value: flagVisible,
-          onChanged: selected == null ? null : onVisibilityChanged,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(17),
-            side: BorderSide(color: Colors.white.withValues(alpha: .06)),
-          ),
-          tileColor: Colors.black.withValues(alpha: .14),
-          secondary: Icon(
-            Icons.flag_rounded,
-            color: selected == null
-                ? Colors.white.withValues(alpha: .28)
-                : const Color(0xFF66C7FF),
-          ),
-          title: Text(
-            context.tr('show_flag_ranked_ladder'),
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
-          ),
-          subtitle: Text(
-            selected == null
-                ? context.tr('choose_country_first')
-                : flagVisible
-                ? context.tr('flag_only_before_name')
-                : context.tr('country_saved_flag_hidden'),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: .50),
-              fontSize: 11,
-              height: 1.3,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -1068,6 +1346,7 @@ class _CountryPickerSheet extends StatefulWidget {
 
 class _CountryPickerSheetState extends State<_CountryPickerSheet> {
   String _query = '';
+  int _page = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -1085,82 +1364,215 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
 
     return SafeArea(
       top: false,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final pageSize = constraints.maxHeight < 500 ? 4 : 6;
+          final pageCount = choices.isEmpty
+              ? 1
+              : (choices.length / pageSize).ceil();
+          final page = _page.clamp(0, pageCount - 1);
+          final start = page * pageSize;
+          final end = (start + pageSize).clamp(0, choices.length);
+          final visible = choices.sublist(start, end);
+
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   context.tr('choose_country'),
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 7),
                 TextField(
                   autofocus: true,
-                  onChanged: (value) => setState(() => _query = value),
+                  onChanged: (value) => setState(() {
+                    _query = value;
+                    _page = 0;
+                  }),
                   textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
+                    isDense: true,
                     hintText: context.tr('search_country'),
-                    prefixIcon: Icon(Icons.search_rounded),
+                    prefixIcon: const Icon(Icons.search_rounded),
                   ),
                 ),
+                const SizedBox(height: 7),
+                Expanded(
+                  child: visible.isEmpty
+                      ? Center(
+                          child: Text(
+                            context.tr('no_country_found'),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .55),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            for (var index = 0; index < visible.length; index++)
+                              Expanded(
+                                child: _CountryChoiceTile(
+                                  country: visible[index],
+                                ),
+                              ),
+                          ],
+                        ),
+                ),
+                if (pageCount > 1)
+                  _Pager(
+                    page: page,
+                    pageCount: pageCount,
+                    onPrevious: page > 0
+                        ? () => setState(() => _page = page - 1)
+                        : null,
+                    onNext: page < pageCount - 1
+                        ? () => setState(() => _page = page + 1)
+                        : null,
+                  ),
               ],
             ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CountryChoiceTile extends StatelessWidget {
+  const _CountryChoiceTile({required this.country});
+
+  final CountryOption country;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      onTap: () => Navigator.of(context).pop(country),
+      leading: SizedBox(
+        width: 34,
+        child: Text(
+          country.flag,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 22),
+        ),
+      ),
+      title: Text(
+        context.tr('country_name_${country.code.toLowerCase()}'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white38),
+    );
+  }
+}
+
+class _SimplePagedList<T> extends StatelessWidget {
+  const _SimplePagedList({
+    required this.items,
+    required this.page,
+    required this.onPageChanged,
+    required this.itemBuilder,
+  });
+
+  final List<T> items;
+  final int page;
+  final ValueChanged<int> onPageChanged;
+  final Widget Function(BuildContext context, T item) itemBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final pageSize = constraints.maxHeight < 300 ? 2 : 4;
+        final pageCount = items.isEmpty ? 1 : (items.length / pageSize).ceil();
+        final safePage = page.clamp(0, pageCount - 1);
+        final start = safePage * pageSize;
+        final end = (start + pageSize).clamp(0, items.length);
+        final visible = items.sublist(start, end);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+          child: Column(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    for (var index = 0; index < visible.length; index++)
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == visible.length - 1 ? 0 : 6,
+                          ),
+                          child: itemBuilder(context, visible[index]),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (pageCount > 1)
+                _Pager(
+                  page: safePage,
+                  pageCount: pageCount,
+                  onPrevious: safePage > 0
+                      ? () => onPageChanged(safePage - 1)
+                      : null,
+                  onNext: safePage < pageCount - 1
+                      ? () => onPageChanged(safePage + 1)
+                      : null,
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Pager extends StatelessWidget {
+  const _Pager({
+    required this.page,
+    required this.pageCount,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int page;
+  final int pageCount;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 38,
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: MaterialLocalizations.of(context).previousPageTooltip,
+            onPressed: onPrevious,
+            icon: const Icon(Icons.chevron_left_rounded),
           ),
           Expanded(
-            child: choices.isEmpty
-                ? Center(
-                    child: Text(
-                      context.tr('no_country_found'),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .55),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 20),
-                    itemCount: choices.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      color: Colors.white.withValues(alpha: .045),
-                    ),
-                    itemBuilder: (context, index) {
-                      final country = choices[index];
-                      return ListTile(
-                        onTap: () => Navigator.of(context).pop(country),
-                        leading: SizedBox(
-                          width: 34,
-                          child: Text(
-                            country.flag,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 23),
-                          ),
-                        ),
-                        title: Text(
-                          context.tr(
-                            'country_name_${country.code.toLowerCase()}',
-                          ),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        trailing: const Icon(
-                          Icons.chevron_right_rounded,
-                          color: Colors.white38,
-                        ),
-                      );
-                    },
-                  ),
+            child: Text(
+              '${page + 1} / $pageCount',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+          IconButton(
+            tooltip: MaterialLocalizations.of(context).nextPageTooltip,
+            onPressed: onNext,
+            icon: const Icon(Icons.chevron_right_rounded),
           ),
         ],
       ),
@@ -1173,16 +1585,18 @@ class _SaveBar extends StatelessWidget {
     required this.serverReady,
     required this.saving,
     required this.onSave,
+    required this.compact,
   });
 
   final bool serverReady;
   final bool saving;
   final VoidCallback onSave;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      padding: EdgeInsets.fromLTRB(12, compact ? 5 : 8, 12, compact ? 6 : 10),
       decoration: BoxDecoration(
         color: const Color(0xFF0B1215).withValues(alpha: .96),
         border: Border(
@@ -1191,19 +1605,24 @@ class _SaveBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              serverReady
-                  ? context.tr('profile_save_ready_info')
-                  : context.tr('profile_preview_reconnect'),
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .56),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+          if (!compact)
+            Expanded(
+              child: Text(
+                serverReady
+                    ? context.tr('profile_save_ready_info')
+                    : context.tr('profile_preview_reconnect'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .56),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
+            )
+          else
+            const Spacer(),
+          const SizedBox(width: 8),
           FilledButton.icon(
             onPressed: saving ? null : onSave,
             icon: saving
@@ -1233,20 +1652,25 @@ class _OfflineNotice extends StatelessWidget {
     required this.message,
     required this.busy,
     required this.onRetry,
+    required this.compact,
   });
 
   final String message;
   final bool busy;
   final VoidCallback onRetry;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(11),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 11,
+        vertical: compact ? 6 : 9,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFFFB454).withValues(alpha: .09),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(13),
         border: Border.all(
           color: const Color(0xFFFFB454).withValues(alpha: .22),
         ),
@@ -1256,32 +1680,31 @@ class _OfflineNotice extends StatelessWidget {
           const Icon(
             Icons.cloud_off_rounded,
             color: Color(0xFFFFC66B),
-            size: 20,
+            size: 18,
           ),
-          const SizedBox(width: 9),
+          const SizedBox(width: 7),
           Expanded(
             child: Text(
               message,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: .72),
-                fontSize: 11,
-                height: 1.25,
+                fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          const SizedBox(width: 8),
           IconButton(
+            visualDensity: VisualDensity.compact,
             tooltip: context.tr('retry'),
             onPressed: busy ? null : onRetry,
             icon: busy
                 ? const SizedBox.square(
-                    dimension: 16,
+                    dimension: 15,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.refresh_rounded),
+                : const Icon(Icons.refresh_rounded, size: 19),
           ),
         ],
       ),
@@ -1294,46 +1717,51 @@ class _InfoCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.body,
+    required this.compact,
   });
 
   final IconData icon;
   final String title;
   final String body;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(13),
+      padding: EdgeInsets.all(compact ? 8 : 13),
       decoration: BoxDecoration(
         color: const Color(0xFF3AA9FF).withValues(alpha: .075),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: const Color(0xFF3AA9FF).withValues(alpha: .17),
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFF66C7FF)),
-          const SizedBox(width: 11),
+          Icon(icon, color: const Color(0xFF66C7FF), size: compact ? 19 : 24),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 3),
                 Text(
                   body,
+                  maxLines: compact ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: .55),
-                    fontSize: 11,
-                    height: 1.35,
+                    fontSize: 9,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1354,7 +1782,7 @@ class _CoinPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
         color: reward.claimed
             ? const Color(0xFF29D398).withValues(alpha: .10)
@@ -1363,11 +1791,12 @@ class _CoinPill extends StatelessWidget {
       ),
       child: Text(
         '${context.tr('coin_amount', <Object>[reward.amount])}${reward.claimed ? ' ✓' : ''}',
+        maxLines: 1,
         style: TextStyle(
           color: reward.claimed
               ? const Color(0xFF69E5BA)
               : const Color(0xFFFFD86A),
-          fontSize: 10,
+          fontSize: 8,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -1389,18 +1818,19 @@ class _RarityPill extends StatelessWidget {
       _ => const Color(0xFF9DB3BF),
     };
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .10),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         context.tr('rarity_${rarity.toLowerCase()}'),
+        maxLines: 1,
         style: TextStyle(
           color: color,
-          fontSize: 8,
+          fontSize: 7,
           fontWeight: FontWeight.w900,
-          letterSpacing: .4,
+          letterSpacing: .3,
         ),
       ),
     );

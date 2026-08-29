@@ -51,70 +51,88 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
-          builder: (context, constraints) => Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 620),
-              child: ListView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.fromLTRB(
-                  constraints.maxWidth < 360 ? 12 : 20,
-                  12,
-                  constraints.maxWidth < 360 ? 12 : 20,
-                  32 + MediaQuery.viewInsetsOf(context).bottom,
+          builder: (context, constraints) {
+            final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+            final compact = constraints.maxHeight < 680 || keyboardOpen;
+            final horizontal = constraints.maxWidth < 360 ? 12.0 : 20.0;
+
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontal,
+                    keyboardOpen
+                        ? 2
+                        : compact
+                        ? 6
+                        : 12,
+                    horizontal,
+                    keyboardOpen
+                        ? 4
+                        : compact
+                        ? 8
+                        : 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!keyboardOpen)
+                        InPageHeader(
+                          title: context.tr('player_account'),
+                          padding: EdgeInsets.only(bottom: compact ? 4 : 8),
+                        ),
+                      if (!keyboardOpen && !compact) ...[
+                        _StatusCard(user: _user, compact: false),
+                        const SizedBox(height: 10),
+                      ],
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: _protected
+                              ? _protectedCard(
+                                  context,
+                                  compact: compact,
+                                  keyboardOpen: keyboardOpen,
+                                )
+                              : _accountForm(
+                                  context,
+                                  compact: compact,
+                                  keyboardOpen: keyboardOpen,
+                                ),
+                        ),
+                      ),
+                      if (!keyboardOpen &&
+                          (_error != null || _notice != null)) ...[
+                        const SizedBox(height: 6),
+                        _MessagePanel(
+                          icon: _error != null
+                              ? Icons.error_outline
+                              : Icons.check_circle_outline,
+                          background: _error != null
+                              ? scheme.errorContainer
+                              : scheme.primaryContainer,
+                          foreground: _error != null
+                              ? scheme.onErrorContainer
+                              : scheme.onPrimaryContainer,
+                          text: _error ?? _notice!,
+                          compact: compact,
+                        ),
+                      ],
+                      if (!keyboardOpen) ...[
+                        SizedBox(height: compact ? 4 : 8),
+                        _AccountDataBar(
+                          busy: _busy,
+                          compact: compact,
+                          onDelete: _deleteAccount,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                children: [
-                  InPageHeader(title: context.tr('player_account')),
-                  _StatusCard(user: _user),
-                  const SizedBox(height: 16),
-                  if (_protected)
-                    _protectedCard(context)
-                  else
-                    _accountForm(context),
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    _MessagePanel(
-                      icon: Icons.error_outline,
-                      background: scheme.errorContainer,
-                      foreground: scheme.onErrorContainer,
-                      text: _error!,
-                    ),
-                  ],
-                  if (_notice != null) ...[
-                    const SizedBox(height: 12),
-                    _MessagePanel(
-                      icon: Icons.check_circle_outline,
-                      background: scheme.primaryContainer,
-                      foreground: scheme.onPrimaryContainer,
-                      text: _notice!,
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  Text(
-                    context.tr('account_data'),
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Card(
-                    margin: EdgeInsets.zero,
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.delete_forever_outlined,
-                        color: scheme.error,
-                      ),
-                      title: Text(
-                        context.tr('delete_player_account'),
-                        style: TextStyle(color: scheme.error),
-                      ),
-                      subtitle: Text(context.tr('delete_player_account_body')),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: _busy ? null : _deleteAccount,
-                    ),
-                  ),
-                ],
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -129,42 +147,68 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
     });
   }
 
-  Widget _accountForm(BuildContext context) {
+  Widget _accountForm(
+    BuildContext context, {
+    required bool compact,
+    required bool keyboardOpen,
+  }) {
     final validEmail = RegExp(
       r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
     ).hasMatch(_email.text.trim());
     final validPassword = _password.text.length >= 8;
     final matches = _signInMode || _password.text == _confirm.text;
     final canSubmit = validEmail && validPassword && matches && !_busy;
+    final spacing = keyboardOpen
+        ? 6.0
+        : compact
+        ? 8.0
+        : 12.0;
 
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(
+          keyboardOpen
+              ? 10
+              : compact
+              ? 12
+              : 18,
+        ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              _signInMode
-                  ? context.tr('sign_in_protected_account')
-                  : context.tr('protect_current_guest'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _signInMode
-                  ? context.tr('sign_in_protected_account_body')
-                  : context.tr('protect_current_guest_body'),
-            ),
-            const SizedBox(height: 16),
-            _AccountModeSelector(
-              signInMode: _signInMode,
-              enabled: !_busy,
-              onChanged: _changeMode,
-            ),
-            const SizedBox(height: 16),
+            if (!keyboardOpen) ...[
+              Text(
+                _signInMode
+                    ? context.tr('sign_in_protected_account')
+                    : context.tr('protect_current_guest'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontSize: compact ? 18 : null,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (!compact) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _signInMode
+                      ? context.tr('sign_in_protected_account_body')
+                      : context.tr('protect_current_guest_body'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              SizedBox(height: spacing),
+              _AccountModeSelector(
+                signInMode: _signInMode,
+                enabled: !_busy,
+                compact: compact,
+                onChanged: _changeMode,
+              ),
+              SizedBox(height: spacing),
+            ],
             TextField(
               controller: _email,
               enabled: !_busy,
@@ -173,13 +217,14 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               textInputAction: TextInputAction.next,
               autocorrect: false,
               decoration: InputDecoration(
+                isDense: compact,
                 labelText: context.tr('email_address'),
-                prefixIcon: Icon(Icons.email_outlined),
-                border: OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: const OutlineInputBorder(),
               ),
               onChanged: (_) => setState(() {}),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: spacing),
             TextField(
               controller: _password,
               enabled: !_busy,
@@ -191,8 +236,11 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                   ? TextInputAction.done
                   : TextInputAction.next,
               decoration: InputDecoration(
+                isDense: compact,
                 labelText: context.tr('password'),
-                helperText: context.tr('password_min_chars'),
+                helperText: keyboardOpen
+                    ? null
+                    : context.tr('password_min_chars'),
                 prefixIcon: const Icon(Icons.lock_outline),
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
@@ -212,7 +260,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               onSubmitted: _signInMode && canSubmit ? (_) => _submit() : null,
             ),
             if (!_signInMode) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: spacing),
               TextField(
                 controller: _confirm,
                 enabled: !_busy,
@@ -220,6 +268,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                 autofillHints: const [AutofillHints.newPassword],
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
+                  isDense: compact,
                   labelText: context.tr('confirm_password'),
                   prefixIcon: const Icon(Icons.lock_reset_outlined),
                   border: const OutlineInputBorder(),
@@ -231,7 +280,7 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                 onSubmitted: canSubmit ? (_) => _submit() : null,
               ),
             ],
-            const SizedBox(height: 18),
+            SizedBox(height: spacing),
             FilledButton.icon(
               onPressed: canSubmit ? _submit : null,
               icon: _busy
@@ -246,21 +295,28 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                     : _signInMode
                     ? context.tr('sign_in')
                     : context.tr('protect_account'),
-                maxLines: 2,
-                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (_signInMode) ...[
-              const SizedBox(height: 6),
+            if (_signInMode && !keyboardOpen) ...[
+              const SizedBox(height: 2),
               TextButton(
                 onPressed: _busy || !validEmail ? null : _sendPasswordReset,
-                child: Text(context.tr('forgot_password')),
+                child: Text(
+                  context.tr('forgot_password'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              Text(
-                context.tr('sign_in_switches_guest'),
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              if (!compact)
+                Text(
+                  context.tr('sign_in_switches_guest'),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
             ],
           ],
         ),
@@ -268,25 +324,38 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
     );
   }
 
-  Widget _protectedCard(BuildContext context) {
+  Widget _protectedCard(
+    BuildContext context, {
+    required bool compact,
+    required bool keyboardOpen,
+  }) {
     final user = _user!;
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(compact ? 12 : 18),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               context.tr('account_protected'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: compact ? 18 : null,
+                fontWeight: FontWeight.w900,
+              ),
             ),
-            const SizedBox(height: 6),
-            Text(user.email ?? context.tr('protected_account')),
-            const SizedBox(height: 12),
+            const SizedBox(height: 4),
+            Text(
+              user.email ?? context.tr('protected_account'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: compact ? 4 : 8),
             ListTile(
+              dense: compact,
               contentPadding: EdgeInsets.zero,
               leading: Icon(
                 user.emailVerified
@@ -297,36 +366,55 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                 user.emailVerified
                     ? context.tr('email_verified')
                     : context.tr('email_verification_required'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               subtitle: Text(
                 user.emailVerified
                     ? context.tr('paid_coins_recoverable')
                     : context.tr('verify_email_before_buying'),
+                maxLines: compact ? 1 : 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (!user.emailVerified) ...[
               OutlinedButton.icon(
                 onPressed: _busy ? null : _sendVerification,
                 icon: const Icon(Icons.forward_to_inbox_outlined),
-                label: Text(context.tr('resend_verification_email')),
+                label: Text(
+                  context.tr('resend_verification_email'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: compact ? 4 : 8),
               OutlinedButton.icon(
                 onPressed: _busy ? null : _refreshVerification,
                 icon: const Icon(Icons.refresh),
-                label: Text(context.tr('verified_refresh')),
+                label: Text(
+                  context.tr('verified_refresh'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
-            const SizedBox(height: 6),
-            TextButton.icon(
-              onPressed: _busy ? null : _sendPasswordReset,
-              icon: const Icon(Icons.password_outlined),
-              label: Text(context.tr('send_password_reset_email')),
-            ),
-            TextButton.icon(
-              onPressed: _busy ? null : _signOutToGuest,
-              icon: const Icon(Icons.logout_outlined),
-              label: Text(context.tr('sign_out_on_device')),
+            SizedBox(height: compact ? 2 : 6),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 2,
+              children: [
+                TextButton.icon(
+                  onPressed: _busy ? null : _sendPasswordReset,
+                  icon: const Icon(Icons.password_outlined),
+                  label: Text(context.tr('send_password_reset_email')),
+                ),
+                TextButton.icon(
+                  onPressed: _busy ? null : _signOutToGuest,
+                  icon: const Icon(Icons.logout_outlined),
+                  label: Text(context.tr('sign_out_on_device')),
+                ),
+              ],
             ),
           ],
         ),
@@ -427,49 +515,61 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               confirmation.text.trim().toUpperCase() == 'DELETE' &&
               (!_protected || password.text.length >= 8);
           return AlertDialog(
-            title: Text(context.tr('delete_player_account_question')),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 18,
+            ),
+            title: Text(
+              context.tr('delete_player_account_question'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
             content: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(context.tr('delete_player_account_warning')),
-                    const SizedBox(height: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    context.tr('delete_player_account_warning'),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: confirmation,
+                    autofocus: true,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      labelText: context.tr('type_delete'),
+                      border: const OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  if (_protected) ...[
+                    const SizedBox(height: 8),
                     TextField(
-                      controller: confirmation,
-                      autofocus: true,
-                      autocorrect: false,
+                      controller: password,
+                      obscureText: hidden,
                       decoration: InputDecoration(
-                        labelText: context.tr('type_delete'),
-                        border: OutlineInputBorder(),
+                        isDense: true,
+                        labelText: context.tr('current_password'),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          onPressed: () =>
+                              setDialogState(() => hidden = !hidden),
+                          icon: Icon(
+                            hidden
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                        ),
                       ),
                       onChanged: (_) => setDialogState(() {}),
                     ),
-                    if (_protected) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: password,
-                        obscureText: hidden,
-                        decoration: InputDecoration(
-                          labelText: context.tr('current_password'),
-                          border: const OutlineInputBorder(),
-                          suffixIcon: IconButton(
-                            onPressed: () =>
-                                setDialogState(() => hidden = !hidden),
-                            icon: Icon(
-                              hidden
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                          ),
-                        ),
-                        onChanged: (_) => setDialogState(() {}),
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
             ),
             actions: [
@@ -556,61 +656,41 @@ class _AccountModeSelector extends StatelessWidget {
   const _AccountModeSelector({
     required this.signInMode,
     required this.enabled,
+    required this.compact,
     required this.onChanged,
   });
 
   final bool signInMode;
   final bool enabled;
+  final bool compact;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < 390 ||
-            MediaQuery.textScalerOf(context).scale(1) > 1.3;
-        if (!compact) {
-          return SegmentedButton<bool>(
-            segments: [
-              ButtonSegment(
-                value: false,
-                icon: Icon(Icons.shield_outlined),
-                label: Text(context.tr('protect_current')),
-              ),
-              ButtonSegment(
-                value: true,
-                icon: Icon(Icons.login_outlined),
-                label: Text(context.tr('sign_in')),
-              ),
-            ],
-            selected: <bool>{signInMode},
-            onSelectionChanged: enabled
-                ? (values) => onChanged(values.first)
-                : null,
-          );
-        }
-
-        return Column(
-          children: [
-            _ModeTile(
-              selected: !signInMode,
-              enabled: enabled,
-              icon: Icons.shield_outlined,
-              label: context.tr('protect_current'),
-              onTap: () => onChanged(false),
-            ),
-            const SizedBox(height: 8),
-            _ModeTile(
-              selected: signInMode,
-              enabled: enabled,
-              icon: Icons.login_outlined,
-              label: context.tr('sign_in'),
-              onTap: () => onChanged(true),
-            ),
-          ],
-        );
-      },
+    return Row(
+      children: [
+        Expanded(
+          child: _ModeTile(
+            selected: !signInMode,
+            enabled: enabled,
+            icon: Icons.shield_outlined,
+            label: context.tr('protect_current'),
+            compact: compact,
+            onTap: () => onChanged(false),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _ModeTile(
+            selected: signInMode,
+            enabled: enabled,
+            icon: Icons.login_outlined,
+            label: context.tr('sign_in'),
+            compact: compact,
+            onTap: () => onChanged(true),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -621,6 +701,7 @@ class _ModeTile extends StatelessWidget {
     required this.enabled,
     required this.icon,
     required this.label,
+    required this.compact,
     required this.onTap,
   });
 
@@ -628,6 +709,7 @@ class _ModeTile extends StatelessWidget {
   final bool enabled;
   final IconData icon;
   final String label;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -640,22 +722,30 @@ class _ModeTile extends StatelessWidget {
         onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(14),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 8 : 12,
+            vertical: compact ? 8 : 11,
+          ),
           child: Row(
             children: [
-              Icon(icon),
-              const SizedBox(width: 10),
+              Icon(icon, size: compact ? 18 : 21),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   label,
-                  maxLines: 2,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: compact ? 11 : 13,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               Icon(
                 selected
                     ? Icons.radio_button_checked
                     : Icons.radio_button_unchecked,
+                size: compact ? 16 : 18,
               ),
             ],
           ),
@@ -666,9 +756,10 @@ class _ModeTile extends StatelessWidget {
 }
 
 class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.user});
+  const _StatusCard({required this.user, required this.compact});
 
   final User? user;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -676,38 +767,77 @@ class _StatusCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Material(
       color: protected ? scheme.primaryContainer : scheme.secondaryContainer,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(18),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: EdgeInsets.all(compact ? 10 : 14),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(protected ? Icons.shield : Icons.shield_outlined, size: 38),
-            const SizedBox(width: 14),
+            Icon(
+              protected ? Icons.shield : Icons.shield_outlined,
+              size: compact ? 28 : 34,
+            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     protected
                         ? context.tr('recoverable_account')
                         : context.tr('guest_account'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    protected
-                        ? context.tr('online_identity_linked', <Object>[
-                            user?.email ?? context.tr('email_account'),
-                          ])
-                        : context.tr('guest_account_risk'),
-                  ),
+                  if (!compact) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      protected
+                          ? context.tr('online_identity_linked', <Object>[
+                              user?.email ?? context.tr('email_account'),
+                            ])
+                          : context.tr('guest_account_risk'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountDataBar extends StatelessWidget {
+  const _AccountDataBar({
+    required this.busy,
+    required this.compact,
+    required this.onDelete,
+  });
+
+  final bool busy;
+  final bool compact;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: compact ? 42 : 50,
+      child: OutlinedButton.icon(
+        onPressed: busy ? null : onDelete,
+        style: OutlinedButton.styleFrom(foregroundColor: scheme.error),
+        icon: const Icon(Icons.delete_forever_outlined),
+        label: Text(
+          context.tr('delete_player_account'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
@@ -720,27 +850,36 @@ class _MessagePanel extends StatelessWidget {
     required this.background,
     required this.foreground,
     required this.text,
+    required this.compact,
   });
 
   final IconData icon;
   final Color background;
   final Color foreground;
   final String text;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: background,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 10 : 14,
+          vertical: compact ? 7 : 10,
+        ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: foreground),
-            const SizedBox(width: 10),
+            Icon(icon, color: foreground, size: compact ? 18 : 22),
+            const SizedBox(width: 8),
             Expanded(
-              child: Text(text, style: TextStyle(color: foreground)),
+              child: Text(
+                text,
+                maxLines: compact ? 1 : 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: foreground),
+              ),
             ),
           ],
         ),
