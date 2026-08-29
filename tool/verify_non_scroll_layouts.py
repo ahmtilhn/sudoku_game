@@ -28,6 +28,11 @@ FORBIDDEN = (
 
 
 def page_scope(relative: str, text: str) -> str:
+    if relative.endswith('professional_home_screen.dart'):
+        # Daily reward is an explicitly excluded reward/outcome surface. The
+        # Home page itself must remain non-scroll, while the modal may protect
+        # accessibility content with its own internal scroll behavior.
+        return text.split('class _DailyRewardDialog', 1)[0]
     if relative.endswith('enhanced_game_screen.dart'):
         # Result/outcome sheet is explicitly excluded from this responsive pass.
         return text.split('class _GameResultSheet', 1)[0]
