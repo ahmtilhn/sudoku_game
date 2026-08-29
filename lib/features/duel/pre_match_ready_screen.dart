@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/user_safe_error.dart';
+import '../../domain/sudoku.dart';
 import '../../localization/app_strings.dart';
+import '../../services/economy_service.dart';
 import '../../services/online_duel_controller.dart';
 import '../../services/online_duel_emote_hub.dart';
 import '../../services/online_duel_models.dart';
@@ -15,17 +17,20 @@ import '../../widgets/app_backdrop.dart';
 import '../../widgets/player_avatar.dart';
 import 'matchmaking_stage.dart';
 import 'online_duel_screen.dart';
+import 'prematch_match_terms_card.dart';
 
 class PreMatchReadyScreen extends StatefulWidget {
   const PreMatchReadyScreen({
     super.key,
     required this.roomId,
     this.initialCurrentPlayer,
+    this.requestedDifficulty,
     this.controller,
   });
 
   final String roomId;
   final MatchmakingVisualPlayer? initialCurrentPlayer;
+  final String? requestedDifficulty;
   final OnlineDuelController? controller;
 
   @override
@@ -362,10 +367,37 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
   bool get _youReady => _readyPressed || _you?.ready == true;
   bool get _opponentReady => _opponent?.ready == true;
 
-  String get _difficultyLabel {
-    final raw = _snapshot?.difficulty.trim() ?? '';
-    if (raw.isEmpty) return 'Duel';
-    return '${raw[0].toUpperCase()}${raw.substring(1)}';
+  String _difficultyLabel(BuildContext context) {
+    final actual = _normalizeDifficulty(_snapshot?.difficulty);
+    if (actual == null) return context.tr('online_duel');
+    return _difficultyLabelForKey(context, actual);
+  }
+
+  String? _difficultyAdjustmentLabel(BuildContext context) {
+    final requested = _normalizeDifficulty(widget.requestedDifficulty);
+    final actual = _normalizeDifficulty(_snapshot?.difficulty);
+    if (requested == null || actual == null || requested == actual) {
+      return null;
+    }
+    return '${_difficultyLabelForKey(context, requested)} → ${_difficultyLabelForKey(context, actual)}';
+  }
+
+  String _difficultyLabelForKey(BuildContext context, String key) {
+    for (final difficulty in SudokuDifficulty.values) {
+      if (difficulty.name == key) {
+        return context.strings.difficultyLabel(difficulty);
+      }
+    }
+    return key;
+  }
+
+  String? _normalizeDifficulty(String? value) {
+    final normalized = value?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty) return null;
+    for (final difficulty in SudokuDifficulty.values) {
+      if (difficulty.name == normalized) return normalized;
+    }
+    return null;
   }
 
   MatchmakingVisualPlayer _currentVisualPlayer(BuildContext context) {
@@ -424,6 +456,19 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     final action = _actionForState(context, failed);
     final showOpponentFound =
         !failed && _readyStage && opponent != null && !_youReady;
+    final requestedDifficulty = _normalizeDifficulty(widget.requestedDifficulty);
+    final actualDifficulty = _normalizeDifficulty(_snapshot?.difficulty);
+    final showMatchTerms =
+        requestedDifficulty != null && actualDifficulty != null;
+    final matchEntryFee = showMatchTerms
+        ? EconomyService.instance.entryFeeForDifficulty(actualDifficulty)
+        : null;
+    final matchWinnerPot = showMatchTerms
+        ? EconomyService.instance.winnerPotForDifficulty(actualDifficulty)
+        : null;
+    final difficultyAdjustmentLabel = showMatchTerms
+        ? _difficultyAdjustmentLabel(context)
+        : null;
 
     return PopScope(
       canPop: _handedOff || _allowPop,
@@ -435,7 +480,10 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
               currentPlayer: currentPlayer,
               opponent: opponent,
               opponentReady: _opponentReady,
-              difficultyLabel: _difficultyLabel,
+              difficultyLabel: _difficultyLabel(context),
+              entryFee: matchEntryFee,
+              winnerPot: matchWinnerPot,
+              difficultyAdjustmentLabel: difficultyAdjustmentLabel,
               actionBusy: _leaving || _connecting,
               onReady: _leaving ? null : _ready,
               onLeave: _leaving ? null : _confirmCancelAndLeave,
@@ -452,6 +500,9 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
               opponent: opponent,
               currentReady: _youReady,
               opponentReady: _opponentReady,
+              entryFee: matchEntryFee,
+              winnerPot: matchWinnerPot,
+              difficultyAdjustmentLabel: difficultyAdjustmentLabel,
               connectionLabel: failed
                   ? context.tr('online_account_unavailable')
                   : _connectionLabel(context),
@@ -555,6 +606,9 @@ class _OpponentFoundStage extends StatelessWidget {
     required this.opponent,
     required this.opponentReady,
     required this.difficultyLabel,
+    required this.entryFee,
+    required this.winnerPot,
+    this.difficultyAdjustmentLabel,
     required this.actionBusy,
     required this.onReady,
     required this.onLeave,
@@ -565,6 +619,9 @@ class _OpponentFoundStage extends StatelessWidget {
   final MatchmakingVisualPlayer opponent;
   final bool opponentReady;
   final String difficultyLabel;
+  final int? entryFee;
+  final int? winnerPot;
+  final String? difficultyAdjustmentLabel;
   final bool actionBusy;
   final VoidCallback? onReady;
   final VoidCallback? onLeave;
@@ -624,7 +681,17 @@ class _OpponentFoundStage extends StatelessWidget {
                           opponentReady: opponentReady,
                           scale: scale,
                         ),
-                        SizedBox(height: 12 * scale),
+                        if (entryFee != null && winnerPot != null) ...[
+                          SizedBox(height: 8 * scale),
+                          PrematchMatchTermsCard(
+                            entryFee: entryFee!,
+                            winnerPot: winnerPot!,
+                            difficultyAdjustmentLabel:
+                                difficultyAdjustmentLabel,
+                            scale: scale,
+                          ),
+                        ],
+                        SizedBox(height: 10 * scale),
                         SizedBox(
                           width: double.infinity,
                           height: (56 * scale).clamp(50.0, 60.0).toDouble(),
@@ -1325,6 +1392,9 @@ class _ReadyArenaStage extends StatelessWidget {
     required this.opponent,
     required this.currentReady,
     required this.opponentReady,
+    required this.entryFee,
+    required this.winnerPot,
+    this.difficultyAdjustmentLabel,
     required this.connectionLabel,
     required this.actionLabel,
     required this.actionIcon,
@@ -1338,6 +1408,9 @@ class _ReadyArenaStage extends StatelessWidget {
   final MatchmakingVisualPlayer? opponent;
   final bool currentReady;
   final bool opponentReady;
+  final int? entryFee;
+  final int? winnerPot;
+  final String? difficultyAdjustmentLabel;
   final String connectionLabel;
   final String actionLabel;
   final IconData actionIcon;
@@ -1406,6 +1479,16 @@ class _ReadyArenaStage extends StatelessWidget {
                           readyCount: readyCount,
                           scale: scale,
                         ),
+                        if (entryFee != null && winnerPot != null) ...[
+                          SizedBox(height: 8 * scale),
+                          PrematchMatchTermsCard(
+                            entryFee: entryFee!,
+                            winnerPot: winnerPot!,
+                            difficultyAdjustmentLabel:
+                                difficultyAdjustmentLabel,
+                            scale: scale,
+                          ),
+                        ],
                         SizedBox(height: 10 * scale),
                         SizedBox(
                           width: double.infinity,

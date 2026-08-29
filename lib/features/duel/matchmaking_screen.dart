@@ -536,7 +536,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       unawaited(_stopWithError(context.tr('matchmaking_start_failed')));
       return;
     }
-    _openOnlineRoom(roomId);
+    _openOnlineRoom(roomId, requestedDifficulty: _difficulty.name);
   }
 
   void _startPolling() {
@@ -651,7 +651,10 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     }
   }
 
-  void _openOnlineRoom(String roomId) {
+  void _openOnlineRoom(
+    String roomId, {
+    required String requestedDifficulty,
+  }) {
     if (_openingRoom || !mounted) return;
     _openingRoom = true;
     _pollTimer?.cancel();
@@ -671,6 +674,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
             pageBuilder: (_, _, _) => PreMatchReadyScreen(
               roomId: roomId,
               initialCurrentPlayer: initialPlayer,
+              requestedDifficulty: requestedDifficulty,
             ),
             transitionsBuilder: (_, animation, _, child) => FadeTransition(
               opacity: CurvedAnimation(
