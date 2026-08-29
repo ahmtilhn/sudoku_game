@@ -80,11 +80,7 @@ export function markDisconnected(
       DISCONNECT_GRACE_MS,
       current.graceRemainingMs,
     );
-
-    // nextAlarmAt only schedules strictly-future deadlines. One millisecond
-    // keeps a fully exhausted budget authoritative without granting a new
-    // usable reconnect window.
-    current.disconnectDeadline = now + Math.max(1, allowedGraceMs);
+    current.disconnectDeadline = now + allowedGraceMs;
   }
 
   return presence;
