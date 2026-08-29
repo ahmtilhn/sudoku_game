@@ -1,0 +1,130 @@
+name: Apply settings cleanup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-settings-cleanup-main.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-settings-cleanup-main
+  cancel-in-progress: false
+
+jobs:
+  patch-validate-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Route all game haptics through the user preference
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          service_import = "import '../../services/haptic_feedback_service.dart';"
+          service_file = Path('lib/services/haptic_feedback_service.dart')
+          targets = []
+
+          for path in Path('lib/features').rglob('*.dart'):
+              text = path.read_text(encoding='utf-8')
+              if 'HapticFeedback.' not in text:
+                  continue
+              targets.append(path)
+              text = text.replace('HapticFeedback.', 'HapticFeedbackService.instance.')
+              if service_import not in text:
+                  lines = text.splitlines()
+                  import_indexes = [i for i, line in enumerate(lines) if line.startswith('import ')]
+                  if not import_indexes:
+                      raise SystemExit(f'No import block found in {path}')
+                  lines.insert(import_indexes[-1] + 1, service_import)
+                  text = '\n'.join(lines) + ('\n' if text.endswith('\n') else '')
+              path.write_text(text, encoding='utf-8')
+
+          if not targets:
+              raise SystemExit('No HapticFeedback call sites were found.')
+
+          # The central service must remain the only direct Flutter haptic caller.
+          for path in Path('lib').rglob('*.dart'):
+              if path == service_file:
+                  continue
+              if 'HapticFeedback.' in path.read_text(encoding='utf-8'):
+                  raise SystemExit(f'Unrouted haptic call remains in {path}')
+
+          settings = Path('lib/features/settings/ux_settings_screen.dart')
+          text = settings.read_text(encoding='utf-8')
+          text = text.replace(
+              'crossAxisSize: CrossAxisSize.stretch,',
+              'crossAxisAlignment: CrossAxisAlignment.stretch,',
+          )
+          settings.write_text(text, encoding='utf-8')
+
+          # These were only reachable from the removed legacy SettingsScreen.
+          for obsolete in (
+              Path('lib/features/settings/service_diagnostics_screen.dart'),
+              Path('lib/services/service_diagnostics_service.dart'),
+          ):
+              if obsolete.exists():
+                  obsolete.unlink()
+          PY
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Apply safe analyzer fixes and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart fix --apply
+          mapfile -t files < <(git diff --name-only -- '*.dart')
+          if (( ${#files[@]} )); then dart format "${files[@]}"; fi
+          git diff --check
+
+      - name: Refresh generated UX audit
+        run: python3 tool/generate_ux_audit.py
+
+      - name: Validate localization catalog
+        run: python3 tool/validate_localizations.py
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM 12m flutter test --reporter expanded --concurrency=1
+
+      - name: Commit verified cleanup directly to main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A lib docs test
+          if git diff --cached --quiet; then
+            echo 'No source changes were required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Finish settings cleanup and centralize haptics'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
