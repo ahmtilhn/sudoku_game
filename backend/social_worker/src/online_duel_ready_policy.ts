@@ -1,5 +1,6 @@
 import {
   READY_DEADLINE_MS,
+  TURN_DURATION_MS,
   type DuelState,
   type PublicEvent,
   type Seat,
@@ -8,19 +9,22 @@ import {
 } from './online_duel_model';
 import { readinessPayload } from './online_duel_view';
 
-/// Ready-screen policy for the fixed, server-authoritative pre-match countdown.
+/// Ready-screen and game-screen loading policy.
 ///
-/// Players may mark themselves ready at any point, but readiness no longer
-/// skips the 10-second ready window. The actual transition to `active` remains
-/// owned by `applyDueDeadlines`, so both clients see the same countdown and the
-/// match begins only when the authoritative ready deadline expires.
+/// Phase 1: both clients load the Ready screen -> one shared 10 second
+/// readyDeadline is created.
+/// Phase 2: when that deadline expires, the deadline policy moves the room to
+/// active but deliberately leaves startedAt/turnDeadline null and resets both
+/// screenLoaded flags.
+/// Phase 3: both Sudoku board clients report screenLoaded -> only then are
+/// startedAt and the first turnDeadline armed.
 export function applyReady(
   state: DuelState,
   seat: Seat,
   now: number,
 ): PublicEvent[] {
   if (state.status === 'active' || state.finishedAt !== null) {
-    return [event(state, 'player_ready', now, { seat })];
+    return [event(state, 'player_ready', now, readinessPayload(state, { seat }))];
   }
 
   const current = seatFor(state, seat);
@@ -29,10 +33,6 @@ export function applyReady(
     state.revision++;
   }
 
-  // Open the ready window before creating the player_ready event so this event
-  // itself carries the final authoritative status/deadline. That makes the
-  // countdown resilient even if the following ready_window_started event is
-  // delayed or dropped by a client reconnect/revision race.
   const readyWindowEvents = maybeOpenReadyWindow(state, now);
   return [
     event(state, 'player_ready', now, readinessPayload(state, { seat })),
@@ -45,8 +45,8 @@ export function applyScreenLoaded(
   seat: Seat,
   now: number,
 ): PublicEvent[] {
-  if (state.status === 'active' || state.finishedAt !== null) {
-    return [event(state, 'screen_loaded', now, { seat })];
+  if (state.finishedAt !== null) {
+    return [event(state, 'screen_loaded', now, readinessPayload(state, { seat }))];
   }
 
   const current = seatFor(state, seat);
@@ -55,14 +55,19 @@ export function applyScreenLoaded(
     state.revision++;
   }
 
-  // The second loaded client is what normally opens the ready window. Build
-  // screen_loaded after that transition so both clients receive status,
-  // readyDeadline, readiness, presence and screenLoaded in this event too.
+  const loaded = event(
+    state,
+    'screen_loaded',
+    now,
+    readinessPayload(state, { seat }),
+  );
+
+  if (state.status === 'active') {
+    return [loaded, ...maybeArmGameplayClock(state, now)];
+  }
+
   const readyWindowEvents = maybeOpenReadyWindow(state, now);
-  return [
-    event(state, 'screen_loaded', now, readinessPayload(state, { seat })),
-    ...readyWindowEvents,
-  ];
+  return [loaded, ...readyWindowEvents];
 }
 
 function maybeOpenReadyWindow(
@@ -85,6 +90,35 @@ function maybeOpenReadyWindow(
 
   return [
     event(state, 'ready_window_started', now, readinessPayload(state)),
+  ];
+}
+
+function maybeArmGameplayClock(
+  state: DuelState,
+  now: number,
+): PublicEvent[] {
+  if (
+    state.status !== 'active' ||
+    state.startedAt !== null ||
+    state.finishedAt !== null ||
+    !bothConnectedAndLoaded(state)
+  ) {
+    return [];
+  }
+
+  state.startedAt = now;
+  state.turnStartedAt = now;
+  state.turnDeadline = now + TURN_DURATION_MS;
+  state.revision++;
+
+  const started = event(state, 'match_started', now, {});
+  return [
+    started,
+    {
+      ...started,
+      type: 'game_started',
+      eventId: `${state.roomId}:${state.revision}:game_started`,
+    },
   ];
 }
 
