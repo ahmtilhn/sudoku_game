@@ -38,6 +38,23 @@ fun decodeDartDefines(rawValue: String): Map<String, String> {
         }
 }
 
+fun escapeAndroidXml(value: String): String = value
+    .replace("&", "&amp;")
+    .replace("<", "&lt;")
+    .replace(">", "&gt;")
+    .replace("\"", "&quot;")
+    .replace("'", "\\'")
+
+fun androidValuesDirectory(locale: String): String = when (locale) {
+    "id" -> "values-in"
+    "zh-Hans" -> "values-b+zh+Hans"
+    "zh-Hant" -> "values-b+zh+Hant"
+    else -> "values-$locale"
+}
+
+val generatedPushResources = layout.buildDirectory.dir("generated/pushNotificationRes")
+val pushLocalizationCatalog = rootProject.file("../assets/localization/Localizable.xcstrings")
+
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val releaseSigningConfigured = keystorePropertiesFile.exists()
@@ -66,6 +83,10 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         multiDexEnabled = true
+    }
+
+    sourceSets {
+        getByName("main").res.srcDir(generatedPushResources)
     }
 
     signingConfigs {
@@ -207,8 +228,88 @@ val generateSudokuLauncherIcon by tasks.registering {
     }
 }
 
+val generatePushNotificationLocalizations by tasks.registering {
+    inputs.file(pushLocalizationCatalog)
+    outputs.dir(generatedPushResources)
+
+    doLast {
+        if (!pushLocalizationCatalog.exists()) {
+            throw GradleException(
+                "Missing ${pushLocalizationCatalog.path}; native push strings cannot be generated.",
+            )
+        }
+
+        val outputRoot = generatedPushResources.get().asFile
+        outputRoot.deleteRecursively()
+        outputRoot.mkdirs()
+
+        val catalog = JsonSlurper().parse(pushLocalizationCatalog) as? Map<*, *>
+            ?: throw GradleException("Localizable.xcstrings must contain a JSON object.")
+        val catalogStrings = catalog["strings"] as? Map<*, *>
+            ?: throw GradleException("Localizable.xcstrings is missing strings.")
+        val pushStrings = catalogStrings.entries
+            .filter { it.key?.toString()?.startsWith("push_") == true }
+
+        if (pushStrings.isEmpty()) {
+            throw GradleException("Localizable.xcstrings contains no push_* strings.")
+        }
+
+        val byLocale = linkedMapOf<String, MutableMap<String, String>>()
+        pushStrings.forEach { entry ->
+            val key = entry.key.toString()
+            val definition = entry.value as? Map<*, *> ?: return@forEach
+            val localizations = definition["localizations"] as? Map<*, *> ?: return@forEach
+            localizations.forEach localizationLoop@{ (localeKey, localizedValue) ->
+                val locale = localeKey?.toString().orEmpty()
+                if (locale.isBlank() || locale == "en") return@localizationLoop
+                val localization = localizedValue as? Map<*, *> ?: return@localizationLoop
+                val stringUnit = localization["stringUnit"] as? Map<*, *>
+                    ?: return@localizationLoop
+                val value = stringUnit["value"]?.toString() ?: return@localizationLoop
+                byLocale.getOrPut(locale) { linkedMapOf() }[key] = value
+            }
+        }
+
+        byLocale.forEach { (locale, values) ->
+            val valuesDirectory = androidValuesDirectory(locale)
+            val sourceStrings = layout.projectDirectory
+                .file("src/main/res/$valuesDirectory/strings.xml")
+                .asFile
+                .takeIf { it.exists() }
+                ?.readText()
+                .orEmpty()
+            val missingValues = values.filterKeys { key ->
+                !Regex("""<string\s+name=[\"']${Regex.escape(key)}[\"']""")
+                    .containsMatchIn(sourceStrings)
+            }
+            if (missingValues.isEmpty()) return@forEach
+
+            val directory = outputRoot.resolve(valuesDirectory)
+            directory.mkdirs()
+            val xml = buildString {
+                append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n")
+                missingValues.toSortedMap().forEach { (key, value) ->
+                    append("    <string name=\"")
+                    append(key)
+                    append("\" formatted=\"false\">")
+                    append(escapeAndroidXml(value))
+                    append("</string>\n")
+                }
+                append("</resources>\n")
+            }
+            directory.resolve("push_strings.xml").writeText(xml)
+        }
+
+        logger.lifecycle(
+            "Generated native Android push localizations for {} locales from Localizable.xcstrings.",
+            byLocale.size,
+        )
+    }
+}
+
 tasks.matching { it.name == "preBuild" }.configureEach {
     dependsOn(generateSudokuLauncherIcon)
+    dependsOn(generatePushNotificationLocalizations)
 }
 
 tasks.matching { it.name == "preReleaseBuild" }.configureEach {
