@@ -260,7 +260,7 @@ class _LargeReadyCountdown extends StatelessWidget {
         curve: Curves.easeOutBack,
         builder: (context, scale, child) => Transform.scale(
           scale: scale,
-          child: Opacity(opacity: scale.clamp(0, 1), child: child),
+          child: Opacity(opacity: scale, child: child),
         ),
         child: Container(
           width: 142,
@@ -315,7 +315,7 @@ class _MatchStartingCard extends StatelessWidget {
         curve: Curves.easeOutCubic,
         builder: (context, scale, child) => Transform.scale(
           scale: scale,
-          child: Opacity(opacity: scale.clamp(0, 1), child: child),
+          child: Opacity(opacity: scale, child: child),
         ),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 320),
