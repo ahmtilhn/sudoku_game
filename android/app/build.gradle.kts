@@ -251,6 +251,7 @@ val generateSudokuLauncherIcon by tasks.registering {
 }
 
 val generateNativeLocalizationResources by tasks.registering {
+    dependsOn(generateSudokuLauncherIcon)
     inputs.file(localizationCatalog)
     inputs.dir(layout.projectDirectory.dir("src/main/res"))
     outputs.dir(generatedLocalizationResources)
