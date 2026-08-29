@@ -64,59 +64,7 @@ class GameColors extends ThemeExtension<GameColors> {
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData light({required bool highContrast}) {
-    const scheme = ColorScheme(
-      brightness: Brightness.light,
-      primary: Color(0xFF1FB57E),
-      onPrimary: Color(0xFF08110E),
-      primaryContainer: Color(0xFFD7F8EB),
-      onPrimaryContainer: Color(0xFF08110E),
-      secondary: Color(0xFF3AA9FF),
-      onSecondary: Color(0xFFFFFFFF),
-      secondaryContainer: Color(0xFFDCEEFF),
-      onSecondaryContainer: Color(0xFF071B2E),
-      tertiary: Color(0xFFD99C1D),
-      onTertiary: Color(0xFF08110E),
-      tertiaryContainer: Color(0xFFFFEDB3),
-      onTertiaryContainer: Color(0xFF382500),
-      error: Color(0xFFFF5B6B),
-      onError: Color(0xFFFFFFFF),
-      errorContainer: Color(0xFFFFDAD6),
-      onErrorContainer: Color(0xFF410002),
-      surface: Color(0xFFFFFFFF),
-      onSurface: Color(0xFF172126),
-      onSurfaceVariant: Color(0xFF59676D),
-      outline: Color(0xFF7A898F),
-      outlineVariant: Color(0xFFC6D0D4),
-      shadow: Color(0xFF000000),
-      scrim: Color(0xFF000000),
-      inverseSurface: Color(0xFF2B3236),
-      onInverseSurface: Color(0xFFEFF3F4),
-      inversePrimary: Color(0xFF29D398),
-      surfaceTint: Color(0xFF29D398),
-      surfaceContainerLowest: Color(0xFFFFFFFF),
-      surfaceContainerLow: Color(0xFFF0F4F5),
-      surfaceContainer: Color(0xFFE9EFF1),
-      surfaceContainerHigh: Color(0xFFE1E8EA),
-      surfaceContainerHighest: Color(0xFFD9E2E5),
-    );
-    return _build(
-      scheme,
-      highContrast: highContrast,
-      gameColors: const GameColors(
-        success: Color(0xFF1FB57E),
-        onSuccess: Color(0xFF08110E),
-        reward: Color(0xFFD99C1D),
-        onReward: Color(0xFF08110E),
-        localPlayer: Color(0xFF29D398),
-        opponentPlayer: Color(0xFF3AA9FF),
-        warning: Color(0xFFFF9F43),
-        timerCritical: Color(0xFFFF5B6B),
-      ),
-    );
-  }
-
-  static ThemeData dark({required bool highContrast}) {
+  static ThemeData dark() {
     const scheme = ColorScheme(
       brightness: Brightness.dark,
       primary: Color(0xFF29D398),
@@ -154,7 +102,6 @@ class AppTheme {
     );
     return _build(
       scheme,
-      highContrast: highContrast,
       gameColors: const GameColors(
         success: Color(0xFF29D398),
         onSuccess: Color(0xFF08110E),
@@ -170,16 +117,13 @@ class AppTheme {
 
   static ThemeData _build(
     ColorScheme scheme, {
-    required bool highContrast,
     required GameColors gameColors,
   }) {
     final baseTextTheme = Typography.material2021().black;
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: scheme.brightness == Brightness.light
-          ? const Color(0xFFF4F6F8)
-          : const Color(0xFF0B1215),
+      scaffoldBackgroundColor: const Color(0xFF0B1215),
       extensions: <ThemeExtension<dynamic>>[gameColors],
       textTheme: baseTextTheme
           .copyWith(
