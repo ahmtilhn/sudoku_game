@@ -39,6 +39,30 @@ function state() {
 }
 
 describe('ready countdown', () => {
+  it('delivers the authoritative deadline on the event that opens the ready window', () => {
+    const duel = state();
+    markConnected(duel, 'A', 1_001);
+    markConnected(duel, 'B', 1_002);
+    applyScreenLoaded(duel, 'A', 1_003);
+
+    const events = applyScreenLoaded(duel, 'B', 1_004);
+    const screenLoaded = events.find((event) => event.type === 'screen_loaded');
+    const windowStarted = events.find(
+      (event) => event.type === 'ready_window_started',
+    );
+
+    expect(screenLoaded).toBeDefined();
+    expect(screenLoaded?.payload.status).toBe('ready_window');
+    expect(screenLoaded?.payload.readyDeadline).toBe(
+      1_004 + READY_DEADLINE_MS,
+    );
+    expect(screenLoaded?.payload.screenLoaded).toEqual({ A: true, B: true });
+    expect(screenLoaded?.payload.presence).toEqual({ A: true, B: true });
+    expect(windowStarted?.payload.readyDeadline).toBe(
+      1_004 + READY_DEADLINE_MS,
+    );
+  });
+
   it('keeps the duel in the ready window for the full 10 seconds', () => {
     const duel = state();
     markConnected(duel, 'A', 1_001);
