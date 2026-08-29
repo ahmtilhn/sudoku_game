@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../features/duel/online_ready_countdown_overlay.dart';
@@ -15,17 +17,6 @@ class AppBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final duelSnapshot = OnlineDuelController.activeSnapshot;
-    final showReadyCountdown =
-        duelSnapshot?.status == OnlineDuelStatus.readyWindow &&
-        duelSnapshot?.readyDeadline != null;
-    final showStartingFlash =
-        duelSnapshot?.status == OnlineDuelStatus.active &&
-        duelSnapshot?.turnNumber == 1 &&
-        duelSnapshot?.scores.values.every((value) => value == 0) == true &&
-        duelSnapshot?.correctMoves.values.every((value) => value == 0) == true &&
-        duelSnapshot?.mistakes.values.every((value) => value == 0) == true;
-
     final content = Stack(
       fit: StackFit.expand,
       children: [
@@ -57,14 +48,75 @@ class AppBackdrop extends StatelessWidget {
                 CustomPaint(painter: _BackdropMotionPainter(animation!.value)),
           ),
         ?child,
-        if (showReadyCountdown || showStartingFlash)
-          OnlineReadyCountdownOverlay(
-            snapshot: duelSnapshot!,
-            showStartingFlash: showStartingFlash,
-          ),
+        const _DuelCountdownLayer(),
       ],
     );
     return RepaintBoundary(child: content);
+  }
+}
+
+/// Keeps the duel countdown reactive without forcing the whole backdrop to
+/// repaint. `OnlineDuelController.activeSnapshot` is intentionally a cheap
+/// synchronous getter, so this lightweight watcher bridges it into the widget
+/// tree. Once the ready window appears, the countdown overlay owns its own
+/// 100 ms ticker for smooth 3-2-1 transitions.
+class _DuelCountdownLayer extends StatefulWidget {
+  const _DuelCountdownLayer();
+
+  @override
+  State<_DuelCountdownLayer> createState() => _DuelCountdownLayerState();
+}
+
+class _DuelCountdownLayerState extends State<_DuelCountdownLayer> {
+  Timer? _snapshotWatcher;
+  OnlineDuelSnapshot? _snapshot;
+
+  @override
+  void initState() {
+    super.initState();
+    _snapshot = OnlineDuelController.activeSnapshot;
+    _snapshotWatcher = Timer.periodic(
+      const Duration(milliseconds: 200),
+      (_) => _syncSnapshot(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _snapshotWatcher?.cancel();
+    super.dispose();
+  }
+
+  void _syncSnapshot() {
+    if (!mounted) return;
+    final next = OnlineDuelController.activeSnapshot;
+    if (identical(next, _snapshot)) return;
+    setState(() => _snapshot = next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final snapshot = _snapshot;
+    if (snapshot == null) return const SizedBox.shrink();
+
+    final showReadyCountdown =
+        snapshot.status == OnlineDuelStatus.readyWindow &&
+        snapshot.readyDeadline != null;
+    final showStartingFlash =
+        snapshot.status == OnlineDuelStatus.active &&
+        snapshot.turnNumber == 1 &&
+        snapshot.scores.values.every((value) => value == 0) &&
+        snapshot.correctMoves.values.every((value) => value == 0) &&
+        snapshot.mistakes.values.every((value) => value == 0);
+
+    if (!showReadyCountdown && !showStartingFlash) {
+      return const SizedBox.shrink();
+    }
+
+    return OnlineReadyCountdownOverlay(
+      snapshot: snapshot,
+      showStartingFlash: showStartingFlash,
+    );
   }
 }
 
