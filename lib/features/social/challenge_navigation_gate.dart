@@ -140,11 +140,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
   }
 
   Future<void> _openChallenge() async {
-    if (!mounted ||
-        _openingChallenge ||
-        !(ModalRoute.of(context)?.isCurrent ?? false)) {
-      return;
-    }
+    if (!mounted || _openingChallenge) return;
     final challengeId = _push.openedChallengeId.value;
     if (challengeId == null || challengeId.isEmpty) return;
 
