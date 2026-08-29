@@ -28,8 +28,8 @@ jobs:
           cache: true
       - name: Resolve packages
         run: flutter pub get
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib/features/duel/matchmaking_screen.dart lib/features/duel/pre_match_ready_screen.dart lib/features/duel/prematch_match_terms_card.dart test/prematch_match_terms_contract_test.dart
+      - name: Format changed Dart files
+        run: dart format lib/features/duel/matchmaking_screen.dart lib/features/duel/pre_match_ready_screen.dart lib/features/duel/prematch_match_terms_card.dart test/prematch_match_terms_contract_test.dart
       - name: Analyze
         run: flutter analyze --fatal-infos
       - name: Focused tests
@@ -39,13 +39,19 @@ jobs:
         run: |
           set -euo pipefail
           timeout --signal=TERM 8m flutter test --reporter compact --concurrency=1
-      - name: Remove temporary validation workflow
+      - name: Commit formatting and remove temporary validation workflow
         if: success()
         shell: bash
         run: |
           rm .github/workflows/validate-prematch-match-terms.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/validate-prematch-match-terms.yml
-          git commit -m "Remove temporary prematch validation workflow"
-          git push origin HEAD:fix/prematch-match-terms
+          git add lib/features/duel/matchmaking_screen.dart \
+                  lib/features/duel/pre_match_ready_screen.dart \
+                  lib/features/duel/prematch_match_terms_card.dart \
+                  test/prematch_match_terms_contract_test.dart \
+                  .github/workflows/validate-prematch-match-terms.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Format and validate prematch match terms"
+            git push origin HEAD:fix/prematch-match-terms
+          fi
