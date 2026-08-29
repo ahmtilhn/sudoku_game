@@ -12,6 +12,8 @@ export type PushMessage = {
   bodyKey: string;
   data: Record<string, string>;
   tag: string;
+  /** Maximum time this notification remains useful while a device is offline. */
+  ttlSeconds?: number;
 };
 
 type CachedAccessToken = {
@@ -45,6 +47,9 @@ export async function sendPlayerPush(
   if (tokens.results.length === 0) return;
 
   const accessToken = await getAccessToken(env);
+  const ttlSeconds = notificationTtlSeconds(message);
+  const expiresAtSeconds = Math.floor(Date.now() / 1000) + ttlSeconds;
+
   await Promise.all(
     tokens.results.map(async (device) => {
       const response = await fetch(
@@ -61,6 +66,7 @@ export async function sendPlayerPush(
               data: message.data,
               android: {
                 priority: 'high',
+                ttl: `${ttlSeconds}s`,
                 notification: {
                   channel_id: 'online_challenges',
                   tag: message.tag,
@@ -70,7 +76,11 @@ export async function sendPlayerPush(
                 },
               },
               apns: {
-                headers: { 'apns-priority': '10' },
+                headers: {
+                  'apns-priority': '10',
+                  'apns-push-type': 'alert',
+                  'apns-expiration': String(expiresAtSeconds),
+                },
                 payload: {
                   aps: {
                     alert: {
@@ -78,7 +88,6 @@ export async function sendPlayerPush(
                       'loc-key': message.bodyKey,
                     },
                     sound: 'default',
-                    badge: 1,
                     'thread-id': 'online-challenges',
                   },
                 },
@@ -103,6 +112,25 @@ export async function sendPlayerPush(
       }
     }),
   );
+}
+
+function notificationTtlSeconds(message: PushMessage): number {
+  if (message.ttlSeconds != null) {
+    return Math.max(0, Math.min(Math.floor(message.ttlSeconds), 28 * 24 * 60 * 60));
+  }
+
+  switch (message.data.type) {
+    case 'rematch_invitation':
+      return 15;
+    case 'challenge':
+    case 'challenge_response':
+      return 15 * 60;
+    case 'friend_request':
+    case 'friend_response':
+      return 7 * 24 * 60 * 60;
+    default:
+      return 60 * 60;
+  }
 }
 
 async function getAccessToken(env: PushEnv): Promise<string> {
