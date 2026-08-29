@@ -39,18 +39,19 @@ function state() {
       displayName: 'Bob',
       avatarKey: 'default',
     },
-    now: 1_000,
+    now: -10_000,
     randomBytes: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 1, 2, 3, 4, 5, 6, 7]),
   });
 }
 
-function startDuel(duel: ReturnType<typeof state>, now = 1_000) {
+function startDuel(duel: ReturnType<typeof state>, now = -10_000) {
   markConnected(duel, 'A', now + 1);
   markConnected(duel, 'B', now + 2);
   applyScreenLoaded(duel, 'A', now + 3);
   applyScreenLoaded(duel, 'B', now + 4);
   applyReady(duel, 'A', now + 5);
   applyReady(duel, 'B', now + 6);
+  applyDueDeadlines(duel, duel.readyDeadline!);
 }
 
 describe('authoritative online duel engine', () => {
@@ -77,7 +78,7 @@ describe('authoritative online duel engine', () => {
     expect(duel.readyDeadline).toBe(11_005);
   });
 
-  it('starts immediately once both loaded players are ready', () => {
+  it('keeps both ready players in the ready window until the countdown expires', () => {
     const duel = state();
     markConnected(duel, 'A', 1_001);
     markConnected(duel, 'B', 1_002);
@@ -86,11 +87,17 @@ describe('authoritative online duel engine', () => {
     applyReady(duel, 'A', 1_005);
     expect(duel.status).toBe('ready_window');
 
-    const events = applyReady(duel, 'B', 1_006);
+    const readyEvents = applyReady(duel, 'B', 1_006);
+    expect(duel.status).toBe('ready_window');
+    expect(duel.turnDeadline).toBeNull();
+    expect(readyEvents.filter((event) => event.type === 'match_started')).toHaveLength(0);
+    expect(readyEvents.filter((event) => event.type === 'game_started')).toHaveLength(0);
+
+    const startEvents = applyDueDeadlines(duel, 11_004);
     expect(duel.status).toBe('active');
-    expect(duel.turnDeadline).toBe(31_006);
-    expect(events.filter((event) => event.type === 'match_started')).toHaveLength(1);
-    expect(events.filter((event) => event.type === 'game_started')).toHaveLength(1);
+    expect(duel.turnDeadline).toBe(41_004);
+    expect(startEvents.filter((event) => event.type === 'match_started')).toHaveLength(1);
+    expect(startEvents.filter((event) => event.type === 'game_started')).toHaveLength(1);
   });
 
   it('auto-starts after the ready window when both players remain loaded', () => {
