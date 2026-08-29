@@ -12,6 +12,7 @@ import 'services/coin_store_service.dart';
 import 'services/economy_service.dart';
 import 'services/economy_v3_service.dart';
 import 'services/firebase_services.dart';
+import 'services/haptic_feedback_service.dart';
 import 'services/play_games_firebase_auth_service.dart';
 import 'services/platform_game_services.dart';
 import 'services/platform_game_stats_service.dart';
@@ -27,6 +28,7 @@ Future<void> main() async {
 
   final store = await LocalProgressStore.create();
   final strings = await AppStrings.load();
+  await HapticFeedbackService.instance.initialize();
   CareerRewardSyncService.instance.bind(store);
 
   // Firebase and App Check are prerequisites for every authenticated online
