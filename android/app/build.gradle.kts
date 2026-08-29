@@ -86,7 +86,9 @@ android {
     }
 
     sourceSets {
-        getByName("main").res.srcDir(generatedPushResources)
+        // AGP 9+ rejects Provider<Directory> on the legacy SourceSet API.
+        // Resolve it to a concrete File; preBuild below keeps task ordering.
+        getByName("main").res.srcDir(generatedPushResources.get().asFile)
     }
 
     signingConfigs {
