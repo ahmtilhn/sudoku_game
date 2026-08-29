@@ -192,12 +192,11 @@ class PushNotificationService {
       _strings ??= await AppStrings.load();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-      final signedIn = await _ensureAnonymousSession();
-      if (!signedIn) return;
-
       final savedEnabled = await _preferences.getBool(_enabledKey);
       userDisabled.value = savedEnabled != true;
 
+      // Notification delivery/open handling must never depend on Firebase Auth.
+      // A temporary auth/network failure must not discard a user-tapped push.
       await _initializeLocalNotifications();
       await FirebaseMessaging.instance
           .setForegroundNotificationPresentationOptions(
@@ -217,7 +216,7 @@ class PushNotificationService {
         _handleOpenedMessage,
       );
       _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
-        (token) => unawaited(_registerToken(token)),
+        (token) => unawaited(_registerRefreshedToken(token)),
       );
 
       final initialMessage = await FirebaseMessaging.instance
@@ -232,9 +231,10 @@ class PushNotificationService {
       // OS permission is shared by all notification features. Do not interpret
       // a permission granted for daily reminders as consent for online pushes.
       enabled.value = savedEnabled == true && authorized;
-      if (enabled.value) await _registerCurrentToken();
-
       initialized.value = true;
+
+      // Auth is only required when registering a device token with the backend.
+      if (enabled.value) await _registerCurrentToken();
     } catch (error, stackTrace) {
       initialized.value = false;
       lastRegistrationError.value = _safeRegistrationError;
@@ -457,12 +457,23 @@ class PushNotificationService {
   }
 
   Future<bool> _registerCurrentToken() async {
+    if (!await _ensureAnonymousSession()) {
+      lastRegistrationError.value = _safeRegistrationError;
+      return false;
+    }
+
     final token = await _loadMessagingToken();
     if (token == null || token.isEmpty) {
       lastRegistrationError.value = _safeRegistrationError;
       return false;
     }
     return _registerToken(token);
+  }
+
+  Future<void> _registerRefreshedToken(String token) async {
+    if (!enabled.value || userDisabled.value || token.isEmpty) return;
+    if (!await _ensureAnonymousSession()) return;
+    await _registerToken(token);
   }
 
   Future<String?> _loadMessagingToken() async {
