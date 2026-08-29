@@ -150,10 +150,25 @@ jobs:
         run: flutter analyze --fatal-infos
 
       - name: Test
+        id: tests
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          timeout --signal=TERM 12m flutter test --reporter expanded --concurrency=1
+          timeout --signal=TERM 12m flutter test --reporter expanded --concurrency=1 2>&1 | tee /tmp/settings-cleanup-tests.txt
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: settings-cleanup-test-output
+          path: /tmp/settings-cleanup-tests.txt
+          if-no-files-found: ignore
+          retention-days: 1
+
+      - name: Enforce test result
+        if: steps.tests.outcome != 'success'
+        run: exit 1
 
       - name: Commit verified cleanup directly to main
         shell: bash
