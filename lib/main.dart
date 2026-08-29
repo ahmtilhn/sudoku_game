@@ -59,13 +59,15 @@ Future<void> main() async {
 
         final push = PushNotificationService.instance;
         await push.initialize();
-        if (!push.userDisabled.value) {
-          if (push.permissionGranted.value) {
-            await push.refreshRegistration();
-          } else {
-            await push.requestPermissionAndRegister();
-          }
+
+        // Startup must never display the OS notification permission prompt.
+        // Only an explicit opt-in from Settings may request permission. Existing
+        // opted-in users simply refresh their current token when permission is
+        // already available.
+        if (!push.userDisabled.value && push.permissionGranted.value) {
+          await push.refreshRegistration();
         }
+
         await PlatformLeaderboardService.instance.syncAuthoritativeRatings(
           allowInteractiveAuthentication: false,
         );

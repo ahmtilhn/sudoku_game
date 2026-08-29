@@ -50,6 +50,11 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 
+	<!-- Keep Firebase Messaging AppDelegate swizzling enabled. The Flutter FCM
+	     plugin uses it to map APNs tokens to FCM tokens and notification opens. -->
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<true/>
+
 	<!-- Production AdMob application ID for Sudoku Duel iOS. -->
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-8422988604275177~3293784266</string>
@@ -112,6 +117,13 @@
 
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Firebase Messaging requires Background fetch and Remote notifications
+	     background modes on Apple platforms. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

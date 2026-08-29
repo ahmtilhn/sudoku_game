@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../localization/app_strings.dart';
 import 'firebase_runtime_config.dart';
 import 'firebase_services.dart';
+import 'notification_platform_service.dart';
 import 'social_api_client.dart';
 
 @pragma('vm:entry-point')
@@ -140,13 +141,13 @@ class PushNotificationService {
   static const String _safeRegistrationError =
       'Notification setup could not be completed. Please try again.';
 
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
+  final NotificationPlatformService _platform =
+      NotificationPlatformService.instance;
   final SharedPreferencesAsync _preferences = SharedPreferencesAsync();
 
   final ValueNotifier<bool> initialized = ValueNotifier<bool>(false);
   final ValueNotifier<bool> enabled = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> userDisabled = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> userDisabled = ValueNotifier<bool>(true);
   final ValueNotifier<bool> permissionGranted = ValueNotifier<bool>(false);
   final ValueNotifier<String?> lastRegistrationError = ValueNotifier<String?>(
     null,
@@ -160,7 +161,7 @@ class PushNotificationService {
   StreamSubscription<RemoteMessage>? _messageSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
   Future<void>? _initialization;
-  bool _automaticSocialUiAllowed = false;
+  bool _platformPayloadListenerAttached = false;
   AppStrings? _strings;
 
   bool get configured => FirebaseRuntimeConfig.configured;
@@ -171,8 +172,11 @@ class PushNotificationService {
       openedRematchId.value?.isNotEmpty == true ||
       openedSocialId.value?.isNotEmpty == true;
 
+  /// Kept for compatibility with older navigation gates. Foreground delivery
+  /// no longer opens social UI automatically; only an explicit notification
+  /// tap creates a navigation destination.
   void setAutomaticSocialUiAllowed(bool value) {
-    _automaticSocialUiAllowed = value;
+    // Intentionally no-op.
   }
 
   Future<void> initialize() {
@@ -188,12 +192,11 @@ class PushNotificationService {
       _strings ??= await AppStrings.load();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-      final signedIn = await _ensureAnonymousSession();
-      if (!signedIn) return;
-
       final savedEnabled = await _preferences.getBool(_enabledKey);
-      userDisabled.value = savedEnabled == false;
+      userDisabled.value = savedEnabled != true;
 
+      // Notification delivery/open handling must never depend on Firebase Auth.
+      // A temporary auth/network failure must not discard a user-tapped push.
       await _initializeLocalNotifications();
       await FirebaseMessaging.instance
           .setForegroundNotificationPresentationOptions(
@@ -213,7 +216,7 @@ class PushNotificationService {
         _handleOpenedMessage,
       );
       _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
-        (token) => unawaited(_registerToken(token)),
+        (token) => unawaited(_registerRefreshedToken(token)),
       );
 
       final initialMessage = await FirebaseMessaging.instance
@@ -224,13 +227,14 @@ class PushNotificationService {
           .getNotificationSettings();
       final authorized = _isAuthorized(settings.authorizationStatus);
       permissionGranted.value = authorized;
-      enabled.value = (savedEnabled ?? authorized) && authorized;
-      if (savedEnabled == null && authorized) {
-        await _preferences.setBool(_enabledKey, true);
-      }
-      if (enabled.value) await _registerCurrentToken();
 
+      // OS permission is shared by all notification features. Do not interpret
+      // a permission granted for daily reminders as consent for online pushes.
+      enabled.value = savedEnabled == true && authorized;
       initialized.value = true;
+
+      // Auth is only required when registering a device token with the backend.
+      if (enabled.value) await _registerCurrentToken();
     } catch (error, stackTrace) {
       initialized.value = false;
       lastRegistrationError.value = _safeRegistrationError;
@@ -249,7 +253,7 @@ class PushNotificationService {
       final settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
         announcement: false,
-        badge: true,
+        badge: false,
         carPlay: false,
         criticalAlert: false,
         provisional: false,
@@ -339,23 +343,15 @@ class PushNotificationService {
   }
 
   Future<void> _initializeLocalNotifications() async {
-    const settings = InitializationSettings(
-      android: AndroidInitializationSettings('ic_launcher'),
-      iOS: DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
-      ),
-    );
-    await _localNotifications.initialize(
-      settings: settings,
-      onDidReceiveNotificationResponse: (response) {
-        _handleLocalPayload(response.payload);
-      },
-    );
+    await _platform.initialize();
+    if (!_platformPayloadListenerAttached) {
+      _platform.openedPayload.addListener(_handlePlatformPayload);
+      _platformPayloadListenerAttached = true;
+    }
+    _handlePlatformPayload();
 
     if (!kIsWeb && Platform.isAndroid) {
-      await _localNotifications
+      await _platform.plugin
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >()
@@ -375,13 +371,8 @@ class PushNotificationService {
     final target = parsePushNotificationDestination(message.data);
     if (target == null) return;
 
-    final actionable =
-        target.type != PushNotificationDestinationType.informational;
-    if (actionable) {
-      _openTarget(target);
-      if (_automaticSocialUiAllowed) return;
-    }
-
+    // Receiving a push is not the same action as opening it. Foreground pushes
+    // are presented to the user and only their tap is allowed to navigate.
     await _showForegroundSystemNotification(target);
   }
 
@@ -390,7 +381,7 @@ class PushNotificationService {
   ) async {
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
 
-    await _localNotifications.show(
+    await _platform.plugin.show(
       id: target.id.hashCode & 0x7fffffff,
       title: _localized(target.defaultTitleKey),
       body: _localized(target.defaultBodyKey),
@@ -406,6 +397,7 @@ class PushNotificationService {
         ),
         iOS: const DarwinNotificationDetails(
           threadIdentifier: 'online-challenges',
+          presentBadge: false,
         ),
       ),
       payload: target.payload,
@@ -418,20 +410,26 @@ class PushNotificationService {
     _openTarget(target);
   }
 
-  void _handleLocalPayload(String? payload) {
-    if (payload == null || payload.isEmpty) return;
-    final separator = payload.indexOf(':');
-    if (separator <= 0) {
-      openedChallengeId.value = payload;
+  void _handlePlatformPayload() {
+    final payload = _platform.openedPayload.value;
+    if (payload == null || payload.isEmpty || payload == 'daily-reminder') {
       return;
     }
+    if (_handleLocalPayload(payload)) {
+      _platform.consumePayload(payload);
+    }
+  }
+
+  bool _handleLocalPayload(String payload) {
+    final separator = payload.indexOf(':');
+    if (separator <= 0) return false;
     final typeName = payload.substring(0, separator);
     final id = payload.substring(separator + 1);
-    if (id.isEmpty) return;
+    if (id.isEmpty) return false;
     final type = PushNotificationDestinationType.values.where(
       (value) => value.name == typeName,
     );
-    if (type.isEmpty) return;
+    if (type.isEmpty) return false;
     _openTarget(
       PushNotificationDestination(
         type: type.first,
@@ -440,6 +438,7 @@ class PushNotificationService {
         defaultBodyKey: 'push_online_invitation_body',
       ),
     );
+    return true;
   }
 
   void _openTarget(PushNotificationDestination target) {
@@ -458,6 +457,11 @@ class PushNotificationService {
   }
 
   Future<bool> _registerCurrentToken() async {
+    if (!await _ensureAnonymousSession()) {
+      lastRegistrationError.value = _safeRegistrationError;
+      return false;
+    }
+
     final token = await _loadMessagingToken();
     if (token == null || token.isEmpty) {
       lastRegistrationError.value = _safeRegistrationError;
@@ -466,15 +470,34 @@ class PushNotificationService {
     return _registerToken(token);
   }
 
+  Future<void> _registerRefreshedToken(String token) async {
+    if (!enabled.value || userDisabled.value || token.isEmpty) return;
+    if (!await _ensureAnonymousSession()) return;
+    await _registerToken(token);
+  }
+
   Future<String?> _loadMessagingToken() async {
-    if (!kIsWeb && Platform.isIOS) {
-      for (var attempt = 0; attempt < 12; attempt++) {
-        final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-        if (apnsToken != null && apnsToken.isNotEmpty) break;
-        await Future<void>.delayed(const Duration(milliseconds: 250));
+    try {
+      if (!kIsWeb && Platform.isIOS) {
+        // Firebase requires the APNs token to exist before requesting an FCM
+        // token on Apple platforms. Give APNs enough time after the explicit
+        // permission grant instead of racing it with a fixed ~3 second window.
+        for (var attempt = 0; attempt < 30; attempt++) {
+          final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+          if (apnsToken != null && apnsToken.isNotEmpty) {
+            return await FirebaseMessaging.instance.getToken();
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+        }
+        debugPrint('APNs token is not available yet; FCM token request deferred.');
+        return null;
       }
+      return await FirebaseMessaging.instance.getToken();
+    } catch (error, stackTrace) {
+      debugPrint('Messaging token load failed: $error');
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
+      return null;
     }
-    return FirebaseMessaging.instance.getToken();
   }
 
   Future<bool> _registerToken(String token) async {
@@ -515,5 +538,9 @@ class PushNotificationService {
     await _tokenSubscription?.cancel();
     await _messageSubscription?.cancel();
     await _openedSubscription?.cancel();
+    if (_platformPayloadListenerAttached) {
+      _platform.openedPayload.removeListener(_handlePlatformPayload);
+      _platformPayloadListenerAttached = false;
+    }
   }
 }

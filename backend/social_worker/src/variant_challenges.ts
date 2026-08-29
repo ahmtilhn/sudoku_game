@@ -1,3 +1,4 @@
+import { sendPlayerPush } from './push_notifications';
 import {
   duelVariantConfig,
   normalizeDuelVariant,
@@ -19,6 +20,16 @@ type ChallengeVariantRow = {
   room_id: string | null;
 };
 
+type ChallengeNotificationRow = ChallengeVariantRow & {
+  id: string;
+  challenger_id: string;
+  recipient_id: string;
+  difficulty: string;
+  status: string;
+  expires_at: string;
+  updated_at: string;
+};
+
 export function isVariantChallengeRoute(pathname: string): boolean {
   return (
     pathname === '/v1/challenges' ||
@@ -36,6 +47,9 @@ export async function handleVariantChallengeRequest(
   await ensureVariantSchema(env);
   const url = new URL(request.url);
   const challengeId = challengeIdFromPath(url.pathname);
+  const beforeNotificationState = challengeId == null
+    ? null
+    : await loadChallengeNotificationRow(env, challengeId);
   let requestedVariant: DuelVariant | null = null;
   let action: string | null = null;
 
@@ -71,7 +85,14 @@ export async function handleVariantChallengeRequest(
     }
   }
 
-  const response = await legacyFetch(request, env, ctx);
+  // The legacy challenge handler owns all challenge/match state transitions.
+  // Suppress only its old inline FCM sender so successful transitions can use
+  // the shared hardened sender below (TTL/APNs expiry/no fixed badge) without
+  // touching online game or challenge business logic.
+  const forwardedEnv = requestCanSendChallengePush(request, url)
+    ? withoutLegacyChallengePush(env)
+    : env;
+  const response = await legacyFetch(request, forwardedEnv, ctx);
   if (!response.ok || response.status === 204) return response;
 
   const payload = await responseObject(response);
@@ -88,10 +109,14 @@ export async function handleVariantChallengeRequest(
       )
         .bind(requestedVariant, new Date().toISOString(), id)
         .run();
-      return jsonFromLegacy(
-        response,
-        await augmentChallenge(env, payload, id),
-      );
+      const augmented = await augmentChallenge(env, payload, id);
+      if (response.status === 201) {
+        const created = await loadChallengeNotificationRow(env, id);
+        if (created?.status === 'pending') {
+          ctx.waitUntil(sendChallengeCreatedPush(env, created));
+        }
+      }
+      return jsonFromLegacy(response, augmented);
     }
   }
 
@@ -131,10 +156,131 @@ export async function handleVariantChallengeRequest(
           .run();
       }
     }
+
+    if (requestCanSendChallengePush(request, url)) {
+      const afterNotificationState = await loadChallengeNotificationRow(
+        env,
+        challengeId,
+      );
+      if (
+        beforeNotificationState != null &&
+        afterNotificationState != null &&
+        beforeNotificationState.status === 'pending' &&
+        afterNotificationState.status !== 'pending'
+      ) {
+        ctx.waitUntil(
+          sendChallengeTransitionPush(
+            env,
+            afterNotificationState,
+            stringValue(augmented.roomId),
+          ),
+        );
+      }
+    }
+
     return jsonFromLegacy(response, augmented);
   }
 
   return jsonFromLegacy(response, payload);
+}
+
+function requestCanSendChallengePush(request: Request, url: URL): boolean {
+  if (url.pathname === '/v1/challenges') return request.method === 'POST';
+  if (/^\/v1\/challenges\/[^/]+$/.test(url.pathname)) {
+    return request.method === 'DELETE';
+  }
+  return (
+    /^\/v1\/challenges\/[^/]+\/respond$/.test(url.pathname) &&
+    request.method === 'POST'
+  );
+}
+
+function withoutLegacyChallengePush(
+  env: VariantMatchmakingEnv,
+): VariantMatchmakingEnv {
+  return {
+    ...env,
+    // Legacy sendPlayerNotification deliberately skips REPLACE_* projects.
+    // All other Firebase/auth/online bindings remain exactly the same.
+    FCM_PROJECT_ID: 'REPLACE_NOTIFICATION_WRAPPER',
+  };
+}
+
+async function sendChallengeCreatedPush(
+  env: VariantMatchmakingEnv,
+  challenge: ChallengeNotificationRow,
+): Promise<void> {
+  await sendPlayerPush(env, challenge.recipient_id, {
+    titleKey: 'push_challenge_title',
+    bodyKey: 'push_challenge_body',
+    tag: `challenge_${challenge.id}`,
+    ttlSeconds: secondsUntil(challenge.expires_at, 15 * 60),
+    data: {
+      type: 'challenge',
+      challengeId: challenge.id,
+      difficulty: challenge.difficulty,
+      variant: challenge.variant,
+    },
+  });
+}
+
+async function sendChallengeTransitionPush(
+  env: VariantMatchmakingEnv,
+  challenge: ChallengeNotificationRow,
+  roomId: string | null,
+): Promise<void> {
+  if (challenge.status === 'cancelled') {
+    await sendPlayerPush(env, challenge.recipient_id, {
+      titleKey: 'push_challenge_cancelled_title',
+      bodyKey: 'push_challenge_cancelled_body',
+      tag: `challenge_${challenge.id}`,
+      ttlSeconds: 5 * 60,
+      data: {
+        type: 'challenge_response',
+        challengeId: challenge.id,
+        status: 'cancelled',
+        roomId: '',
+      },
+    });
+    return;
+  }
+
+  if (challenge.status === 'declined') {
+    await sendPlayerPush(env, challenge.challenger_id, {
+      titleKey: 'push_challenge_declined_title',
+      bodyKey: 'push_challenge_declined_body',
+      tag: `challenge_${challenge.id}`,
+      ttlSeconds: 5 * 60,
+      data: {
+        type: 'challenge_response',
+        challengeId: challenge.id,
+        status: 'declined',
+        roomId: '',
+      },
+    });
+    return;
+  }
+
+  if (challenge.status === 'accepted' && roomId != null && roomId.length > 0) {
+    await sendPlayerPush(env, challenge.challenger_id, {
+      titleKey: 'push_challenge_accepted_title',
+      bodyKey: 'push_challenge_accepted_body',
+      tag: `challenge_${challenge.id}`,
+      ttlSeconds: 5 * 60,
+      data: {
+        type: 'challenge_response',
+        challengeId: challenge.id,
+        status: 'accepted',
+        roomId,
+      },
+    });
+  }
+}
+
+function secondsUntil(isoDate: string, fallbackSeconds: number): number {
+  const target = Date.parse(isoDate);
+  if (!Number.isFinite(target)) return fallbackSeconds;
+  return Math.max(0, Math.min(fallbackSeconds, Math.ceil((target - Date.now()) / 1000)));
 }
 
 async function augmentChallenge(
@@ -178,6 +324,19 @@ async function loadChallengeVariant(
   )
     .bind(challengeId)
     .first<ChallengeVariantRow>();
+}
+
+async function loadChallengeNotificationRow(
+  env: VariantMatchmakingEnv,
+  challengeId: string,
+): Promise<ChallengeNotificationRow | null> {
+  return env.DB.prepare(
+    `SELECT id, challenger_id, recipient_id, difficulty, variant, status,
+            room_id, expires_at, updated_at
+     FROM challenges WHERE id = ? LIMIT 1`,
+  )
+    .bind(challengeId)
+    .first<ChallengeNotificationRow>();
 }
 
 function challengeIdFromPath(pathname: string): string | null {

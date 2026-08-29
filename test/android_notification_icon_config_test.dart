@@ -4,15 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('local notifications resolve a drawable icon', () {
-    final service = File(
-      'lib/services/push_notification_service.dart',
+    final platform = File(
+      'lib/services/notification_platform_service.dart',
     ).readAsStringSync();
     final aliases = File(
       'android/app/src/main/res/values/notification_icons.xml',
     ).readAsStringSync();
     final icon = File('android/app/src/main/res/drawable/ic_stat_sudoku.xml');
 
-    expect(service, contains("AndroidInitializationSettings('ic_launcher')"));
+    expect(platform, contains("AndroidInitializationSettings('ic_launcher')"));
     expect(aliases, contains('<item name="ic_launcher" type="drawable">'));
     expect(aliases, contains('@drawable/ic_stat_sudoku'));
     expect(icon.existsSync(), isTrue);

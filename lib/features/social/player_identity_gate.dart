@@ -62,7 +62,6 @@ class _PlayerIdentityGateState extends State<PlayerIdentityGate> {
 
   Future<void> _handleOpenedRematch() async {
     if (!mounted || _handlingRematch) return;
-    if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
     final push = PushNotificationService.instance;
     final invitationId = push.openedRematchId.value;
     if (invitationId == null || invitationId.isEmpty) return;
