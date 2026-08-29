@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  overflow-context:
+  failure-delta:
     strategy:
       fail-fast: false
       matrix:
@@ -28,10 +28,10 @@ jobs:
           cache: true
       - name: Resolve packages
         run: flutter pub get
-      - name: Analyze
+      - name: Analyze responsive branch
         if: matrix.ref == 'responsive-nonscroll-ui'
         run: flutter analyze --no-fatal-infos
-      - name: Capture full test overflow context
+      - name: Report exact failing tests
         shell: bash
         run: |
           set +e
@@ -39,10 +39,10 @@ jobs:
           status=$?
           set -e
           echo "ref=${{ matrix.ref }} test_exit=$status"
-          echo '--- render overflow contexts ---'
-          grep -n -B45 -A90 -E 'RenderFlex overflowed|A RenderFlex overflowed' /tmp/tests.log || true
-          echo '--- failing test names ---'
-          grep -E '^  /home/runner/.+\.dart:' /tmp/tests.log | tail -80 || true
+          echo '--- failing test descriptions ---'
+          grep -E '^[0-9:]+ \+[0-9]+ -[0-9]+: .+ \[E\]$' /tmp/tests.log || true
+          echo '--- source expectation failures ---'
+          grep -n -B3 -A5 -E '^  Expected:|^    Actual:' /tmp/tests.log | tail -260 || true
           echo '--- summary ---'
-          grep -E 'Some tests failed|All tests passed|\+[0-9]+ -[0-9]+' /tmp/tests.log | tail -5 || true
+          grep -E 'Some tests failed|All tests passed' /tmp/tests.log | tail -2 || true
           exit 0
