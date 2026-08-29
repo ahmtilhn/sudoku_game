@@ -1313,13 +1313,20 @@ class _HomeModeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = data.primary ? 19.0 : 16.0;
-    final artSize = data.primary
+    final baseArtSize = data.primary
         ? compact
               ? 48.0
               : 78.0
         : compact
         ? 38.0
         : 60.0;
+    final viewport = MediaQuery.sizeOf(context);
+    final duelArtScale = (viewport.shortestSide / 390.0)
+        .clamp(0.72, 1.0)
+        .toDouble();
+    final artSize = data.asset == DuelAsset.homeDuelScene
+        ? baseArtSize * duelArtScale
+        : baseArtSize;
 
     return Semantics(
       button: true,
