@@ -1,40 +1,37 @@
-name: Sync Android translation fallbacks
+name: Verify Android localization release build
 
 on:
   push:
     branches: [main]
     paths:
       - '.github/workflows/sync-android-translation-fallbacks.yml'
-      - 'tool/sync_android_translation_fallbacks.py'
-      - 'assets/localization/Localizable.xcstrings'
+      - 'android/app/build.gradle.kts'
+      - 'android/app/src/main/res/values/**/*.xml'
       - 'android/app/src/main/res/values-*/**/*.xml'
+      - 'assets/localization/Localizable.xcstrings'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: sync-android-translation-fallbacks-main
+  group: verify-android-localization-release-main
   cancel-in-progress: true
 
 jobs:
-  sync:
+  release-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
         with:
           ref: main
-          fetch-depth: 0
+          fetch-depth: 1
 
-      - name: Materialize missing Android default fallbacks
-        run: python3 tool/sync_android_translation_fallbacks.py
-
-      - name: Validate generated Android resources
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 tool/sync_android_translation_fallbacks.py
-          git diff --check
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - uses: subosito/flutter-action@v2
         with:
@@ -44,7 +41,27 @@ jobs:
       - name: Resolve Flutter packages
         run: flutter pub get
 
-      - name: Verify production release AAB
+      - name: Create ephemeral release signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          keytool -genkeypair \
+            -keystore android/ci-upload.jks \
+            -storepass changeit \
+            -keypass changeit \
+            -alias ci-upload \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 2 \
+            -dname 'CN=Sudoku Duel Localization CI, OU=CI, O=Devovia, L=CI, ST=CI, C=NL'
+          cat > android/key.properties <<'EOF'
+          storeFile=ci-upload.jks
+          storePassword=changeit
+          keyAlias=ci-upload
+          keyPassword=changeit
+          EOF
+
+      - name: Verify production release AAB and localization lint
         shell: bash
         run: |
           set -euo pipefail
@@ -53,26 +70,6 @@ jobs:
             --dart-define=SOCIAL_BACKEND_URL=https://sudoku-duel-social-production.ilhanahmet246.workers.dev \
             --dart-define=BUILD_COMMIT="${GITHUB_SHA:0:12}"
 
-      - name: Commit synchronized fallbacks to latest main
+      - name: Confirm release bundle exists
         shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Flutter setup/pub-get can rewrite tracked tooling files. They are
-          # unrelated to localization fallback generation and must not enter
-          # this commit or block the rebase below.
-          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
-
-          git add android/app/src/main/res/values/generated_translation_fallbacks.xml
-          git diff --cached --check
-          if git diff --cached --quiet; then
-            echo 'Android translation fallbacks are already synchronized.'
-            exit 0
-          fi
-
-          git commit -m "Sync Android translation fallbacks"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+        run: test -s build/app/outputs/bundle/release/app-release.aab
