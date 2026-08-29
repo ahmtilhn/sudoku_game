@@ -55,19 +55,25 @@ export function applyScreenLoaded(
     state.revision++;
   }
 
-  const loaded = event(
-    state,
-    'screen_loaded',
-    now,
-    readinessPayload(state, { seat }),
-  );
-
   if (state.status === 'active') {
-    return [loaded, ...maybeArmGameplayClock(state, now)];
+    // Arm the clock before creating screen_loaded. The second board client then
+    // receives the definitive startedAt/turnDeadline state in this event as
+    // well as in match_started/game_started, avoiding an event-order race.
+    const startEvents = maybeArmGameplayClock(state, now);
+    return [
+      event(state, 'screen_loaded', now, readinessPayload(state, { seat })),
+      ...startEvents,
+    ];
   }
 
+  // Open the Ready window before creating screen_loaded. The second Ready
+  // client therefore receives ready_window + readyDeadline directly on its
+  // screen_loaded event even if ready_window_started is delayed or dropped.
   const readyWindowEvents = maybeOpenReadyWindow(state, now);
-  return [loaded, ...readyWindowEvents];
+  return [
+    event(state, 'screen_loaded', now, readinessPayload(state, { seat })),
+    ...readyWindowEvents,
+  ];
 }
 
 function maybeOpenReadyWindow(
