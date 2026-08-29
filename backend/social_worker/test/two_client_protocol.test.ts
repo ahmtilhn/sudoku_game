@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  applyDueDeadlines,
   applyForfeit,
   applyScreenLoaded,
   applyMove,
@@ -32,16 +33,18 @@ describe('local two-client protocol simulation', () => {
         displayName: 'Bob',
         avatarKey: 'default',
       },
-      now: 10,
+      now: -10_000,
       randomBytes: new Uint8Array([7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6]),
     });
 
-    markConnected(duel, 'A', 11);
-    markConnected(duel, 'B', 12);
-    applyScreenLoaded(duel, 'A', 13);
-    applyScreenLoaded(duel, 'B', 14);
-    applyReady(duel, 'A', 15);
-    applyReady(duel, 'B', 16);
+    markConnected(duel, 'A', -9_999);
+    markConnected(duel, 'B', -9_998);
+    applyScreenLoaded(duel, 'A', -9_997);
+    applyScreenLoaded(duel, 'B', -9_996);
+    applyReady(duel, 'A', -9_995);
+    applyReady(duel, 'B', -9_994);
+    applyDueDeadlines(duel, duel.readyDeadline!);
+
     const aStart = snapshot(duel, 'A', 12);
     const bStart = snapshot(duel, 'B', 12);
     expect(aStart.roomId).toBe(bStart.roomId);
