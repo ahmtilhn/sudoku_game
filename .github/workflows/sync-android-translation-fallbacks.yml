@@ -1,0 +1,70 @@
+name: Sync Android translation fallbacks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sync-android-translation-fallbacks.yml'
+      - 'tool/sync_android_translation_fallbacks.py'
+      - 'assets/localization/Localizable.xcstrings'
+      - 'android/app/src/main/res/values-*/**/*.xml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-android-translation-fallbacks-main
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Materialize missing Android default fallbacks
+        run: python3 tool/sync_android_translation_fallbacks.py
+
+      - name: Validate generated Android resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tool/sync_android_translation_fallbacks.py
+          git diff --check
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter packages
+        run: flutter pub get
+
+      - name: Verify release lint
+        working-directory: android
+        run: ./gradlew :app:lintVitalRelease
+
+      - name: Commit synchronized fallbacks to latest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Flutter/Gradle setup may touch generated or tracked tooling files;
+          # only the deterministic fallback resource belongs to this commit.
+          git add android/app/src/main/res/values/generated_translation_fallbacks.xml
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'Android translation fallbacks are already synchronized.'
+            exit 0
+          fi
+
+          git commit -m "Sync Android translation fallbacks"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
