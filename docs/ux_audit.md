@@ -38,17 +38,17 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | duel | `PreMatchReadyScreen`<br>`lib/features/duel/pre_match_ready_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | duel | `RankedProgressScreen`<br>`lib/features/duel/ranked_progress_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | economy | `CoinStoreScreen`<br>`lib/features/economy/coin_store_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| economy | `WalletHistoryScreen`<br>`lib/features/economy/wallet_history_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | Yes | Yes | Yes | No static warning |
+| economy | `WalletHistoryScreen`<br>`lib/features/economy/wallet_history_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | Yes | Yes | Yes | Dense column without explicit scroll marker |
 | game | `EnhancedGameScreen`<br>`lib/features/game/enhanced_game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
-| game | `GameScreen`<br>`lib/features/game/game_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | — | Yes | Outcome content does not use shared outcome component |
+| game | `GameScreen`<br>`lib/features/game/game_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | — | Yes | Dense column without explicit scroll marker; Outcome content does not use shared outcome component |
 | game | `SamuraiGameScreen`<br>`lib/features/game/samurai_game_screen.dart` | Production screen | Yes | — | — | — | Yes | — | Yes | Yes | No explicit responsive primitive detected |
 | home | `HomeScreen`<br>`lib/features/home/home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | home | `ProfessionalHomeScreen`<br>`lib/features/home/professional_home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | home | `UxRootScreen`<br>`lib/features/home/ux_root_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| settings | `ServiceDiagnosticsScreen`<br>`lib/features/settings/service_diagnostics_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
+| settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
+| settings | `ServiceDiagnosticsScreen`<br>`lib/features/settings/service_diagnostics_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | settings | `SettingsScreen`<br>`lib/features/settings/settings_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
+| settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Production screen | Yes | Yes | — | — | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | social | `ChallengeInvitationScreen`<br>`lib/features/social/challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `ChallengeWaitingScreen`<br>`lib/features/social/challenge_waiting_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `EmoteLoadoutScreen`<br>`lib/features/social/emote_loadout_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
@@ -62,7 +62,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | social | `RematchInvitationScreen`<br>`lib/features/social/rematch_invitation_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | social | `SocialHubScreen`<br>`lib/features/social/social_hub_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `UxChallengeInvitationScreen`<br>`lib/features/social/ux_challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
-| tutorial | `TutorialScreen`<br>`lib/features/tutorial/tutorial_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
+| tutorial | `TutorialScreen`<br>`lib/features/tutorial/tutorial_screen.dart` | Production screen | Yes | Yes | — | — | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 
 ## Static warnings requiring visual regression attention
 
@@ -72,10 +72,15 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 - `lib/features/duel/matchmaking_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/duel/online_duel_screen.dart`: Outcome content does not use shared outcome component
 - `lib/features/duel/pre_match_ready_screen.dart`: Dense column without explicit scroll marker
+- `lib/features/economy/wallet_history_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/game/enhanced_game_screen.dart`: Outcome content does not use shared outcome component
-- `lib/features/game/game_screen.dart`: Outcome content does not use shared outcome component
+- `lib/features/game/game_screen.dart`: Dense column without explicit scroll marker; Outcome content does not use shared outcome component
 - `lib/features/game/samurai_game_screen.dart`: No explicit responsive primitive detected
+- `lib/features/settings/account_protection_screen.dart`: Dense column without explicit scroll marker
+- `lib/features/settings/service_diagnostics_screen.dart`: Dense column without explicit scroll marker
+- `lib/features/settings/ux_settings_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/social/rematch_invitation_screen.dart`: Dense column without explicit scroll marker
+- `lib/features/tutorial/tutorial_screen.dart`: Dense column without explicit scroll marker
 
 Static warnings are not automatically defects. Confirmation dialogs, short setup screens and game canvases may intentionally omit a list or common state panel. They remain listed so visual/device tests do not silently skip them.
 
