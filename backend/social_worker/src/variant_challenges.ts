@@ -261,7 +261,7 @@ async function sendChallengeTransitionPush(
     return;
   }
 
-  if (challenge.status === 'accepted' && roomId != null && roomId.isNotEmpty) {
+  if (challenge.status === 'accepted' && roomId != null && roomId.length > 0) {
     await sendPlayerPush(env, challenge.challenger_id, {
       titleKey: 'push_challenge_accepted_title',
       bodyKey: 'push_challenge_accepted_body',
