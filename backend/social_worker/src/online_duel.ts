@@ -3,10 +3,12 @@ export {
   applyDueDeadlines,
   applyForfeit,
   applyMove,
-  applyReady,
-  applyScreenLoaded,
   createInitialDuelState,
 } from './online_duel_engine';
+export {
+  applyReady,
+  applyScreenLoaded,
+} from './online_duel_ready_policy';
 export {
   markConnected,
   markDisconnected,
