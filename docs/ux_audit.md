@@ -4,7 +4,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 
 ## Audit scope
 
-- Screen files: **36**
+- Screen files: **35**
 - Forwarding/compatibility wrappers: **1**
 - Feature groups: **10** (career, daily, duel, economy, game, home, notifications, settings, social, tutorial)
 - Required device behavior: compact phone, large phone/tablet, text scaling, safe insets, keyboard insets and scroll recovery
@@ -48,7 +48,6 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | notifications | `DailyReminderDestinationScreen`<br>`lib/features/notifications/daily_reminder_destination_screen.dart` | Production screen | Yes | — | — | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review; No explicit responsive primitive detected |
 | settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | settings | `ServiceDiagnosticsScreen`<br>`lib/features/settings/service_diagnostics_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
-| settings | `SettingsScreen`<br>`lib/features/settings/settings_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Production screen | Yes | Yes | — | — | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | social | `ChallengeInvitationScreen`<br>`lib/features/social/challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `ChallengeWaitingScreen`<br>`lib/features/social/challenge_waiting_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
