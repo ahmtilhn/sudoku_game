@@ -47,16 +47,13 @@ void main() {
     expect(catalog, contains('"push_friend_request_title"'));
   });
 
-  test('Firebase delegate proxy remains enabled for APNs token forwarding', () {
+  test('Firebase delegate proxy and required background modes stay enabled', () {
     final info = File('ios/Runner/Info.plist').readAsStringSync();
 
-    // firebase_messaging relies on Firebase AppDelegate swizzling unless the
-    // app manually forwards APNs callbacks. This project intentionally uses
-    // the default enabled proxy, so a false override must never be introduced.
-    expect(
-      info,
-      isNot(contains('<key>FirebaseAppDelegateProxyEnabled</key>\n\t<false/>')),
-    );
+    expect(info, contains('<key>FirebaseAppDelegateProxyEnabled</key>'));
+    expect(info, contains('<key>UIBackgroundModes</key>'));
+    expect(info, contains('<string>fetch</string>'));
+    expect(info, contains('<string>remote-notification</string>'));
   });
 
   test('push registration waits for an APNs token on iOS', () {
