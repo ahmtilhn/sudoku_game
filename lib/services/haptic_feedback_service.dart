@@ -40,7 +40,9 @@ class HapticFeedbackService {
   Future<void> vibrate() => _run(HapticFeedback.vibrate);
 
   Future<void> _run(Future<void> Function() feedback) async {
-    if (!_initialized) await initialize();
+    // The saved preference is loaded once during normal app startup. Keeping
+    // event delivery free of preference I/O also makes isolated widget tests
+    // safe when they exercise gameplay without bootstrapping SharedPreferences.
     if (!enabled.value) return;
     await feedback();
   }
