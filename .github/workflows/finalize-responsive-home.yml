@@ -1,0 +1,103 @@
+name: Finalize tight responsive home
+
+on:
+  push:
+    branches: [responsive-nonscroll-ui]
+    paths:
+      - '.github/workflows/finalize-responsive-home.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: responsive-nonscroll-ui
+          fetch-depth: 0
+      - name: Add ultra-short landscape tier
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/home/professional_home_screen.dart')
+          text = path.read_text()
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected exactly one match, got {text.count(old)} for: {old[:90]!r}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              """              final compact = constraints.maxHeight < 760;\n              final wide =\n""",
+              """              final compact = constraints.maxHeight < 760;\n              final tight =\n                  constraints.maxHeight < 420 &&\n                  constraints.maxWidth > constraints.maxHeight * 1.35;\n              final wide =\n""",
+          )
+          replace_once(
+              """                      14,\n                      compact ? 6 : 10,\n                      14,\n                      compact ? 8 : 14,\n""",
+              """                      14,\n                      tight ? 2 : compact ? 6 : 10,\n                      14,\n                      tight ? 4 : compact ? 8 : 14,\n""",
+          )
+          replace_once(
+              """                                  _HomeLogo(compact: compact),\n                                  if (_activeSession != null) ...[\n                                    SizedBox(height: compact ? 4 : 6),\n""",
+              """                                  _HomeLogo(compact: compact, tight: tight),\n                                  if (_activeSession != null) ...[\n                                    SizedBox(\n                                      height: tight ? 2 : compact ? 4 : 6,\n                                    ),\n""",
+          )
+          replace_once(
+              """                                  SizedBox(height: compact ? 8 : 12),\n                                  _PrimaryModes(\n                                    items: primaryItems,\n                                    compact: compact,\n                                    wide: wide,\n                                  ),\n                                  SizedBox(height: compact ? 8 : 10),\n                                  _SecondaryModes(\n                                    items: secondaryItems,\n                                    compact: compact,\n                                    wide: wide,\n                                  ),\n""",
+              """                                  SizedBox(\n                                    height: tight ? 4 : compact ? 8 : 12,\n                                  ),\n                                  _PrimaryModes(\n                                    items: primaryItems,\n                                    compact: compact,\n                                    tight: tight,\n                                    wide: wide,\n                                  ),\n                                  SizedBox(\n                                    height: tight ? 4 : compact ? 8 : 10,\n                                  ),\n                                  _SecondaryModes(\n                                    items: secondaryItems,\n                                    compact: compact,\n                                    tight: tight,\n                                    wide: wide,\n                                  ),\n""",
+          )
+          replace_once(
+              """class _HomeLogo extends StatelessWidget {\n  const _HomeLogo({required this.compact});\n\n  final bool compact;\n""",
+              """class _HomeLogo extends StatelessWidget {\n  const _HomeLogo({required this.compact, required this.tight});\n\n  final bool compact;\n  final bool tight;\n""",
+          )
+          replace_once(
+              """      height: compact ? 72 : 180,\n""",
+              """      height: tight ? 44 : compact ? 72 : 180,\n""",
+          )
+          replace_once(
+              """                    fontSize: compact ? 28 : 42,\n""",
+              """                    fontSize: tight ? 22 : compact ? 28 : 42,\n""",
+          )
+          replace_once(
+              """    required this.compact,\n    required this.wide,\n  });\n\n  final List<_HomeModeData> items;\n  final bool compact;\n  final bool wide;\n\n  @override\n  Widget build(BuildContext context) {\n    if (wide) {\n      return SizedBox(\n        height: compact ? 84 : 124,\n""",
+              """    required this.compact,\n    required this.tight,\n    required this.wide,\n  });\n\n  final List<_HomeModeData> items;\n  final bool compact;\n  final bool tight;\n  final bool wide;\n\n  @override\n  Widget build(BuildContext context) {\n    if (wide) {\n      return SizedBox(\n        height: tight ? 68 : compact ? 84 : 124,\n""",
+          )
+          replace_once(
+              """    required this.compact,\n    required this.wide,\n  });\n\n  final List<_HomeModeData> items;\n  final bool compact;\n  final bool wide;\n\n  @override\n  Widget build(BuildContext context) {\n    final columns = wide ? 4 : 2;\n    final itemHeight = compact ? 58.0 : 88.0;\n""",
+              """    required this.compact,\n    required this.tight,\n    required this.wide,\n  });\n\n  final List<_HomeModeData> items;\n  final bool compact;\n  final bool tight;\n  final bool wide;\n\n  @override\n  Widget build(BuildContext context) {\n    final columns = wide ? 4 : 2;\n    final itemHeight = tight ? 52.0 : compact ? 58.0 : 88.0;\n""",
+          )
+
+          path.write_text(text)
+          PY
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Format and analyze
+        run: |
+          dart format lib/features/home/professional_home_screen.dart test/widget_test.dart test/career_variant_progress_test.dart
+          flutter analyze --no-fatal-infos
+      - name: Run focused offline responsive tests
+        run: flutter test test/widget_test.dart test/career_variant_progress_test.dart --reporter expanded --concurrency=1
+      - name: Commit final layout tier
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib/features/home/professional_home_screen.dart test/widget_test.dart test/career_variant_progress_test.dart
+          if git diff --cached --quiet; then
+            echo 'No final source changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Harden offline layouts for compact viewports'
+          git reset --hard HEAD
+          git clean -fd
+          git fetch origin responsive-nonscroll-ui
+          git rebase origin/responsive-nonscroll-ui
+          git push origin HEAD:responsive-nonscroll-ui
