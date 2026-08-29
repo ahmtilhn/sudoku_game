@@ -29,9 +29,15 @@ export function applyReady(
     state.revision++;
   }
 
-  const events = [event(state, 'player_ready', now, { seat })];
-  events.push(...maybeOpenReadyWindow(state, now));
-  return events;
+  // Open the ready window before creating the player_ready event so this event
+  // itself carries the final authoritative status/deadline. That makes the
+  // countdown resilient even if the following ready_window_started event is
+  // delayed or dropped by a client reconnect/revision race.
+  const readyWindowEvents = maybeOpenReadyWindow(state, now);
+  return [
+    event(state, 'player_ready', now, readinessPayload(state, { seat })),
+    ...readyWindowEvents,
+  ];
 }
 
 export function applyScreenLoaded(
@@ -49,9 +55,14 @@ export function applyScreenLoaded(
     state.revision++;
   }
 
-  const events = [event(state, 'screen_loaded', now, { seat })];
-  events.push(...maybeOpenReadyWindow(state, now));
-  return events;
+  // The second loaded client is what normally opens the ready window. Build
+  // screen_loaded after that transition so both clients receive status,
+  // readyDeadline, readiness, presence and screenLoaded in this event too.
+  const readyWindowEvents = maybeOpenReadyWindow(state, now);
+  return [
+    event(state, 'screen_loaded', now, readinessPayload(state, { seat })),
+    ...readyWindowEvents,
+  ];
 }
 
 function maybeOpenReadyWindow(
