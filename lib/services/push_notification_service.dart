@@ -466,14 +466,27 @@ class PushNotificationService {
   }
 
   Future<String?> _loadMessagingToken() async {
-    if (!kIsWeb && Platform.isIOS) {
-      for (var attempt = 0; attempt < 12; attempt++) {
-        final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
-        if (apnsToken != null && apnsToken.isNotEmpty) break;
-        await Future<void>.delayed(const Duration(milliseconds: 250));
+    try {
+      if (!kIsWeb && Platform.isIOS) {
+        // Firebase requires the APNs token to exist before requesting an FCM
+        // token on Apple platforms. Give APNs enough time after the explicit
+        // permission grant instead of racing it with a fixed ~3 second window.
+        for (var attempt = 0; attempt < 30; attempt++) {
+          final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+          if (apnsToken != null && apnsToken.isNotEmpty) {
+            return FirebaseMessaging.instance.getToken();
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+        }
+        debugPrint('APNs token is not available yet; FCM token request deferred.');
+        return null;
       }
+      return FirebaseMessaging.instance.getToken();
+    } catch (error, stackTrace) {
+      debugPrint('Messaging token load failed: $error');
+      await FirebaseServices.instance.recordNonFatal(error, stackTrace);
+      return null;
     }
-    return FirebaseMessaging.instance.getToken();
   }
 
   Future<bool> _registerToken(String token) async {
