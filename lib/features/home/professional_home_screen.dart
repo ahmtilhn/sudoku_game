@@ -528,32 +528,28 @@ class _HomeLogo extends StatelessWidget {
           ? 72
           : 180,
       width: double.infinity,
-      child: ClipRect(
-        child: Center(
-          child: SizedBox(
-            width: double.infinity,
-            height: double.infinity,
-            child: Image.asset(
-              'assets/images/ui/logo_text.png',
-              fit: BoxFit.fitWidth,
-              alignment: Alignment.center,
-              filterQuality: FilterQuality.high,
-              errorBuilder: (context, error, stackTrace) => Center(
-                child: Text(
-                  context.tr('app_name').toUpperCase(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: tight
-                        ? 22
-                        : compact
-                        ? 28
-                        : 42,
-                    height: 1,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: .9,
-                  ),
-                ),
+      child: Center(
+        child: Image.asset(
+          'assets/images/ui/logo_text.png',
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (context, error, stackTrace) => Center(
+            child: Text(
+              context.tr('app_name').toUpperCase(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: tight
+                    ? 22
+                    : compact
+                    ? 28
+                    : 42,
+                height: 1,
+                fontWeight: FontWeight.w900,
+                letterSpacing: .9,
               ),
             ),
           ),
