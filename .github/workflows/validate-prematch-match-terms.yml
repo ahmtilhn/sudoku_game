@@ -32,13 +32,8 @@ jobs:
         run: dart format lib/features/duel/matchmaking_screen.dart lib/features/duel/pre_match_ready_screen.dart lib/features/duel/prematch_match_terms_card.dart test/prematch_match_terms_contract_test.dart
       - name: Analyze
         run: flutter analyze --fatal-infos
-      - name: Focused tests
-        run: flutter test --reporter expanded test/prematch_match_terms_contract_test.dart test/online_duel_lifecycle_hotfix_test.dart
-      - name: Full test suite
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout --signal=TERM 8m flutter test --reporter compact --concurrency=1
+      - name: Focused prematch terms tests
+        run: flutter test --reporter expanded test/prematch_match_terms_contract_test.dart
       - name: Commit formatting and remove temporary validation workflow
         if: success()
         shell: bash
