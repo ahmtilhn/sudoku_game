@@ -40,6 +40,7 @@ class OnlineDuelController with WidgetsBindingObserver {
   bool _pendingMove = false;
   bool _started = false;
   bool _observerRegistered = false;
+  bool _gameScreenLoadSignalPending = false;
 
   Stream<OnlineDuelSnapshot> get snapshots => _snapshots.stream;
   Stream<OnlineDuelFeedback> get feedback => _feedback.stream;
@@ -50,7 +51,14 @@ class OnlineDuelController with WidgetsBindingObserver {
   bool get pendingMove => _pendingMove;
 
   void start() {
-    if (_started) return;
+    if (_started) {
+      // The same controller is first started by PreMatchReadyScreen and then
+      // handed to OnlineDuelScreen. That second start call is a reliable route
+      // boundary: schedule the board-ready signal after OnlineDuelScreen's
+      // first frame instead of tying it to generic snapshot/reconnect traffic.
+      _signalGameScreenLoadedAfterRender();
+      return;
+    }
     _started = true;
     _activeInstance = this;
     _emoteSession = OnlineDuelEmoteHub.instance.attach(sender: sendEmote);
@@ -71,6 +79,27 @@ class OnlineDuelController with WidgetsBindingObserver {
     _connectionSubscription = _transport.connectionStates.listen(
       _handleConnectionState,
     );
+  }
+
+  void _signalGameScreenLoadedAfterRender() {
+    final current = _snapshot;
+    if (_gameScreenLoadSignalPending ||
+        current?.status != OnlineDuelStatus.active ||
+        current?.turnDeadline != null) {
+      return;
+    }
+    final binding = lifecycleBinding ?? _observerBinding ?? _tryResolveWidgetsBinding();
+    if (binding == null) return;
+    _gameScreenLoadSignalPending = true;
+    binding.addPostFrameCallback((_) {
+      _gameScreenLoadSignalPending = false;
+      if (!_started) return;
+      final latest = _snapshot;
+      if (latest?.status == OnlineDuelStatus.active &&
+          latest?.turnDeadline == null) {
+        _send('game_screen_loaded');
+      }
+    });
   }
 
   @override
@@ -124,26 +153,7 @@ class OnlineDuelController with WidgetsBindingObserver {
 
   void forfeit() => _send('forfeit');
 
-  void requestSnapshot() {
-    final current = _snapshot;
-    if (current?.status == OnlineDuelStatus.active &&
-        current?.turnDeadline == null) {
-      // During the handoff from Ready -> board, the server intentionally keeps
-      // the room active but leaves the gameplay clock unarmed. A snapshot
-      // request issued by OnlineDuelScreen is therefore also our board-ready
-      // handshake. Sending it after this frame guarantees the route has reached
-      // the game screen before the authoritative turn clock may begin.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_started) return;
-        final latest = _snapshot;
-        if (latest?.status == OnlineDuelStatus.active &&
-            latest?.turnDeadline == null) {
-          _send('game_screen_loaded');
-        }
-      });
-    }
-    _send('request_snapshot');
-  }
+  void requestSnapshot() => _send('request_snapshot');
 
   Future<void> dispose() async {
     if (identical(_activeInstance, this)) {
