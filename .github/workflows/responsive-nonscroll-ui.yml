@@ -74,6 +74,10 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'Make offline screens responsive without scrolling'
+          # flutter pub get can rewrite lock/analysis files on the hosted SDK.
+          # They are intentionally outside this UI-only change, so discard them.
+          git reset --hard HEAD
+          git clean -fd
           git fetch origin responsive-nonscroll-ui
           git rebase origin/responsive-nonscroll-ui
           git push origin HEAD:responsive-nonscroll-ui
