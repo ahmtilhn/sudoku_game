@@ -45,8 +45,6 @@ jobs:
           home_path = Path('lib/features/home/professional_home_screen.dart')
           home = home_path.read_text()
           main_home = git_show(str(home_path))
-          # Reward/result-adjacent UI was explicitly outside this task. Keep the
-          # newest main implementation exactly while retaining our Home shell.
           home = replace_section(
               home,
               main_home,
@@ -58,8 +56,6 @@ jobs:
           store_path = Path('lib/features/economy/coin_store_screen.dart')
           store = store_path.read_text()
           main_store = git_show(str(store_path))
-          # Keep our no-scroll paginated store shell, but retain the newer
-          # compact inner cards that landed on main while this branch existed.
           store = replace_section(
               store,
               main_store,
@@ -113,11 +109,12 @@ jobs:
           if [ "$merge_status" -ne 0 ]; then
             for path in \
               lib/features/home/professional_home_screen.dart \
-              lib/features/economy/coin_store_screen.dart
+              lib/features/economy/coin_store_screen.dart \
+              test/responsive_feedback_ux_test.dart
             do
               if git ls-files -u -- "$path" | grep -q .; then
-                # Our versions already contain main's excluded/inner UI updates
-                # plus the validated non-scroll shell.
+                # Our versions already preserve main's relevant UI behavior
+                # while enforcing the validated non-scroll page contract.
                 git checkout --ours -- "$path"
                 git add "$path"
               fi
@@ -135,7 +132,7 @@ jobs:
         shell: bash
         run: |
           flutter pub get
-          dart format lib/features/home/professional_home_screen.dart lib/features/economy/coin_store_screen.dart
+          dart format lib/features/home/professional_home_screen.dart lib/features/economy/coin_store_screen.dart test/responsive_feedback_ux_test.dart
           python3 tool/verify_non_scroll_layouts.py
           flutter analyze --no-fatal-infos
           flutter test test/widget_test.dart test/career_variant_progress_test.dart test/profile_hub_artwork_layout_test.dart test/responsive_feedback_ux_test.dart --reporter expanded --concurrency=1
