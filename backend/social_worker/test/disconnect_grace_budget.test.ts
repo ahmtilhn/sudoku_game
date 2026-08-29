@@ -33,7 +33,7 @@ function state() {
       displayName: 'Bob',
       avatarKey: 'default',
     },
-    now: 1_000,
+    now: -10_000,
     randomBytes: new Uint8Array([
       1, 2, 3, 4, 5, 6, 7, 8,
       9, 1, 2, 3, 4, 5, 6, 7,
@@ -41,7 +41,7 @@ function state() {
   });
 }
 
-function startDuel(duel: ReturnType<typeof state>, now = 1_000) {
+function startDuel(duel: ReturnType<typeof state>, now = -10_000) {
   markConnected(duel, 'A', now + 1);
   markConnected(duel, 'B', now + 2);
   applyScreenLoaded(duel, 'A', now + 3);
