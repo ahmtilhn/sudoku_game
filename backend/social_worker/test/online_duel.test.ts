@@ -51,7 +51,10 @@ function startDuel(duel: ReturnType<typeof state>, now = -10_000) {
   applyScreenLoaded(duel, 'B', now + 4);
   applyReady(duel, 'A', now + 5);
   applyReady(duel, 'B', now + 6);
-  applyDueDeadlines(duel, duel.readyDeadline!);
+  const readyDeadline = duel.readyDeadline!;
+  applyDueDeadlines(duel, readyDeadline);
+  applyScreenLoaded(duel, 'A', readyDeadline + 1);
+  applyScreenLoaded(duel, 'B', readyDeadline + 2);
 }
 
 describe('authoritative online duel engine', () => {
@@ -93,9 +96,16 @@ describe('authoritative online duel engine', () => {
     expect(readyEvents.filter((event) => event.type === 'match_started')).toHaveLength(0);
     expect(readyEvents.filter((event) => event.type === 'game_started')).toHaveLength(0);
 
-    const startEvents = applyDueDeadlines(duel, 11_004);
+    const handoffEvents = applyDueDeadlines(duel, 11_004);
     expect(duel.status).toBe('active');
-    expect(duel.turnDeadline).toBe(41_004);
+    expect(duel.startedAt).toBeNull();
+    expect(duel.turnDeadline).toBeNull();
+    expect(handoffEvents.map((event) => event.type)).toEqual(['snapshot']);
+
+    applyScreenLoaded(duel, 'A', 11_005);
+    const startEvents = applyScreenLoaded(duel, 'B', 11_006);
+    expect(duel.startedAt).toBe(11_006);
+    expect(duel.turnDeadline).toBe(41_006);
     expect(startEvents.filter((event) => event.type === 'match_started')).toHaveLength(1);
     expect(startEvents.filter((event) => event.type === 'game_started')).toHaveLength(1);
   });
@@ -107,11 +117,18 @@ describe('authoritative online duel engine', () => {
     applyScreenLoaded(duel, 'A', 1_003);
     applyScreenLoaded(duel, 'B', 1_004);
 
-    const events = applyDueDeadlines(duel, 11_004);
+    const handoffEvents = applyDueDeadlines(duel, 11_004);
 
     expect(duel.status).toBe('active');
-    expect(duel.turnDeadline).toBe(41_004);
-    expect(events.filter((event) => event.type === 'game_started')).toHaveLength(1);
+    expect(duel.startedAt).toBeNull();
+    expect(duel.turnDeadline).toBeNull();
+    expect(handoffEvents.map((event) => event.type)).toEqual(['snapshot']);
+
+    applyScreenLoaded(duel, 'A', 11_005);
+    const startEvents = applyScreenLoaded(duel, 'B', 11_006);
+    expect(duel.startedAt).toBe(11_006);
+    expect(duel.turnDeadline).toBe(41_006);
+    expect(startEvents.filter((event) => event.type === 'game_started')).toHaveLength(1);
   });
 
   it('does not auto-start ready window while a loaded player is disconnected', () => {
