@@ -41,6 +41,8 @@ jobs:
           echo "ref=${{ matrix.ref }} test_exit=$status"
           echo '--- failing test descriptions ---'
           grep -E '^[0-9:]+ \+[0-9]+ -[0-9]+: .+ \[E\]$' /tmp/tests.log || true
+          echo '--- render overflow count ---'
+          grep -c -E 'RenderFlex overflowed|A RenderFlex overflowed' /tmp/tests.log || true
           echo '--- source expectation failures ---'
           grep -n -B3 -A5 -E '^  Expected:|^    Actual:' /tmp/tests.log | tail -260 || true
           echo '--- summary ---'
