@@ -30,11 +30,12 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
     _strings = widget.strings;
     WidgetsBinding.instance.addObserver(this);
 
+    // ReminderNotificationService.initialize() is started once from main after
+    // the first frame and now performs the initial OS-permission sync itself.
+    // Keep this callback focused on the iOS localization bridge retry so daily
+    // reminder scheduling cannot race two startup initializations.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_reloadStringsForPlatformLocale());
-      unawaited(
-        ReminderNotificationService.instance.syncWithSystemPermission(),
-      );
     });
   }
 
