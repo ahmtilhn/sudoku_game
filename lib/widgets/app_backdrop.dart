@@ -159,7 +159,9 @@ class _OnlineReadyTransitionOverlayState
   Widget build(BuildContext context) {
     if (widget.showStartingFlash) {
       if (!_startingFlashVisible) return const SizedBox.shrink();
-      return const IgnorePointer(child: _MatchStartingCard());
+      return const IgnorePointer(
+        child: Center(child: _MatchStartingCard()),
+      );
     }
 
     final seconds = _remainingSeconds();
