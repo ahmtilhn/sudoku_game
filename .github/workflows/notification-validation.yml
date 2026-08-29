@@ -23,11 +23,27 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: Analyze notification changes
-        run: flutter analyze lib/main.dart lib/services/notification_platform_service.dart lib/services/push_notification_service.dart lib/services/reminder_notification_service.dart lib/features/home/push_room_navigation_gate.dart lib/features/social/challenge_navigation_gate.dart lib/features/social/player_identity_gate.dart lib/features/notifications/daily_reminder_destination_screen.dart test/notification_hardening_contract_test.dart test/android_notification_icon_config_test.dart
+        run: flutter analyze lib/main.dart lib/services/notification_platform_service.dart lib/services/push_notification_service.dart lib/services/reminder_notification_service.dart lib/features/home/push_room_navigation_gate.dart lib/features/social/challenge_navigation_gate.dart lib/features/social/player_identity_gate.dart lib/features/notifications/daily_reminder_destination_screen.dart test/notification_hardening_contract_test.dart test/android_notification_icon_config_test.dart test/ios_notification_config_test.dart
       - name: Notification regression tests
-        run: flutter test test/notification_hardening_contract_test.dart test/android_notification_icon_config_test.dart test/challenge_client_hardening_test.dart
+        run: flutter test test/notification_hardening_contract_test.dart test/android_notification_icon_config_test.dart test/ios_notification_config_test.dart test/challenge_client_hardening_test.dart
       - name: Android debug compile
         run: flutter build apk --debug
+
+  notification-ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: iOS notification regression checks
+        run: flutter test test/ios_notification_config_test.dart test/notification_hardening_contract_test.dart
+      - name: Install iOS pods
+        run: cd ios && pod install --repo-update
+      - name: iOS debug compile without signing
+        run: flutter build ios --debug --no-codesign
 
   notification-backend:
     runs-on: ubuntu-latest
