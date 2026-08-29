@@ -158,10 +158,7 @@ void main() {
     expect(source, contains('final pageSize = columns * rows;'));
     expect(source, contains('_CareerChapterBar('));
     expect(source, contains('_CareerPager('));
-    expect(
-      source,
-      contains('physics: const NeverScrollableScrollPhysics()'),
-    );
+    expect(source, contains('physics: const NeverScrollableScrollPhysics()'));
     expect(source, isNot(contains('ListView(')));
     expect(source, contains('SudokuVariantId.classic16'));
     expect(source, contains('Classic16PuzzleFactory.generate'));

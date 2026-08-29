@@ -402,6 +402,10 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxHeight < 760;
+              final tight =
+                  constraints.maxHeight < 420 &&
+                  constraints.maxWidth > constraints.maxHeight * 1.35;
+              final narrowHeader = constraints.maxWidth < 350;
               final wide =
                   constraints.maxWidth >= 760 ||
                   constraints.maxWidth > constraints.maxHeight * 1.35;
@@ -411,15 +415,24 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
                   constraints: const BoxConstraints(maxWidth: 900),
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
-                      14,
-                      compact ? 6 : 10,
-                      14,
-                      compact ? 8 : 14,
+                      narrowHeader ? 8 : 14,
+                      tight
+                          ? 2
+                          : compact
+                          ? 6
+                          : 10,
+                      narrowHeader ? 8 : 14,
+                      tight
+                          ? 4
+                          : compact
+                          ? 8
+                          : 14,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _HomeHeader(
+                          narrow: narrowHeader,
                           profile: _profile,
                           balance: _economy.balance,
                           badge: _socialBadge,
@@ -440,25 +453,45 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  _HomeLogo(compact: compact),
+                                  _HomeLogo(compact: compact, tight: tight),
                                   if (_activeSession != null) ...[
-                                    SizedBox(height: compact ? 4 : 6),
+                                    SizedBox(
+                                      height: tight
+                                          ? 2
+                                          : compact
+                                          ? 4
+                                          : 6,
+                                    ),
                                     _ResumeStrip(
                                       session: _activeSession!,
                                       busy: _openingGame,
                                       onTap: _resume,
                                     ),
                                   ],
-                                  SizedBox(height: compact ? 8 : 12),
+                                  SizedBox(
+                                    height: tight
+                                        ? 4
+                                        : compact
+                                        ? 8
+                                        : 12,
+                                  ),
                                   _PrimaryModes(
                                     items: primaryItems,
                                     compact: compact,
+                                    tight: tight,
                                     wide: wide,
                                   ),
-                                  SizedBox(height: compact ? 8 : 10),
+                                  SizedBox(
+                                    height: tight
+                                        ? 4
+                                        : compact
+                                        ? 8
+                                        : 10,
+                                  ),
                                   _SecondaryModes(
                                     items: secondaryItems,
                                     compact: compact,
+                                    tight: tight,
                                     wide: wide,
                                   ),
                                 ],
@@ -480,15 +513,20 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
 }
 
 class _HomeLogo extends StatelessWidget {
-  const _HomeLogo({required this.compact});
+  const _HomeLogo({required this.compact, required this.tight});
 
   final bool compact;
+  final bool tight;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       key: const ValueKey<String>('home-logo-text'),
-      height: compact ? 72 : 180,
+      height: tight
+          ? 44
+          : compact
+          ? 72
+          : 180,
       width: double.infinity,
       child: ClipRect(
         child: Center(
@@ -506,7 +544,11 @@ class _HomeLogo extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: compact ? 28 : 42,
+                    fontSize: tight
+                        ? 22
+                        : compact
+                        ? 28
+                        : 42,
                     height: 1,
                     fontWeight: FontWeight.w900,
                     letterSpacing: .9,
@@ -523,6 +565,7 @@ class _HomeLogo extends StatelessWidget {
 
 class _HomeHeader extends StatelessWidget {
   const _HomeHeader({
+    required this.narrow,
     required this.profile,
     required this.balance,
     required this.badge,
@@ -535,6 +578,7 @@ class _HomeHeader extends StatelessWidget {
     required this.onSettings,
   });
 
+  final bool narrow;
   final PlayerProfilePreferences? profile;
   final int balance;
   final int badge;
@@ -551,7 +595,7 @@ class _HomeHeader extends StatelessWidget {
     final name = profile?.displayName ?? 'Sudoku Player';
 
     return SizedBox(
-      height: 44,
+      height: narrow ? 38 : 44,
       child: Row(
         children: [
           Expanded(
@@ -567,13 +611,13 @@ class _HomeHeader extends StatelessWidget {
                       avatarKey: 'professional-home-$name',
                       localAvatarBytes: platformPlayer?.avatarBytes,
                       remoteApprovedImageUrl: platformPlayer?.avatarUrl,
-                      radius: 18,
+                      radius: narrow ? 15 : 18,
                       semanticLabel: context.tr(
                         'player_avatar_semantics',
                         <Object>[name],
                       ),
                     ),
-                    const SizedBox(width: 7),
+                    SizedBox(width: narrow ? 5 : 7),
                     Flexible(
                       child: Text(
                         name,
@@ -592,6 +636,7 @@ class _HomeHeader extends StatelessWidget {
             ),
           ),
           _HeaderButton(
+            compact: narrow,
             tooltip: context.tr('home_daily_reward_title'),
             onTap: rewardReady ? onReward : null,
             accent: rewardReady ? const Color(0xFFFFC73D) : null,
@@ -604,8 +649,9 @@ class _HomeHeader extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: narrow ? 2 : 4),
           _HeaderButton(
+            compact: narrow,
             tooltip: context.tr('leaderboards'),
             onTap: identityBusy ? null : onLeaderboards,
             accent: const Color(0xFFFFC73D),
@@ -615,8 +661,9 @@ class _HomeHeader extends StatelessWidget {
               fit: BoxFit.contain,
             ),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: narrow ? 2 : 4),
           _HeaderButton(
+            compact: narrow,
             tooltip: context.tr('friends_challenges'),
             onTap: identityBusy ? null : onSocial,
             child: Badge(
@@ -625,10 +672,13 @@ class _HomeHeader extends StatelessWidget {
               child: const DuelAssetIcon(DuelAsset.people, size: 22),
             ),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: narrow ? 2 : 4),
           Container(
-            height: 38,
-            padding: const EdgeInsets.only(left: 3, right: 8),
+            height: narrow ? 34 : 38,
+            padding: EdgeInsets.only(
+              left: narrow ? 2 : 3,
+              right: narrow ? 5 : 8,
+            ),
             decoration: BoxDecoration(
               color: const Color(0xFF0A1728).withValues(alpha: .92),
               borderRadius: BorderRadius.circular(999),
@@ -639,12 +689,12 @@ class _HomeHeader extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const DuelAssetIcon(
+                DuelAssetIcon(
                   DuelAsset.coin,
-                  size: 30,
+                  size: narrow ? 24 : 30,
                   fit: BoxFit.contain,
                 ),
-                const SizedBox(width: 2),
+                SizedBox(width: narrow ? 1 : 2),
                 Text(
                   NumberFormat.compact().format(balance),
                   style: const TextStyle(
@@ -656,8 +706,9 @@ class _HomeHeader extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 4),
+          SizedBox(width: narrow ? 2 : 4),
           _HeaderButton(
+            compact: narrow,
             tooltip: context.tr('settings'),
             onTap: onSettings,
             child: const Icon(Icons.settings_rounded, size: 20),
@@ -973,12 +1024,14 @@ class _RewardTile extends StatelessWidget {
 
 class _HeaderButton extends StatelessWidget {
   const _HeaderButton({
+    required this.compact,
     required this.tooltip,
     required this.onTap,
     required this.child,
     this.accent,
   });
 
+  final bool compact;
   final String tooltip;
   final VoidCallback? onTap;
   final Widget child;
@@ -986,20 +1039,24 @@ class _HeaderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onTap,
-      style: IconButton.styleFrom(
-        fixedSize: const Size(38, 38),
+    final size = compact ? 34.0 : 38.0;
+    return SizedBox.square(
+      dimension: size,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onTap,
         padding: EdgeInsets.zero,
-        backgroundColor: const Color(0xFF0A1728).withValues(alpha: .92),
-        side: BorderSide(
-          color: (accent ?? Colors.white).withValues(
-            alpha: accent == null ? .13 : .34,
+        constraints: const BoxConstraints(),
+        style: IconButton.styleFrom(
+          backgroundColor: const Color(0xFF0A1728).withValues(alpha: .92),
+          side: BorderSide(
+            color: (accent ?? Colors.white).withValues(
+              alpha: accent == null ? .13 : .34,
+            ),
           ),
         ),
+        icon: child,
       ),
-      icon: child,
     );
   }
 }
@@ -1105,18 +1162,24 @@ class _PrimaryModes extends StatelessWidget {
   const _PrimaryModes({
     required this.items,
     required this.compact,
+    required this.tight,
     required this.wide,
   });
 
   final List<_HomeModeData> items;
   final bool compact;
+  final bool tight;
   final bool wide;
 
   @override
   Widget build(BuildContext context) {
     if (wide) {
       return SizedBox(
-        height: compact ? 84 : 124,
+        height: tight
+            ? 68
+            : compact
+            ? 84
+            : 124,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1153,17 +1216,23 @@ class _SecondaryModes extends StatelessWidget {
   const _SecondaryModes({
     required this.items,
     required this.compact,
+    required this.tight,
     required this.wide,
   });
 
   final List<_HomeModeData> items;
   final bool compact;
+  final bool tight;
   final bool wide;
 
   @override
   Widget build(BuildContext context) {
     final columns = wide ? 4 : 2;
-    final itemHeight = compact ? 58.0 : 88.0;
+    final itemHeight = tight
+        ? 52.0
+        : compact
+        ? 58.0
+        : 88.0;
     final rows = (items.length / columns).ceil();
 
     return SizedBox(

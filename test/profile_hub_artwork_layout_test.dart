@@ -12,11 +12,11 @@ void main() {
     expect(source, contains('tab.tab == _ProfileTab.customize'));
     expect(source, contains('tab.tab == _ProfileTab.emotes'));
     expect(source, contains('child: ClipRRect('));
-    expect(source, contains('fit: fillArtwork ? BoxFit.cover : BoxFit.contain'));
     expect(
       source,
-      contains('physics: const NeverScrollableScrollPhysics()'),
+      contains('fit: fillArtwork ? BoxFit.cover : BoxFit.contain'),
     );
+    expect(source, contains('physics: const NeverScrollableScrollPhysics()'));
   });
 
   test('profile hub artwork is contained by responsive action cards', () {
