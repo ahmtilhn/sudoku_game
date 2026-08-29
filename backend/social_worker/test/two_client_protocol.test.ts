@@ -43,7 +43,10 @@ describe('local two-client protocol simulation', () => {
     applyScreenLoaded(duel, 'B', -9_996);
     applyReady(duel, 'A', -9_995);
     applyReady(duel, 'B', -9_994);
-    applyDueDeadlines(duel, duel.readyDeadline!);
+    const readyDeadline = duel.readyDeadline!;
+    applyDueDeadlines(duel, readyDeadline);
+    applyScreenLoaded(duel, 'A', readyDeadline + 1);
+    applyScreenLoaded(duel, 'B', readyDeadline + 2);
 
     const aStart = snapshot(duel, 'A', 12);
     const bStart = snapshot(duel, 'B', 12);
