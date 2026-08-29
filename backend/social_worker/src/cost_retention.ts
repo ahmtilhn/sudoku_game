@@ -46,12 +46,27 @@ export function nextAlarmAt(
   },
   nowMs: number,
 ): number | null {
+  const disconnectDeadlines =
+    input.status === 'active' || input.status === 'paused'
+      ? [input.playerADisconnectDeadline, input.playerBDisconnectDeadline]
+      : [];
+
+  // A fully exhausted disconnect budget is represented by a deadline that is
+  // already due. Durable Object alarms must still be scheduled in the future,
+  // so wake the room on the next millisecond instead of dropping that deadline.
+  if (
+    disconnectDeadlines.some(
+      (value) => typeof value === 'number' && value <= nowMs,
+    )
+  ) {
+    return nowMs + 1;
+  }
+
   const deadlines = [
     input.status === 'waiting' ? input.lobbyDeadline ?? null : null,
     input.status === 'ready_window' ? input.readyDeadline : null,
     input.status === 'active' ? input.turnDeadline : null,
-    input.playerADisconnectDeadline,
-    input.playerBDisconnectDeadline,
+    ...disconnectDeadlines,
     isTerminalRoom(input.status) && input.settled === true && input.finishedAt
       ? input.finishedAt + TERMINAL_ROOM_STORAGE_GRACE_MS
       : null,

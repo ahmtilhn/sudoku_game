@@ -6,9 +6,11 @@ export {
   applyReady,
   applyScreenLoaded,
   createInitialDuelState,
+} from './online_duel_engine';
+export {
   markConnected,
   markDisconnected,
-} from './online_duel_engine';
+} from './online_duel_presence';
 export {
   roomIdForVariant,
   variantFromRoomId,
