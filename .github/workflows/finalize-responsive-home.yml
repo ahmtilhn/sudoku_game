@@ -1,4 +1,4 @@
-name: Finalize tight responsive home
+name: Finalize responsive home
 
 on:
   push:
@@ -19,7 +19,8 @@ jobs:
         with:
           ref: responsive-nonscroll-ui
           fetch-depth: 0
-      - name: Add ultra-short landscape tier
+
+      - name: Patch narrow header and ultra-short landscape tier
         shell: bash
         run: |
           python3 - <<'PY'
@@ -30,17 +31,24 @@ jobs:
 
           def replace_once(old: str, new: str) -> None:
               global text
-              if text.count(old) != 1:
-                  raise SystemExit(f'Expected exactly one match, got {text.count(old)} for: {old[:90]!r}')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(
+                      f'Expected exactly one match, got {count} for: {old[:110]!r}'
+                  )
               text = text.replace(old, new, 1)
 
           replace_once(
               """              final compact = constraints.maxHeight < 760;\n              final wide =\n""",
-              """              final compact = constraints.maxHeight < 760;\n              final tight =\n                  constraints.maxHeight < 420 &&\n                  constraints.maxWidth > constraints.maxHeight * 1.35;\n              final wide =\n""",
+              """              final compact = constraints.maxHeight < 760;\n              final tight =\n                  constraints.maxHeight < 420 &&\n                  constraints.maxWidth > constraints.maxHeight * 1.35;\n              final narrowHeader = constraints.maxWidth < 350;\n              final wide =\n""",
           )
           replace_once(
               """                      14,\n                      compact ? 6 : 10,\n                      14,\n                      compact ? 8 : 14,\n""",
-              """                      14,\n                      tight ? 2 : compact ? 6 : 10,\n                      14,\n                      tight ? 4 : compact ? 8 : 14,\n""",
+              """                      narrowHeader ? 8 : 14,\n                      tight ? 2 : compact ? 6 : 10,\n                      narrowHeader ? 8 : 14,\n                      tight ? 4 : compact ? 8 : 14,\n""",
+          )
+          replace_once(
+              """                        _HomeHeader(\n                          profile: _profile,\n""",
+              """                        _HomeHeader(\n                          narrow: narrowHeader,\n                          profile: _profile,\n""",
           )
           replace_once(
               """                                  _HomeLogo(compact: compact),\n                                  if (_activeSession != null) ...[\n                                    SizedBox(height: compact ? 4 : 6),\n""",
@@ -62,6 +70,95 @@ jobs:
               """                    fontSize: compact ? 28 : 42,\n""",
               """                    fontSize: tight ? 22 : compact ? 28 : 42,\n""",
           )
+
+          replace_once(
+              """  const _HomeHeader({\n    required this.profile,\n""",
+              """  const _HomeHeader({\n    required this.narrow,\n    required this.profile,\n""",
+          )
+          replace_once(
+              """  final PlayerProfilePreferences? profile;\n""",
+              """  final bool narrow;\n  final PlayerProfilePreferences? profile;\n""",
+          )
+          replace_once(
+              """    return SizedBox(\n      height: 44,\n""",
+              """    return SizedBox(\n      height: narrow ? 38 : 44,\n""",
+          )
+          replace_once(
+              """                      radius: 18,\n""",
+              """                      radius: narrow ? 15 : 18,\n""",
+          )
+          replace_once(
+              """                    const SizedBox(width: 7),\n""",
+              """                    SizedBox(width: narrow ? 5 : 7),\n""",
+          )
+          replace_once(
+              """                          fontSize: 13,\n""",
+              """                          fontSize: narrow ? 11 : 13,\n""",
+          )
+
+          # All four header buttons keep their callbacks; only their narrow
+          # footprint changes so the 320px layout does not overflow.
+          marker = """          _HeaderButton(\n            tooltip: context.tr('home_daily_reward_title'),\n"""
+          replace_once(
+              marker,
+              """          _HeaderButton(\n            compact: narrow,\n            tooltip: context.tr('home_daily_reward_title'),\n""",
+          )
+          marker = """          _HeaderButton(\n            tooltip: context.tr('leaderboards'),\n"""
+          replace_once(
+              marker,
+              """          _HeaderButton(\n            compact: narrow,\n            tooltip: context.tr('leaderboards'),\n""",
+          )
+          marker = """          _HeaderButton(\n            tooltip: context.tr('friends_challenges'),\n"""
+          replace_once(
+              marker,
+              """          _HeaderButton(\n            compact: narrow,\n            tooltip: context.tr('friends_challenges'),\n""",
+          )
+          marker = """          _HeaderButton(\n            tooltip: context.tr('settings'),\n"""
+          replace_once(
+              marker,
+              """          _HeaderButton(\n            compact: narrow,\n            tooltip: context.tr('settings'),\n""",
+          )
+
+          # Four horizontal gaps in the header.
+          old_gap = """          const SizedBox(width: 4),\n"""
+          if text.count(old_gap) < 4:
+              raise SystemExit('Expected at least four home header gaps')
+          text = text.replace(
+              old_gap,
+              """          SizedBox(width: narrow ? 2 : 4),\n""",
+              4,
+          )
+
+          replace_once(
+              """          Container(\n            height: 38,\n            padding: const EdgeInsets.only(left: 3, right: 8),\n""",
+              """          Container(\n            height: narrow ? 34 : 38,\n            padding: EdgeInsets.only(\n              left: narrow ? 2 : 3,\n              right: narrow ? 5 : 8,\n            ),\n""",
+          )
+          replace_once(
+              """                const DuelAssetIcon(\n                  DuelAsset.coin,\n                  size: 30,\n                  fit: BoxFit.contain,\n                ),\n                const SizedBox(width: 2),\n""",
+              """                DuelAssetIcon(\n                  DuelAsset.coin,\n                  size: narrow ? 24 : 30,\n                  fit: BoxFit.contain,\n                ),\n                SizedBox(width: narrow ? 1 : 2),\n""",
+          )
+          replace_once(
+              """                    fontSize: 12,\n""",
+              """                    fontSize: narrow ? 10 : 12,\n""",
+          )
+
+          replace_once(
+              """  const _HeaderButton({\n    required this.tooltip,\n""",
+              """  const _HeaderButton({\n    required this.compact,\n    required this.tooltip,\n""",
+          )
+          replace_once(
+              """  final String tooltip;\n""",
+              """  final bool compact;\n  final String tooltip;\n""",
+          )
+          replace_once(
+              """  Widget build(BuildContext context) {\n    return IconButton(\n      tooltip: tooltip,\n      onPressed: onTap,\n      style: IconButton.styleFrom(\n        fixedSize: const Size(38, 38),\n        padding: EdgeInsets.zero,\n        backgroundColor: const Color(0xFF0A1728).withValues(alpha: .92),\n""",
+              """  Widget build(BuildContext context) {\n    final size = compact ? 34.0 : 38.0;\n    return SizedBox.square(\n      dimension: size,\n      child: IconButton(\n        tooltip: tooltip,\n        onPressed: onTap,\n        padding: EdgeInsets.zero,\n        constraints: const BoxConstraints(),\n        style: IconButton.styleFrom(\n          backgroundColor: const Color(0xFF0A1728).withValues(alpha: .92),\n""",
+          )
+          replace_once(
+              """        side: BorderSide(\n          color: (accent ?? Colors.white).withValues(\n            alpha: accent == null ? .13 : .34,\n          ),\n        ),\n      ),\n      icon: child,\n    );\n  }\n}\n\nclass _ResumeStrip\n""",
+              """          side: BorderSide(\n            color: (accent ?? Colors.white).withValues(\n              alpha: accent == null ? .13 : .34,\n            ),\n          ),\n        ),\n        icon: child,\n      ),\n    );\n  }\n}\n\nclass _ResumeStrip\n""",
+          )
+
           replace_once(
               """    required this.compact,\n    required this.wide,\n  });\n\n  final List<_HomeModeData> items;\n  final bool compact;\n  final bool wide;\n\n  @override\n  Widget build(BuildContext context) {\n    if (wide) {\n      return SizedBox(\n        height: compact ? 84 : 124,\n""",
               """    required this.compact,\n    required this.tight,\n    required this.wide,\n  });\n\n  final List<_HomeModeData> items;\n  final bool compact;\n  final bool tight;\n  final bool wide;\n\n  @override\n  Widget build(BuildContext context) {\n    if (wide) {\n      return SizedBox(\n        height: tight ? 68 : compact ? 84 : 124,\n""",
@@ -73,22 +170,27 @@ jobs:
 
           path.write_text(text)
           PY
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
+
       - run: flutter pub get
+
       - name: Format and analyze
         run: |
-          dart format lib/features/home/professional_home_screen.dart test/widget_test.dart test/career_variant_progress_test.dart
+          dart format lib/features/home/professional_home_screen.dart test/widget_test.dart test/career_variant_progress_test.dart test/profile_hub_artwork_layout_test.dart
           flutter analyze --no-fatal-infos
+
       - name: Run focused offline responsive tests
-        run: flutter test test/widget_test.dart test/career_variant_progress_test.dart --reporter expanded --concurrency=1
-      - name: Commit final layout tier
+        run: flutter test test/widget_test.dart test/career_variant_progress_test.dart test/profile_hub_artwork_layout_test.dart --reporter expanded --concurrency=1
+
+      - name: Commit validated home layout
         shell: bash
         run: |
           set -euo pipefail
-          git add lib/features/home/professional_home_screen.dart test/widget_test.dart test/career_variant_progress_test.dart
+          git add lib/features/home/professional_home_screen.dart test/widget_test.dart test/career_variant_progress_test.dart test/profile_hub_artwork_layout_test.dart
           if git diff --cached --quiet; then
             echo 'No final source changes required.'
             exit 0
