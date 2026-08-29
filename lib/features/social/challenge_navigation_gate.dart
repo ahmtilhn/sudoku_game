@@ -14,11 +14,13 @@ import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/platform_game_services.dart';
 import '../../services/push_notification_service.dart';
+import '../../services/reminder_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../duel/pre_match_ready_screen.dart';
 import '../game/game_screen.dart';
 import '../game/hint_economy.dart';
+import '../notifications/daily_reminder_destination_screen.dart';
 import 'challenge_invitation_screen.dart';
 import 'player_identity_gate.dart';
 
@@ -34,6 +36,8 @@ class ChallengeNavigationGate extends StatefulWidget {
 
 class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
   final PushNotificationService _push = PushNotificationService.instance;
+  final ReminderNotificationService _reminders =
+      ReminderNotificationService.instance;
   final GameSessionStore _sessions = GameSessionStore.instance;
   final EconomyService _economy = EconomyService.instance;
   final SocialApiClient _social = SocialApiClient.instance;
@@ -41,16 +45,20 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
   ActiveGameSessionMetadata? _activeSession;
   bool _openingChallenge = false;
   bool _challengeOpenScheduled = false;
+  bool _openingDailyReminder = false;
+  bool _dailyReminderOpenScheduled = false;
   bool _launchingSession = false;
 
   @override
   void initState() {
     super.initState();
     _push.openedChallengeId.addListener(_scheduleChallengeOpen);
+    _reminders.openedPayload.addListener(_scheduleDailyReminderOpen);
     _sessions.activeSession.addListener(_onActiveSessionChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncAutomaticSocialUiState();
       _scheduleChallengeOpen();
+      _scheduleDailyReminderOpen();
       unawaited(_sessions.latest());
     });
   }
@@ -59,6 +67,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
   void dispose() {
     _push.setAutomaticSocialUiAllowed(false);
     _push.openedChallengeId.removeListener(_scheduleChallengeOpen);
+    _reminders.openedPayload.removeListener(_scheduleDailyReminderOpen);
     _sessions.activeSession.removeListener(_onActiveSessionChanged);
     super.dispose();
   }
@@ -80,6 +89,7 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
     final showResume =
         level != null &&
         !_openingChallenge &&
+        !_openingDailyReminder &&
         !_launchingSession &&
         routeIsCurrent;
 
@@ -139,8 +149,17 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
     });
   }
 
+  void _scheduleDailyReminderOpen() {
+    if (_dailyReminderOpenScheduled || !mounted) return;
+    _dailyReminderOpenScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _dailyReminderOpenScheduled = false;
+      if (mounted) unawaited(_openDailyReminder());
+    });
+  }
+
   Future<void> _openChallenge() async {
-    if (!mounted || _openingChallenge) return;
+    if (!mounted || _openingChallenge || _openingDailyReminder) return;
     final challengeId = _push.openedChallengeId.value;
     if (challengeId == null || challengeId.isEmpty) return;
 
@@ -176,6 +195,34 @@ class _ChallengeNavigationGateState extends State<ChallengeNavigationGate> {
       if (mounted) {
         setState(() => _openingChallenge = false);
         unawaited(_sessions.latest());
+        if (_push.openedChallengeId.value != null) _scheduleChallengeOpen();
+        if (_reminders.openedPayload.value != null) {
+          _scheduleDailyReminderOpen();
+        }
+      }
+    }
+  }
+
+  Future<void> _openDailyReminder() async {
+    if (!mounted || _openingDailyReminder || _openingChallenge) return;
+    final payload = _reminders.openedPayload.value;
+    if (payload != 'daily-reminder') return;
+
+    setState(() => _openingDailyReminder = true);
+    _reminders.openedPayload.value = null;
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => DailyReminderDestinationScreen(store: widget.store),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _openingDailyReminder = false);
+        unawaited(_sessions.latest());
+        if (_reminders.openedPayload.value != null) {
+          _scheduleDailyReminderOpen();
+        }
         if (_push.openedChallengeId.value != null) _scheduleChallengeOpen();
       }
     }
