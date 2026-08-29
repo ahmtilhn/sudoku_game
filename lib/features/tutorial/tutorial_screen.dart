@@ -101,8 +101,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                             if (_ruleIndex > 0) ...[
                               Expanded(
                                 child: OutlinedButton.icon(
-                                  onPressed: () =>
-                                      setState(() => _ruleIndex--),
+                                  onPressed: () => setState(() => _ruleIndex--),
                                   icon: const Icon(Icons.chevron_left_rounded),
                                   label: Text(
                                     MaterialLocalizations.of(

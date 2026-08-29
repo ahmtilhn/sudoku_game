@@ -65,7 +65,9 @@ class _ServiceDiagnosticsScreenState extends State<ServiceDiagnosticsScreen> {
             final entries = report?.entries ?? const <ServiceDiagnosticEntry>[];
             final compact = constraints.maxHeight < 650;
             final pageSize = compact ? 3 : 5;
-            final pageCount = entries.isEmpty ? 1 : (entries.length / pageSize).ceil();
+            final pageCount = entries.isEmpty
+                ? 1
+                : (entries.length / pageSize).ceil();
             final page = _page.clamp(0, pageCount - 1);
             final start = page * pageSize;
             final end = (start + pageSize).clamp(0, entries.length);

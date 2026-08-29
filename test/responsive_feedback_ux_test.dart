@@ -122,21 +122,15 @@ void main() {
     },
   );
 
-  test('coin store uses non-scroll pagination and compact purchase cards', () {
+  test('coin store uses responsive grid and compact purchase cards', () {
     final source = File(
       'lib/features/economy/coin_store_screen.dart',
     ).readAsStringSync();
 
-    expect(source, contains('constraints.maxWidth >= 700'));
-    expect(source, contains('constraints.maxWidth >= 340'));
-    expect(source, contains('final rows = compact ? 1 : 2'));
-    expect(source, contains('final pageSize = columns * rows'));
-    expect(source, contains('_StorePager('));
-    expect(
-      source,
-      contains('physics: const NeverScrollableScrollPhysics()'),
-    );
-    expect(source, isNot(contains('CustomScrollView(')));
+    expect(source, contains('constraints.maxWidth >= 900'));
+    expect(source, contains('constraints.maxWidth >= 560'));
+    expect(source, contains('horizontalPadding'));
+    expect(source, contains('gridAspectRatio'));
     expect(source, contains('final stacked = constraints.maxWidth < 380'));
     expect(source, contains('crossAxisAlignment: CrossAxisAlignment.stretch'));
     expect(source, contains('overflow: TextOverflow.ellipsis'));

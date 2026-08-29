@@ -125,9 +125,11 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
                           Expanded(
                             child: Column(
                               children: [
-                                for (var index = 0;
-                                    index < visibleEntries.length;
-                                    index++)
+                                for (
+                                  var index = 0;
+                                  index < visibleEntries.length;
+                                  index++
+                                )
                                   Expanded(
                                     child: Padding(
                                       padding: EdgeInsets.only(
@@ -276,7 +278,9 @@ class _LedgerTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     context.tr('coin_history_balance_after', <Object>[
-                      DateFormat.yMMMd().add_Hm().format(entry.createdAt.toLocal()),
+                      DateFormat.yMMMd().add_Hm().format(
+                        entry.createdAt.toLocal(),
+                      ),
                       balance,
                     ]),
                     maxLines: compact ? 1 : 2,

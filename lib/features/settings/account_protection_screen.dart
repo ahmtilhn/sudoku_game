@@ -62,9 +62,17 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     horizontal,
-                    keyboardOpen ? 2 : compact ? 6 : 12,
+                    keyboardOpen
+                        ? 2
+                        : compact
+                        ? 6
+                        : 12,
                     horizontal,
-                    keyboardOpen ? 4 : compact ? 8 : 16,
+                    keyboardOpen
+                        ? 4
+                        : compact
+                        ? 8
+                        : 16,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -94,7 +102,8 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
                                 ),
                         ),
                       ),
-                      if (!keyboardOpen && (_error != null || _notice != null)) ...[
+                      if (!keyboardOpen &&
+                          (_error != null || _notice != null)) ...[
                         const SizedBox(height: 6),
                         _MessagePanel(
                           icon: _error != null
@@ -149,12 +158,22 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
     final validPassword = _password.text.length >= 8;
     final matches = _signInMode || _password.text == _confirm.text;
     final canSubmit = validEmail && validPassword && matches && !_busy;
-    final spacing = keyboardOpen ? 6.0 : compact ? 8.0 : 12.0;
+    final spacing = keyboardOpen
+        ? 6.0
+        : compact
+        ? 8.0
+        : 12.0;
 
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: EdgeInsets.all(keyboardOpen ? 10 : compact ? 12 : 18),
+        padding: EdgeInsets.all(
+          keyboardOpen
+              ? 10
+              : compact
+              ? 12
+              : 18,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -219,7 +238,9 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               decoration: InputDecoration(
                 isDense: compact,
                 labelText: context.tr('password'),
-                helperText: keyboardOpen ? null : context.tr('password_min_chars'),
+                helperText: keyboardOpen
+                    ? null
+                    : context.tr('password_min_chars'),
                 prefixIcon: const Icon(Icons.lock_outline),
                 border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
@@ -494,7 +515,10 @@ class _AccountProtectionScreenState extends State<AccountProtectionScreen> {
               confirmation.text.trim().toUpperCase() == 'DELETE' &&
               (!_protected || password.text.length >= 8);
           return AlertDialog(
-            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 18,
+            ),
             title: Text(
               context.tr('delete_player_account_question'),
               maxLines: 2,
