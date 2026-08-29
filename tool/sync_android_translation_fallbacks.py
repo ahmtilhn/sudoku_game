@@ -47,10 +47,21 @@ def _string_names(path: Path) -> set[str]:
     }
 
 
+def _is_locale_values_dir(path: Path) -> bool:
+    """Return True only for Android resource directories carrying a locale."""
+    if not path.is_dir() or not path.name.startswith("values-"):
+        return False
+    first_qualifier = path.name[len("values-") :].split("-", 1)[0]
+    return bool(
+        re.fullmatch(r"[a-z]{2,3}", first_qualifier)
+        or first_qualifier.startswith("b+")
+    )
+
+
 def _translated_string_names() -> set[str]:
     names: set[str] = set()
     for values_dir in sorted(RES_DIR.glob("values-*")):
-        if not values_dir.is_dir():
+        if not _is_locale_values_dir(values_dir):
             continue
         for xml_path in sorted(values_dir.glob("*.xml")):
             names.update(_string_names(xml_path))
