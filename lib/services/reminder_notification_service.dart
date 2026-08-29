@@ -73,30 +73,15 @@ class ReminderNotificationService {
       _payloadListenerAttached = true;
     }
     _handlePlatformPayload();
-
     _initialized = true;
 
-    // OS permission and the in-app reminder preference are intentionally
-    // separate. A permission granted for online pushes must never silently
-    // re-enable daily reminders the user switched off.
-    final optedIn = await _preferences.getBool(_enabledKey) == true;
-    if (!optedIn) {
-      enabled.value = false;
-      await _cancelReminderSchedule();
-      return;
-    }
-
-    final granted = await _platform.systemPermissionGranted();
-    enabled.value = granted;
-    if (granted) {
-      await refreshSchedule();
-    } else {
-      await _cancelReminderSchedule();
-    }
+    await syncWithSystemPermission();
   }
 
-  /// Refreshes the switch from the current OS permission without requesting a
-  /// permission prompt. Used after returning from system settings/app resume.
+  /// Keeps the in-app switch and schedule aligned with the operating-system
+  /// permission. On a fresh install, an already granted notification permission
+  /// automatically opts daily reminders in. An explicit in-app opt-out remains
+  /// respected on later launches.
   Future<bool> syncWithSystemPermission() async {
     if (!_initialized) await initialize();
     if (!_supportsScheduling) {
@@ -104,21 +89,26 @@ class ReminderNotificationService {
       return false;
     }
 
-    final optedIn = await _preferences.getBool(_enabledKey) == true;
-    if (!optedIn) {
+    final savedPreference = await _preferences.getBool(_enabledKey);
+    if (savedPreference == false) {
       enabled.value = false;
       await _cancelReminderSchedule();
       return false;
     }
 
     final granted = await _platform.systemPermissionGranted();
-    enabled.value = granted;
-    if (granted) {
-      await refreshSchedule();
-    } else {
+    if (!granted) {
+      enabled.value = false;
       await _cancelReminderSchedule();
+      return false;
     }
-    return granted;
+
+    if (savedPreference == null) {
+      await _preferences.setBool(_enabledKey, true);
+    }
+    enabled.value = true;
+    await refreshSchedule();
+    return true;
   }
 
   Future<bool> requestPermissionAndEnable() async {
@@ -193,9 +183,6 @@ class ReminderNotificationService {
       ),
     );
 
-    // Keep exactly three recurring requests instead of reserving 63 one-shot
-    // slots. This avoids iOS's pending-notification ceiling and never expires
-    // after 21 days when the app has not been reopened.
     for (var index = 0; index < _dailyTimes.length; index++) {
       final time = _dailyTimes[index];
       await _platform.plugin.zonedSchedule(
@@ -241,8 +228,6 @@ class ReminderNotificationService {
   }
 
   Future<void> _cancelReminderSchedule() async {
-    // Cancel both the old 63 one-shot IDs and the new three repeating IDs so
-    // upgrades cannot leave stale reminders behind.
     for (var index = 0; index < _legacyNotificationCount; index++) {
       await _platform.plugin.cancel(id: _firstNotificationId + index);
     }
