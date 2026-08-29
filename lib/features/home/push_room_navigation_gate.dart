@@ -6,7 +6,6 @@ import '../../services/firebase_session_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/social_api_client.dart';
 import '../duel/pre_match_ready_screen.dart';
-import '../social/rematch_invitation_screen.dart';
 import '../social/social_hub_screen.dart';
 
 class PushRoomNavigationGate extends StatefulWidget {
@@ -31,18 +30,13 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
 
   bool get _hasHandledPendingNavigation =>
       _push.openedRoomId.value?.isNotEmpty == true ||
-      _push.openedRematchId.value?.isNotEmpty == true ||
       _push.openedSocialId.value?.isNotEmpty == true;
-
-  bool get _routeAllowsAutomaticNavigation =>
-      ModalRoute.of(context)?.isCurrent ?? false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _push.openedRoomId.addListener(_scheduleRouting);
-    _push.openedRematchId.addListener(_scheduleRouting);
     _push.openedSocialId.addListener(_scheduleRouting);
     unawaited(_initializePush());
     WidgetsBinding.instance.addPostFrameCallback((_) => _scheduleRouting());
@@ -61,7 +55,6 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
     WidgetsBinding.instance.removeObserver(this);
     _retryTimer?.cancel();
     _push.openedRoomId.removeListener(_scheduleRouting);
-    _push.openedRematchId.removeListener(_scheduleRouting);
     _push.openedSocialId.removeListener(_scheduleRouting);
     super.dispose();
   }
@@ -116,18 +109,11 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
   }
 
   Future<void> _routePendingDestination() async {
-    if (!mounted ||
-        _routing ||
-        !_hasHandledPendingNavigation ||
-        !_routeAllowsAutomaticNavigation) {
-      return;
-    }
+    if (!mounted || _routing || !_hasHandledPendingNavigation) return;
 
     final roomId = _push.openedRoomId.value?.trim();
-    final rematchId = _push.openedRematchId.value?.trim();
     final socialId = _push.openedSocialId.value?.trim();
     if ((roomId == null || roomId.isEmpty) &&
-        (rematchId == null || rematchId.isEmpty) &&
         (socialId == null || socialId.isEmpty)) {
       return;
     }
@@ -135,8 +121,6 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
     _routing = true;
     if (roomId != null && roomId.isNotEmpty) {
       _push.openedRoomId.value = null;
-    } else if (rematchId != null && rematchId.isNotEmpty) {
-      _push.openedRematchId.value = null;
     } else if (socialId != null && socialId.isNotEmpty) {
       _push.openedSocialId.value = null;
     }
@@ -155,14 +139,6 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
             builder: (_) => PreMatchReadyScreen(roomId: roomId),
           ),
         );
-      } else if (rematchId != null && rematchId.isNotEmpty) {
-        await Navigator.of(context).push<void>(
-          MaterialPageRoute(
-            builder: (_) => RematchInvitationScreen(
-              invitationId: rematchId,
-            ),
-          ),
-        );
       } else if (socialId != null && socialId.isNotEmpty) {
         await Navigator.of(context).push<void>(
           MaterialPageRoute(builder: (_) => const SocialHubScreen()),
@@ -171,24 +147,19 @@ class _PushRoomNavigationGateState extends State<PushRoomNavigationGate>
     } catch (_) {
       if (roomId != null && roomId.isNotEmpty) {
         _push.openedRoomId.value ??= roomId;
-      } else if (rematchId != null && rematchId.isNotEmpty) {
-        _push.openedRematchId.value ??= rematchId;
       } else if (socialId != null && socialId.isNotEmpty) {
         _push.openedSocialId.value ??= socialId;
       }
       _scheduleRetry();
     } finally {
       _routing = false;
-      if (_hasHandledPendingNavigation && _routeAllowsAutomaticNavigation) {
-        _scheduleRouting();
-      }
+      if (_hasHandledPendingNavigation) _scheduleRouting();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final routeIsCurrent = ModalRoute.of(context)?.isCurrent ?? false;
-    if (routeIsCurrent && _hasHandledPendingNavigation && !_routing) {
+    if (_hasHandledPendingNavigation && !_routing) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _scheduleRouting();
       });
