@@ -20,6 +20,9 @@ class OnlineDuelController with WidgetsBindingObserver {
        _platformGameStatsMirror =
            platformGameStatsMirror ?? PlatformGameStatsService.instance;
 
+  static OnlineDuelController? _activeInstance;
+  static OnlineDuelSnapshot? get activeSnapshot => _activeInstance?._snapshot;
+
   final OnlineDuelTransport _transport;
   final PlatformLeaderboardMirror _platformLeaderboardMirror;
   final PlatformGameStatsMirror _platformGameStatsMirror;
@@ -49,6 +52,7 @@ class OnlineDuelController with WidgetsBindingObserver {
   void start() {
     if (_started) return;
     _started = true;
+    _activeInstance = this;
     _emoteSession = OnlineDuelEmoteHub.instance.attach(sender: sendEmote);
     final binding = lifecycleBinding ?? _tryResolveWidgetsBinding();
     if (binding != null) {
@@ -118,6 +122,9 @@ class OnlineDuelController with WidgetsBindingObserver {
   void requestSnapshot() => _send('request_snapshot');
 
   Future<void> dispose() async {
+    if (identical(_activeInstance, this)) {
+      _activeInstance = null;
+    }
     if (_observerRegistered) {
       _observerBinding?.removeObserver(this);
       _observerBinding = null;
