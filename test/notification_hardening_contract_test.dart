@@ -75,9 +75,7 @@ void main() {
       'lib/services/reminder_notification_service.dart',
     ).readAsStringSync();
 
-    expect(service, contains("daily_reminders_enabled_v2"));
-    expect(service, contains('savedEnabled') == false, isFalse,
-        reason: 'The service intentionally calls the preference optedIn, not savedEnabled.');
+    expect(service, contains('daily_reminders_enabled_v2'));
     expect(service, contains('matchDateTimeComponents: DateTimeComponents.time'));
     expect(service, contains('_dailyTimes.length'));
     expect(service, contains('_legacyNotificationCount = 63'));
@@ -99,7 +97,10 @@ void main() {
     expect(platform, contains('getNotificationAppLaunchDetails()'));
     expect(push, contains('NotificationPlatformService.instance'));
     expect(reminder, contains('NotificationPlatformService.instance'));
-    expect(push, isNot(contains('FlutterLocalNotificationsPlugin _localNotifications')));
+    expect(
+      push,
+      isNot(contains('FlutterLocalNotificationsPlugin _localNotifications')),
+    );
     expect(reminder, isNot(contains('FlutterLocalNotificationsPlugin _plugin')));
   });
 
@@ -114,16 +115,22 @@ void main() {
     expect(sender, contains("ttl: `\${ttlSeconds}s`"));
     expect(sender, contains("'apns-expiration'"));
     expect(sender, isNot(contains('badge: 1')));
-    expect(challenges, contains("FCM_PROJECT_ID: 'REPLACE_NOTIFICATION_WRAPPER'"));
+    expect(
+      challenges,
+      contains("FCM_PROJECT_ID: 'REPLACE_NOTIFICATION_WRAPPER'"),
+    );
     expect(challenges, contains('sendPlayerPush('));
   });
 
-  test('Android native push translations are generated from the shared catalog', () {
+  test('Android native push translations are generated from shared catalog', () {
     final gradle = File('android/app/build.gradle.kts').readAsStringSync();
 
     expect(gradle, contains('generatePushNotificationLocalizations'));
     expect(gradle, contains('startsWith("push_")'));
     expect(gradle, contains('Localizable.xcstrings'));
-    expect(gradle, contains('dependsOn(generatePushNotificationLocalizations)'));
+    expect(
+      gradle,
+      contains('dependsOn(generatePushNotificationLocalizations)'),
+    );
   });
 }
