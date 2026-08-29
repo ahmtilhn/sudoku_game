@@ -24,6 +24,26 @@ fun xmlStringResource(xml: String, name: String): String {
     return pattern.find(xml)?.groupValues?.get(1)?.trim().orEmpty()
 }
 
+fun stringResourceNames(xml: String): Set<String> =
+    Regex("""<string\s+name=[\"']([^\"']+)[\"'][^>]*>""")
+        .findAll(xml)
+        .map { match -> match.groupValues[1] }
+        .toSet()
+
+fun isLocaleValuesDirectory(name: String): Boolean {
+    if (!name.startsWith("values-")) return false
+    val firstQualifier = name.removePrefix("values-").substringBefore('-')
+    return Regex("^[a-z]{2,3}$").matches(firstQualifier) || firstQualifier.startsWith("b+")
+}
+
+fun catalogStringValue(definition: Any?, locale: String): String? {
+    val entry = definition as? Map<*, *> ?: return null
+    val localizations = entry["localizations"] as? Map<*, *> ?: return null
+    val localization = localizations[locale] as? Map<*, *> ?: return null
+    val unit = localization["stringUnit"] as? Map<*, *> ?: return null
+    return unit["value"]?.toString()?.takeIf { it.isNotEmpty() }
+}
+
 fun decodeDartDefines(rawValue: String): Map<String, String> {
     if (rawValue.isBlank()) return emptyMap()
     return rawValue.split(',')
@@ -52,8 +72,8 @@ fun androidValuesDirectory(locale: String): String = when (locale) {
     else -> "values-$locale"
 }
 
-val generatedPushResources = layout.buildDirectory.dir("generated/pushNotificationRes")
-val pushLocalizationCatalog = rootProject.file("../assets/localization/Localizable.xcstrings")
+val generatedLocalizationResources = layout.buildDirectory.dir("generated/nativeLocalizationRes")
+val localizationCatalog = rootProject.file("../assets/localization/Localizable.xcstrings")
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
@@ -88,7 +108,7 @@ android {
     sourceSets {
         // AGP 9+ rejects Provider<Directory> on the legacy SourceSet API.
         // Resolve it to a concrete File; preBuild below keeps task ordering.
-        getByName("main").res.srcDir(generatedPushResources.get().asFile)
+        getByName("main").res.srcDir(generatedLocalizationResources.get().asFile)
     }
 
     signingConfigs {
@@ -230,25 +250,85 @@ val generateSudokuLauncherIcon by tasks.registering {
     }
 }
 
-val generatePushNotificationLocalizations by tasks.registering {
-    inputs.file(pushLocalizationCatalog)
-    outputs.dir(generatedPushResources)
+val generateNativeLocalizationResources by tasks.registering {
+    inputs.file(localizationCatalog)
+    inputs.dir(layout.projectDirectory.dir("src/main/res"))
+    outputs.dir(generatedLocalizationResources)
 
     doLast {
-        if (!pushLocalizationCatalog.exists()) {
+        if (!localizationCatalog.exists()) {
             throw GradleException(
-                "Missing ${pushLocalizationCatalog.path}; native push strings cannot be generated.",
+                "Missing ${localizationCatalog.path}; native localization resources cannot be generated.",
             )
         }
 
-        val outputRoot = generatedPushResources.get().asFile
+        val outputRoot = generatedLocalizationResources.get().asFile
         outputRoot.deleteRecursively()
         outputRoot.mkdirs()
 
-        val catalog = JsonSlurper().parse(pushLocalizationCatalog) as? Map<*, *>
+        val catalog = JsonSlurper().parse(localizationCatalog) as? Map<*, *>
             ?: throw GradleException("Localizable.xcstrings must contain a JSON object.")
         val catalogStrings = catalog["strings"] as? Map<*, *>
             ?: throw GradleException("Localizable.xcstrings is missing strings.")
+
+        // Every localized Android <string> must also exist in the default
+        // resource namespace. Materialize missing English defaults from the
+        // canonical String Catalog so lintVitalRelease can never fail with
+        // ExtraTranslation merely because a locale gained a new key first.
+        val sourceResRoot = layout.projectDirectory.dir("src/main/res").asFile
+        val defaultStringNames = sourceResRoot.resolve("values")
+            .listFiles()
+            ?.filter { file -> file.isFile && file.extension == "xml" }
+            .orEmpty()
+            .flatMap { file -> stringResourceNames(file.readText()) }
+            .toSet()
+        val translatedStringNames = sourceResRoot.listFiles()
+            ?.filter { directory ->
+                directory.isDirectory && isLocaleValuesDirectory(directory.name)
+            }
+            .orEmpty()
+            .flatMap { directory ->
+                directory.listFiles()
+                    ?.filter { file -> file.isFile && file.extension == "xml" }
+                    .orEmpty()
+                    .flatMap { file -> stringResourceNames(file.readText()) }
+            }
+            .toSet()
+        val missingDefaultKeys = translatedStringNames - defaultStringNames
+        val unresolvedDefaultKeys = missingDefaultKeys.filter { key ->
+            catalogStringValue(catalogStrings[key], "en") == null
+        }
+        if (unresolvedDefaultKeys.isNotEmpty()) {
+            throw GradleException(
+                "Localized Android strings are missing canonical English fallbacks in " +
+                    "Localizable.xcstrings: ${unresolvedDefaultKeys.sorted().joinToString(", ")}",
+            )
+        }
+        if (missingDefaultKeys.isNotEmpty()) {
+            val directory = outputRoot.resolve("values")
+            directory.mkdirs()
+            val xml = buildString {
+                append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n")
+                append("<!-- Generated from Localizable.xcstrings by Gradle. -->\n")
+                append("<resources>\n")
+                missingDefaultKeys.sorted().forEach { key ->
+                    val value = catalogStringValue(catalogStrings[key], "en")
+                        ?: throw GradleException("Missing English fallback for $key")
+                    append("    <string name=\"")
+                    append(key)
+                    append("\" formatted=\"false\">")
+                    append(
+                        escapeAndroidXml(value)
+                            .replace("\r\n", "\\n")
+                            .replace("\n", "\\n"),
+                    )
+                    append("</string>\n")
+                }
+                append("</resources>\n")
+            }
+            directory.resolve("translation_fallbacks.xml").writeText(xml)
+        }
+
         val pushStrings = catalogStrings.entries
             .filter { it.key?.toString()?.startsWith("push_") == true }
 
@@ -303,7 +383,8 @@ val generatePushNotificationLocalizations by tasks.registering {
         }
 
         logger.lifecycle(
-            "Generated native Android push localizations for {} locales from Localizable.xcstrings.",
+            "Generated {} Android default translation fallbacks and native push localizations for {} locales from Localizable.xcstrings.",
+            missingDefaultKeys.size,
             byLocale.size,
         )
     }
@@ -311,7 +392,7 @@ val generatePushNotificationLocalizations by tasks.registering {
 
 tasks.matching { it.name == "preBuild" }.configureEach {
     dependsOn(generateSudokuLauncherIcon)
-    dependsOn(generatePushNotificationLocalizations)
+    dependsOn(generateNativeLocalizationResources)
 }
 
 tasks.matching { it.name == "preReleaseBuild" }.configureEach {
