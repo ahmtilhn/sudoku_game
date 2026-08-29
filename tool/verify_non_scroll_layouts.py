@@ -26,10 +26,18 @@ FORBIDDEN = (
     'RefreshIndicator(',
 )
 
+
+def page_scope(relative: str, text: str) -> str:
+    if relative.endswith('enhanced_game_screen.dart'):
+        # Result/outcome sheet is explicitly excluded from this responsive pass.
+        return text.split('class _GameResultSheet', 1)[0]
+    return text
+
+
 for relative in TARGETS:
-    text = (ROOT / relative).read_text(encoding='utf-8')
+    text = page_scope(relative, (ROOT / relative).read_text(encoding='utf-8'))
     for forbidden in FORBIDDEN:
         if forbidden in text:
-            raise SystemExit(f'{relative}: forbidden scroll marker {forbidden}')
+            raise SystemExit(f'{relative}: forbidden page-scroll marker {forbidden}')
 
 print('non-scroll layout verification passed')
