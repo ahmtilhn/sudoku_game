@@ -44,9 +44,14 @@ jobs:
       - name: Resolve Flutter packages
         run: flutter pub get
 
-      - name: Verify release lint
-        working-directory: android
-        run: ./gradlew :app:lintVitalRelease
+      - name: Verify production release AAB
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter build appbundle --release --no-pub \
+            --dart-define=APP_ENVIRONMENT=production \
+            --dart-define=SOCIAL_BACKEND_URL=https://sudoku-duel-social-production.ilhanahmet246.workers.dev \
+            --dart-define=BUILD_COMMIT="${GITHUB_SHA:0:12}"
 
       - name: Commit synchronized fallbacks to latest main
         shell: bash
@@ -55,8 +60,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Flutter/Gradle setup may touch generated or tracked tooling files;
-          # only the deterministic fallback resource belongs to this commit.
+          # Flutter setup/pub-get can rewrite tracked tooling files. They are
+          # unrelated to localization fallback generation and must not enter
+          # this commit or block the rebase below.
+          git checkout -- analysis_options.yaml pubspec.lock 2>/dev/null || true
+
           git add android/app/src/main/res/values/generated_translation_fallbacks.xml
           git diff --cached --check
           if git diff --cached --quiet; then
