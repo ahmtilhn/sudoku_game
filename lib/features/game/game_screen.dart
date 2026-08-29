@@ -632,19 +632,27 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             final width = constraints.maxWidth > 760
                 ? 700.0
                 : constraints.maxWidth;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 24),
+            final compact = constraints.maxHeight < 760;
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                10,
+                compact ? 3 : 6,
+                10,
+                compact ? 4 : 10,
+              ),
               child: Center(
                 child: SizedBox(
                   width: width,
+                  height: constraints.maxHeight,
                   child: Column(
                     children: [
                       if (!_sessionReady) ...[
                         const LinearProgressIndicator(),
-                        const SizedBox(height: 12),
+                        SizedBox(height: compact ? 3 : 6),
                       ],
                       InPageHeader(
                         title: context.strings.puzzleTitle(widget.puzzle),
+                        padding: EdgeInsets.only(bottom: compact ? 3 : 6),
                         actions: [
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -660,43 +668,70 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                           ),
                         ],
                       ),
-                      Row(
-                        children: [
-                          Chip(
-                            avatar: const Icon(Icons.error_outline, size: 18),
-                            label: Text(mistakeLabel),
-                          ),
-                          const SizedBox(width: 8),
-                          Chip(
-                            avatar: const Icon(
-                              Icons.lightbulb_outline,
-                              size: 18,
+                      SizedBox(
+                        height: compact ? 38 : 44,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Chip(
+                                  avatar: const Icon(
+                                    Icons.error_outline,
+                                    size: 18,
+                                  ),
+                                  label: Text(mistakeLabel),
+                                ),
+                              ),
                             ),
-                            label: Text(
-                              context.tr('hints_count', <Object>[
-                                availableHints ?? _hintsUsed,
-                              ]),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.center,
+                                child: Chip(
+                                  avatar: const Icon(
+                                    Icons.lightbulb_outline,
+                                    size: 18,
+                                  ),
+                                  label: Text(
+                                    context.tr('hints_count', <Object>[
+                                      availableHints ?? _hintsUsed,
+                                    ]),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            context.strings.difficultyLabel(
-                              widget.puzzle.difficulty,
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                context.strings.difficultyLabel(
+                                  widget.puzzle.difficulty,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.end,
+                                style: Theme.of(context).textTheme.labelLarge,
+                              ),
                             ),
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      SudokuBoard(
-                        puzzle: widget.puzzle,
-                        board: _board,
-                        selectedIndex: _selectedIndex,
-                        notes: _notes,
-                        errorIndex: _errorIndex,
-                        hintedIndexes: _hintedIndexes,
-                        enabled: controlsEnabled,
-                        onCellTap: _selectCell,
+                      SizedBox(height: compact ? 4 : 8),
+                      Expanded(
+                        child: Center(
+                          child: SudokuBoard(
+                            puzzle: widget.puzzle,
+                            board: _board,
+                            selectedIndex: _selectedIndex,
+                            notes: _notes,
+                            errorIndex: _errorIndex,
+                            hintedIndexes: _hintedIndexes,
+                            enabled: controlsEnabled,
+                            onCellTap: _selectCell,
+                          ),
+                        ),
                       ),
                     ],
                   ),

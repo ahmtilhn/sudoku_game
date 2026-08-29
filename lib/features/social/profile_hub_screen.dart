@@ -116,55 +116,68 @@ class _ProfileHubScreenState extends State<ProfileHubScreen> {
       backgroundColor: const Color(0xFF0B1215),
       body: AppBackdrop(
         child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 740),
-              child: RefreshIndicator(
-                onRefresh: _load,
-                child: _loading && _profile == null
-                    ? ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [
-                          SizedBox(height: 220),
-                          Center(child: CircularProgressIndicator()),
-                        ],
-                      )
-                    : ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
-                        children: [
-                          InPageHeader(
-                            title: context.tr('profile'),
-                            actions: [
-                              IconButton(
-                                tooltip: context.tr('refresh'),
-                                onPressed: _loading ? null : _load,
-                                icon: const Icon(Icons.refresh_rounded),
-                              ),
-                            ],
-                          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight < 700;
+              final horizontal = constraints.maxWidth < 360 ? 10.0 : 16.0;
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 740),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontal,
+                      compact ? 4 : 6,
+                      horizontal,
+                      compact ? 7 : 12,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        InPageHeader(
+                          title: context.tr('profile'),
+                          padding: EdgeInsets.only(bottom: compact ? 4 : 8),
+                          actions: [
+                            IconButton(
+                              tooltip: context.tr('refresh'),
+                              onPressed: _loading ? null : _load,
+                              icon: const Icon(Icons.refresh_rounded),
+                            ),
+                          ],
+                        ),
+                        if (_loading && _profile == null)
+                          const Expanded(
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else ...[
                           if (_profile != null)
                             RankIdentitySummaryCard(
                               profile: _profile!,
                               onCustomize: _openCustomization,
                             ),
-                          if (_error != null)
+                          if (_error != null) ...[
+                            SizedBox(height: compact ? 5 : 8),
                             _ProfileNotice(message: _error!, onRetry: _load),
-                          const SizedBox(height: 12),
-                          _ProfileActionGrid(
-                            tabs: tabs,
-                            selected: _selectedTab,
-                            onSelected: (value) =>
-                                setState(() => _selectedTab = value),
+                          ],
+                          SizedBox(height: compact ? 6 : 10),
+                          Expanded(
+                            child: _ProfileActionGrid(
+                              tabs: tabs,
+                              selected: _selectedTab,
+                              onSelected: (value) =>
+                                  setState(() => _selectedTab = value),
+                            ),
                           ),
-                          if (_profile != null) ...[
-                            const SizedBox(height: 12),
+                          if (_profile != null && !compact) ...[
+                            const SizedBox(height: 8),
                             _IdentityPolicyNote(profile: _profile!),
                           ],
                         ],
-                      ),
-              ),
-            ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -340,32 +353,24 @@ class _ProfileActionGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 600 ? 2 : 1;
-        final width = (constraints.maxWidth - ((columns - 1) * 9)) / columns;
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: .13),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: .055)),
+        return GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: tabs.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: constraints.maxHeight < 250 ? 1.8 : 1.25,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Wrap(
-              spacing: 9,
-              runSpacing: 9,
-              children: [
-                for (final tab in tabs)
-                  SizedBox(
-                    width: width,
-                    child: _ProfileActionCard(
-                      tab: tab,
-                      selected: selected == tab.tab,
-                      onSelected: () => onSelected(tab.tab),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          itemBuilder: (context, index) {
+            final tab = tabs[index];
+            return _ProfileActionCard(
+              tab: tab,
+              selected: selected == tab.tab,
+              onSelected: () => onSelected(tab.tab),
+            );
+          },
         );
       },
     );
@@ -385,104 +390,87 @@ class _ProfileActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fillArtwork =
-        tab.tab == _ProfileTab.customize || tab.tab == _ProfileTab.emotes;
-    final artworkBoxSize = tab.tab == _ProfileTab.leaderboards ? 54.0 : 46.0;
-    final artworkRadius = BorderRadius.circular(fillArtwork ? 13 : 14);
-    final artworkSize = fillArtwork
-        ? artworkBoxSize
-        : tab.tab == _ProfileTab.leaderboards
-        ? 48.0
-        : 31.0;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          onSelected();
-          tab.onOpen();
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          padding: const EdgeInsets.all(13),
-          decoration: BoxDecoration(
-            color: tab.accent.withValues(alpha: selected ? .10 : .06),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: tab.accent.withValues(alpha: selected ? .36 : .16),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: artworkBoxSize,
-                height: artworkBoxSize,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: tab.accent.withValues(alpha: .12),
-                  borderRadius: artworkRadius,
-                  border: Border.all(color: tab.accent.withValues(alpha: .14)),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: DuelAssetIcon(
-                  tab.asset,
-                  size: artworkSize,
-                  fit: fillArtwork ? BoxFit.cover : BoxFit.contain,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final narrow = constraints.maxWidth < 220;
+        final fillArtwork =
+            tab.tab == _ProfileTab.customize || tab.tab == _ProfileTab.emotes;
+        final artworkSize = narrow ? 34.0 : 42.0;
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              onSelected();
+              tab.onOpen();
+            },
+            borderRadius: BorderRadius.circular(15),
+            child: Ink(
+              padding: EdgeInsets.all(narrow ? 7 : 10),
+              decoration: BoxDecoration(
+                color: tab.accent.withValues(alpha: selected ? .10 : .06),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: tab.accent.withValues(alpha: selected ? .36 : .16),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      tab.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox.square(
+                    dimension: artworkSize,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(11),
+                      child: DuelAssetIcon(
+                        tab.asset,
+                        size: artworkSize,
+                        fit: fillArtwork ? BoxFit.cover : BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                  ),
+                  SizedBox(height: narrow ? 4 : 7),
+                  Text(
+                    tab.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: narrow ? 11 : 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  if (!narrow) ...[
+                    const SizedBox(height: 2),
                     Text(
                       tab.subtitle,
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: .58),
-                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: .55),
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: .16),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: tab.accent.withValues(alpha: .18)),
-                ),
-                child: Text(
-                  tab.metric,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: tab.accent,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
+                  const SizedBox(height: 4),
+                  Text(
+                    tab.metric,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: tab.accent,
+                      fontSize: narrow ? 9 : 10,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 4),
-              Icon(Icons.chevron_right_rounded, color: tab.accent, size: 22),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

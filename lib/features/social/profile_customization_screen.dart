@@ -181,7 +181,11 @@ class _ProfileCustomizationScreenState
                               InPageHeader(
                                 title: context.tr('profile_customization'),
                                 padding: EdgeInsets.only(
-                                  bottom: tight ? 2 : compact ? 4 : 8,
+                                  bottom: tight
+                                      ? 2
+                                      : compact
+                                      ? 4
+                                      : 8,
                                 ),
                                 actions: [
                                   IconButton(
@@ -209,12 +213,15 @@ class _ProfileCustomizationScreenState
                                 compact: compact,
                                 tight: tight,
                               ),
-                              if ((!_serverReady || _error != null) && !tight) ...[
+                              if ((!_serverReady || _error != null) &&
+                                  !tight) ...[
                                 const SizedBox(height: 5),
                                 _OfflineNotice(
                                   message:
                                       _error ??
-                                      context.tr('profile_reconnecting_preview'),
+                                      context.tr(
+                                        'profile_reconnecting_preview',
+                                      ),
                                   busy: _hydrating,
                                   onRetry: _hydrate,
                                   compact: compact,
@@ -427,7 +434,13 @@ class _PreviewCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(tight ? 8 : compact ? 10 : 14),
+      padding: EdgeInsets.all(
+        tight
+            ? 8
+            : compact
+            ? 10
+            : 14,
+      ),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: .22),
         borderRadius: BorderRadius.circular(18),
@@ -438,7 +451,11 @@ class _PreviewCard extends StatelessWidget {
           PlayerAvatar(
             displayName: profile.displayName,
             avatarKey: identity,
-            radius: tight ? 25 : compact ? 31 : 39,
+            radius: tight
+                ? 25
+                : compact
+                ? 31
+                : 39,
           ),
           SizedBox(width: tight ? 9 : 13),
           Expanded(
@@ -463,7 +480,11 @@ class _PreviewCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: tight ? 14 : compact ? 16 : 18,
+                          fontSize: tight
+                              ? 14
+                              : compact
+                              ? 16
+                              : 18,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -728,8 +749,8 @@ class _FrameTabState extends State<_FrameTab> {
                             profile: widget.profile,
                             avatarKey: widget.avatarKey,
                             selectedKey: widget.selectedKey,
-                            reward: rewards[
-                                rankTierForKey(
+                            reward:
+                                rewards[rankTierForKey(
                                   visible[index] == 'auto'
                                       ? widget.profile.rankKey
                                       : visible[index],
@@ -780,7 +801,9 @@ class _FrameTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auto = keyValue == 'auto';
-    final tier = auto ? rankTierForKey(profile.rankKey) : rankTierForKey(keyValue);
+    final tier = auto
+        ? rankTierForKey(profile.rankKey)
+        : rankTierForKey(keyValue);
     final unlocked = auto || profile.unlockedFrameKeys.contains(tier.key);
     final selected = selectedKey == keyValue;
     final previewFrame = auto ? profile.rankKey : tier.key;
@@ -906,7 +929,9 @@ class _DecorationTabState extends State<_DecorationTab> {
             : constraints.maxHeight < 430
             ? 3
             : 4;
-        final pageCount = decorations.isEmpty ? 1 : (decorations.length / pageSize).ceil();
+        final pageCount = decorations.isEmpty
+            ? 1
+            : (decorations.length / pageSize).ceil();
         final page = _page.clamp(0, pageCount - 1);
         final start = page * pageSize;
         final end = (start + pageSize).clamp(0, decorations.length);
@@ -940,9 +965,8 @@ class _DecorationTabState extends State<_DecorationTab> {
                                   decoration: visible[index],
                                   profile: widget.profile,
                                   avatarKey: widget.avatarKey,
-                                  selected: widget.selectedAchievementIds.contains(
-                                    visible[index].achievementId,
-                                  ),
+                                  selected: widget.selectedAchievementIds
+                                      .contains(visible[index].achievementId),
                                   onToggle: widget.onToggle,
                                 ),
                               ),
@@ -978,7 +1002,7 @@ class _DecorationTile extends StatelessWidget {
     required this.onToggle,
   });
 
-  final RankDecorationState decoration;
+  final RankDecoration decoration;
   final RankIdentityProfile profile;
   final String avatarKey;
   final bool selected;
@@ -1343,7 +1367,9 @@ class _CountryPickerSheetState extends State<_CountryPickerSheet> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final pageSize = constraints.maxHeight < 500 ? 4 : 6;
-          final pageCount = choices.isEmpty ? 1 : (choices.length / pageSize).ceil();
+          final pageCount = choices.isEmpty
+              ? 1
+              : (choices.length / pageSize).ceil();
           final page = _page.clamp(0, pageCount - 1);
           final start = page * pageSize;
           final end = (start + pageSize).clamp(0, choices.length);
@@ -1446,10 +1472,7 @@ class _CountryChoiceTile extends StatelessWidget {
           fontWeight: FontWeight.w800,
         ),
       ),
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        color: Colors.white38,
-      ),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white38),
     );
   }
 }

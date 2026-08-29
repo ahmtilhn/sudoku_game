@@ -24,6 +24,7 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
   final CoinStoreService _store = CoinStoreService.instance;
   final EconomyService _economy = EconomyService.instance;
   final EconomyV3Service _economyV3 = EconomyV3Service.instance;
+  int _productPage = 0;
 
   @override
   void initState() {
@@ -62,164 +63,220 @@ class _CoinStoreScreenState extends State<CoinStoreScreen> {
       backgroundColor: const Color(0xFF0B1215),
       body: AppBackdrop(
         child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: _reload,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final maxWidth = constraints.maxWidth >= 1000 ? 960.0 : 720.0;
-                final columns = constraints.maxWidth >= 340 ? 2 : 1;
-                return CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: maxWidth),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-                            child: Column(
-                              children: [
-                                InPageHeader(
-                                  title: context.tr('coin_store'),
-                                  actions: [
-                                    IconButton(
-                                      tooltip: context.tr('coin_history'),
-                                      onPressed: () =>
-                                          Navigator.of(context).push<void>(
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const WalletHistoryScreen(),
-                                            ),
-                                          ),
-                                      icon: const DuelAssetIcon(
-                                        DuelAsset.notes,
-                                        size: 22,
-                                      ),
-                                    ),
-                                  ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight < 700;
+              final maxWidth = constraints.maxWidth >= 1000 ? 960.0 : 720.0;
+              final columns = constraints.maxWidth >= 700
+                  ? 3
+                  : constraints.maxWidth >= 340
+                  ? 2
+                  : 1;
+              final rows = compact ? 1 : 2;
+              final products = _store.coinProducts;
+              final pageSize = columns * rows;
+              final pageCount = products.isEmpty
+                  ? 1
+                  : (products.length / pageSize).ceil();
+              final page = _productPage.clamp(0, pageCount - 1);
+              final startIndex = page * pageSize;
+              final endIndex = (startIndex + pageSize).clamp(
+                0,
+                products.length,
+              );
+              final visibleProducts = products.sublist(startIndex, endIndex);
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      constraints.maxWidth < 360 ? 10 : 16,
+                      compact ? 4 : 10,
+                      constraints.maxWidth < 360 ? 10 : 16,
+                      compact ? 6 : 12,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        InPageHeader(
+                          title: context.tr('coin_store'),
+                          padding: EdgeInsets.only(bottom: compact ? 4 : 8),
+                          actions: [
+                            IconButton(
+                              tooltip: context.tr('coin_history'),
+                              onPressed: () => Navigator.of(context).push<void>(
+                                MaterialPageRoute(
+                                  builder: (_) => const WalletHistoryScreen(),
                                 ),
-                                _BalanceCard(
-                                  balance: _economy.balance,
-                                  loading: _economy.loading,
+                              ),
+                              icon: const DuelAssetIcon(
+                                DuelAsset.notes,
+                                size: 22,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: context.tr('refresh'),
+                              onPressed: _reload,
+                              icon: const Icon(Icons.refresh_rounded),
+                            ),
+                          ],
+                        ),
+                        _BalanceCard(
+                          balance: _economy.balance,
+                          loading: _economy.loading,
+                        ),
+                        SizedBox(height: compact ? 6 : 10),
+                        _NoAdsCard(
+                          product: _store.noAdsProduct,
+                          owned: _economy.noAds,
+                          pending:
+                              _store.pendingProductId ==
+                              CoinStoreService.noAdsProductId,
+                          enabled:
+                              _store.pendingProductId == null &&
+                              !_economy.processingPurchase,
+                          onBuy: () => _store.buyNonConsumable(
+                            CoinStoreService.noAdsProductId,
+                          ),
+                          onRestore: _store.restorePurchases,
+                        ),
+                        if (_store.error != null || _economy.error != null) ...[
+                          SizedBox(height: compact ? 5 : 8),
+                          _StorePanel(
+                            accent: Theme.of(context).colorScheme.error,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.cloud_off_outlined,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _store.error ?? _economy.error!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: context.tr('retry'),
+                                  onPressed: _reload,
+                                  icon: const Icon(Icons.refresh_rounded),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: maxWidth),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                            child: _NoAdsCard(
-                              product: _store.noAdsProduct,
-                              owned: _economy.noAds,
-                              pending:
-                                  _store.pendingProductId ==
-                                  CoinStoreService.noAdsProductId,
-                              enabled:
-                                  _store.pendingProductId == null &&
-                                  !_economy.processingPurchase,
-                              onBuy: () => _store.buyNonConsumable(
-                                CoinStoreService.noAdsProductId,
-                              ),
-                              onRestore: _store.restorePurchases,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (_store.error != null || _economy.error != null)
-                      SliverToBoxAdapter(
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(maxWidth: maxWidth),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                              child: _StorePanel(
-                                accent: Theme.of(context).colorScheme.error,
-                                child: ListTile(
-                                  leading: Icon(
-                                    Icons.cloud_off_outlined,
-                                    color: Theme.of(context).colorScheme.error,
+                        ],
+                        SizedBox(height: compact ? 5 : 9),
+                        Expanded(
+                          child: _store.loading && products.isEmpty
+                              ? const Center(child: CircularProgressIndicator())
+                              : products.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    _store.error ??
+                                        context.tr('not_available_short'),
+                                    textAlign: TextAlign.center,
                                   ),
-                                  title: Text(_store.error ?? _economy.error!),
-                                  trailing: IconButton(
-                                    tooltip: context.tr('retry'),
-                                    onPressed: _reload,
-                                    icon: const Icon(Icons.refresh_rounded),
-                                  ),
+                                )
+                              : GridView.builder(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  padding: EdgeInsets.zero,
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: columns,
+                                        mainAxisSpacing: 8,
+                                        crossAxisSpacing: 8,
+                                        childAspectRatio: columns == 1
+                                            ? compact
+                                                  ? 1.25
+                                                  : 1.1
+                                            : compact
+                                            ? .78
+                                            : .72,
+                                      ),
+                                  itemCount: visibleProducts.length,
+                                  itemBuilder: (context, index) {
+                                    final product = visibleProducts[index];
+                                    return _CoinPackageCard(
+                                      product: product,
+                                      coins: _store.coinAmount(product.id),
+                                      pending:
+                                          _store.pendingProductId == product.id,
+                                      enabled:
+                                          _store.pendingProductId == null &&
+                                          !_economy.processingPurchase,
+                                      onBuy: () => _store.buy(product.id),
+                                    );
+                                  },
                                 ),
-                              ),
-                            ),
+                        ),
+                        if (pageCount > 1)
+                          _StorePager(
+                            page: page,
+                            pageCount: pageCount,
+                            onPrevious: page > 0
+                                ? () => setState(() => _productPage = page - 1)
+                                : null,
+                            onNext: page < pageCount - 1
+                                ? () => setState(() => _productPage = page + 1)
+                                : null,
                           ),
-                        ),
-                      ),
-                    if (_store.loading && _store.coinProducts.isEmpty)
-                      const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (_store.coinProducts.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(
-                          child: Text(
-                            _store.error ?? context.tr('not_available_short'),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      )
-                    else
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                          (constraints.maxWidth - maxWidth).clamp(
-                                    0,
-                                    double.infinity,
-                                  ) /
-                                  2 +
-                              16,
-                          0,
-                          (constraints.maxWidth - maxWidth).clamp(
-                                    0,
-                                    double.infinity,
-                                  ) /
-                                  2 +
-                              16,
-                          32,
-                        ),
-                        sliver: SliverGrid.builder(
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: columns,
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
-                                childAspectRatio: columns == 1 ? 1.2 : .72,
-                              ),
-                          itemCount: _store.coinProducts.length,
-                          itemBuilder: (context, index) {
-                            final product = _store.coinProducts[index];
-                            return _CoinPackageCard(
-                              product: product,
-                              coins: _store.coinAmount(product.id),
-                              pending: _store.pendingProductId == product.id,
-                              enabled:
-                                  _store.pendingProductId == null &&
-                                  !_economy.processingPurchase,
-                              onBuy: () => _store.buy(product.id),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StorePager extends StatelessWidget {
+  const _StorePager({
+    required this.page,
+    required this.pageCount,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int page;
+  final int pageCount;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: MaterialLocalizations.of(context).previousPageTooltip,
+            onPressed: onPrevious,
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
+          Expanded(
+            child: Text(
+              '${page + 1} / $pageCount',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+          IconButton(
+            tooltip: MaterialLocalizations.of(context).nextPageTooltip,
+            onPressed: onNext,
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
+        ],
       ),
     );
   }

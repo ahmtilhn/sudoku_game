@@ -401,8 +401,10 @@ class _ProfessionalHomeScreenState extends State<ProfessionalHomeScreen> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final compact = constraints.maxHeight < 700;
-              final wide = constraints.maxWidth >= 760;
+              final compact = constraints.maxHeight < 760;
+              final wide =
+                  constraints.maxWidth >= 760 ||
+                  constraints.maxWidth > constraints.maxHeight * 1.35;
 
               return Center(
                 child: ConstrainedBox(
@@ -486,7 +488,7 @@ class _HomeLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       key: const ValueKey<String>('home-logo-text'),
-      height: compact ? 150 : 200,
+      height: compact ? 72 : 180,
       width: double.infinity,
       child: ClipRect(
         child: Center(
@@ -504,7 +506,7 @@ class _HomeLogo extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: compact ? 34 : 42,
+                    fontSize: compact ? 28 : 42,
                     height: 1,
                     fontWeight: FontWeight.w900,
                     letterSpacing: .9,
@@ -1023,7 +1025,7 @@ class _ResumeStrip extends StatelessWidget {
         onTap: busy ? null : onTap,
         borderRadius: BorderRadius.circular(14),
         child: Ink(
-          height: 50,
+          height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
             color: const Color(0xFF12352A).withValues(alpha: .92),
@@ -1114,7 +1116,7 @@ class _PrimaryModes extends StatelessWidget {
   Widget build(BuildContext context) {
     if (wide) {
       return SizedBox(
-        height: compact ? 110 : 124,
+        height: compact ? 84 : 124,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1134,12 +1136,12 @@ class _PrimaryModes extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: compact ? 90 : 100,
+          height: compact ? 70 : 100,
           child: _HomeModeTile(data: items[0], compact: compact),
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: compact ? 90 : 100,
+          height: compact ? 70 : 100,
           child: _HomeModeTile(data: items[1], compact: compact),
         ),
       ],
@@ -1161,7 +1163,7 @@ class _SecondaryModes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final columns = wide ? 4 : 2;
-    final itemHeight = compact ? 78.0 : 88.0;
+    final itemHeight = compact ? 58.0 : 88.0;
     final rows = (items.length / columns).ceil();
 
     return SizedBox(
@@ -1194,10 +1196,10 @@ class _HomeModeTile extends StatelessWidget {
     final radius = data.primary ? 19.0 : 16.0;
     final artSize = data.primary
         ? compact
-              ? 68.0
+              ? 48.0
               : 78.0
         : compact
-        ? 52.0
+        ? 38.0
         : 60.0;
 
     return Semantics(
