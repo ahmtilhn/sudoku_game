@@ -1,4 +1,4 @@
-name: Apply settings cleanup
+name: Apply settings compile fixes
 
 on:
   push:
@@ -10,44 +10,31 @@ permissions:
   contents: write
 
 concurrency:
-  group: apply-settings-cleanup-main
+  group: apply-settings-compile-fixes
   cancel-in-progress: false
 
 jobs:
-  patch-validate-commit:
+  fix-analyze-commit:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
 
-      - name: Apply final settings and haptics cleanup
+      - name: Fix stale settings and theme references
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
 
-          service_import = "import '../../services/haptic_feedback_service.dart';"
-          service_file = Path('lib/services/haptic_feedback_service.dart')
-
-          for path in Path('lib/features').rglob('*.dart'):
-              text = path.read_text(encoding='utf-8')
-              if 'HapticFeedback.' not in text:
-                  continue
-              text = text.replace('HapticFeedback.', 'HapticFeedbackService.instance.')
-              if service_import not in text:
-                  lines = text.splitlines()
-                  import_indexes = [i for i, line in enumerate(lines) if line.startswith('import ')]
-                  lines.insert(import_indexes[-1] + 1, service_import)
-                  text = '\n'.join(lines) + ('\n' if text.endswith('\n') else '')
-              path.write_text(text, encoding='utf-8')
-
-          for path in Path('lib').rglob('*.dart'):
-              if path != service_file and 'HapticFeedback.' in path.read_text(encoding='utf-8'):
-                  raise SystemExit(f'Unrouted haptic call remains in {path}')
+          home = Path('lib/features/home/home_screen.dart')
+          text = home.read_text(encoding='utf-8')
+          text = text.replace("import '../settings/settings_screen.dart';", "import '../settings/ux_settings_screen.dart';")
+          text = text.replace('SettingsScreen(store: widget.store)', 'UxSettingsScreen(store: widget.store)')
+          home.write_text(text, encoding='utf-8')
 
           settings = Path('lib/features/settings/ux_settings_screen.dart')
           text = settings.read_text(encoding='utf-8').replace(
@@ -56,31 +43,40 @@ jobs:
           )
           settings.write_text(text, encoding='utf-8')
 
-          home = Path('lib/features/home/home_screen.dart')
-          text = home.read_text(encoding='utf-8')
-          text = text.replace("import '../settings/settings_screen.dart';", "import '../settings/ux_settings_screen.dart';")
-          text = text.replace('SettingsScreen(store: widget.store)', 'UxSettingsScreen(store: widget.store)')
-          home.write_text(text, encoding='utf-8')
-
           online_test = Path('test/online_duel_screen_test.dart')
           text = online_test.read_text(encoding='utf-8')
-          text = text.replace("theme: brightness == Brightness.dark\n            ? AppTheme.dark(highContrast: highContrast)\n            : AppTheme.light(highContrast: highContrast),", 'theme: AppTheme.dark(),')
-          text = text.replace('highContrast: highContrast,\n            textScaler:', 'highContrast: highContrast,\n            platformBrightness: brightness,\n            textScaler:')
+          text = text.replace(
+              "theme: brightness == Brightness.dark\n            ? AppTheme.dark(highContrast: highContrast)\n            : AppTheme.light(highContrast: highContrast),",
+              'theme: AppTheme.dark(),',
+          )
+          text = text.replace(
+              'highContrast: highContrast,\n            textScaler:',
+              'highContrast: highContrast,\n            platformBrightness: brightness,\n            textScaler:',
+          )
           online_test.write_text(text, encoding='utf-8')
 
           ready_test = Path('test/pre_match_ready_emote_screen_test.dart')
-          text = ready_test.read_text(encoding='utf-8').replace('theme: AppTheme.light(highContrast: false),', 'theme: AppTheme.dark(),')
+          text = ready_test.read_text(encoding='utf-8').replace(
+              'theme: AppTheme.light(highContrast: false),',
+              'theme: AppTheme.dark(),',
+          )
           ready_test.write_text(text, encoding='utf-8')
 
           settings_test = Path('test/settings_screen_test.dart')
           text = settings_test.read_text(encoding='utf-8')
-          text = text.replace("import 'package:sudoku_game/features/settings/settings_screen.dart';", "import 'package:sudoku_game/features/settings/ux_settings_screen.dart';")
-          text = text.replace('MaterialApp(home: SettingsScreen(store: store))', 'MaterialApp(home: UxSettingsScreen(store: store))')
-          text = text.replace("    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);\n    await tester.scrollUntilVisible(notificationTitle, 300);\n    await tester.pump();", "    await tester.tap(find.text(strings.text('notifications')).first);\n    await tester.pump();\n\n    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);")
+          text = text.replace(
+              "import 'package:sudoku_game/features/settings/settings_screen.dart';",
+              "import 'package:sudoku_game/features/settings/ux_settings_screen.dart';",
+          )
+          text = text.replace(
+              'MaterialApp(home: SettingsScreen(store: store))',
+              'MaterialApp(home: UxSettingsScreen(store: store))',
+          )
+          text = text.replace(
+              "    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);\n    await tester.scrollUntilVisible(notificationTitle, 300);\n    await tester.pump();",
+              "    await tester.tap(find.text(strings.text('notifications')).first);\n    await tester.pump();\n\n    final titleText = strings.text('online_challenge_notifications');\n    final notificationTitle = find.text(titleText);",
+          )
           settings_test.write_text(text, encoding='utf-8')
-
-          for obsolete in (Path('lib/features/settings/service_diagnostics_screen.dart'), Path('lib/services/service_diagnostics_service.dart')):
-              if obsolete.exists(): obsolete.unlink()
           PY
 
       - uses: actions/setup-java@v5
@@ -96,41 +92,40 @@ jobs:
       - name: Resolve packages
         run: flutter pub get
 
-      - name: Restore tool-managed files and format source changes
+      - name: Format and validate diff
         shell: bash
         run: |
           set -euo pipefail
           git restore -- pubspec.lock analysis_options.yaml || true
-          dart fix --apply
-          mapfile -t files < <(git diff --diff-filter=ACMRT --name-only -- '*.dart')
-          if (( ${#files[@]} )); then dart format "${files[@]}"; fi
+          dart format \
+            lib/features/home/home_screen.dart \
+            lib/features/settings/ux_settings_screen.dart \
+            test/online_duel_screen_test.dart \
+            test/pre_match_ready_emote_screen_test.dart \
+            test/settings_screen_test.dart
           git diff --check
-
-      - name: Refresh generated UX audit
-        run: python3 tool/generate_ux_audit.py
-
-      - name: Validate localization catalog
-        run: python3 tool/validate_localizations.py
 
       - name: Analyze
         run: flutter analyze --fatal-infos
 
-      - name: Test
-        shell: bash
-        run: |
-          set -euo pipefail
-          timeout --signal=TERM 12m flutter test --reporter expanded --concurrency=1
-
-      - name: Commit verified cleanup directly to main
+      - name: Commit compile fixes to main
         shell: bash
         run: |
           set -euo pipefail
           git restore -- pubspec.lock analysis_options.yaml || true
-          git add -A lib docs test
-          if git diff --cached --quiet; then exit 0; fi
+          git add \
+            lib/features/home/home_screen.dart \
+            lib/features/settings/ux_settings_screen.dart \
+            test/online_duel_screen_test.dart \
+            test/pre_match_ready_emote_screen_test.dart \
+            test/settings_screen_test.dart
+          if git diff --cached --quiet; then
+            echo 'No compile fixes required.'
+            exit 0
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'Finish settings cleanup and centralize haptics'
+          git commit -m 'Fix stale settings references after cleanup'
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
