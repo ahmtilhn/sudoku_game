@@ -69,6 +69,41 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('home fits required compact viewports without page scrolling', (
+    tester,
+  ) async {
+    const viewports = <Size>[
+      Size(320, 568),
+      Size(360, 800),
+      Size(412, 915),
+      Size(568, 320),
+    ];
+
+    for (final viewport in viewports) {
+      await tester.binding.setSurfaceSize(viewport);
+      final store = await LocalProgressStore.createInMemory();
+      final strings = AppStrings.forTesting();
+
+      await tester.pumpWidget(SudokuApp(store: store, strings: strings));
+      await tester.pump();
+
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Home overflowed at ${viewport.width}x${viewport.height}',
+      );
+      expect(find.byType(SingleChildScrollView), findsNothing);
+      expect(find.text('Play'), findsOneWidget);
+      expect(find.text('Career'), findsOneWidget);
+      expect(find.text('Coin Store'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    }
+
+    await tester.binding.setSurfaceSize(null);
+  });
+
   testWidgets('Play opens aligned quick play cards without layout errors', (
     tester,
   ) async {
