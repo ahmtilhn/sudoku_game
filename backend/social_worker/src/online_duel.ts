@@ -1,10 +1,12 @@
 export * from './online_duel_model';
 export {
-  applyDueDeadlines,
   applyForfeit,
   applyMove,
   createInitialDuelState,
 } from './online_duel_engine';
+export {
+  applyDueDeadlines,
+} from './online_duel_deadline_policy';
 export {
   applyReady,
   applyScreenLoaded,
