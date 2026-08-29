@@ -485,14 +485,14 @@ class PushNotificationService {
         for (var attempt = 0; attempt < 30; attempt++) {
           final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
           if (apnsToken != null && apnsToken.isNotEmpty) {
-            return FirebaseMessaging.instance.getToken();
+            return await FirebaseMessaging.instance.getToken();
           }
           await Future<void>.delayed(const Duration(milliseconds: 500));
         }
         debugPrint('APNs token is not available yet; FCM token request deferred.');
         return null;
       }
-      return FirebaseMessaging.instance.getToken();
+      return await FirebaseMessaging.instance.getToken();
     } catch (error, stackTrace) {
       debugPrint('Messaging token load failed: $error');
       await FirebaseServices.instance.recordNonFatal(error, stackTrace);
