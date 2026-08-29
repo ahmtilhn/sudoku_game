@@ -364,12 +364,11 @@ Future<FakeOnlineDuelTransport> _pumpOnlineDuel(
     AppStringsScope(
       strings: strings,
       child: MaterialApp(
-        theme: brightness == Brightness.dark
-            ? AppTheme.dark(highContrast: highContrast)
-            : AppTheme.light(highContrast: highContrast),
+        theme: AppTheme.dark(),
         builder: (context, child) {
           final data = MediaQuery.of(context).copyWith(
             highContrast: highContrast,
+            platformBrightness: brightness,
             textScaler: TextScaler.linear(textScale),
           );
           return MediaQuery(

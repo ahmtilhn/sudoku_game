@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:sudoku_game/data/local_progress_store.dart';
-import 'package:sudoku_game/features/settings/settings_screen.dart';
+import 'package:sudoku_game/features/settings/ux_settings_screen.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
 import 'package:sudoku_game/services/push_notification_service.dart';
 import 'package:sudoku_game/services/social_api_client.dart';
@@ -40,15 +40,16 @@ void main() {
     await tester.pumpWidget(
       AppStringsScope(
         strings: strings,
-        child: MaterialApp(home: SettingsScreen(store: store)),
+        child: MaterialApp(home: UxSettingsScreen(store: store)),
       ),
     );
     await tester.pump();
 
+    await tester.tap(find.text(strings.text('notifications')).first);
+    await tester.pump();
+
     final titleText = strings.text('online_challenge_notifications');
     final notificationTitle = find.text(titleText);
-    await tester.scrollUntilVisible(notificationTitle, 300);
-    await tester.pump();
 
     expect(notificationTitle, findsOneWidget);
 

@@ -63,7 +63,7 @@ Future<FakeOnlineDuelTransport> _pumpReady(WidgetTester tester) async {
     AppStringsScope(
       strings: AppStrings.forTesting(),
       child: MaterialApp(
-        theme: AppTheme.light(highContrast: false),
+        theme: AppTheme.dark(),
         home: PreMatchReadyScreen(roomId: 'room', controller: controller),
       ),
     ),

@@ -13,7 +13,7 @@ import '../../widgets/player_avatar.dart';
 import '../career/career_screen.dart';
 import '../duel/matchmaking_screen.dart';
 import '../economy/coin_store_screen.dart';
-import '../settings/settings_screen.dart';
+import '../settings/ux_settings_screen.dart';
 import '../social/player_profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   _open(context, const PlayerProfileScreen()),
                               onSettings: () => _open(
                                 context,
-                                SettingsScreen(store: widget.store),
+                                UxSettingsScreen(store: widget.store),
                               ),
                             ),
                             const SizedBox(height: 42),
