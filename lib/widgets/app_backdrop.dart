@@ -55,13 +55,10 @@ class AppBackdrop extends StatelessWidget {
   }
 }
 
-/// Watches the active duel snapshot and renders the pre-match countdown.
-///
-/// The server ready deadline is always preferred. As a resilience fallback,
-/// when both players are actually connected and both Ready screens have been
-/// loaded, the countdown is anchored to that shared server event time. This is
-/// the same condition the Worker uses to open the authoritative ready window,
-/// so the first player can never start counting while waiting for player two.
+/// Watches the active duel snapshot and renders the pre-match countdown from
+/// the server-authoritative ready deadline. No local countdown deadline is
+/// generated here, so both players always count toward the exact same instant
+/// and rebuilding/switching ready-screen layouts can never restart the timer.
 class _DuelCountdownLayer extends StatefulWidget {
   const _DuelCountdownLayer();
 
@@ -72,13 +69,11 @@ class _DuelCountdownLayer extends StatefulWidget {
 class _DuelCountdownLayerState extends State<_DuelCountdownLayer> {
   Timer? _snapshotWatcher;
   OnlineDuelSnapshot? _snapshot;
-  DateTime? _fallbackReadyDeadline;
-  String? _fallbackMatchId;
 
   @override
   void initState() {
     super.initState();
-    _adoptSnapshot(OnlineDuelController.activeSnapshot, notify: false);
+    _snapshot = OnlineDuelController.activeSnapshot;
     _snapshotWatcher = Timer.periodic(
       const Duration(milliseconds: 150),
       (_) => _syncSnapshot(),
@@ -95,49 +90,7 @@ class _DuelCountdownLayerState extends State<_DuelCountdownLayer> {
     if (!mounted) return;
     final next = OnlineDuelController.activeSnapshot;
     if (identical(next, _snapshot)) return;
-    _adoptSnapshot(next);
-  }
-
-  void _adoptSnapshot(
-    OnlineDuelSnapshot? next, {
-    bool notify = true,
-  }) {
-    var fallbackDeadline = _fallbackReadyDeadline;
-    var fallbackMatchId = _fallbackMatchId;
-
-    if (next == null ||
-        !_isPrematchStatus(next.status) ||
-        !_bothClientsLoaded(next)) {
-      fallbackDeadline = null;
-      fallbackMatchId = null;
-    } else {
-      final matchChanged = fallbackMatchId != next.matchId;
-      if (matchChanged) {
-        fallbackDeadline = null;
-      }
-      fallbackMatchId = next.matchId;
-
-      // Use the Worker's deadline whenever it is available. If that field is
-      // ever missed during an event/reconnect race, both clients still saw the
-      // same serverTime on the event where connected+screenLoaded became true.
-      if (next.readyDeadline != null) {
-        fallbackDeadline = next.readyDeadline;
-      } else {
-        fallbackDeadline ??= next.serverTime.add(const Duration(seconds: 10));
-      }
-    }
-
-    if (notify) {
-      setState(() {
-        _snapshot = next;
-        _fallbackReadyDeadline = fallbackDeadline;
-        _fallbackMatchId = fallbackMatchId;
-      });
-    } else {
-      _snapshot = next;
-      _fallbackReadyDeadline = fallbackDeadline;
-      _fallbackMatchId = fallbackMatchId;
-    }
+    setState(() => _snapshot = next);
   }
 
   bool _isPrematchStatus(OnlineDuelStatus status) {
@@ -146,27 +99,13 @@ class _DuelCountdownLayerState extends State<_DuelCountdownLayer> {
         status == OnlineDuelStatus.countdown;
   }
 
-  bool _bothClientsLoaded(OnlineDuelSnapshot snapshot) {
-    final playerA = snapshot.players[OnlineDuelSeat.a];
-    final playerB = snapshot.players[OnlineDuelSeat.b];
-    return playerA != null &&
-        playerB != null &&
-        playerA.connected &&
-        playerB.connected &&
-        playerA.screenLoaded &&
-        playerB.screenLoaded;
-  }
-
   @override
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
     if (snapshot == null) return const SizedBox.shrink();
 
-    final countdownDeadline = snapshot.readyDeadline ?? _fallbackReadyDeadline;
     final showReadyCountdown =
-        _isPrematchStatus(snapshot.status) &&
-        _bothClientsLoaded(snapshot) &&
-        countdownDeadline != null;
+        _isPrematchStatus(snapshot.status) && snapshot.readyDeadline != null;
     final showStartingFlash =
         snapshot.status == OnlineDuelStatus.active &&
         snapshot.turnNumber == 1 &&
@@ -175,14 +114,9 @@ class _DuelCountdownLayerState extends State<_DuelCountdownLayer> {
         snapshot.mistakes.values.every((value) => value == 0);
 
     if (showReadyCountdown) {
-      final countdownSnapshot =
-          snapshot.status == OnlineDuelStatus.readyWindow &&
-              snapshot.readyDeadline != null
+      final countdownSnapshot = snapshot.status == OnlineDuelStatus.readyWindow
           ? snapshot
-          : snapshot.copyWith(
-              status: OnlineDuelStatus.readyWindow,
-              readyDeadline: countdownDeadline,
-            );
+          : snapshot.copyWith(status: OnlineDuelStatus.readyWindow);
       return OnlineReadyCountdownOverlay(
         snapshot: countdownSnapshot,
         showStartingFlash: false,
