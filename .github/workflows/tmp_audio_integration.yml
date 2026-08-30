@@ -2,14 +2,17 @@ name: Temporary audio integration
 
 on:
   push:
-    branches: [feat/audio-feedback-integration-20260830]
+    branches:
+      - feat/audio-feedback-integration-20260830
+    paths:
+      - '.github/workflows/tmp_audio_integration.yml'
+      - 'tool/integrate_sound_feedback.py'
 
 permissions:
   contents: write
 
 jobs:
-  integrate-and-validate:
-    if: github.event.head_commit.message == 'chore: bootstrap audio integration'
+  integrate_audio:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -33,19 +36,19 @@ jobs:
         run: flutter pub get
 
       - name: Format changed Dart sources
-        run: >-
-          dart format
-          lib/main.dart
-          lib/services/sound_effects_service.dart
-          lib/localization/settings_strings.dart
-          lib/features/settings/ux_settings_screen.dart
-          lib/features/game/enhanced_game_screen.dart
-          lib/features/duel/online_ready_countdown_overlay.dart
-          lib/features/duel/pre_match_ready_screen.dart
-          lib/features/duel/online_duel_screen.dart
-          lib/services/online_duel_emote_hub.dart
-          lib/features/social/social_hub_screen.dart
-          test/sound_effects_integration_test.dart
+        run: |
+          dart format \
+            lib/main.dart \
+            lib/services/sound_effects_service.dart \
+            lib/localization/settings_strings.dart \
+            lib/features/settings/ux_settings_screen.dart \
+            lib/features/game/enhanced_game_screen.dart \
+            lib/features/duel/online_ready_countdown_overlay.dart \
+            lib/features/duel/pre_match_ready_screen.dart \
+            lib/features/duel/online_duel_screen.dart \
+            lib/services/online_duel_emote_hub.dart \
+            lib/features/social/social_hub_screen.dart \
+            test/sound_effects_integration_test.dart
 
       - name: Verify no whitespace errors
         run: git diff --check
@@ -54,12 +57,12 @@ jobs:
         run: flutter analyze --fatal-infos
 
       - name: Run audio and affected UI tests
-        run: >-
-          flutter test --concurrency=1
-          test/sound_effects_integration_test.dart
-          test/settings_screen_test.dart
-          test/pre_match_ready_emote_screen_test.dart
-          test/online_duel_screen_test.dart
+        run: |
+          flutter test --concurrency=1 \
+            test/sound_effects_integration_test.dart \
+            test/settings_screen_test.dart \
+            test/pre_match_ready_emote_screen_test.dart \
+            test/online_duel_screen_test.dart
 
       - name: Run full Flutter test suite
         run: timeout --signal=TERM 15m flutter test --concurrency=1
