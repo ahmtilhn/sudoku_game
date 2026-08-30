@@ -82,6 +82,21 @@ describe('Economy V3 policy', () => {
     expect(source).toContain('classic16-${input.difficulty}-');
   });
 
+  it('keeps hint refills server-authoritative and non-negative', async () => {
+    const fs = await import('node:fs/promises');
+    const [daily, hints, schema] = await Promise.all([
+      fs.readFile('src/economy_v3_daily.ts', 'utf8'),
+      fs.readFile('src/economy_v3_career_hints.ts', 'utf8'),
+      fs.readFile('src/economy_v3_schema.ts', 'utf8'),
+    ]);
+
+    expect(daily).toContain("source: 'daily_calendar_refill'");
+    expect(daily).toContain('refillDelta: 1');
+    expect(hints).toContain('SET hint_refills = hint_refills - 1');
+    expect(hints).toContain('WHERE player_id = ? AND hint_refills > 0');
+    expect(schema).toContain('hint_refills = MAX(0, economy_v3_inventory.hint_refills + NEW.refill_delta)');
+  });
+
   it('locks Recovery caps and stake-scaled rewards', () => {
     expect(RECOVERY_DAILY_COIN_CAP).toBe(150);
     expect(RECOVERY_DAILY_POPUP_CAP).toBe(3);

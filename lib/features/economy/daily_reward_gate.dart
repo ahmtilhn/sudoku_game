@@ -76,12 +76,20 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                   maxWidth: 420,
                   maxHeight: size.height - (compact ? 20 : 48),
                 ),
-                child: Padding(
+                child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
                     compact ? 16 : 24,
-                    veryCompact ? 12 : compact ? 16 : 24,
+                    veryCompact
+                        ? 12
+                        : compact
+                        ? 16
+                        : 24,
                     compact ? 16 : 24,
-                    veryCompact ? 8 : compact ? 10 : 14,
+                    veryCompact
+                        ? 8
+                        : compact
+                        ? 10
+                        : 14,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -96,26 +104,46 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: veryCompact ? 17 : compact ? 18 : 20,
+                          fontSize: veryCompact
+                              ? 17
+                              : compact
+                              ? 18
+                              : 20,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                       SizedBox(
-                        height: veryCompact ? 9 : compact ? 14 : 18,
+                        height: veryCompact
+                            ? 9
+                            : compact
+                            ? 14
+                            : 18,
                       ),
                       if (reward.isCoin)
                         DuelAssetIcon(
                           DuelAsset.coin,
-                          size: veryCompact ? 40 : compact ? 46 : 54,
+                          size: veryCompact
+                              ? 40
+                              : compact
+                              ? 46
+                              : 54,
                         )
                       else
                         Icon(
                           Icons.refresh_rounded,
-                          size: veryCompact ? 40 : compact ? 46 : 54,
+                          size: veryCompact
+                              ? 40
+                              : compact
+                              ? 46
+                              : 54,
                           color: const Color(0xFFFFC94D),
                         ),
                       SizedBox(
-                        height: veryCompact ? 8 : compact ? 12 : 14,
+                        height: veryCompact
+                            ? 8
+                            : compact
+                            ? 12
+                            : 14,
                       ),
                       Text(
                         reward.isCoin
@@ -128,7 +156,11 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: const Color(0xFFFFC94D),
-                          fontSize: veryCompact ? 19 : compact ? 21 : 24,
+                          fontSize: veryCompact
+                              ? 19
+                              : compact
+                              ? 21
+                              : 24,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -144,12 +176,20 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .72),
-                          fontSize: veryCompact ? 11 : compact ? 12 : null,
+                          fontSize: veryCompact
+                              ? 11
+                              : compact
+                              ? 12
+                              : null,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       SizedBox(
-                        height: veryCompact ? 10 : compact ? 16 : 20,
+                        height: veryCompact
+                            ? 10
+                            : compact
+                            ? 16
+                            : 20,
                       ),
                       if (canDouble && !doubled) ...[
                         FilledButton.icon(
