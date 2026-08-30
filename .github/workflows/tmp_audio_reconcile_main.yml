@@ -1,4 +1,4 @@
-name: Temporary audio/main reconciliation
+name: Temporary audio main reconciliation
 
 on:
   push:
@@ -12,7 +12,6 @@ permissions:
 
 jobs:
   reconcile_audio:
-    if: github.event.head_commit.message == 'chore: run audio main reconciliation'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
