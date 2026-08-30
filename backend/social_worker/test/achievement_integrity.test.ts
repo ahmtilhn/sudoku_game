@@ -17,7 +17,7 @@ function repoFile(path: string): string {
 
 describe('achievement integrity', () => {
   it('replaces the classic9-only reward trigger with variant aggregate progress', () => {
-    const migration = workerFile('migrations/0028_achievement_integrity.sql');
+    const migration = workerFile('migrations/0029_achievement_integrity.sql');
 
     expect(migration).toContain('DROP TRIGGER IF EXISTS auto_grant_coin_achievement_rewards');
     expect(migration).toContain('AFTER UPDATE OF rating, games_played, wins ON player_variant_ratings');
@@ -30,7 +30,7 @@ describe('achievement integrity', () => {
   });
 
   it('unlocks and pays automatic achievements exactly once in one database transaction', () => {
-    const migration = workerFile('migrations/0028_achievement_integrity.sql');
+    const migration = workerFile('migrations/0029_achievement_integrity.sql');
 
     expect(migration).toContain("NEW.source = 'automatic'");
     expect(migration).toContain("'achievement:' || NEW.player_id || ':' || NEW.achievement_id");
@@ -41,7 +41,7 @@ describe('achievement integrity', () => {
   });
 
   it('earns Friendly Rival for both players and removes inactive future achievements', () => {
-    const migration = workerFile('migrations/0028_achievement_integrity.sql');
+    const migration = workerFile('migrations/0029_achievement_integrity.sql');
 
     expect(migration).toContain('CREATE TRIGGER friend_link_after_accept');
     expect(migration).toContain("SELECT NEW.player_low_id, 'friend_link'");
@@ -79,7 +79,7 @@ describe('achievement integrity', () => {
   });
 
   it('disables the unfinished backend mirror queue instead of claiming unsupported Play mappings', () => {
-    const migration = workerFile('migrations/0028_achievement_integrity.sql');
+    const migration = workerFile('migrations/0029_achievement_integrity.sql');
     const runtime = workerFile('src/achievement_integrity.ts');
 
     expect(migration).toContain('platform_mirror_enabled = 0');
