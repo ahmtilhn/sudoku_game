@@ -40,6 +40,7 @@ import {
 } from './rank_country_flags';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
 import { ensureCompetitiveEconomyHardening } from './competitive_economy_hardening';
+import { ensureAchievementIntegrity } from './achievement_integrity';
 import { ensureRuntimeSchema } from './runtime_schema';
 
 export { GameRoom, MatchmakingQueue };
@@ -70,6 +71,7 @@ export default {
         // runtime installer from restoring weaker definitions afterward.
         await ensureRuntimeSchema(env);
         await ensureCompetitiveEconomyHardening(env);
+        await ensureAchievementIntegrity(env);
       } catch (error) {
         console.error('competitive_economy_hardening_install_failed', error);
         return leaderboardError(
@@ -220,6 +222,7 @@ export default {
     try {
       await ensureRuntimeSchema(env);
       await ensureCompetitiveEconomyHardening(env);
+      await ensureAchievementIntegrity(env);
     } catch (error) {
       console.error('competitive_economy_hardening_install_failed', error);
       return;

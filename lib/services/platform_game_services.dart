@@ -359,10 +359,19 @@ class PlatformGameServices {
         'score': score,
       });
 
-  Future<bool> unlockAchievement({String? achievementId}) => _invokeBool(
-    'unlockAchievement',
-    <String, Object?>{'achievementId': achievementId},
-  );
+  Future<bool> unlockAchievement({String? achievementId}) {
+    final normalized = achievementId?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      // A platform achievement must always be mapped from a server achievement.
+      // Never let a local puzzle-completion call fall through to a native
+      // default ID, because that could unlock First Duel Win without a duel win.
+      return Future<bool>.value(false);
+    }
+    return _invokeBool(
+      'unlockAchievement',
+      <String, Object?>{'achievementId': normalized},
+    );
+  }
 
   Future<bool> recordGameStatsEvents(List<Map<String, Object?>> events) =>
       _invokeBool('recordGameStatsEvents', <String, Object?>{'events': events});
