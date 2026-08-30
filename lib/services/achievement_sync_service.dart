@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import 'firebase_services.dart';
@@ -10,7 +11,7 @@ import 'firebase_session_service.dart';
 import 'platform_game_services.dart';
 import 'social_api_client.dart';
 
-/// Mirrors server-authoritative achievements to the platform service.
+/// Mirrors server-authoritative achievements to the native platform service.
 ///
 /// Google Play currently has exactly one exported achievement for this app:
 /// `achievement_first_victory`. The server is the source of truth for whether
@@ -21,6 +22,9 @@ class AchievementSyncService {
   static final AchievementSyncService instance = AchievementSyncService._();
 
   static const Duration _timeout = Duration(seconds: 15);
+  static const MethodChannel _gameServicesChannel = MethodChannel(
+    'com.devoviastudio.sudoku/game_services',
+  );
 
   // Exported from the same Play Games project as android games-ids.xml.
   // Keep the contract test in sync if Play Console ever replaces this ID.
@@ -41,7 +45,11 @@ class AchievementSyncService {
   }
 
   Future<bool> _syncNow({required bool retryForSettlement}) async {
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.android &&
+            defaultTargetPlatform != TargetPlatform.iOS)) {
+      return false;
+    }
 
     final games = PlatformGameServices.instance;
     if (!await games.isConfigured()) return false;
@@ -51,19 +59,42 @@ class AchievementSyncService {
     for (var attempt = 0; attempt < attempts; attempt++) {
       final unlocked = await _serverFirstWinUnlocked();
       if (unlocked) {
-        // Google Play's unlock operation is idempotent. We intentionally do not
-        // cache a local "synced" bit: the Android API may queue a fire-and-forget
-        // update for later server sync, so repeating this on startup and after a
-        // ranked settlement is the safest eventual-delivery behavior.
-        return games.unlockAchievement(
-          achievementId: googlePlayFirstWinAchievementId,
-        );
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          // Google Play's unlock operation is idempotent. We intentionally do
+          // not cache a local "synced" bit: the Android API may queue a
+          // fire-and-forget update for later server sync, so repeating this on
+          // startup and after a ranked settlement is the safest eventual-
+          // delivery behavior.
+          return games.unlockAchievement(
+            achievementId: googlePlayFirstWinAchievementId,
+          );
+        }
+
+        // Game Center's configured identifier lives in Info.plist and is
+        // resolved by the native bridge. Going through the channel here is
+        // deliberate: ordinary no-ID Flutter calls are blocked, so only this
+        // server-authoritative path can use the platform default achievement.
+        return _unlockGameCenterServerAchievement();
       }
       if (attempt + 1 < attempts) {
         await Future<void>.delayed(Duration(milliseconds: 350 * (attempt + 1)));
       }
     }
     return false;
+  }
+
+  Future<bool> _unlockGameCenterServerAchievement() async {
+    try {
+      return await _gameServicesChannel.invokeMethod<bool>(
+            'unlockAchievement',
+            <String, Object?>{'achievementId': null},
+          ) ??
+          false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
   }
 
   Future<bool> _serverFirstWinUnlocked() async {
