@@ -1,0 +1,41 @@
+name: Achievement CI
+
+on:
+  pull_request:
+    paths:
+      - 'lib/main.dart'
+      - 'lib/services/achievement_sync_service.dart'
+      - 'lib/services/platform_game_services.dart'
+      - 'lib/services/platform_leaderboard_service.dart'
+      - 'test/achievement_sync_contract_test.dart'
+      - 'android/app/src/main/res/values/games-ids.xml'
+      - 'android/app/src/main/res/values/services.xml'
+      - '.github/workflows/achievement-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: achievement-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter-achievement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Analyze Flutter sources
+        run: flutter analyze lib
+
+      - name: Achievement contract tests
+        run: flutter test test/achievement_sync_contract_test.dart
