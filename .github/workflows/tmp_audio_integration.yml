@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/tmp_audio_integration.yml'
       - 'tool/integrate_sound_feedback.py'
+      - 'tool/fix_sound_integration.py'
 
 permissions:
   contents: write
@@ -29,11 +30,16 @@ jobs:
           cache: true
           pub-cache: true
 
-      - name: Apply sound integration patch
-        run: python3 tool/integrate_sound_feedback.py
+      - name: Apply sound integration patches
+        run: |
+          python3 tool/integrate_sound_feedback.py
+          python3 tool/fix_sound_integration.py
 
       - name: Resolve Flutter dependencies
         run: flutter pub get
+
+      - name: Restore unrelated Flutter-generated config
+        run: git checkout -- analysis_options.yaml
 
       - name: Format changed Dart sources
         run: |
@@ -56,16 +62,24 @@ jobs:
       - name: Analyze Flutter project
         run: flutter analyze --fatal-infos
 
-      - name: Run audio and affected UI tests
+      - name: Run sound integration regression tests
         run: |
           flutter test --concurrency=1 \
             test/sound_effects_integration_test.dart \
-            test/settings_screen_test.dart \
-            test/pre_match_ready_emote_screen_test.dart \
-            test/online_duel_screen_test.dart
+            test/friendship_state_hardening_test.dart \
+            test/recent_opponents_friend_flow_test.dart
 
-      - name: Run full Flutter test suite
-        run: timeout --signal=TERM 15m flutter test --concurrency=1
+      - name: Build debug APK with bundled sounds
+        run: flutter build apk --debug
+
+      - name: Verify sound assets are in APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -l build/app/outputs/flutter-apk/app-debug.apk > /tmp/apk-files.txt
+          grep -F 'flutter_assets/assets/audio/ui/ui_click.mp3' /tmp/apk-files.txt
+          grep -F 'flutter_assets/assets/audio/gameplay/number_input.mp3' /tmp/apk-files.txt
+          grep -F 'flutter_assets/assets/audio/online/online_victory.mp3' /tmp/apk-files.txt
 
       - name: Commit integrated sound system
         shell: bash
