@@ -75,4 +75,32 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
+
+  testWidgets('legacy account protection is removed and data controls remain', (
+    tester,
+  ) async {
+    final store = await LocalProgressStore.createInMemory();
+    final strings = AppStrings.forTesting();
+
+    await tester.pumpWidget(
+      AppStringsScope(
+        strings: strings,
+        child: MaterialApp(home: UxSettingsScreen(store: store)),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text(strings.text('player_account')), findsNothing);
+    expect(find.text(strings.text('protect_player_account')), findsNothing);
+    expect(find.text(strings.text('coin_history')), findsNothing);
+
+    await tester.tap(find.text(strings.text('data')).first);
+    await tester.pump();
+
+    expect(find.text(strings.text('clear_career_progress')), findsOneWidget);
+    expect(find.text(strings.text('delete_player_account')), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
 }
