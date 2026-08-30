@@ -1,0 +1,122 @@
+name: Force production AdMob units
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/force-production-ad-units-main.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: force-production-admob-units
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Remove all runtime test ad paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/services/ads_service.dart')
+          text = path.read_text(encoding='utf-8')
+
+          old = """  static const String _androidRewardedTestId =\n      'ca-app-pub-3940256099942544/5224354917';\n  static const String _androidRewardedInterstitialTestId =\n      'ca-app-pub-3940256099942544/5354046379';\n  static const String _iosRewardedTestId =\n      'ca-app-pub-3940256099942544/1712485313';\n  static const String _iosRewardedInterstitialTestId =\n      'ca-app-pub-3940256099942544/6978759866';\n"""
+          if old not in text:
+              raise SystemExit('Expected AdMob test ID block not found')
+          text = text.replace(old, '', 1)
+
+          old = """  static const bool _internalTesting = bool.fromEnvironment('INTERNAL_TESTING');\n  static const bool _forceTestAds = bool.fromEnvironment('ADMOB_USE_TEST_ADS');\n\n"""
+          if old not in text:
+              raise SystemExit('Expected AdMob test flag block not found')
+          text = text.replace(old, '', 1)
+
+          old = """  bool get _useTestAds =>\n      !kReleaseMode ||\n      _internalTesting ||\n      _forceTestAds ||\n      _appEnvironment == 'staging' ||\n      _appEnvironment == 'development' ||\n      _appEnvironment == 'test';\n"""
+          if old not in text:
+              raise SystemExit('Expected _useTestAds getter not found')
+          text = text.replace(old, '', 1)
+
+          start = text.index('  String get _rewardedAdUnitId {')
+          end = text.index('  Future<void> initialize()', start)
+          old = text[start:end]
+          new = """  String get _rewardedAdUnitId => Platform.isAndroid\n      ? _androidRewardedProductionId\n      : _iosRewardedProductionId;\n\n  String get _rewardedInterstitialAdUnitId => Platform.isAndroid\n      ? _androidRewardedInterstitialProductionId\n      : _iosRewardedInterstitialProductionId;\n\n"""
+          text = text[:start] + new + text[end:]
+
+          old = """      'release=$kReleaseMode, environment=$_appEnvironmentOrDefault, '\n      'testAds=$_useTestAds, rewarded=${_unitForLog(_rewardedAdUnitId)}, '\n"""
+          new = """      'release=$kReleaseMode, environment=$_appEnvironmentOrDefault, '\n      'productionUnits=true, rewarded=${_unitForLog(_rewardedAdUnitId)}, '\n"""
+          if old not in text:
+              raise SystemExit('Expected initialization ad-mode log not found')
+          text = text.replace(old, new, 1)
+
+          forbidden = [
+              'ca-app-pub-3940256099942544',
+              '_androidRewardedTestId',
+              '_androidRewardedInterstitialTestId',
+              '_iosRewardedTestId',
+              '_iosRewardedInterstitialTestId',
+              '_useTestAds',
+              'ADMOB_USE_TEST_ADS',
+              'INTERNAL_TESTING',
+              'ADMOB_ANDROID_REWARDED_ID',
+              'ADMOB_IOS_REWARDED_ID',
+              'ADMOB_ANDROID_REWARDED_INTERSTITIAL_ID',
+              'ADMOB_IOS_REWARDED_INTERSTITIAL_ID',
+          ]
+          remaining = [value for value in forbidden if value in text]
+          if remaining:
+              raise SystemExit(f'Runtime test/override ad paths remain: {remaining}')
+
+          required = [
+              'ca-app-pub-8422988604275177/3474727600',
+              'ca-app-pub-8422988604275177/4787809275',
+              'ca-app-pub-8422988604275177/3366916396',
+              'ca-app-pub-8422988604275177/4982984468',
+          ]
+          missing = [value for value in required if value not in text]
+          if missing:
+              raise SystemExit(f'Production AdMob unit IDs missing: {missing}')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format and analyze ad service
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          dart format lib/services/ads_service.dart
+          git diff --check
+          flutter analyze lib/services/ads_service.dart
+
+      - name: Commit production ad configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib/services/ads_service.dart
+          if git diff --cached --quiet; then
+            echo 'No changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Force production AdMob units in all builds'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
