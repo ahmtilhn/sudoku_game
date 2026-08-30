@@ -752,6 +752,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
   bool _rankLoading = true;
   bool _busy = false;
   bool _openingAcceptedRoom = false;
+  bool _friendshipStatusLoading = true;
   String? _statusMessage;
   String? _friendshipStatus;
 
@@ -1072,7 +1073,7 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       await SocialApiClient.instance.sendFriendRequest(opponent.publicId);
       if (!mounted) return;
       setState(() {
-        _friendshipStatus = 'pending';
+        _friendshipStatus = 'outgoing_pending';
         _statusMessage = context.tr('friend_request_sent');
       });
     } on SocialApiException catch (error) {
@@ -1081,8 +1082,10 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       setState(() {
         if (message.contains('already friends')) {
           _friendshipStatus = 'accepted';
+        } else if (message.contains('incoming')) {
+          _friendshipStatus = 'incoming_pending';
         } else if (message.contains('pending')) {
-          _friendshipStatus = 'pending';
+          _friendshipStatus = 'outgoing_pending';
         }
         _statusMessage = UserSafeError.message(context, error);
       });
@@ -1092,7 +1095,11 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
   }
 
   bool get _canAddFriend =>
-      _friendshipStatus != 'accepted' && _friendshipStatus != 'pending';
+      !_friendshipStatusLoading &&
+      _friendshipStatus != 'accepted' &&
+      _friendshipStatus != 'pending' &&
+      _friendshipStatus != 'outgoing_pending' &&
+      _friendshipStatus != 'incoming_pending';
 
   Future<void> _loadFriendshipStatus() async {
     try {
@@ -1113,6 +1120,8 @@ class _OnlineResultSheetState extends State<_OnlineResultSheet> {
       }
     } catch (error) {
       debugPrint('Result friendship status unavailable: $error');
+    } finally {
+      if (mounted) setState(() => _friendshipStatusLoading = false);
     }
   }
 }

@@ -189,7 +189,7 @@ export default {
       );
     }
     if (
-      request.method === 'POST' &&
+      request.method !== 'OPTIONS' &&
       isFriendNotificationRoute(url.pathname)
     ) {
       return handleFriendNotificationRequest(
