@@ -42,8 +42,14 @@ void main() {
       'lib/services/sound_effects_service.dart',
     ).readAsStringSync();
     expect(service, contains('sound_effects_enabled_v1'));
-    expect(service, contains('AudioContextConfigFocus.mixWithOthers'));
-    expect(service, contains('respectSilence: true'));
+    expect(
+      service,
+      contains('AudioContextIOS(category: AVAudioSessionCategory.ambient)'),
+    );
+    expect(service, contains('audioFocus: AndroidAudioFocus.none'));
+    expect(service, contains('contentType: AndroidContentType.sonification'));
+    expect(service, isNot(contains('AudioContextConfigFocus.mixWithOthers')));
+    expect(service, isNot(contains('respectSilence: true')));
     expect(service, contains('PlayerMode.lowLatency'));
     expect(service, contains('enum SoundEffect'));
     expect(service, contains('onlineVictory'));
