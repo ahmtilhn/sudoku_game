@@ -51,36 +51,43 @@ class AchievementSyncService {
       return false;
     }
 
-    final games = PlatformGameServices.instance;
-    if (!await games.isConfigured()) return false;
-    if (!await games.refreshAuthentication()) return false;
+    try {
+      final games = PlatformGameServices.instance;
+      if (!await games.isConfigured()) return false;
+      if (!await games.refreshAuthentication()) return false;
 
-    final attempts = retryForSettlement ? 4 : 1;
-    for (var attempt = 0; attempt < attempts; attempt++) {
-      final unlocked = await _serverFirstWinUnlocked();
-      if (unlocked) {
-        if (defaultTargetPlatform == TargetPlatform.android) {
-          // Google Play's unlock operation is idempotent. We intentionally do
-          // not cache a local "synced" bit: the Android API may queue a
-          // fire-and-forget update for later server sync, so repeating this on
-          // startup and after a ranked settlement is the safest eventual-
-          // delivery behavior.
-          return games.unlockAchievement(
-            achievementId: googlePlayFirstWinAchievementId,
+      final attempts = retryForSettlement ? 4 : 1;
+      for (var attempt = 0; attempt < attempts; attempt++) {
+        final unlocked = await _serverFirstWinUnlocked();
+        if (unlocked) {
+          if (defaultTargetPlatform == TargetPlatform.android) {
+            // Android uses AchievementsClient.unlockImmediate, so true means the
+            // Google Play server accepted the update. The operation is
+            // idempotent, so startup and post-settlement retries are safe.
+            return await games.unlockAchievement(
+              achievementId: googlePlayFirstWinAchievementId,
+            );
+          }
+
+          // Game Center's configured identifier lives in Info.plist and is
+          // resolved by the native bridge. Going through the channel here is
+          // deliberate: ordinary no-ID Flutter calls are blocked, so only this
+          // server-authoritative path can use the platform default achievement.
+          return _unlockGameCenterServerAchievement();
+        }
+        if (attempt + 1 < attempts) {
+          await Future<void>.delayed(
+            Duration(milliseconds: 350 * (attempt + 1)),
           );
         }
-
-        // Game Center's configured identifier lives in Info.plist and is
-        // resolved by the native bridge. Going through the channel here is
-        // deliberate: ordinary no-ID Flutter calls are blocked, so only this
-        // server-authoritative path can use the platform default achievement.
-        return _unlockGameCenterServerAchievement();
       }
-      if (attempt + 1 < attempts) {
-        await Future<void>.delayed(Duration(milliseconds: 350 * (attempt + 1)));
-      }
+      return false;
+    } on PlatformGameServicesException {
+      // Platform delivery is a mirror of server truth. A temporary Play Games
+      // or Game Center failure must never break match settlement or local play;
+      // startup/next settlement will retry the idempotent mirror.
+      return false;
     }
-    return false;
   }
 
   Future<bool> _unlockGameCenterServerAchievement() async {
