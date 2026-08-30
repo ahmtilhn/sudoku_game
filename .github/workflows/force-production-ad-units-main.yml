@@ -50,7 +50,6 @@ jobs:
 
           start = text.index('  String get _rewardedAdUnitId {')
           end = text.index('  Future<void> initialize()', start)
-          old = text[start:end]
           new = """  String get _rewardedAdUnitId => Platform.isAndroid\n      ? _androidRewardedProductionId\n      : _iosRewardedProductionId;\n\n  String get _rewardedInterstitialAdUnitId => Platform.isAndroid\n      ? _androidRewardedInterstitialProductionId\n      : _iosRewardedInterstitialProductionId;\n\n"""
           text = text[:start] + new + text[end:]
 
@@ -109,6 +108,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git restore -- pubspec.lock analysis_options.yaml || true
           git add lib/services/ads_service.dart
           if git diff --cached --quiet; then
             echo 'No changes required.'
