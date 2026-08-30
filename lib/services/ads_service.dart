@@ -19,21 +19,10 @@ class AdsService {
   static const String _iosRewardedInterstitialProductionId =
       'ca-app-pub-8422988604275177/4982984468';
 
-  static const String _androidRewardedTestId =
-      'ca-app-pub-3940256099942544/5224354917';
-  static const String _androidRewardedInterstitialTestId =
-      'ca-app-pub-3940256099942544/5354046379';
-  static const String _iosRewardedTestId =
-      'ca-app-pub-3940256099942544/1712485313';
-  static const String _iosRewardedInterstitialTestId =
-      'ca-app-pub-3940256099942544/6978759866';
   static const String _appEnvironment = String.fromEnvironment(
     'APP_ENVIRONMENT',
     defaultValue: '',
   );
-  static const bool _internalTesting = bool.fromEnvironment('INTERNAL_TESTING');
-  static const bool _forceTestAds = bool.fromEnvironment('ADMOB_USE_TEST_ADS');
-
   final ValueNotifier<bool> adsAvailable = ValueNotifier<bool>(false);
   final ValueNotifier<bool> privacyOptionsRequired = ValueNotifier<bool>(false);
 
@@ -46,13 +35,6 @@ class AdsService {
   bool _noAds = false;
 
   bool get _supported => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
-  bool get _useTestAds =>
-      !kReleaseMode ||
-      _internalTesting ||
-      _forceTestAds ||
-      _appEnvironment == 'staging' ||
-      _appEnvironment == 'development' ||
-      _appEnvironment == 'test';
   bool get noAds => _noAds;
 
   void setNoAds(bool value) {
@@ -64,47 +46,13 @@ class AdsService {
     }
   }
 
-  String get _rewardedAdUnitId {
-    if (Platform.isAndroid) {
-      const overrideId = String.fromEnvironment(
-        'ADMOB_ANDROID_REWARDED_ID',
-        defaultValue: '',
-      );
-      if (overrideId.isNotEmpty) return overrideId;
-      return !_useTestAds
-          ? _androidRewardedProductionId
-          : _androidRewardedTestId;
-    }
+  String get _rewardedAdUnitId => Platform.isAndroid
+      ? _androidRewardedProductionId
+      : _iosRewardedProductionId;
 
-    const overrideId = String.fromEnvironment(
-      'ADMOB_IOS_REWARDED_ID',
-      defaultValue: '',
-    );
-    if (overrideId.isNotEmpty) return overrideId;
-    return !_useTestAds ? _iosRewardedProductionId : _iosRewardedTestId;
-  }
-
-  String get _rewardedInterstitialAdUnitId {
-    if (Platform.isAndroid) {
-      const overrideId = String.fromEnvironment(
-        'ADMOB_ANDROID_REWARDED_INTERSTITIAL_ID',
-        defaultValue: '',
-      );
-      if (overrideId.isNotEmpty) return overrideId;
-      return !_useTestAds
-          ? _androidRewardedInterstitialProductionId
-          : _androidRewardedInterstitialTestId;
-    }
-
-    const overrideId = String.fromEnvironment(
-      'ADMOB_IOS_REWARDED_INTERSTITIAL_ID',
-      defaultValue: '',
-    );
-    if (overrideId.isNotEmpty) return overrideId;
-    return !_useTestAds
-        ? _iosRewardedInterstitialProductionId
-        : _iosRewardedInterstitialTestId;
-  }
+  String get _rewardedInterstitialAdUnitId => Platform.isAndroid
+      ? _androidRewardedInterstitialProductionId
+      : _iosRewardedInterstitialProductionId;
 
   Future<void> initialize() async {
     if (_noAds || !_supported || _initializing || _mobileAdsInitialized) {
@@ -116,7 +64,7 @@ class AdsService {
     debugPrint(
       'Ads initialization starting: platform=$_platformForLog, '
       'release=$kReleaseMode, environment=$_appEnvironmentOrDefault, '
-      'testAds=$_useTestAds, rewarded=${_unitForLog(_rewardedAdUnitId)}, '
+      'productionUnits=true, rewarded=${_unitForLog(_rewardedAdUnitId)}, '
       'rewardedInterstitial=${_unitForLog(_rewardedInterstitialAdUnitId)}.',
     );
 
