@@ -15,6 +15,7 @@ import '../../services/ads_service.dart';
 import '../../services/economy_service.dart';
 import '../../services/game_interstitial_service.dart';
 import '../../services/offline_reward_service.dart';
+import '../../services/sound_effects_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/in_page_header.dart';
@@ -160,6 +161,9 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _roundLost = saved.roundLost;
     }
     setState(() => _ready = true);
+    if (saved == null && !_roundLost) {
+      unawaited(SoundEffectsService.instance.play(SoundEffect.gameStart));
+    }
     if (_roundLost) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) unawaited(_showLossSheet());
@@ -203,6 +207,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
   Future<void> _showPauseSheet() async {
     if (!_ready || _completed || _roundLost || _paused) return;
+    unawaited(SoundEffectsService.instance.play(SoundEffect.pauseOpen));
     _pauseClock();
     setState(() => _paused = true);
     final action = await showModalBottomSheet<String>(
@@ -255,7 +260,10 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
         if (mounted) Navigator.of(context).pop(EnhancedGameExit.menu);
       case 'continue':
       case null:
-        if (!_completed && !_roundLost) _startClock();
+        if (!_completed && !_roundLost) {
+          unawaited(SoundEffectsService.instance.play(SoundEffect.pauseResume));
+          _startClock();
+        }
     }
   }
 
@@ -265,6 +273,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _selectedIndex = index;
       _errorIndex = null;
     });
+    unawaited(SoundEffectsService.instance.play(SoundEffect.cellSelect));
     _scheduleSave();
   }
 
@@ -281,16 +290,23 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     }
 
     if (_notesMode && widget.allowNotes && _board[index] == 0) {
+      final removingNote = _notes[index]?.contains(value) == true;
       setState(() {
         final values = _notes.putIfAbsent(index, () => <int>{});
         values.contains(value) ? values.remove(value) : values.add(value);
         if (values.isEmpty) _notes.remove(index);
       });
+      unawaited(
+        SoundEffectsService.instance.play(
+          removingNote ? SoundEffect.noteRemove : SoundEffect.noteAdd,
+        ),
+      );
       _scheduleSave();
       return;
     }
 
     if (widget.puzzle.solution[index] != value) {
+      unawaited(SoundEffectsService.instance.play(SoundEffect.wrongMove));
       unawaited(HapticFeedback.heavyImpact());
       setState(() {
         _mistakes++;
@@ -324,6 +340,15 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _removeRelatedNotes(index, value);
       _errorIndex = null;
     });
+    final puzzleCompleted = SudokuEngine.isComplete(widget.puzzle, _board);
+    final unitCompleted = !puzzleCompleted && _hasCompletedUnitAt(index);
+    if (!puzzleCompleted) {
+      unawaited(
+        SoundEffectsService.instance.play(
+          unitCompleted ? SoundEffect.unitComplete : SoundEffect.numberInput,
+        ),
+      );
+    }
     _scheduleSave();
     unawaited(_checkCompletion());
   }
@@ -349,6 +374,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _board[index] = 0;
       _notes.remove(index);
     });
+    unawaited(SoundEffectsService.instance.play(SoundEffect.erase));
     _scheduleSave();
   }
 
@@ -365,12 +391,18 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       _selectedIndex = move.index;
       _errorIndex = null;
     });
+    unawaited(SoundEffectsService.instance.play(SoundEffect.undo));
     _scheduleSave();
   }
 
   void _toggleNotes() {
     if (!_ready || _completed || _roundLost) return;
     setState(() => _notesMode = !_notesMode);
+    unawaited(
+      SoundEffectsService.instance.play(
+        _notesMode ? SoundEffect.notesModeOn : SoundEffect.notesModeOff,
+      ),
+    );
     _scheduleSave();
   }
 
@@ -392,6 +424,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     if (index < 0) return;
 
     setState(() => _hintBusy = true);
+    unawaited(SoundEffectsService.instance.play(SoundEffect.hintActivate));
     try {
       final allowed = await HintEconomy.consumeOrAcquire(context, widget.store);
       if (!mounted || !allowed) return;
@@ -405,6 +438,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
         _removeRelatedNotes(index, _board[index]);
         _hintsUsed++;
       });
+      unawaited(SoundEffectsService.instance.play(SoundEffect.hintApply));
       _scheduleSave();
       await _checkCompletion();
     } finally {
@@ -414,6 +448,10 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
   Future<void> _showLossSheet() async {
     if (!mounted || _lossVisible || _completed) return;
+    final firstPresentation = !_roundLost;
+    if (firstPresentation) {
+      unawaited(SoundEffectsService.instance.play(SoundEffect.puzzleFailed));
+    }
     _pauseClock();
     setState(() {
       _roundLost = true;
@@ -548,6 +586,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
   }
 
   void _restartPuzzle() {
+    unawaited(SoundEffectsService.instance.play(SoundEffect.gameStart));
     _pauseClock();
     setState(() {
       _board = List<int>.from(widget.puzzle.puzzle);
@@ -568,6 +607,37 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     });
     _startClock();
     _scheduleSave(immediate: true);
+  }
+
+  bool _hasCompletedUnitAt(int index) {
+    final size = widget.puzzle.size;
+    bool complete(Iterable<int> indexes) => indexes.every(
+      (candidate) =>
+          _board[candidate] != 0 &&
+          _board[candidate] == widget.puzzle.solution[candidate],
+    );
+
+    final row = index ~/ size;
+    final column = index % size;
+    if (complete(
+      Iterable<int>.generate(size, (offset) => row * size + offset),
+    )) {
+      return true;
+    }
+    if (complete(
+      Iterable<int>.generate(size, (offset) => offset * size + column),
+    )) {
+      return true;
+    }
+
+    final box = SudokuEngine.relatedBoxIndex(widget.puzzle, index);
+    final boxIndexes = <int>[];
+    for (var candidate = 0; candidate < _board.length; candidate++) {
+      if (SudokuEngine.relatedBoxIndex(widget.puzzle, candidate) == box) {
+        boxIndexes.add(candidate);
+      }
+    }
+    return boxIndexes.isNotEmpty && complete(boxIndexes);
   }
 
   void _removeRelatedNotes(int index, int value) {
@@ -593,6 +663,13 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
     if (_completed || !SudokuEngine.isComplete(widget.puzzle, _board)) return;
     _pauseClock();
     setState(() => _completed = true);
+    unawaited(
+      SoundEffectsService.instance.play(
+        _totalMistakes == 0 && _hintsUsed == 0
+            ? SoundEffect.perfectGame
+            : SoundEffect.puzzleComplete,
+      ),
+    );
     _saveDebounce?.cancel();
     await _sessions.clear();
     final balanceBeforeCompletion = EconomyService.instance.balance;

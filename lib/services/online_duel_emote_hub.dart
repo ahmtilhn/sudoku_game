@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../localization/app_strings.dart';
 import '../models/online_duel_emote_catalog.dart';
 import 'online_duel_emote_loadout_service.dart';
+import 'sound_effects_service.dart';
 
 export '../models/online_duel_emote_catalog.dart';
 
@@ -68,6 +69,7 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     final sender = _sender;
     if (sender == null || !sender(emoteId)) return false;
 
+    unawaited(SoundEffectsService.instance.play(SoundEffect.emoteSend));
     _cooldownTimer?.cancel();
     _cooldown = true;
     notifyListeners();
@@ -97,6 +99,7 @@ class OnlineDuelEmoteHub extends ChangeNotifier {
     if (forceActive) _matchActive = true;
     _incomingTimer?.cancel();
     _incomingEmoteId = emoteId;
+    unawaited(SoundEffectsService.instance.play(SoundEffect.emoteReceive));
     notifyListeners();
     _incomingTimer = Timer(bubbleDuration, () {
       if (_incomingEmoteId != emoteId) return;
