@@ -38,6 +38,10 @@ import {
   isRankCountryFlagRoute,
   type RankCountryFlagEnv,
 } from './rank_country_flags';
+import {
+  handleAchievementClaimRequest,
+  isAchievementClaimRoute,
+} from './achievement_claim_wrapper';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
 import { ensureCompetitiveEconomyHardening } from './competitive_economy_hardening';
 import { ensureAchievementIntegrity } from './achievement_integrity';
@@ -167,6 +171,12 @@ export default {
       }
     }
 
+    if (request.method !== 'OPTIONS' && isAchievementClaimRoute(url.pathname)) {
+      return handleAchievementClaimRequest(
+        request,
+        (forwarded) => legacyWorker.fetch(forwarded, env as never, ctx),
+      );
+    }
     if (request.method !== 'OPTIONS' && isLegacyEconomyRewardRoute(url.pathname)) {
       return legacyEconomyRewardResponse(env as unknown as EconomyV3Env);
     }
