@@ -14,7 +14,7 @@ class UserSafeError {
     Object? error, {
     String? fallback,
   }) {
-    if (error != null) {
+    if (error != null && _shouldReport(error)) {
       FlutterError.reportError(
         FlutterErrorDetails(
           exception: error,
@@ -71,6 +71,18 @@ class UserSafeError {
       return UxCopy.serverBusy(context);
     }
     return fallback ?? UxCopy.genericError(context);
+  }
+
+  static bool _shouldReport(Object error) {
+    if (error is TimeoutException || error is SocketException) return false;
+
+    final typeName = error.runtimeType.toString();
+    if (typeName == 'EconomyApiException' ||
+        typeName == 'SocialApiException') {
+      return false;
+    }
+
+    return true;
   }
 
   static bool _containsAny(String value, List<String> terms) {
