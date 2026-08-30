@@ -1,0 +1,129 @@
+name: Fix daily reward calendar layout
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-daily-reward-calendar-main.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-daily-reward-calendar-layout
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Make daily reward calendar non-scroll and responsive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/home/professional_home_screen.dart')
+          text = path.read_text(encoding='utf-8')
+          start = text.index('class _DailyRewardDialogState')
+          end = text.index('class _HeaderButton', start)
+          segment = text[start:end]
+
+          def replace(old, new, count=-1):
+              global segment
+              if old not in segment:
+                  raise SystemExit(f'Expected pattern not found: {old[:100]!r}')
+              segment = segment.replace(old, new, count)
+
+          replace(
+              '    final compact = size.width < 380 || size.height < 680;\n',
+              '    final compact = size.width < 380 || size.height < 680;\n    final veryCompact = size.height < 600;\n',
+              1,
+          )
+          replace(
+              '            child: SingleChildScrollView(\n              padding: EdgeInsets.all(compact ? 12 : 16),',
+              '            child: Padding(\n              padding: EdgeInsets.all(veryCompact ? 8 : compact ? 12 : 16),',
+              1,
+          )
+          replace('                        size: compact ? 42 : 54,', '                        size: veryCompact ? 34 : compact ? 42 : 54,', 1)
+          replace('                                fontSize: compact ? 19 : 22,', '                                fontSize: veryCompact ? 17 : compact ? 19 : 22,', 1)
+          replace('                              maxLines: compact ? 3 : 2,', '                              maxLines: veryCompact ? 2 : compact ? 3 : 2,', 1)
+          replace('                                fontSize: compact ? 12 : null,', '                                fontSize: veryCompact ? 10 : compact ? 12 : null,', 1)
+          replace('                    SizedBox(height: compact ? 10 : 14),', '                    SizedBox(height: veryCompact ? 6 : compact ? 10 : 14),', 1)
+          replace('                    SizedBox(height: compact ? 10 : 12),', '                    SizedBox(height: veryCompact ? 6 : compact ? 10 : 12),', 1)
+          replace(
+              "                      style: const TextStyle(\n                        color: Color(0xFF29D398),\n                        fontWeight: FontWeight.w900,\n                      ),",
+              "                      maxLines: veryCompact ? 1 : 2,\n                      overflow: TextOverflow.ellipsis,\n                      style: TextStyle(\n                        color: const Color(0xFF29D398),\n                        fontSize: veryCompact ? 11 : null,\n                        fontWeight: FontWeight.w900,\n                      ),",
+              1,
+          )
+          replace('                  SizedBox(height: compact ? 12 : 14),', '                  SizedBox(height: veryCompact ? 7 : compact ? 12 : 14),', 1)
+          replace('                      final stacked = constraints.maxWidth < 360;', '                      final stacked = constraints.maxWidth < 300;', 1)
+          replace(
+              "                                ]),\n                          overflow: TextOverflow.ellipsis,",
+              "                                ]),\n                          maxLines: 1,\n                          overflow: TextOverflow.ellipsis,",
+              1,
+          )
+          replace(
+              "                            state?.dailyLastClaimAmount ?? 0,\n                          ]),\n                          overflow: TextOverflow.ellipsis,",
+              "                            state?.dailyLastClaimAmount ?? 0,\n                          ]),\n                          maxLines: 1,\n                          overflow: TextOverflow.ellipsis,",
+              1,
+          )
+          replace(
+              "                      return Wrap(\n                        spacing: 8,\n                        runSpacing: 8,\n                        alignment: WrapAlignment.center,\n                        children: [claimButton, doubleButton],\n                      );",
+              "                      return Row(\n                        children: [\n                          Expanded(child: claimButton),\n                          const SizedBox(width: 8),\n                          Expanded(child: doubleButton),\n                        ],\n                      );",
+              1,
+          )
+          replace(
+              "        final columns = constraints.maxWidth >= 460\n            ? 6\n            : constraints.maxWidth >= 360\n            ? 5\n            : constraints.maxWidth >= 280\n            ? 4\n            : 3;\n        final spacing = constraints.maxWidth < 340 ? 5.0 : 7.0;",
+              "        final screenHeight = MediaQuery.sizeOf(context).height;\n        final dense = screenHeight < 680 || constraints.maxWidth < 380;\n        final veryDense = screenHeight < 600 || constraints.maxWidth < 320;\n        final columns = constraints.maxWidth >= 330\n            ? 6\n            : constraints.maxWidth >= 260\n            ? 5\n            : 4;\n        final spacing = veryDense\n            ? 3.0\n            : dense\n            ? 4.0\n            : 6.0;",
+              1,
+          )
+          replace(
+              '    final compact = MediaQuery.sizeOf(context).width < 340;',
+              "    final size = MediaQuery.sizeOf(context);\n    final dense = size.width < 380 || size.height < 680;\n    final veryDense = size.width < 320 || size.height < 600;",
+              1,
+          )
+          replace('        borderRadius: BorderRadius.circular(14),', '        borderRadius: BorderRadius.circular(veryDense ? 10 : dense ? 12 : 14),', 1)
+          replace(
+              "        padding: EdgeInsets.symmetric(\n          horizontal: compact ? 4 : 5,\n          vertical: compact ? 6 : 8,\n        ),",
+              "        padding: EdgeInsets.symmetric(\n          horizontal: veryDense ? 2 : dense ? 3 : 5,\n          vertical: veryDense ? 3 : dense ? 4 : 8,\n        ),",
+              1,
+          )
+          replace('                fontSize: compact ? 9 : 10,', '                fontSize: veryDense ? 8 : dense ? 9 : 10,', 1)
+          replace('            SizedBox(height: compact ? 4 : 5),', '            SizedBox(height: veryDense ? 1 : dense ? 2 : 5),', 1)
+          replace('              size: compact ? 15 : 17,', '              size: veryDense ? 13 : dense ? 15 : 17,', 1)
+          replace('            SizedBox(height: compact ? 2 : 3),', '            SizedBox(height: veryDense ? 1 : dense ? 2 : 3),', 1)
+          replace(
+              "              style: const TextStyle(\n                color: Colors.white,\n                fontSize: 10,\n                fontWeight: FontWeight.w800,\n              ),",
+              "              style: TextStyle(\n                color: Colors.white,\n                fontSize: veryDense ? 8 : dense ? 9 : 10,\n                fontWeight: FontWeight.w800,\n              ),",
+              1,
+          )
+
+          text = text[:start] + segment + text[end:]
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          git diff --check
+
+      - name: Commit scoped fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add lib/features/home/professional_home_screen.dart
+          if git diff --cached --quiet; then
+            echo 'No changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Fix daily reward calendar to fit without scrolling'
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
