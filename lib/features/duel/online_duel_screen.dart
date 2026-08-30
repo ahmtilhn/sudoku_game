@@ -16,6 +16,7 @@ import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
 import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
+import '../../services/sound_effects_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/in_page_header.dart';
@@ -133,6 +134,12 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
             _feedbackCell = feedback.cellIndex;
           }
         });
+
+        unawaited(
+          SoundEffectsService.instance.play(
+            feedback.accepted ? SoundEffect.correctMove : SoundEffect.wrongMove,
+          ),
+        );
 
         if (!feedback.accepted) {
           final messenger = ScaffoldMessenger.of(context);
@@ -252,8 +259,14 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
   }
 
   void _syncDisconnectEscape(OnlineDuelSnapshot snapshot) {
+    final wasInterrupted = _localConnectionInterrupted;
     if (snapshot.status == OnlineDuelStatus.paused && !snapshot.isFinished) {
       _localConnectionInterrupted = true;
+      if (!wasInterrupted) {
+        unawaited(
+          SoundEffectsService.instance.play(SoundEffect.connectionLost),
+        );
+      }
       _disconnectEscapeTimer ??= Timer(const Duration(seconds: 30), () {
         if (!mounted || _snapshot?.isFinished == true) return;
         Navigator.of(context).popUntil((route) => route.isFirst);
@@ -262,6 +275,11 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     }
 
     _localConnectionInterrupted = false;
+    if (wasInterrupted && !snapshot.isFinished) {
+      unawaited(
+        SoundEffectsService.instance.play(SoundEffect.connectionRestored),
+      );
+    }
     _disconnectEscapeTimer?.cancel();
     _disconnectEscapeTimer = null;
   }
@@ -357,6 +375,17 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
     _resultSettlementTimer?.cancel();
     _resultSettlementTimer = null;
     _shownResultFor = snapshot.matchId;
+    if (snapshot.winnerSeat == snapshot.youSeat) {
+      unawaited(
+        SoundEffectsService.instance.play(
+          snapshot.status == OnlineDuelStatus.forfeited
+              ? SoundEffect.opponentSurrendered
+              : SoundEffect.onlineVictory,
+        ),
+      );
+    } else if (snapshot.winnerSeat != null) {
+      unawaited(SoundEffectsService.instance.play(SoundEffect.onlineDefeat));
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       unawaited(

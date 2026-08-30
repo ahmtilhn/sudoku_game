@@ -19,6 +19,7 @@ import 'services/platform_game_stats_service.dart';
 import 'services/platform_leaderboard_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/reminder_notification_service.dart';
+import 'services/sound_effects_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,7 @@ Future<void> main() async {
   final store = await LocalProgressStore.create();
   final strings = await AppStrings.load();
   await HapticFeedbackService.instance.initialize();
+  await SoundEffectsService.instance.initialize();
   CareerRewardSyncService.instance.bind(store);
 
   // Firebase and App Check are prerequisites for every authenticated online

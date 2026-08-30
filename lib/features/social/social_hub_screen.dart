@@ -10,6 +10,7 @@ import '../../localization/app_strings.dart';
 import '../../services/player_profile_service.dart';
 import '../../services/rank_identity_service.dart';
 import '../../services/social_api_client.dart';
+import '../../services/sound_effects_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/duel_asset_icon.dart';
 import '../../widgets/in_page_header.dart';
@@ -198,7 +199,12 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       'friend-${player.publicId}',
       () => _social.sendFriendRequest(player.publicId),
     );
-    if (mounted && _error == null) _snack(context.tr('friend_request_sent'));
+    if (mounted && _error == null) {
+      unawaited(
+        SoundEffectsService.instance.play(SoundEffect.friendRequestSent),
+      );
+      _snack(context.tr('friend_request_sent'));
+    }
   }
 
   Future<void> _respondRequest(SocialPlayer player, bool accept) async {
@@ -210,6 +216,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
       ),
     );
     if (mounted && _error == null && accept) {
+      unawaited(
+        SoundEffectsService.instance.play(SoundEffect.friendRequestAccepted),
+      );
       _snack(
         context.tr('friend_request_accepted', <Object>[player.displayName]),
       );
@@ -255,6 +264,7 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         difficulty: difficulty.name,
       );
       if (!mounted) return;
+      unawaited(SoundEffectsService.instance.play(SoundEffect.challengeSent));
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) => ChallengeWaitingScreen(challenge: challenge),

@@ -13,6 +13,7 @@ import '../../services/online_duel_emote_hub.dart';
 import '../../services/online_duel_models.dart';
 import '../../services/online_duel_transport.dart';
 import '../../services/rank_identity_service.dart';
+import '../../services/sound_effects_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/player_avatar.dart';
 import 'matchmaking_stage.dart';
@@ -163,6 +164,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
       final snapshotSubscription = controller.snapshots.listen((snapshot) {
         if (!mounted) return;
         final hadOpponent = _opponent != null;
+        final opponentWasReady = _opponent?.ready == true;
         final opponentSeat = snapshot.youSeat == OnlineDuelSeat.a
             ? OnlineDuelSeat.b
             : OnlineDuelSeat.a;
@@ -181,6 +183,12 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         if (!hadOpponent && hasOpponent && !_matchHapticSent) {
           _matchHapticSent = true;
           unawaited(HapticFeedback.mediumImpact());
+          unawaited(SoundEffectsService.instance.play(SoundEffect.matchFound));
+        }
+        if (!opponentWasReady && opponent?.ready == true) {
+          unawaited(
+            SoundEffectsService.instance.play(SoundEffect.opponentReady),
+          );
         }
         _sendScreenLoaded();
         _scheduleAutoReady();
@@ -270,6 +278,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
       }
       _autoReadySent = true;
       setState(() => _readyPressed = true);
+      unawaited(SoundEffectsService.instance.play(SoundEffect.ready));
       _controller!.ready();
     });
   }
@@ -324,6 +333,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
     _autoReadyTimer?.cancel();
     _autoReadyTimer = null;
     setState(() => _readyPressed = true);
+    unawaited(SoundEffectsService.instance.play(SoundEffect.ready));
     _controller!.ready();
   }
 

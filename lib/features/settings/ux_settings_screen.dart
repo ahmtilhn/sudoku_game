@@ -17,6 +17,7 @@ import '../../services/player_profile_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/reminder_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../../services/sound_effects_service.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/in_page_header.dart';
 
@@ -51,6 +52,7 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
   void initState() {
     super.initState();
     unawaited(HapticFeedbackService.instance.initialize());
+    unawaited(SoundEffectsService.instance.initialize());
     if (SocialApiClient.instance.configured) {
       unawaited(_loadProfile());
     }
@@ -168,24 +170,53 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
           title: context.tr('play'),
           accent: _playAccent,
           compact: compact,
-          child: ValueListenableBuilder<bool>(
-            valueListenable: haptics.enabled,
-            builder: (context, enabled, _) => SwitchListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              secondary: const Icon(Icons.vibration_rounded),
-              value: enabled,
-              onChanged: haptics.setEnabled,
-              title: Text(
-                SettingsStrings.hapticsTitle(context),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ValueListenableBuilder<bool>(
+                valueListenable: SoundEffectsService.instance.enabled,
+                builder: (context, enabled, _) => SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  secondary: Icon(
+                    enabled
+                        ? Icons.volume_up_rounded
+                        : Icons.volume_off_rounded,
+                  ),
+                  value: enabled,
+                  onChanged: SoundEffectsService.instance.setEnabled,
+                  title: Text(
+                    SettingsStrings.soundEffectsTitle(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    SettingsStrings.soundEffectsSubtitle(context),
+                    maxLines: compact ? 2 : 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-              subtitle: Text(
-                SettingsStrings.hapticsSubtitle(context),
-                maxLines: compact ? 2 : 3,
-                overflow: TextOverflow.ellipsis,
+              const _SettingsDivider(),
+              ValueListenableBuilder<bool>(
+                valueListenable: haptics.enabled,
+                builder: (context, enabled, _) => SwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  secondary: const Icon(Icons.vibration_rounded),
+                  value: enabled,
+                  onChanged: haptics.setEnabled,
+                  title: Text(
+                    SettingsStrings.hapticsTitle(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    SettingsStrings.hapticsSubtitle(context),
+                    maxLines: compact ? 2 : 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         );
       case 1:
@@ -372,7 +403,9 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                         trailing: _adPrivacyBusy
                             ? const SizedBox.square(
                                 dimension: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.chevron_right_rounded),
                         onTap: _adPrivacyBusy
@@ -887,10 +920,11 @@ class _SettingsPanel extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
                       ),
                     ),
                   ],

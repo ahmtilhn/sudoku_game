@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../localization/app_strings.dart';
 import '../../services/online_duel_models.dart';
+import '../../services/sound_effects_service.dart';
 
 class OnlineReadyCountdownOverlay extends StatefulWidget {
   const OnlineReadyCountdownOverlay({
@@ -26,12 +27,15 @@ class _OnlineReadyCountdownOverlayState
   Timer? _startingFlashTimer;
   Duration _serverClockOffset = Duration.zero;
   bool _startingFlashVisible = true;
+  int? _lastSoundSecond;
+  bool _matchStartSoundSent = false;
 
   @override
   void initState() {
     super.initState();
     _syncServerClock();
     _syncTimers();
+    _syncSoundCue();
   }
 
   @override
@@ -45,6 +49,7 @@ class _OnlineReadyCountdownOverlayState
       _startingFlashVisible = true;
     }
     _syncTimers();
+    _syncSoundCue();
   }
 
   @override
@@ -64,7 +69,9 @@ class _OnlineReadyCountdownOverlayState
         widget.snapshot.readyDeadline != null;
     if (counting) {
       _ticker ??= Timer.periodic(const Duration(milliseconds: 100), (_) {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        _syncSoundCue();
+        setState(() {});
       });
     } else {
       _ticker?.cancel();
@@ -82,6 +89,33 @@ class _OnlineReadyCountdownOverlayState
     }
   }
 
+  void _syncSoundCue() {
+    if (widget.showStartingFlash) {
+      if (!_matchStartSoundSent) {
+        _matchStartSoundSent = true;
+        unawaited(SoundEffectsService.instance.play(SoundEffect.matchStart));
+      }
+      return;
+    }
+
+    if (widget.snapshot.status != OnlineDuelStatus.readyWindow ||
+        widget.snapshot.readyDeadline == null) {
+      _lastSoundSecond = null;
+      return;
+    }
+
+    final seconds = _remainingSeconds();
+    if (seconds <= 0 || seconds == _lastSoundSecond) return;
+    _lastSoundSecond = seconds;
+    final effect = switch (seconds) {
+      3 => SoundEffect.countdown3,
+      2 => SoundEffect.countdown2,
+      1 => SoundEffect.countdown1,
+      _ => SoundEffect.countdownTick,
+    };
+    unawaited(SoundEffectsService.instance.play(effect));
+  }
+
   int _remainingSeconds() {
     final deadline = widget.snapshot.readyDeadline;
     if (deadline == null) return 0;
@@ -95,9 +129,7 @@ class _OnlineReadyCountdownOverlayState
   Widget build(BuildContext context) {
     if (widget.showStartingFlash) {
       if (!_startingFlashVisible) return const SizedBox.shrink();
-      return const IgnorePointer(
-        child: Center(child: _MatchStartingCard()),
-      );
+      return const IgnorePointer(child: Center(child: _MatchStartingCard()));
     }
 
     final seconds = _remainingSeconds();

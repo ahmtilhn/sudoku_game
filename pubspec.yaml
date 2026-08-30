@@ -1,4 +1,4 @@
-﻿name: sudoku_game
+name: sudoku_game
 description: A professional Sudoku career and online duel game built with Flutter.
 publish_to: 'none'
 version: 1.0.0+77
@@ -11,6 +11,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   app_tracking_transparency: ^2.0.7
+  audioplayers: ^6.8.1
   cupertino_icons: ^1.0.8
   firebase_analytics: ^12.4.5
   firebase_app_check: ^0.4.5+2
@@ -57,3 +58,20 @@ flutter:
     - assets/images/ui/
     - assets/images/ui/pro/
     - assets/localization/Localizable.xcstrings
+    - assets/audio/ui/ui_click.mp3
+    - assets/audio/ui/ui_back.mp3
+    - assets/audio/gameplay/number_input.mp3
+    - assets/audio/gameplay/correct_move.mp3
+    - assets/audio/gameplay/wrong_move.mp3
+    - assets/audio/online/countdown_tick.mp3
+    - assets/audio/gameplay/unit_complete.mp3
+    - assets/audio/gameplay/puzzle_complete.mp3
+    - assets/audio/online/match_found.mp3
+    - assets/audio/online/match_start.mp3
+    - assets/audio/rewards/daily_reward_claim.mp3
+    - assets/audio/economy/reward_x2.mp3
+    - assets/audio/rank/elo_gain.mp3
+    - assets/audio/rewards/achievement_unlocked.mp3
+    - assets/audio/economy/coin_small.mp3
+    - assets/audio/online/online_victory.mp3
+    - assets/audio/online/online_defeat.mp3
