@@ -7,6 +7,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:sudoku_game/data/local_progress_store.dart';
 import 'package:sudoku_game/features/settings/ux_settings_screen.dart';
 import 'package:sudoku_game/localization/app_strings.dart';
+import 'package:sudoku_game/localization/settings_strings.dart';
 import 'package:sudoku_game/services/push_notification_service.dart';
 import 'package:sudoku_game/services/social_api_client.dart';
 
@@ -99,6 +100,31 @@ void main() {
 
     expect(find.text(strings.text('clear_career_progress')), findsOneWidget);
     expect(find.text(strings.text('delete_player_account')), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('privacy section exposes the privacy policy', (tester) async {
+    final store = await LocalProgressStore.createInMemory();
+    final strings = AppStrings.forTesting();
+
+    await tester.pumpWidget(
+      AppStringsScope(
+        strings: strings,
+        child: MaterialApp(home: UxSettingsScreen(store: store)),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text(strings.text('privacy')).first);
+    await tester.pump();
+
+    final context = tester.element(find.byType(UxSettingsScreen));
+    expect(
+      find.text(SettingsStrings.privacyPolicyTitle(context)),
+      findsOneWidget,
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
