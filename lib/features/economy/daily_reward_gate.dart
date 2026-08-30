@@ -56,6 +56,7 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
           builder: (context, setDialogState) {
             final size = MediaQuery.sizeOf(context);
             final compact = size.width < 360 || size.height < 620;
+            final veryCompact = size.height < 560;
             final canDouble =
                 reward.isCoin &&
                 !AdsService.instance.noAds &&
@@ -75,12 +76,12 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                   maxWidth: 420,
                   maxHeight: size.height - (compact ? 20 : 48),
                 ),
-                child: SingleChildScrollView(
+                child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     compact ? 16 : 24,
+                    veryCompact ? 12 : compact ? 16 : 24,
                     compact ? 16 : 24,
-                    compact ? 16 : 24,
-                    compact ? 10 : 14,
+                    veryCompact ? 8 : compact ? 10 : 14,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -95,20 +96,27 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: compact ? 18 : 20,
+                          fontSize: veryCompact ? 17 : compact ? 18 : 20,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      SizedBox(height: compact ? 14 : 18),
+                      SizedBox(
+                        height: veryCompact ? 9 : compact ? 14 : 18,
+                      ),
                       if (reward.isCoin)
-                        DuelAssetIcon(DuelAsset.coin, size: compact ? 46 : 54)
+                        DuelAssetIcon(
+                          DuelAsset.coin,
+                          size: veryCompact ? 40 : compact ? 46 : 54,
+                        )
                       else
                         Icon(
                           Icons.refresh_rounded,
-                          size: compact ? 46 : 54,
+                          size: veryCompact ? 40 : compact ? 46 : 54,
                           color: const Color(0xFFFFC94D),
                         ),
-                      SizedBox(height: compact ? 12 : 14),
+                      SizedBox(
+                        height: veryCompact ? 8 : compact ? 12 : 14,
+                      ),
                       Text(
                         reward.isCoin
                             ? context.tr('coin_reward_value', <Object>[
@@ -120,11 +128,11 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: const Color(0xFFFFC94D),
-                          fontSize: compact ? 21 : 24,
+                          fontSize: veryCompact ? 19 : compact ? 21 : 24,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: veryCompact ? 5 : 8),
                       Text(
                         reward.isCoin
                             ? (doubled
@@ -132,13 +140,17 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                                   : context.tr('daily_reward_track_body'))
                             : context.tr('hint_refill_reward_body'),
                         textAlign: TextAlign.center,
+                        maxLines: veryCompact ? 2 : 3,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: .72),
-                          fontSize: compact ? 12 : null,
+                          fontSize: veryCompact ? 11 : compact ? 12 : null,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(height: compact ? 16 : 20),
+                      SizedBox(
+                        height: veryCompact ? 10 : compact ? 16 : 20,
+                      ),
                       if (canDouble && !doubled) ...[
                         FilledButton.icon(
                           onPressed: doubling
@@ -160,10 +172,11 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                                 : context.tr('watch_ad_reward_value', <Object>[
                                     reward.amount,
                                   ]),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: veryCompact ? 4 : 8),
                       ],
                       TextButton(
                         onPressed: doubling
@@ -173,6 +186,8 @@ class _DailyRewardGateState extends State<DailyRewardGate> {
                           doubled
                               ? context.tr('continue_action')
                               : context.tr('collect'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
