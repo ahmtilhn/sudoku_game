@@ -11,6 +11,7 @@ import '../localization/app_strings.dart';
 import 'firebase_runtime_config.dart';
 import 'firebase_services.dart';
 import 'notification_platform_service.dart';
+import 'reminder_notification_service.dart';
 import 'social_api_client.dart';
 
 @pragma('vm:entry-point')
@@ -160,8 +161,10 @@ class PushNotificationService {
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<RemoteMessage>? _messageSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
+  Timer? _registrationRetryTimer;
   Future<void>? _initialization;
   bool _platformPayloadListenerAttached = false;
+  bool _tokenLoadDeferred = false;
   AppStrings? _strings;
 
   bool get configured => FirebaseRuntimeConfig.configured;
@@ -275,7 +278,16 @@ class PushNotificationService {
       userDisabled.value = false;
       lastRegistrationError.value = null;
       await _preferences.setBool(_enabledKey, true);
-      return await _registerCurrentToken();
+      unawaited(
+        ReminderNotificationService.instance.syncWithSystemPermission(),
+      );
+
+      final registered = await _registerCurrentToken();
+      if (!registered && _tokenLoadDeferred) {
+        _scheduleRegistrationRetry();
+        return true;
+      }
+      return registered;
     } catch (error, stackTrace) {
       lastRegistrationError.value = _safeRegistrationError;
       debugPrint('Challenge notification permission failed: $error');
@@ -297,7 +309,11 @@ class PushNotificationService {
       return false;
     }
     enabled.value = true;
-    return await _registerCurrentToken();
+    final registered = await _registerCurrentToken();
+    if (!registered && _tokenLoadDeferred) {
+      _scheduleRegistrationRetry();
+    }
+    return registered;
   }
 
   Future<void> disableChallengeNotifications() async {
@@ -464,9 +480,10 @@ class PushNotificationService {
 
     final token = await _loadMessagingToken();
     if (token == null || token.isEmpty) {
-      lastRegistrationError.value = _safeRegistrationError;
+      _tokenLoadDeferred = true;
       return false;
     }
+    _tokenLoadDeferred = false;
     return _registerToken(token);
   }
 
@@ -489,7 +506,9 @@ class PushNotificationService {
           }
           await Future<void>.delayed(const Duration(milliseconds: 500));
         }
-        debugPrint('APNs token is not available yet; FCM token request deferred.');
+        debugPrint(
+          'APNs token is not available yet; FCM token request deferred.',
+        );
         return null;
       }
       return await FirebaseMessaging.instance.getToken();
@@ -512,6 +531,7 @@ class PushNotificationService {
         token: token,
         platform: platform,
       );
+      _registrationRetryTimer?.cancel();
       lastRegistrationError.value = null;
       return true;
     } on SocialApiException catch (error, stackTrace) {
@@ -526,6 +546,14 @@ class PushNotificationService {
     }
   }
 
+  void _scheduleRegistrationRetry() {
+    if (!enabled.value || userDisabled.value) return;
+    _registrationRetryTimer?.cancel();
+    _registrationRetryTimer = Timer(const Duration(seconds: 10), () {
+      unawaited(refreshRegistration());
+    });
+  }
+
   String _localized(String key) =>
       _strings?.text(key) ?? AppStrings.english[key] ?? key;
 
@@ -538,6 +566,7 @@ class PushNotificationService {
     await _tokenSubscription?.cancel();
     await _messageSubscription?.cancel();
     await _openedSubscription?.cancel();
+    _registrationRetryTimer?.cancel();
     if (_platformPayloadListenerAttached) {
       _platform.openedPayload.removeListener(_handlePlatformPayload);
       _platformPayloadListenerAttached = false;

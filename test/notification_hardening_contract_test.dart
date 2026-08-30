@@ -70,17 +70,52 @@ void main() {
     expect(handler, contains('_showForegroundSystemNotification(target)'));
   });
 
-  test('daily reminders persist opt-in and use three recurring schedules', () {
-    final service = File(
-      'lib/services/reminder_notification_service.dart',
-    ).readAsStringSync();
+  test(
+    'daily reminders follow system permission and use recurring schedules',
+    () {
+      final service = File(
+        'lib/services/reminder_notification_service.dart',
+      ).readAsStringSync();
+      final settings = File(
+        'lib/features/settings/ux_settings_screen.dart',
+      ).readAsStringSync();
+      final push = File(
+        'lib/services/push_notification_service.dart',
+      ).readAsStringSync();
 
-    expect(service, contains('daily_reminders_enabled_v2'));
-    expect(service, contains('matchDateTimeComponents: DateTimeComponents.time'));
-    expect(service, contains('_dailyTimes.length'));
-    expect(service, contains('_legacyNotificationCount = 63'));
-    expect(service, contains('await _preferences.setBool(_enabledKey, false)'));
-  });
+      expect(service, contains('_legacyEnabledKey'));
+      expect(service, contains('await _preferences.remove(_legacyEnabledKey)'));
+      expect(
+        service,
+        contains('matchDateTimeComponents: DateTimeComponents.time'),
+      );
+      expect(service, contains('_dailyTimes.length'));
+      expect(service, contains('_legacyNotificationCount = 63'));
+      expect(service, isNot(contains('_enabledKey')));
+      expect(settings, isNot(contains('_setDaily')));
+      expect(settings, isNot(contains('requestPermissionAndEnable')));
+      expect(
+        push,
+        contains(
+          'ReminderNotificationService.instance.syncWithSystemPermission()',
+        ),
+      );
+    },
+  );
+
+  test(
+    'FCM token registration retries when APNs has not produced a token yet',
+    () {
+      final push = File(
+        'lib/services/push_notification_service.dart',
+      ).readAsStringSync();
+
+      expect(push, contains('Timer? _registrationRetryTimer'));
+      expect(push, contains('_tokenLoadDeferred = true'));
+      expect(push, contains('_scheduleRegistrationRetry();'));
+      expect(push, contains('APNs token is not available yet'));
+    },
+  );
 
   test('one local-notification plugin owns tap and cold-start callbacks', () {
     final platform = File(
@@ -101,7 +136,10 @@ void main() {
       push,
       isNot(contains('FlutterLocalNotificationsPlugin _localNotifications')),
     );
-    expect(reminder, isNot(contains('FlutterLocalNotificationsPlugin _plugin')));
+    expect(
+      reminder,
+      isNot(contains('FlutterLocalNotificationsPlugin _plugin')),
+    );
   });
 
   test('backend expires stale invitations and never forces badge one', () {
@@ -122,15 +160,18 @@ void main() {
     expect(challenges, contains('sendPlayerPush('));
   });
 
-  test('Android native push translations are generated from shared catalog', () {
-    final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+  test(
+    'Android native push translations are generated from shared catalog',
+    () {
+      final gradle = File('android/app/build.gradle.kts').readAsStringSync();
 
-    expect(gradle, contains('generatePushNotificationLocalizations'));
-    expect(gradle, contains('startsWith("push_")'));
-    expect(gradle, contains('Localizable.xcstrings'));
-    expect(
-      gradle,
-      contains('dependsOn(generatePushNotificationLocalizations)'),
-    );
-  });
+      expect(gradle, contains('generateNativeLocalizationResources'));
+      expect(gradle, contains('startsWith("push_")'));
+      expect(gradle, contains('Localizable.xcstrings'));
+      expect(
+        gradle,
+        contains('dependsOn(generateNativeLocalizationResources)'),
+      );
+    },
+  );
 }

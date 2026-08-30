@@ -8,6 +8,7 @@ import 'core/app_theme.dart';
 import 'data/local_progress_store.dart';
 import 'features/social/challenge_navigation_gate.dart';
 import 'localization/app_strings.dart';
+import 'services/push_notification_service.dart';
 import 'services/reminder_notification_service.dart';
 
 class SudokuApp extends StatefulWidget {
@@ -60,6 +61,10 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
       unawaited(
         ReminderNotificationService.instance.syncWithSystemPermission(),
       );
+      final push = PushNotificationService.instance;
+      if (push.configured && !push.userDisabled.value) {
+        unawaited(push.refreshRegistration());
+      }
     }
   }
 
