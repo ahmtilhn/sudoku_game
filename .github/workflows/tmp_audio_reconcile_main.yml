@@ -1,0 +1,120 @@
+name: Temporary audio/main reconciliation
+
+on:
+  push:
+    branches:
+      - feat/audio-feedback-integration-20260830
+    paths:
+      - '.github/workflows/tmp_audio_reconcile_main.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile_audio:
+    if: github.event.head_commit.message == 'chore: run audio main reconciliation'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out audio branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/audio-feedback-integration-20260830
+          fetch-depth: 0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Merge latest main and resolve intentional overlaps
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          set +e
+          git merge --no-commit --no-ff origin/main
+          merge_code=$?
+          set -e
+          if [ "$merge_code" -ne 0 ]; then
+            echo 'Merge reported conflicts; resolving only known audio/main overlap files from latest main.'
+          fi
+          for path in \
+            lib/main.dart \
+            lib/features/settings/ux_settings_screen.dart \
+            pubspec.yaml \
+            pubspec.lock; do
+            if git ls-files -u -- "$path" | grep -q .; then
+              git checkout --theirs -- "$path"
+              git add "$path"
+            fi
+          done
+          unresolved="$(git diff --name-only --diff-filter=U)"
+          if [ -n "$unresolved" ]; then
+            echo 'Unexpected unresolved merge conflicts:'
+            echo "$unresolved"
+            exit 1
+          fi
+          python3 tool/reconcile_audio_with_main.py
+
+      - name: Resolve combined dependency lockfile
+        run: flutter pub get
+
+      - name: Restore unrelated generated analyzer config
+        run: git checkout origin/main -- analysis_options.yaml
+
+      - name: Format reconciled Dart sources
+        run: |
+          dart format \
+            lib/main.dart \
+            lib/services/sound_effects_service.dart \
+            lib/localization/settings_strings.dart \
+            lib/features/settings/ux_settings_screen.dart \
+            lib/features/game/enhanced_game_screen.dart \
+            lib/features/duel/online_ready_countdown_overlay.dart \
+            lib/features/duel/pre_match_ready_screen.dart \
+            lib/features/duel/online_duel_screen.dart \
+            lib/services/online_duel_emote_hub.dart \
+            lib/features/social/social_hub_screen.dart \
+            test/sound_effects_integration_test.dart
+
+      - name: Verify merge and whitespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git diff --name-only --diff-filter=U)"
+          git diff --check
+
+      - name: Analyze reconciled project
+        run: flutter analyze --fatal-infos
+
+      - name: Run audio regression tests
+        run: |
+          flutter test --concurrency=1 \
+            test/sound_effects_integration_test.dart \
+            test/friendship_state_hardening_test.dart \
+            test/recent_opponents_friend_flow_test.dart
+
+      - name: Build reconciled debug APK
+        run: flutter build apk --debug
+
+      - name: Verify audio payload in APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -l build/app/outputs/flutter-apk/app-debug.apk > /tmp/apk-files.txt
+          grep -F 'flutter_assets/assets/audio/ui/ui_click.mp3' /tmp/apk-files.txt
+          grep -F 'flutter_assets/assets/audio/gameplay/number_input.mp3' /tmp/apk-files.txt
+          grep -F 'flutter_assets/assets/audio/online/online_victory.mp3' /tmp/apk-files.txt
+
+      - name: Commit reconciled merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          git commit -m 'Merge latest main into sound integration'
+          git push origin HEAD:feat/audio-feedback-integration-20260830
