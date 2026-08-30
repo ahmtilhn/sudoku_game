@@ -20,6 +20,10 @@ class GameInterstitialService {
 
   static final GameInterstitialService instance = GameInterstitialService._();
 
+  static const String _androidProductionId =
+      'ca-app-pub-8422988604275177/4765402169';
+  static const String _iosProductionId =
+      'ca-app-pub-8422988604275177/3728969311';
   static const String _androidTestId = 'ca-app-pub-3940256099942544/1033173712';
   static const String _iosTestId = 'ca-app-pub-3940256099942544/4411468910';
 
@@ -38,14 +42,14 @@ class GameInterstitialService {
         defaultValue: '',
       );
       if (configured.isNotEmpty) return configured;
-      return kReleaseMode ? '' : _androidTestId;
+      return kReleaseMode ? _androidProductionId : _androidTestId;
     }
     const configured = String.fromEnvironment(
       'ADMOB_IOS_INTERSTITIAL_ID',
       defaultValue: '',
     );
     if (configured.isNotEmpty) return configured;
-    return kReleaseMode ? '' : _iosTestId;
+    return kReleaseMode ? _iosProductionId : _iosTestId;
   }
 
   Future<bool> recordAndMaybeShow(GameInterstitialContext context) async {
@@ -61,25 +65,11 @@ class GameInterstitialService {
       await AdsService.instance.initialize();
     }
     if (_ads.noAds || !AdsService.instance.adsAvailable.value) return false;
-    if (_adUnitId.isEmpty) {
-      if (Platform.isIOS) {
-        return _tryIosRewardedInterstitialFallback('missing-interstitial-id');
-      }
-      debugPrint(
-        'Post-game interstitial is not configured for this release build. '
-        'Set ADMOB_ANDROID_INTERSTITIAL_ID / ADMOB_IOS_INTERSTITIAL_ID.',
-      );
-      return false;
-    }
 
     if (_loadedAd == null) await _load();
     final ad = _loadedAd;
-    if (ad == null || _ads.noAds) {
-      if (ad == null && Platform.isIOS) {
-        return _tryIosRewardedInterstitialFallback('interstitial-not-loaded');
-      }
-      return false;
-    }
+    if (ad == null || _ads.noAds) return false;
+
     _loadedAd = null;
     _showing = true;
 
@@ -126,7 +116,6 @@ class GameInterstitialService {
     if (_ads.noAds ||
         !_supported ||
         !AdsService.instance.adsAvailable.value ||
-        _adUnitId.isEmpty ||
         _loadedAd != null) {
       return;
     }
@@ -177,15 +166,6 @@ class GameInterstitialService {
     } finally {
       if (identical(_loadCompleter, completer)) _loadCompleter = null;
     }
-  }
-
-  Future<bool> _tryIosRewardedInterstitialFallback(String reason) async {
-    if (!Platform.isIOS || _ads.noAds) return false;
-    debugPrint(
-      'Post-game iOS interstitial fallback: reason=$reason, '
-      'using rewarded interstitial unit.',
-    );
-    return _ads.showRewardedInterstitial();
   }
 
   String _unitForLog(String adUnitId) {
