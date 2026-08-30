@@ -37,6 +37,7 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
   List<SocialPlayer> _recentOpponents = const <SocialPlayer>[];
   List<SocialPlayer> _searchResults = const <SocialPlayer>[];
   List<SocialChallenge> _pendingChallenges = const <SocialChallenge>[];
+  final Set<String> _friendRequestsInFlight = <String>{};
 
   bool get _backendReady => _push.configured && _social.configured;
 
@@ -462,8 +463,11 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
   }
 
   Future<void> _addFriend(SocialPlayer player) async {
+    final id = player.publicId;
+    if (_friendRequestsInFlight.contains(id)) return;
+    setState(() => _friendRequestsInFlight.add(id));
     try {
-      await _social.sendFriendRequest(player.publicId);
+      await _social.sendFriendRequest(id);
       if (!mounted) return;
       _showMessage(
         context.tr('friend_request_sent_to', <Object>[player.displayName]),
@@ -472,6 +476,10 @@ class _PlatformSocialScreenState extends State<PlatformSocialScreen> {
     } on SocialApiException catch (error) {
       if (!mounted) return;
       _showMessage(UserSafeError.message(context, error));
+    } finally {
+      if (mounted) {
+        setState(() => _friendRequestsInFlight.remove(id));
+      }
     }
   }
 
@@ -756,7 +764,10 @@ class _SocialPlayerSection extends StatelessWidget {
                       alignment: WrapAlignment.end,
                       children: [
                         if (onAddFriend != null &&
-                            player.friendshipStatus != 'accepted')
+                            player.friendshipStatus != 'accepted' &&
+                            player.friendshipStatus != 'pending' &&
+                            player.friendshipStatus != 'outgoing_pending' &&
+                            player.friendshipStatus != 'incoming_pending')
                           IconButton.outlined(
                             tooltip: context.tr('add_friend'),
                             onPressed: () => onAddFriend!(player),

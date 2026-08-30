@@ -159,6 +159,9 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     try {
       await action();
       await _load();
+      if (_search.text.trim().length >= 3) {
+        await _findPlayers();
+      }
     } catch (error) {
       if (mounted) {
         setState(() => _error = UserSafeError.message(context, error));
@@ -280,13 +283,21 @@ class _SocialHubScreenState extends State<SocialHubScreen>
     if (mounted) await _load();
   }
 
+  bool _isIncomingRequest(SocialPlayer p) =>
+      p.friendshipStatus == 'incoming_pending';
+
   bool _canAdd(SocialPlayer p) =>
       p.friendshipStatus != 'accepted' &&
       p.friendshipStatus != 'pending' &&
-      p.friendshipStatus != 'outgoing_pending';
+      p.friendshipStatus != 'outgoing_pending' &&
+      p.friendshipStatus != 'incoming_pending';
+
+  String _friendBusyId(SocialPlayer p) =>
+      _isIncomingRequest(p) ? 'request-${p.publicId}' : 'friend-${p.publicId}';
 
   String _friendLabel(SocialPlayer p) {
     if (p.friendshipStatus == 'accepted') return context.tr('friends');
+    if (_isIncomingRequest(p)) return context.tr('accept');
     if (!_canAdd(p)) return context.tr('friend_request_sent');
     return context.tr('add_friend');
   }
@@ -594,17 +605,28 @@ class _SocialHubScreenState extends State<SocialHubScreen>
                                   _SearchPlayer(
                                     player: p,
                                     rank: _rankFor(p.publicId),
-                                    busy: _busyId == 'friend-${p.publicId}',
-                                    enabled: _canAdd(p),
+                                    busy: _busyId == _friendBusyId(p),
+                                    enabled:
+                                        _isIncomingRequest(p) || _canAdd(p),
                                     label: _friendLabel(p),
                                     onTap: () => _showPlayer(
                                       p,
                                       primaryLabel: _friendLabel(p),
-                                      onPrimary: _canAdd(p)
+                                      onPrimary: _isIncomingRequest(p)
+                                          ? () => _respondRequest(p, true)
+                                          : _canAdd(p)
                                           ? () => _sendFriendRequest(p)
                                           : null,
+                                      secondaryLabel: _isIncomingRequest(p)
+                                          ? context.tr('decline')
+                                          : null,
+                                      onSecondary: _isIncomingRequest(p)
+                                          ? () => _respondRequest(p, false)
+                                          : null,
                                     ),
-                                    onAction: () => _sendFriendRequest(p),
+                                    onAction: _isIncomingRequest(p)
+                                        ? () => _respondRequest(p, true)
+                                        : () => _sendFriendRequest(p),
                                   ),
                                   const SizedBox(height: 5),
                                 ],
@@ -715,16 +737,32 @@ class _SocialHubScreenState extends State<SocialHubScreen>
         _PlayerCard(
           player: p,
           rank: _rankFor(p.publicId),
-          busy: _busyId == 'friend-${p.publicId}',
-          enabled: _canAdd(p),
+          busy: _busyId == _friendBusyId(p),
+          enabled: _isIncomingRequest(p) || _canAdd(p),
           primary: _friendLabel(p),
+          secondary: _isIncomingRequest(p) ? context.tr('decline') : null,
           meta: _lastPlayed(p.lastPlayedAt),
           onTap: () => _showPlayer(
             p,
             primaryLabel: _friendLabel(p),
-            onPrimary: _canAdd(p) ? () => _sendFriendRequest(p) : null,
+            onPrimary: _isIncomingRequest(p)
+                ? () => _respondRequest(p, true)
+                : _canAdd(p)
+                ? () => _sendFriendRequest(p)
+                : null,
+            secondaryLabel: _isIncomingRequest(p)
+                ? context.tr('decline')
+                : null,
+            onSecondary: _isIncomingRequest(p)
+                ? () => _respondRequest(p, false)
+                : null,
           ),
-          onPrimary: () => _sendFriendRequest(p),
+          onPrimary: _isIncomingRequest(p)
+              ? () => _respondRequest(p, true)
+              : () => _sendFriendRequest(p),
+          onSecondary: _isIncomingRequest(p)
+              ? () => _respondRequest(p, false)
+              : null,
         ),
     ]);
   }
