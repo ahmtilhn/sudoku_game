@@ -13,6 +13,9 @@ void main() {
     final leaderboard = File(
       'lib/services/platform_leaderboard_service.dart',
     ).readAsStringSync();
+    final nativeAndroid = File(
+      'android/app/src/main/kotlin/com/devoviastudio/sudoku/MainActivity.kt',
+    ).readAsStringSync();
     final main = File('lib/main.dart').readAsStringSync();
     final gamesIds = File(
       'android/app/src/main/res/values/games-ids.xml',
@@ -31,6 +34,8 @@ void main() {
       contains('if (normalized == null || normalized.isEmpty)'),
     );
     expect(bridge, contains('return Future<bool>.value(false);'));
+    expect(nativeAndroid, contains('.unlockImmediate(achievementId)'));
+    expect(nativeAndroid, contains('"achievement_submit_failed"'));
     expect(
       leaderboard,
       contains('syncNow(retryForSettlement: true)'),
@@ -42,6 +47,9 @@ void main() {
     final bridge = File(
       'lib/services/platform_game_services.dart',
     ).readAsStringSync();
+    final sync = File(
+      'lib/services/achievement_sync_service.dart',
+    ).readAsStringSync();
 
     expect(
       bridge,
@@ -50,6 +58,10 @@ void main() {
     expect(
       bridge,
       contains('A platform achievement must always be mapped from a server achievement.'),
+    );
+    expect(
+      sync,
+      contains('only this\n          // server-authoritative path can use the platform default achievement.'),
     );
   });
 }
