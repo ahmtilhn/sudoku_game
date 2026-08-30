@@ -153,7 +153,7 @@ class SoundEffectsService {
   // AudioContextConfig cannot represent that iOS combination because
   // respectSilence + mixWithOthers is intentionally rejected by audioplayers.
   // AVAudioSessionCategory.ambient provides both behaviors natively.
-  final AudioContext _audioContext = const AudioContext(
+  final AudioContext _audioContext = AudioContext(
     android: AudioContextAndroid(
       stayAwake: false,
       contentType: AndroidContentType.sonification,
