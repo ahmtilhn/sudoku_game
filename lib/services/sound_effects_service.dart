@@ -147,12 +147,21 @@ class SoundEffectsService {
 
   final ValueNotifier<bool> enabled = ValueNotifier<bool>(true);
   List<AudioPlayer>? _players;
-  final AudioContext _audioContext = AudioContextConfig(
-    route: AudioContextConfigRoute.system,
-    focus: AudioContextConfigFocus.mixWithOthers,
-    respectSilence: true,
-    stayAwake: false,
-  ).build();
+
+  // Short Sudoku/game SFX should obey the iOS Ring/Silent switch and should
+  // not interrupt music or podcasts already playing on the device. The generic
+  // AudioContextConfig cannot represent that iOS combination because
+  // respectSilence + mixWithOthers is intentionally rejected by audioplayers.
+  // AVAudioSessionCategory.ambient provides both behaviors natively.
+  final AudioContext _audioContext = const AudioContext(
+    android: AudioContextAndroid(
+      stayAwake: false,
+      contentType: AndroidContentType.sonification,
+      usageType: AndroidUsageType.game,
+      audioFocus: AndroidAudioFocus.none,
+    ),
+    iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
+  );
 
   int _nextPlayer = 0;
   bool _initialized = false;
