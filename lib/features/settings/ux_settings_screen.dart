@@ -6,21 +6,22 @@ import '../../core/user_safe_error.dart';
 import '../../data/local_progress_store.dart';
 import '../../localization/app_strings.dart';
 import '../../localization/settings_strings.dart';
+import '../../services/account_deletion_service.dart';
+import '../../services/ads_service.dart';
+import '../../services/economy_service.dart';
 import '../../services/firebase_services.dart';
+import '../../services/firebase_session_service.dart';
 import '../../services/haptic_feedback_service.dart';
 import '../../services/player_profile_service.dart';
 import '../../services/push_notification_service.dart';
 import '../../services/reminder_notification_service.dart';
 import '../../services/social_api_client.dart';
+import '../../widgets/app_backdrop.dart';
 import '../../widgets/in_page_header.dart';
-import '../economy/wallet_history_screen.dart';
-import 'account_protection_screen.dart';
 
 class UxSettingsScreen extends StatefulWidget {
   const UxSettingsScreen({super.key, required this.store});
 
-  // Kept in the constructor for route compatibility. Settings no longer owns
-  // career/theme state; LocalProgressStore remains the app-level route model.
   final LocalProgressStore store;
 
   @override
@@ -28,11 +29,18 @@ class UxSettingsScreen extends StatefulWidget {
 }
 
 class _UxSettingsScreenState extends State<UxSettingsScreen> {
+  static const Color _playAccent = Color(0xFF66C7FF);
+  static const Color _notificationAccent = Color(0xFFFFC94D);
+  static const Color _privacyAccent = Color(0xFFB7A9FF);
+  static const Color _dataAccent = Color(0xFFFF8A3D);
+
   bool _dailyBusy = false;
   bool _pushBusy = false;
   bool _analyticsBusy = false;
   bool _crashBusy = false;
   bool _profileBusy = false;
+  bool _adPrivacyBusy = false;
+  bool _deleteBusy = false;
   int _section = 0;
 
   @override
@@ -44,88 +52,97 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
     }
   }
 
-  void _open(Widget screen) {
-    Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => screen));
-  }
-
   @override
   Widget build(BuildContext context) {
     final reminders = ReminderNotificationService.instance;
     final push = PushNotificationService.instance;
     final firebase = FirebaseServices.instance;
     final haptics = HapticFeedbackService.instance;
+    final ads = AdsService.instance;
     final socialAvailable =
         push.configured && SocialApiClient.instance.configured;
     final sections = <_SettingsSectionData>[
       _SettingsSectionData(
-        label: context.tr('player_account'),
-        icon: Icons.person_outline_rounded,
-      ),
-      _SettingsSectionData(
         label: context.tr('play'),
         icon: Icons.touch_app_outlined,
+        accent: _playAccent,
       ),
       _SettingsSectionData(
         label: context.tr('notifications'),
         icon: Icons.notifications_outlined,
+        accent: _notificationAccent,
       ),
       _SettingsSectionData(
         label: context.tr('privacy'),
         icon: Icons.privacy_tip_outlined,
+        accent: _privacyAccent,
+      ),
+      _SettingsSectionData(
+        label: context.tr('data'),
+        icon: Icons.storage_outlined,
+        accent: _dataAccent,
       ),
     ];
 
     return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxHeight < 650;
-            final horizontal = constraints.maxWidth < 360 ? 12.0 : 16.0;
+      backgroundColor: const Color(0xFF0B1215),
+      body: AppBackdrop(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxHeight < 650;
+              final horizontal = constraints.maxWidth < 360 ? 12.0 : 16.0;
 
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 680),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    horizontal,
-                    compact ? 4 : 10,
-                    horizontal,
-                    compact ? 8 : 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      InPageHeader(
-                        title: context.tr('settings'),
-                        padding: EdgeInsets.only(bottom: compact ? 5 : 10),
-                      ),
-                      _SettingsSectionPicker(
-                        sections: sections,
-                        selected: _section,
-                        compact: compact,
-                        onSelected: (value) => setState(() => _section = value),
-                      ),
-                      SizedBox(height: compact ? 7 : 12),
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          child: _sectionBody(
-                            context,
-                            reminders: reminders,
-                            push: push,
-                            firebase: firebase,
-                            haptics: haptics,
-                            socialAvailable: socialAvailable,
-                            compact: compact,
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 740),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontal,
+                      compact ? 4 : 8,
+                      horizontal,
+                      compact ? 8 : 18,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        InPageHeader(
+                          title: context.tr('settings'),
+                          padding: EdgeInsets.only(bottom: compact ? 6 : 10),
+                        ),
+                        _SettingsSectionPicker(
+                          sections: sections,
+                          selected: _section,
+                          compact: compact,
+                          onSelected: (value) =>
+                              setState(() => _section = value),
+                        ),
+                        SizedBox(height: compact ? 8 : 12),
+                        Expanded(
+                          child: AnimatedBuilder(
+                            animation: widget.store,
+                            builder: (context, _) => SingleChildScrollView(
+                              physics: const ClampingScrollPhysics(),
+                              child: _sectionBody(
+                                context,
+                                reminders: reminders,
+                                push: push,
+                                firebase: firebase,
+                                haptics: haptics,
+                                ads: ads,
+                                socialAvailable: socialAvailable,
+                                compact: compact,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -137,58 +154,15 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
     required PushNotificationService push,
     required FirebaseServices firebase,
     required HapticFeedbackService haptics,
+    required AdsService ads,
     required bool socialAvailable,
     required bool compact,
   }) {
     switch (_section) {
       case 0:
         return _SettingsPanel(
-          title: context.tr('player_account'),
-          compact: compact,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                minTileHeight: compact ? 54 : 64,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                leading: const Icon(Icons.shield_outlined),
-                title: Text(
-                  context.tr('protect_player_account'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  context.tr('account_protection_banner_body'),
-                  maxLines: compact ? 1 : 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => _open(const AccountProtectionScreen()),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                minTileHeight: compact ? 54 : 58,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                leading: const Icon(Icons.receipt_long_outlined),
-                title: Text(
-                  context.tr('coin_history'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  context.tr('server_wallet_history'),
-                  maxLines: compact ? 1 : 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => _open(const WalletHistoryScreen()),
-              ),
-            ],
-          ),
-        );
-      case 1:
-        return _SettingsPanel(
           title: context.tr('play'),
+          accent: _playAccent,
           compact: compact,
           child: ValueListenableBuilder<bool>(
             valueListenable: haptics.enabled,
@@ -210,9 +184,10 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
             ),
           ),
         );
-      case 2:
+      case 1:
         return _SettingsPanel(
           title: context.tr('notifications'),
+          accent: _notificationAccent,
           compact: compact,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -238,7 +213,7 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                   ),
                 ),
               ),
-              const Divider(height: 1),
+              const _SettingsDivider(),
               ValueListenableBuilder<bool>(
                 valueListenable: push.enabled,
                 builder: (context, enabled, _) => SwitchListTile(
@@ -267,9 +242,10 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
             ],
           ),
         );
-      default:
+      case 2:
         return _SettingsPanel(
           title: context.tr('privacy'),
+          accent: _privacyAccent,
           compact: compact,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -305,7 +281,7 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                   );
                 },
               ),
-              const Divider(height: 1),
+              const _SettingsDivider(),
               ValueListenableBuilder<bool>(
                 valueListenable: firebase.analyticsEnabled,
                 builder: (context, enabled, _) => SwitchListTile(
@@ -327,7 +303,7 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                   ),
                 ),
               ),
-              const Divider(height: 1),
+              const _SettingsDivider(),
               ValueListenableBuilder<bool>(
                 valueListenable: firebase.crashReportingEnabled,
                 builder: (context, enabled, _) => SwitchListTile(
@@ -348,6 +324,101 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: ads.privacyOptionsRequired,
+                builder: (context, required, _) {
+                  if (!required || ads.noAds) return const SizedBox.shrink();
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const _SettingsDivider(),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                        ),
+                        leading: const Icon(Icons.ads_click_rounded),
+                        title: Text(
+                          context.tr('ad_privacy_choices'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          context.tr('ad_privacy_choices_subtitle'),
+                          maxLines: compact ? 1 : 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: _adPrivacyBusy
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.chevron_right_rounded),
+                        onTap: _adPrivacyBusy
+                            ? null
+                            : () => _showAdPrivacy(ads),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      default:
+        return _SettingsPanel(
+          title: context.tr('data'),
+          accent: _dataAccent,
+          compact: compact,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                leading: const Icon(Icons.restart_alt_rounded),
+                title: Text(
+                  context.tr('clear_career_progress'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  context.tr('completed_levels', <Object>[
+                    widget.store.completedCareerLevelCount,
+                  ]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: _confirmClear,
+              ),
+              const _SettingsDivider(),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                leading: Icon(
+                  Icons.delete_forever_outlined,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  context.tr('delete_player_account'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                subtitle: Text(
+                  context.tr('delete_player_account_body'),
+                  maxLines: compact ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: _deleteBusy
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.chevron_right_rounded),
+                onTap: _deleteBusy ? null : _deleteAccount,
               ),
             ],
           ),
@@ -448,6 +519,155 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
     }
   }
 
+  Future<void> _showAdPrivacy(AdsService service) async {
+    if (_adPrivacyBusy) return;
+    setState(() => _adPrivacyBusy = true);
+    try {
+      await service.showPrivacyOptions();
+    } catch (_) {
+      if (mounted) _snack('try_again_when_connected');
+    } finally {
+      if (mounted) setState(() => _adPrivacyBusy = false);
+    }
+  }
+
+  Future<void> _confirmClear() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(context.tr('clear_progress_title')),
+        content: Text(context.tr('clear_progress_body')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(context.tr('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(context.tr('clear')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await widget.store.clearProgress();
+  }
+
+  Future<void> _deleteAccount() async {
+    final user = FirebaseSessionService.currentUser;
+    final passwordRequired =
+        user != null &&
+        !user.isAnonymous &&
+        user.providerData.any((provider) => provider.providerId == 'password');
+    final confirmation = TextEditingController();
+    final password = TextEditingController();
+    var hidden = true;
+
+    final result = await showDialog<({String confirmation, String password})>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final valid =
+              confirmation.text.trim().toUpperCase() == 'DELETE' &&
+              (!passwordRequired || password.text.length >= 8);
+          return AlertDialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 18,
+            ),
+            title: Text(context.tr('delete_player_account_question')),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(context.tr('delete_player_account_warning')),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: confirmation,
+                      autofocus: true,
+                      autocorrect: false,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        labelText: context.tr('type_delete'),
+                        border: const OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => setDialogState(() {}),
+                    ),
+                    if (passwordRequired) ...[
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: password,
+                        obscureText: hidden,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          labelText: context.tr('current_password'),
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            onPressed: () =>
+                                setDialogState(() => hidden = !hidden),
+                            icon: Icon(
+                              hidden
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                          ),
+                        ),
+                        onChanged: (_) => setDialogState(() {}),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(context.tr('cancel')),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: valid
+                    ? () => Navigator.of(dialogContext).pop((
+                        confirmation: confirmation.text,
+                        password: password.text,
+                      ))
+                    : null,
+                child: Text(context.tr('delete_permanently')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    confirmation.dispose();
+    password.dispose();
+    if (result == null || !mounted) return;
+
+    setState(() => _deleteBusy = true);
+    try {
+      await AccountDeletionService.instance.deleteCurrentAccount(
+        password: passwordRequired ? result.password : null,
+      );
+      PlayerProfileService.instance.current.value = null;
+      await EconomyService.instance.refresh(showLoading: false);
+      if (mounted) _snack('player_account_deleted');
+    } on AccountDeletionException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(UserSafeError.message(context, error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deleteBusy = false);
+    }
+  }
+
   void _snack(String key) {
     ScaffoldMessenger.of(
       context,
@@ -456,10 +676,15 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
 }
 
 class _SettingsSectionData {
-  const _SettingsSectionData({required this.label, required this.icon});
+  const _SettingsSectionData({
+    required this.label,
+    required this.icon,
+    required this.accent,
+  });
 
   final String label;
   final IconData icon;
+  final Color accent;
 }
 
 class _SettingsSectionPicker extends StatelessWidget {
@@ -479,20 +704,19 @@ class _SettingsSectionPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 520 ? 4 : 2;
-        final spacing = compact ? 6.0 : 8.0;
+        final columns = constraints.maxWidth >= 560 ? 4 : 2;
+        final spacing = compact ? 7.0 : 9.0;
         final width =
             (constraints.maxWidth - ((columns - 1) * spacing)) / columns;
 
         return Wrap(
-          alignment: WrapAlignment.center,
           spacing: spacing,
           runSpacing: spacing,
           children: [
             for (var index = 0; index < sections.length; index++)
               SizedBox(
                 width: width,
-                height: compact ? 40 : 46,
+                height: compact ? 42 : 48,
                 child: _SettingsSectionButton(
                   data: sections[index],
                   selected: selected == index,
@@ -522,27 +746,38 @@ class _SettingsSectionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final foreground = selected
+        ? data.accent
+        : Colors.white.withValues(alpha: .70);
     return Material(
-      color: selected ? scheme.primaryContainer : scheme.surfaceContainer,
-      borderRadius: BorderRadius.circular(13),
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(13),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5),
+        borderRadius: BorderRadius.circular(15),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color: data.accent.withValues(alpha: selected ? .12 : .035),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: selected
+                  ? data.accent.withValues(alpha: .42)
+                  : Colors.white.withValues(alpha: .07),
+            ),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(data.icon, size: compact ? 17 : 19),
-              const SizedBox(width: 4),
+              Icon(data.icon, size: compact ? 17 : 19, color: foreground),
+              const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   data.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: compact ? 10 : 11,
+                    color: foreground,
+                    fontSize: compact ? 10.5 : 11.5,
                     fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
                   ),
                 ),
@@ -558,45 +793,96 @@ class _SettingsSectionButton extends StatelessWidget {
 class _SettingsPanel extends StatelessWidget {
   const _SettingsPanel({
     required this.title,
+    required this.accent,
     required this.compact,
     required this.child,
   });
 
   final String title;
+  final Color accent;
   final bool compact;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: .06)),
+      ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           compact ? 6 : 8,
-          compact ? 8 : 12,
+          compact ? 9 : 12,
           compact ? 6 : 8,
-          compact ? 6 : 10,
+          compact ? 7 : 10,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            listTileTheme: ListTileThemeData(
+              iconColor: Colors.white.withValues(alpha: .76),
+              textColor: Colors.white,
+              subtitleTextStyle: TextStyle(
+                color: Colors.white.withValues(alpha: .58),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: compact ? 2 : 5),
-            child,
-          ],
+            dividerColor: Colors.white.withValues(alpha: .06),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 9),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 4,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: accent,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: compact ? 3 : 6),
+              child,
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _SettingsDivider extends StatelessWidget {
+  const _SettingsDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      indent: 12,
+      endIndent: 12,
+      color: Colors.white.withValues(alpha: .06),
     );
   }
 }
