@@ -7,6 +7,7 @@ on:
     paths:
       - 'tool/apply_friendship_state_hardening.py'
       - 'tool/apply_friendship_state_hardening_v2.py'
+      - 'tool/apply_friendship_state_hardening_v3.py'
       - '.github/workflows/apply-friendship-state-hardening.yml'
   workflow_dispatch:
 
@@ -28,7 +29,7 @@ jobs:
           fetch-depth: 0
 
       - name: Apply friendship hardening patch
-        run: python3 tool/apply_friendship_state_hardening_v2.py
+        run: python3 tool/apply_friendship_state_hardening_v3.py
 
       - name: Backend dependencies
         working-directory: backend/social_worker
@@ -58,6 +59,7 @@ jobs:
             lib/features/social/social_hub_screen.dart \
             lib/features/social/platform_social_screen.dart \
             lib/features/duel/online_duel_screen.dart \
+            test/recent_opponents_friend_flow_test.dart \
             test/friendship_state_hardening_test.dart
           git diff --check
 
@@ -77,6 +79,7 @@ jobs:
         run: |
           rm -f tool/apply_friendship_state_hardening.py
           rm -f tool/apply_friendship_state_hardening_v2.py
+          rm -f tool/apply_friendship_state_hardening_v3.py
           rm -f .github/workflows/apply-friendship-state-hardening.yml
 
       - name: Commit verified friendship hardening
