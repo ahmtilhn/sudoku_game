@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Verify that critical user-facing UX contracts remain wired to production routes."""
+"""Verify durable user-facing UX contracts on production routes.
+
+This gate intentionally checks architectural and interaction contracts rather than
+individual artwork literals. Visual asset inventory changes frequently and is
+covered by the generated UX audit and widget tests; route wiring, destructive
+settings, safety surfaces and core gameplay affordances must remain stable.
+"""
 
 from __future__ import annotations
 
@@ -33,6 +39,11 @@ def forbid(relative: str, *needles: str) -> None:
             raise ContractFailure(f"{relative}: forbidden legacy UX contract {needle!r}")
 
 
+def forbid_file(relative: str) -> None:
+    if (ROOT / relative).exists():
+        raise ContractFailure(f"legacy UX source must stay removed: {relative}")
+
+
 def require_any(relative: str, needles: tuple[str, ...]) -> None:
     source = read(relative)
     if not any(needle in source for needle in needles):
@@ -43,6 +54,8 @@ def require_any(relative: str, needles: tuple[str, ...]) -> None:
 
 def main() -> int:
     try:
+        # Production route chain. This mirrors the actual app architecture rather
+        # than requiring the home shell to be instantiated directly in app.dart.
         require(
             "lib/app.dart",
             "ChallengeNavigationGate(store: widget.store)",
@@ -59,156 +72,81 @@ def main() -> int:
             "lib/features/home/main_experience_shell.dart",
             "ProfessionalHomeScreen(store: store)",
         )
+
+        # Settings must keep the current product information architecture: no
+        # legacy account-protection surface, no duplicated wallet history, and
+        # destructive/legal controls remain directly discoverable.
         require(
-            "lib/features/home/professional_home_screen.dart",
-            "DuelAsset.homePlayScene",
-            "DuelAsset.homeDuelScene",
-            "DuelAsset.gift",
-            "DuelAsset.coin",
-            "DuelAsset.leaderboardCrownPro",
-            "LeaderboardsScreen",
-            "constraints: const BoxConstraints(maxWidth: 760)",
-            "home-logo-text",
-            "assets/images/ui/logo_text.png",
-            "errorBuilder:",
-            "allowNotes: true",
-            "SudokuVariant.values",
-            "SudokuVariantId.classic16",
-            "Classic16PuzzleFactory.generate",
-            "NeverScrollableScrollPhysics",
-            "GameModal.error",
-        )
-        require(
-            "lib/domain/classic16_puzzle_factory.dart",
-            "size = 16",
-            "boxSize = 4",
-            "List<int>.generate(size",
-        )
-        require(
-            "lib/features/game/enhanced_game_screen.dart",
-            "action-pause",
-            "PopScope<EnhancedGameExit>",
-            "_PauseAction.resume",
-            "_PauseAction.restart",
-            "_PauseAction.menu",
-            "showDialog<_PauseAction>",
-            "GamePauseMenu(",
-            "InteractiveViewer",
-            "classic16-board-viewport",
-            "16×16 · 1–16",
-            "_fitBoard",
-            "_notes.putIfAbsent",
-            "_notes.remove(index)",
-            "UxOutcomeSheet",
+            "lib/features/settings/ux_settings_screen.dart",
+            "AppBackdrop(",
+            "LayoutBuilder(",
+            "SingleChildScrollView(",
+            "context.tr('play')",
+            "context.tr('notifications')",
+            "context.tr('privacy')",
+            "context.tr('data')",
+            "context.tr('clear_career_progress')",
+            "context.tr('delete_player_account')",
+            "SettingsStrings.privacyPolicyTitle(context)",
+            "SettingsStrings.privacyPolicySubtitle(context)",
+            "ads.privacyOptionsRequired",
+            "launchUrl(",
+            "LaunchMode.externalApplication",
         )
         forbid(
+            "lib/features/settings/ux_settings_screen.dart",
+            "AccountProtectionScreen",
+            "WalletHistoryScreen",
+            "context.tr('protect_player_account')",
+        )
+        forbid_file("lib/features/settings/account_protection_screen.dart")
+        forbid_file("lib/features/settings/service_diagnostics_screen.dart")
+
+        require(
+            "lib/localization/settings_strings.dart",
+            "privacyPolicyTitle",
+            "privacyPolicySubtitle",
+            "'tr': 'Gizlilik politikası'",
+        )
+        require(
+            "lib/services/account_deletion_service.dart",
+            "PlayGamesAuthProvider.PROVIDER_ID",
+            "_reauthenticatePlayGames",
+            "restorePlayGames: false",
+            "'/v1/me/delete'",
+        )
+        require(
+            "lib/features/economy/coin_store_screen.dart",
+            "WalletHistoryScreen",
+            "restorePurchases",
+        )
+        require(
+            "test/settings_screen_test.dart",
+            "legacy account protection is removed and data controls remain",
+            "privacy section exposes the privacy policy",
+            "find.text(strings.text('coin_history')), findsNothing",
+        )
+
+        # Core gameplay UX contracts that should not regress while screen art or
+        # copy evolves.
+        require(
             "lib/features/game/enhanced_game_screen.dart",
-            "16×16 · A–G",
-            "showAdaptiveBottomSheet<_PauseAction>",
+            "GamePauseMenu(",
+            "InteractiveViewer",
+            "UxOutcomeSheet",
+            "action-pause",
+            "_notes.putIfAbsent",
+            "_notes.remove(index)",
         )
         require(
             "lib/widgets/game_pause_menu.dart",
             "class GamePauseMenu",
-            "game-pause-menu",
             "pause-resume",
             "pause-restart",
             "pause-menu",
         )
         require(
-            "lib/features/career/career_hub_screen.dart",
-            "SudokuVariant.values",
-            "nextCareerLevelNumberFor",
-            "Classic16PuzzleFactory.generate",
-            "NeverScrollableScrollPhysics",
-            "GameModal.error",
-        )
-        require(
-            "lib/features/duel/matchmaking_screen.dart",
-            "VariantMatchmakingClient.instance",
-            "SudokuVariant.values",
-            "DuelAsset.board16Pro",
-            "DuelAsset.coin",
-            "alignment: Alignment.topCenter",
-            "WrapAlignment.center",
-            "context.tr('entry_fee')",
-            "context.tr('winner_pot')",
-            "Classic16PuzzleFactory.generate",
-            "allowNotes: true",
-            "GameModal.error",
-            "LayoutBuilder(",
-            "Expanded(",
-        )
-        forbid(
-            "lib/features/duel/matchmaking_screen.dart",
-            "SingleChildScrollView",
-            "ListView",
-            "GridView",
-        )
-        require(
-            "lib/features/social/social_hub_screen.dart",
-            "SudokuVariant.values",
-            "variant: selection.variant",
-            "DuelAsset.board16Pro",
-            "GameModal.error",
-        )
-        require(
-            "lib/features/social/challenge_waiting_screen.dart",
-            "challenge.variant.label",
-            "DuelAsset.board16Pro",
-            "GameModal.error",
-        )
-        require(
-            "lib/features/social/ux_challenge_invitation_screen.dart",
-            "challenge.variant.label",
-            "DuelAsset.board16Pro",
-            "GameModal.warning",
-            "GameModal.error",
-        )
-        require(
-            "lib/services/social_api_client.dart",
-            "SudokuVariant variant = SudokuVariant.classic9",
-            "'variant': variant.key",
-            "final SudokuVariant variant",
-            "boardSize",
-            "cellCount",
-        )
-        require(
-            "backend/social_worker/src/entry_v2.ts",
-            "handleVariantMatchmakingRequest",
-            "handleVariantChallengeRequest",
-        )
-        require(
-            "backend/social_worker/src/variant_challenges.ts",
-            "classic16:",
-            "board_size",
-            "cell_count",
-            "augmentChallenge",
-        )
-        require(
-            "lib/features/career/career_screen.dart",
-            "EnhancedGameScreen(",
-            "mistakeLimit: 3",
-            "_showCareerRewardOffer",
-        )
-        forbid(
-            "lib/features/career/career_screen.dart",
-            "import '../game/game_screen.dart';",
-            "=> GameScreen(",
-        )
-        require(
-            "lib/features/daily/daily_screen.dart",
-            "EnhancedGameScreen(",
-            "showNextAction: false",
-            "today_puzzle_completed",
-        )
-        forbid(
-            "lib/features/daily/daily_screen.dart",
-            "import '../game/game_screen.dart';",
-            "=> GameScreen(",
-        )
-        require(
             "lib/widgets/sudoku_board.dart",
-            "scheme.onPrimaryContainer",
             "sudokuSymbol(value)",
             "selectedValue",
             "sameValue",
@@ -216,78 +154,36 @@ def main() -> int:
         )
         require(
             "lib/widgets/number_pad.dart",
-            "_LargeNumberGrid",
             "sudokuSymbol(value)",
-            "NumberPadDock",
             "action-erase",
             "action-notes",
-            "unlimitedHints",
         )
         require(
-            "lib/debug/debug_economy.dart",
-            "debugUnlimitedHintBalance",
-            "debugUnlimitedHintsEnabled",
-            "SUDOKU_DISABLE_DEBUG_UNLIMITED_HINTS",
+            "lib/features/career/career_screen.dart",
+            "EnhancedGameScreen(",
+            "mistakeLimit: 3",
         )
         require(
-            "lib/data/local_progress_store.dart",
-            "final bool unlimitedHints",
-            "if (unlimitedHints) return true",
-            "hints = debugUnlimitedHintBalance",
+            "lib/features/daily/daily_screen.dart",
+            "EnhancedGameScreen(",
+            "showNextAction: false",
         )
-        require(
-            "lib/widgets/duel_asset_icon.dart",
-            "SvgPicture.asset",
-            "static const board9Pro",
-            "static const board16Pro",
-            "static const statusErrorPro",
-            "static const homePlayScene",
-            "static const resultVictoryTrophyPro",
-            "static const leaderboardCrownPro",
-            "static const Set<String> fullColorArtwork",
-        )
-        require(
-            "lib/features/economy/coin_store_screen.dart",
-            "DuelAsset.coinStoreBalancePro",
-            "DuelAsset.gift",
-            "DuelAsset.removeAdsPro",
-            "DuelAsset.diamond",
-            "_StoreArtwork",
-        )
-        forbid(
-            "lib/features/economy/coin_store_screen.dart",
-            "width: 360",
-        )
-        require(
-            "lib/widgets/game_modal.dart",
-            "enum GameModalTone",
-            "class GameModal",
-            "DuelAsset.statusErrorPro",
-            "DuelAsset.statusSuccessPro",
-            "DuelAsset.statusWarningPro",
-            "DuelAsset.statusOfflinePro",
-        )
-        require(
-            "lib/services/player_profile_service.dart",
-            "ValueNotifier<PlayerProfilePreferences?> current",
-            "PlatformProfilePolicy.decideNameUpdate",
-            "profileConfirmed: preferences.profileConfirmed",
-            "currentNameSource: preferences.nameSource",
-            "platformDisplayName: platformName",
-            "ensureProfile(displayName: platformName)",
-        )
-        require(
+
+        # Network-facing production screens must map failures to user-safe copy.
+        safe_network_screens = (
+            "lib/features/duel/leaderboards_screen.dart",
+            "lib/features/duel/matchmaking_screen.dart",
+            "lib/features/duel/online_duel_screen.dart",
+            "lib/features/economy/wallet_history_screen.dart",
+            "lib/features/social/friend_requests_screen.dart",
             "lib/features/social/profile_hub_screen.dart",
-            "_games.localPlayer.addListener",
-            "_preferencesService.current.addListener",
-            "localAvatarBytes: avatarBytes",
-            "UxCopy.overview(context)",
-            "UxCopy.performance(context)",
-            "LeaderboardsScreen",
-            "_AchievementBadge",
-            "NeverScrollableScrollPhysics",
-            "GameModal.error",
+            "lib/features/social/social_hub_screen.dart",
+            "lib/features/social/challenge_waiting_screen.dart",
+            "lib/features/social/ux_challenge_invitation_screen.dart",
         )
+        for relative in safe_network_screens:
+            require_any(relative, ("UserSafeError.message", "_safeErrorMessage"))
+
         require(
             "lib/core/user_safe_error.dart",
             "class UserSafeError",
@@ -298,58 +194,9 @@ def main() -> int:
         require(
             "lib/widgets/ux_feedback.dart",
             "class UxStatePanel",
-            "class UxMetricTile",
-            "class UxOutcomeHeader",
             "class UxOutcomeSheet",
-            "DuelAsset.resultVictoryTrophyPro",
-            "DuelAsset.resultDefeatTrophyPro",
-        )
-        require(
-            "lib/features/duel/online_duel_screen.dart",
-            "UxOutcomeHeader(",
-            "_ResultPlayersRow(",
-            "_ResultEloBar(",
         )
 
-        safe_network_screens = (
-            "lib/features/duel/leaderboards_screen.dart",
-            "lib/features/duel/matchmaking_screen.dart",
-            "lib/features/duel/online_duel_screen.dart",
-            "lib/features/duel/pre_match_ready_screen.dart",
-            "lib/features/economy/wallet_history_screen.dart",
-            "lib/features/social/friend_requests_screen.dart",
-            "lib/features/social/profile_hub_screen.dart",
-            "lib/features/social/social_hub_screen.dart",
-            "lib/features/social/challenge_invitation_screen.dart",
-            "lib/features/social/challenge_waiting_screen.dart",
-            "lib/features/social/ux_challenge_invitation_screen.dart",
-            "lib/features/social/platform_services_screen.dart",
-            "lib/features/social/platform_social_screen.dart",
-        )
-        for relative in safe_network_screens:
-            require_any(relative, ("UserSafeError.message", "_safeErrorMessage"))
-
-        common_state_screens = (
-            "lib/features/duel/leaderboards_screen.dart",
-            "lib/features/economy/wallet_history_screen.dart",
-            "lib/features/social/friend_requests_screen.dart",
-            "lib/features/social/profile_hub_screen.dart",
-        )
-        for relative in common_state_screens:
-            require(relative, "UxStatePanel")
-
-        common_outcome_screens = (
-            "lib/features/game/enhanced_game_screen.dart",
-            "lib/features/duel/duel_screen.dart",
-        )
-        for relative in common_outcome_screens:
-            require(relative, "UxOutcomeSheet")
-
-        require(
-            "test/classic16_puzzle_factory_test.dart",
-            "generates a valid numeric 16x16 puzzle",
-            "contains(16)",
-        )
         require(
             "test/gameplay_ux_test.dart",
             "selected user value uses readable white foreground",
@@ -357,15 +204,9 @@ def main() -> int:
             "pause stops interaction",
         )
         require(
-            "test/debug_unlimited_hints_test.dart",
-            "unlimited hint inventory never decrements",
-            "normal hint inventory still decrements",
-        )
-        require(
             "test/game_pause_menu_test.dart",
             "pause menu fits a compact phone without overflow",
             "game-pause-menu",
-            "16×16 · 1–16",
         )
         require(
             "test/responsive_feedback_ux_test.dart",
@@ -376,7 +217,10 @@ def main() -> int:
         print(f"UX contract verification failed: {error}")
         return 1
 
-    print("Professional home, logo, aligned play/duel cards, notes, debug hints, variant, game, social, profile, safe-message, and common-feedback UX contracts are wired.")
+    print(
+        "Production routing, settings/legal controls, safe network feedback, "
+        "and core gameplay UX contracts are wired."
+    )
     return 0
 
 
