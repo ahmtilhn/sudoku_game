@@ -6,6 +6,7 @@ on:
       - fix/friendship-state-hardening-20260830
     paths:
       - 'tool/apply_friendship_state_hardening.py'
+      - 'tool/apply_friendship_state_hardening_v2.py'
       - '.github/workflows/apply-friendship-state-hardening.yml'
   workflow_dispatch:
 
@@ -27,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: Apply friendship hardening patch
-        run: python3 tool/apply_friendship_state_hardening.py
+        run: python3 tool/apply_friendship_state_hardening_v2.py
 
       - name: Backend dependencies
         working-directory: backend/social_worker
@@ -75,6 +76,7 @@ jobs:
         shell: bash
         run: |
           rm -f tool/apply_friendship_state_hardening.py
+          rm -f tool/apply_friendship_state_hardening_v2.py
           rm -f .github/workflows/apply-friendship-state-hardening.yml
 
       - name: Commit verified friendship hardening
