@@ -9,6 +9,12 @@ class SettingsStrings {
   static String hapticsSubtitle(BuildContext context) =>
       _value(context, _hapticsSubtitle);
 
+  static String privacyPolicyTitle(BuildContext context) =>
+      _value(context, _privacyPolicyTitle);
+
+  static String privacyPolicySubtitle(BuildContext context) =>
+      _value(context, _privacyPolicySubtitle);
+
   static String _value(BuildContext context, Map<String, String> values) {
     final locale = Localizations.localeOf(context);
     return values[locale.languageCode] ?? values['en']!;
@@ -60,5 +66,53 @@ class SettingsStrings {
     'vi': 'Rung khi chạm, đi đúng, mắc lỗi và thực hiện thao tác quan trọng.',
     'bn': 'ট্যাপ, সঠিক চাল, ভুল এবং গুরুত্বপূর্ণ গেম অ্যাকশনে ভাইব্রেট করুন।',
     'ur': 'ٹیپ، درست چال، غلطی اور اہم گیم ایکشن پر وائبریٹ کریں۔',
+  };
+
+  static const Map<String, String> _privacyPolicyTitle = <String, String>{
+    'en': 'Privacy policy',
+    'tr': 'Gizlilik politikası',
+    'de': 'Datenschutzerklärung',
+    'fr': 'Politique de confidentialité',
+    'es': 'Política de privacidad',
+    'pt': 'Política de privacidade',
+    'it': 'Informativa sulla privacy',
+    'nl': 'Privacybeleid',
+    'pl': 'Polityka prywatności',
+    'ru': 'Политика конфиденциальности',
+    'uk': 'Політика конфіденційності',
+    'ar': 'سياسة الخصوصية',
+    'hi': 'गोपनीयता नीति',
+    'id': 'Kebijakan privasi',
+    'ja': 'プライバシーポリシー',
+    'ko': '개인정보 처리방침',
+    'zh': '隐私政策',
+    'th': 'นโยบายความเป็นส่วนตัว',
+    'vi': 'Chính sách quyền riêng tư',
+    'bn': 'গোপনীয়তা নীতি',
+    'ur': 'رازداری کی پالیسی',
+  };
+
+  static const Map<String, String> _privacyPolicySubtitle = <String, String>{
+    'en': 'See how Sudoku Duel collects, uses and protects data.',
+    'tr': 'Sudoku Duel verilerinin nasıl toplandığını, kullanıldığını ve korunduğunu gör.',
+    'de': 'Erfahre, wie Sudoku Duel Daten erhebt, verwendet und schützt.',
+    'fr': 'Découvrez comment Sudoku Duel collecte, utilise et protège les données.',
+    'es': 'Consulta cómo Sudoku Duel recopila, usa y protege los datos.',
+    'pt': 'Veja como o Sudoku Duel coleta, usa e protege dados.',
+    'it': 'Scopri come Sudoku Duel raccoglie, usa e protegge i dati.',
+    'nl': 'Bekijk hoe Sudoku Duel gegevens verzamelt, gebruikt en beschermt.',
+    'pl': 'Zobacz, jak Sudoku Duel zbiera, wykorzystuje i chroni dane.',
+    'ru': 'Узнайте, как Sudoku Duel собирает, использует и защищает данные.',
+    'uk': 'Дізнайтеся, як Sudoku Duel збирає, використовує та захищає дані.',
+    'ar': 'اطّلع على كيفية جمع Sudoku Duel للبيانات واستخدامها وحمايتها.',
+    'hi': 'देखें कि Sudoku Duel डेटा कैसे एकत्र, उपयोग और सुरक्षित करता है।',
+    'id': 'Lihat cara Sudoku Duel mengumpulkan, menggunakan, dan melindungi data.',
+    'ja': 'Sudoku Duel がデータを収集・利用・保護する方法を確認します。',
+    'ko': 'Sudoku Duel이 데이터를 수집, 사용 및 보호하는 방법을 확인하세요.',
+    'zh': '查看 Sudoku Duel 如何收集、使用和保护数据。',
+    'th': 'ดูว่า Sudoku Duel เก็บ ใช้ และปกป้องข้อมูลอย่างไร',
+    'vi': 'Xem cách Sudoku Duel thu thập, sử dụng và bảo vệ dữ liệu.',
+    'bn': 'Sudoku Duel কীভাবে ডেটা সংগ্রহ, ব্যবহার ও সুরক্ষিত করে তা দেখুন।',
+    'ur': 'دیکھیں کہ Sudoku Duel ڈیٹا کیسے جمع، استعمال اور محفوظ کرتا ہے۔',
   };
 }
