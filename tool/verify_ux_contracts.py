@@ -113,7 +113,7 @@ def main() -> int:
             "PlayGamesAuthProvider.PROVIDER_ID",
             "_reauthenticatePlayGames",
             "restorePlayGames: false",
-            "'/v1/me/delete'",
+            "v1/me/delete",
         )
         require(
             "lib/features/economy/coin_store_screen.dart",
