@@ -45,8 +45,15 @@ def main() -> int:
     try:
         require(
             "lib/app.dart",
-            "MainExperienceShell(store: store)",
-            "PushRoomNavigationGate",
+            "ChallengeNavigationGate(store: widget.store)",
+        )
+        require(
+            "lib/features/social/challenge_navigation_gate.dart",
+            "PlayerIdentityGate(store: widget.store)",
+        )
+        require(
+            "lib/features/social/player_identity_gate.dart",
+            "MainExperienceShell(store: widget.store)",
         )
         require(
             "lib/features/home/main_experience_shell.dart",
