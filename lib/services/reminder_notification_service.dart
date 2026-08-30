@@ -57,12 +57,16 @@ class ReminderNotificationService {
       return;
     }
 
-    tz_data.initializeTimeZones();
-    final timezone = await FlutterTimezone.getLocalTimezone();
     try {
+      tz_data.initializeTimeZones();
+      final timezone = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(timezone.identifier));
-    } on ArgumentError {
-      tz.setLocalLocation(tz.getLocation('Etc/UTC'));
+    } catch (error) {
+      // Notification scheduling must never crash the app because a platform
+      // timezone identifier is missing or the embedded database cannot load.
+      // UTC is always available and gives us a safe, deterministic fallback.
+      debugPrint('Reminder timezone unavailable; using UTC: $error');
+      tz.setLocalLocation(tz.UTC);
     }
 
     await _platform.initialize();
