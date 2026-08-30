@@ -155,11 +155,7 @@ void main() {
     expect(source, isNot(contains('bottom: TabBar(')));
     expect(source, isNot(contains('appBar: AppBar(')));
     expect(source, contains('return Row('));
-    expect(source, contains('final pageSize = columns * rows;'));
-    expect(source, contains('_CareerChapterBar('));
-    expect(source, contains('_CareerPager('));
-    expect(source, contains('physics: const NeverScrollableScrollPhysics()'));
-    expect(source, isNot(contains('ListView(')));
+    expect(source, contains('final cardExtent = largeText ? 268.0 : 218.0;'));
     expect(source, contains('SudokuVariantId.classic16'));
     expect(source, contains('Classic16PuzzleFactory.generate'));
     expect(source, contains('nextCareerLevelNumberFor(variant)'));
