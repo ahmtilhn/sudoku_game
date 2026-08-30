@@ -29,7 +29,6 @@ class AchievementSyncService {
 
   final http.Client _client = http.Client();
   Future<bool>? _inFlight;
-  bool _platformConfirmed = false;
 
   Future<bool> syncNow({bool retryForSettlement = false}) {
     final pending = _inFlight;
@@ -42,7 +41,6 @@ class AchievementSyncService {
   }
 
   Future<bool> _syncNow({required bool retryForSettlement}) async {
-    if (_platformConfirmed) return true;
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return false;
 
     final games = PlatformGameServices.instance;
@@ -53,14 +51,13 @@ class AchievementSyncService {
     for (var attempt = 0; attempt < attempts; attempt++) {
       final unlocked = await _serverFirstWinUnlocked();
       if (unlocked) {
-        final confirmed = await games.unlockAchievement(
+        // Google Play's unlock operation is idempotent. We intentionally do not
+        // cache a local "synced" bit: the Android API may queue a fire-and-forget
+        // update for later server sync, so repeating this on startup and after a
+        // ranked settlement is the safest eventual-delivery behavior.
+        return games.unlockAchievement(
           achievementId: googlePlayFirstWinAchievementId,
         );
-        if (confirmed) {
-          _platformConfirmed = true;
-          return true;
-        }
-        return false;
       }
       if (attempt + 1 < attempts) {
         await Future<void>.delayed(Duration(milliseconds: 350 * (attempt + 1)));
