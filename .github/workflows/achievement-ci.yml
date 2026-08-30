@@ -13,6 +13,7 @@ on:
       - 'lib/services/platform_game_services.dart'
       - 'lib/services/platform_leaderboard_service.dart'
       - 'test/achievement_sync_contract_test.dart'
+      - 'android/app/src/main/kotlin/com/devoviastudio/sudoku/MainActivity.kt'
       - 'android/app/src/main/res/values/games-ids.xml'
       - 'android/app/src/main/res/values/services.xml'
       - '.github/workflows/achievement-ci.yml'
@@ -27,7 +28,7 @@ concurrency:
 jobs:
   flutter-achievement:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -44,6 +45,9 @@ jobs:
 
       - name: Achievement contract tests
         run: flutter test test/achievement_sync_contract_test.dart
+
+      - name: Compile Android achievement bridge
+        run: flutter build apk --debug --no-pub
 
   d1-achievement-migrations:
     runs-on: ubuntu-latest
