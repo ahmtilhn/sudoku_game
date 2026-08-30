@@ -48,7 +48,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | notifications | `DailyReminderDestinationScreen`<br>`lib/features/notifications/daily_reminder_destination_screen.dart` | Production screen | Yes | — | — | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review; No explicit responsive primitive detected |
 | settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | settings | `ServiceDiagnosticsScreen`<br>`lib/features/settings/service_diagnostics_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
-| settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Production screen | Yes | Yes | — | — | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
+| settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `ChallengeInvitationScreen`<br>`lib/features/social/challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `ChallengeWaitingScreen`<br>`lib/features/social/challenge_waiting_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `EmoteLoadoutScreen`<br>`lib/features/social/emote_loadout_screen.dart` | Production screen | Yes | Yes | Yes | — | Yes | — | Yes | Yes | No static warning |
@@ -79,7 +79,6 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 - `lib/features/notifications/daily_reminder_destination_screen.dart`: Remote failure path needs user-safe mapping review; No explicit responsive primitive detected
 - `lib/features/settings/account_protection_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/settings/service_diagnostics_screen.dart`: Dense column without explicit scroll marker
-- `lib/features/settings/ux_settings_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/social/rematch_invitation_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/tutorial/tutorial_screen.dart`: Dense column without explicit scroll marker
 
