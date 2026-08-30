@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -18,7 +16,7 @@ class ReminderNotificationService {
       ReminderNotificationService._();
 
   static const String _seedKey = 'daily_reminders_seed_v1';
-  static const String _enabledKey = 'daily_reminders_enabled_v2';
+  static const String _legacyEnabledKey = 'daily_reminders_enabled_v2';
   static const int _firstNotificationId = 10000;
   static const int _legacyNotificationCount = 63;
   static const String _payload = 'daily-reminder';
@@ -78,10 +76,9 @@ class ReminderNotificationService {
     await syncWithSystemPermission();
   }
 
-  /// Keeps the in-app switch and schedule aligned with the operating-system
-  /// permission. On a fresh install, an already granted notification permission
-  /// automatically opts daily reminders in. An explicit in-app opt-out remains
-  /// respected on later launches.
+  /// Keeps the recurring schedule aligned with the operating-system permission.
+  /// There is no in-app daily-reminder opt-out; granting notification permission
+  /// enables these reminders automatically.
   Future<bool> syncWithSystemPermission() async {
     if (!_initialized) await initialize();
     if (!_supportsScheduling) {
@@ -89,12 +86,7 @@ class ReminderNotificationService {
       return false;
     }
 
-    final savedPreference = await _preferences.getBool(_enabledKey);
-    if (savedPreference == false) {
-      enabled.value = false;
-      await _cancelReminderSchedule();
-      return false;
-    }
+    await _preferences.remove(_legacyEnabledKey);
 
     final granted = await _platform.systemPermissionGranted();
     if (!granted) {
@@ -103,58 +95,9 @@ class ReminderNotificationService {
       return false;
     }
 
-    if (savedPreference == null) {
-      await _preferences.setBool(_enabledKey, true);
-    }
     enabled.value = true;
     await refreshSchedule();
     return true;
-  }
-
-  Future<bool> requestPermissionAndEnable() async {
-    if (!_initialized) await initialize();
-    if (!_supportsScheduling) return false;
-
-    final granted = await _requestSystemPermission();
-    if (!granted) {
-      enabled.value = false;
-      return false;
-    }
-
-    await _preferences.setBool(_enabledKey, true);
-    enabled.value = true;
-    await refreshSchedule();
-    return true;
-  }
-
-  Future<bool> _requestSystemPermission() async {
-    await _platform.initialize();
-    final plugin = _platform.plugin;
-    if (Platform.isAndroid) {
-      return await plugin
-              .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin
-              >()
-              ?.requestNotificationsPermission() ??
-          false;
-    }
-    if (Platform.isIOS) {
-      return await plugin
-              .resolvePlatformSpecificImplementation<
-                IOSFlutterLocalNotificationsPlugin
-              >()
-              ?.requestPermissions(alert: true, badge: false, sound: true) ??
-          false;
-    }
-    return false;
-  }
-
-  Future<void> disable() async {
-    enabled.value = false;
-    await _preferences.setBool(_enabledKey, false);
-    if (_supportsScheduling && _initialized) {
-      await _cancelReminderSchedule();
-    }
   }
 
   Future<void> refreshSchedule() async {

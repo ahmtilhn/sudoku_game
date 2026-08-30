@@ -139,10 +139,11 @@ void main() {
     ).readAsStringSync();
 
     expect(service, contains('syncWithSystemPermission'));
-    expect(service, contains('requestNotificationsPermission'));
-    expect(service, contains('requestPermissions(alert: true'));
     expect(service, isNot(contains('_enabledKey')));
     expect(settings, contains('ReminderNotificationService'));
+    expect(settings, isNot(contains('_setDaily')));
+    expect(settings, isNot(contains('requestPermissionAndEnable')));
+    expect(settings, isNot(contains('service.disable()')));
   });
 
   test('platform identity carries native avatar bytes on Android and iOS', () {

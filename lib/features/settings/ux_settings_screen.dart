@@ -39,7 +39,6 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
     'https://devoviastudio.com/privacy/sudoku-duel',
   );
 
-  bool _dailyBusy = false;
   bool _pushBusy = false;
   bool _analyticsBusy = false;
   bool _crashBusy = false;
@@ -229,13 +228,9 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
             children: [
               ValueListenableBuilder<bool>(
                 valueListenable: reminders.enabled,
-                builder: (context, enabled, _) => SwitchListTile(
+                builder: (context, enabled, _) => ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  secondary: const Icon(Icons.notifications_active_outlined),
-                  value: enabled,
-                  onChanged: _dailyBusy
-                      ? null
-                      : (value) => _setDaily(reminders, value),
+                  leading: const Icon(Icons.notifications_active_outlined),
                   title: Text(
                     context.tr('daily_sudoku_challenges'),
                     maxLines: 1,
@@ -245,6 +240,15 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
                     context.tr('daily_sudoku_challenges_subtitle'),
                     maxLines: compact ? 1 : 2,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Icon(
+                    enabled
+                        ? Icons.check_circle_rounded
+                        : Icons.notifications_paused_outlined,
+                    size: 20,
+                    color: enabled
+                        ? _notificationAccent
+                        : Colors.white.withValues(alpha: .46),
                   ),
                 ),
               ),
@@ -513,25 +517,6 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
       }
     } finally {
       if (mounted) setState(() => _profileBusy = false);
-    }
-  }
-
-  Future<void> _setDaily(
-    ReminderNotificationService service,
-    bool value,
-  ) async {
-    setState(() => _dailyBusy = true);
-    try {
-      if (value) {
-        final enabled = await service.requestPermissionAndEnable();
-        if (!enabled && mounted) {
-          _snack('daily_reminder_permission_denied');
-        }
-      } else {
-        await service.disable();
-      }
-    } finally {
-      if (mounted) setState(() => _dailyBusy = false);
     }
   }
 
@@ -871,12 +856,11 @@ class _SettingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .16),
+    return Material(
+      color: Colors.black.withValues(alpha: .16),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: .06)),
+        side: BorderSide(color: Colors.white.withValues(alpha: .06)),
       ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
