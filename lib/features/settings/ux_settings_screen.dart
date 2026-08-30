@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/user_safe_error.dart';
 import '../../data/local_progress_store.dart';
@@ -33,6 +34,9 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
   static const Color _notificationAccent = Color(0xFFFFC94D);
   static const Color _privacyAccent = Color(0xFFB7A9FF);
   static const Color _dataAccent = Color(0xFFFF8A3D);
+  static final Uri _privacyPolicyUri = Uri.parse(
+    'https://devoviastudio.com/privacy/sudoku-duel',
+  );
 
   bool _dailyBusy = false;
   bool _pushBusy = false;
@@ -250,6 +254,23 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                leading: const Icon(Icons.policy_outlined),
+                title: Text(
+                  SettingsStrings.privacyPolicyTitle(context),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  SettingsStrings.privacyPolicySubtitle(context),
+                  maxLines: compact ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: const Icon(Icons.open_in_new_rounded, size: 19),
+                onTap: _openPrivacyPolicy,
+              ),
+              const _SettingsDivider(),
               ValueListenableBuilder<PlayerProfilePreferences?>(
                 valueListenable: PlayerProfileService.instance.current,
                 builder: (context, profile, _) {
@@ -516,6 +537,18 @@ class _UxSettingsScreenState extends State<UxSettingsScreen> {
       await service.setCrashReportingEnabled(value);
     } finally {
       if (mounted) setState(() => _crashBusy = false);
+    }
+  }
+
+  Future<void> _openPrivacyPolicy() async {
+    try {
+      final opened = await launchUrl(
+        _privacyPolicyUri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && mounted) _snack('try_again_when_connected');
+    } catch (_) {
+      if (mounted) _snack('try_again_when_connected');
     }
   }
 
