@@ -1,0 +1,75 @@
+name: Temporary audio integration
+
+on:
+  push:
+    branches: [feat/audio-feedback-integration-20260830]
+
+permissions:
+  contents: write
+
+jobs:
+  integrate-and-validate:
+    if: github.event.head_commit.message == 'chore: bootstrap audio integration'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out integration branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/audio-feedback-integration-20260830
+          fetch-depth: 0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: Apply sound integration patch
+        run: python3 tool/integrate_sound_feedback.py
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+
+      - name: Format changed Dart sources
+        run: >-
+          dart format
+          lib/main.dart
+          lib/services/sound_effects_service.dart
+          lib/localization/settings_strings.dart
+          lib/features/settings/ux_settings_screen.dart
+          lib/features/game/enhanced_game_screen.dart
+          lib/features/duel/online_ready_countdown_overlay.dart
+          lib/features/duel/pre_match_ready_screen.dart
+          lib/features/duel/online_duel_screen.dart
+          lib/services/online_duel_emote_hub.dart
+          lib/features/social/social_hub_screen.dart
+          test/sound_effects_integration_test.dart
+
+      - name: Verify no whitespace errors
+        run: git diff --check
+
+      - name: Analyze Flutter project
+        run: flutter analyze --fatal-infos
+
+      - name: Run audio and affected UI tests
+        run: >-
+          flutter test --concurrency=1
+          test/sound_effects_integration_test.dart
+          test/settings_screen_test.dart
+          test/pre_match_ready_emote_screen_test.dart
+          test/online_duel_screen_test.dart
+
+      - name: Run full Flutter test suite
+        run: timeout --signal=TERM 15m flutter test --concurrency=1
+
+      - name: Commit integrated sound system
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pubspec.yaml pubspec.lock lib test
+          git commit -m 'Integrate production sound feedback system'
+          git push origin HEAD:feat/audio-feedback-integration-20260830
