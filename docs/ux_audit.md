@@ -4,7 +4,7 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 
 ## Audit scope
 
-- Screen files: **35**
+- Screen files: **34**
 - Forwarding/compatibility wrappers: **1**
 - Feature groups: **10** (career, daily, duel, economy, game, home, notifications, settings, social, tutorial)
 - Required device behavior: compact phone, large phone/tablet, text scaling, safe insets, keyboard insets and scroll recovery
@@ -46,7 +46,6 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 | home | `ProfessionalHomeScreen`<br>`lib/features/home/professional_home_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | home | `UxRootScreen`<br>`lib/features/home/ux_root_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | notifications | `DailyReminderDestinationScreen`<br>`lib/features/notifications/daily_reminder_destination_screen.dart` | Production screen | Yes | — | — | Yes | — | — | Yes | Yes | Remote failure path needs user-safe mapping review; No explicit responsive primitive detected |
-| settings | `AccountProtectionScreen`<br>`lib/features/settings/account_protection_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | settings | `ServiceDiagnosticsScreen`<br>`lib/features/settings/service_diagnostics_screen.dart` | Production screen | Yes | Yes | — | Yes | Yes | — | Yes | Yes | Dense column without explicit scroll marker |
 | settings | `UxSettingsScreen`<br>`lib/features/settings/ux_settings_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
 | social | `ChallengeInvitationScreen`<br>`lib/features/social/challenge_invitation_screen.dart` | Production screen | Yes | Yes | Yes | Yes | Yes | — | Yes | Yes | No static warning |
@@ -77,7 +76,6 @@ This report inventories every production `*_screen.dart` file under `lib/feature
 - `lib/features/game/game_screen.dart`: Dense column without explicit scroll marker; Outcome content does not use shared outcome component
 - `lib/features/game/samurai_game_screen.dart`: No explicit responsive primitive detected
 - `lib/features/notifications/daily_reminder_destination_screen.dart`: Remote failure path needs user-safe mapping review; No explicit responsive primitive detected
-- `lib/features/settings/account_protection_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/settings/service_diagnostics_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/social/rematch_invitation_screen.dart`: Dense column without explicit scroll marker
 - `lib/features/tutorial/tutorial_screen.dart`: Dense column without explicit scroll marker
