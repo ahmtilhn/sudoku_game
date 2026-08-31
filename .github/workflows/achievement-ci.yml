@@ -1,0 +1,71 @@
+name: Achievement CI
+
+on:
+  pull_request:
+    paths:
+      - 'backend/social_worker/migrations/**'
+      - 'backend/social_worker/src/achievement_integrity.ts'
+      - 'backend/social_worker/src/achievement_claim_wrapper.ts'
+      - 'backend/social_worker/src/entry_v2.ts'
+      - 'backend/social_worker/test/achievement*.test.ts'
+      - 'lib/main.dart'
+      - 'lib/services/achievement_sync_service.dart'
+      - 'lib/services/platform_game_services.dart'
+      - 'lib/services/platform_leaderboard_service.dart'
+      - 'test/achievement_sync_contract_test.dart'
+      - 'android/app/src/main/kotlin/com/devoviastudio/sudoku/MainActivity.kt'
+      - 'android/app/src/main/res/values/games-ids.xml'
+      - 'android/app/src/main/res/values/services.xml'
+      - '.github/workflows/achievement-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: achievement-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter-achievement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Analyze Flutter sources
+        run: flutter analyze lib
+
+      - name: Achievement contract tests
+        run: flutter test test/achievement_sync_contract_test.dart
+
+      - name: Compile Android achievement bridge
+        run: flutter build apk --debug --no-pub
+
+  d1-achievement-migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend/social_worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/social_worker/package-lock.json
+
+      - name: Install locked backend dependencies
+        run: npm ci
+
+      - name: Apply full D1 migration chain locally
+        run: npx wrangler d1 migrations apply sudoku-duel-social-staging --local --config wrangler.staging.toml

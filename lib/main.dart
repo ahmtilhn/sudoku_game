@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'app.dart';
 import 'data/local_progress_store.dart';
 import 'localization/app_strings.dart';
+import 'services/achievement_sync_service.dart';
 import 'services/ads_service.dart';
 import 'services/career_reward_sync_service.dart';
 import 'services/coin_store_service.dart';
@@ -123,6 +124,7 @@ Future<void> _initializeGooglePlayGames() async {
   await PlatformLeaderboardService.instance.syncAuthoritativeRatings(
     allowInteractiveAuthentication: false,
   );
+  await AchievementSyncService.instance.syncNow();
 }
 
 Future<void> _initializeOptionalService(

@@ -38,8 +38,13 @@ import {
   isRankCountryFlagRoute,
   type RankCountryFlagEnv,
 } from './rank_country_flags';
+import {
+  handleAchievementClaimRequest,
+  isAchievementClaimRoute,
+} from './achievement_claim_wrapper';
 import { ensureRankProgressionSchema } from './rank_progression_schema';
 import { ensureCompetitiveEconomyHardening } from './competitive_economy_hardening';
+import { ensureAchievementIntegrity } from './achievement_integrity';
 import { ensureRuntimeSchema } from './runtime_schema';
 
 export { GameRoom, MatchmakingQueue };
@@ -70,6 +75,7 @@ export default {
         // runtime installer from restoring weaker definitions afterward.
         await ensureRuntimeSchema(env);
         await ensureCompetitiveEconomyHardening(env);
+        await ensureAchievementIntegrity(env);
       } catch (error) {
         console.error('competitive_economy_hardening_install_failed', error);
         return leaderboardError(
@@ -165,6 +171,12 @@ export default {
       }
     }
 
+    if (request.method !== 'OPTIONS' && isAchievementClaimRoute(url.pathname)) {
+      return handleAchievementClaimRequest(
+        request,
+        (forwarded) => legacyWorker.fetch(forwarded, env as never, ctx),
+      );
+    }
     if (request.method !== 'OPTIONS' && isLegacyEconomyRewardRoute(url.pathname)) {
       return legacyEconomyRewardResponse(env as unknown as EconomyV3Env);
     }
@@ -220,6 +232,7 @@ export default {
     try {
       await ensureRuntimeSchema(env);
       await ensureCompetitiveEconomyHardening(env);
+      await ensureAchievementIntegrity(env);
     } catch (error) {
       console.error('competitive_economy_hardening_install_failed', error);
       return;

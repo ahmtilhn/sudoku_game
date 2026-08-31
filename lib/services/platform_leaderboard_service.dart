@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../domain/sudoku_variant.dart';
+import 'achievement_sync_service.dart';
 import 'online_duel_models.dart';
 import 'platform_game_services.dart';
 import 'social_api_client.dart';
@@ -161,6 +162,12 @@ class PlatformLeaderboardService implements PlatformLeaderboardMirror {
         status: PlatformLeaderboardMirrorStatus.skipped,
       );
     }
+
+    // Achievement state is server-authoritative and includes both variants.
+    // Trigger this before the classic9-only leaderboard mirror exits so a
+    // classic16 first win is mirrored to Google Play immediately as well.
+    await AchievementSyncService.instance.syncNow(retryForSettlement: true);
+
     if (snapshot.variant != SudokuVariant.classic9) {
       return const PlatformLeaderboardMirrorResult(
         status: PlatformLeaderboardMirrorStatus.skipped,

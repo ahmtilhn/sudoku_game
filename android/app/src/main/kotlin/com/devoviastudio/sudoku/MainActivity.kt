@@ -520,8 +520,16 @@ class MainActivity : FlutterActivity() {
             result.error("not_configured", "Replace the achievement ID placeholder.", null)
             return
         }
-        PlayGames.getAchievementsClient(this).unlock(achievementId)
-        result.success(true)
+        PlayGames.getAchievementsClient(this)
+            .unlockImmediate(achievementId)
+            .addOnSuccessListener { result.success(true) }
+            .addOnFailureListener { exception ->
+                result.error(
+                    "achievement_submit_failed",
+                    exception.localizedMessage ?: "Google Play achievement unlock failed.",
+                    playGamesDiagnostics(exception),
+                )
+            }
     }
 
     private fun recordGameStatsEvents(
