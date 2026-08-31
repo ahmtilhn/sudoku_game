@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
 import '../../data/game_session_store.dart';
@@ -15,6 +14,7 @@ import '../../widgets/number_pad.dart';
 import '../../widgets/samurai_board.dart';
 import '../../widgets/ux_feedback.dart';
 import 'hint_economy.dart';
+import '../../services/haptic_feedback_service.dart';
 
 typedef SamuraiGameCompleted =
     Future<void> Function({
@@ -205,7 +205,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
     }
 
     if (widget.puzzle.solution[index] != value) {
-      unawaited(HapticFeedback.heavyImpact());
+      unawaited(HapticFeedbackService.instance.heavyImpact());
       setState(() {
         _mistakes++;
         _errorIndex = index;
@@ -223,7 +223,7 @@ class _SamuraiGameScreenState extends State<SamuraiGameScreen>
       return;
     }
 
-    unawaited(HapticFeedback.selectionClick());
+    unawaited(HapticFeedbackService.instance.selectionClick());
     setState(() {
       _history.add(
         _SamuraiMove(

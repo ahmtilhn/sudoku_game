@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../data/puzzle_catalog.dart';
 import '../../domain/sudoku.dart';
@@ -10,6 +9,7 @@ import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 import '../../widgets/ux_feedback.dart';
+import '../../services/haptic_feedback_service.dart';
 
 class DuelScreen extends StatefulWidget {
   const DuelScreen({super.key, required this.difficulty});
@@ -76,13 +76,13 @@ class _DuelScreenState extends State<DuelScreen> {
       return;
     }
     if (_puzzle.solution[index] == value) {
-      HapticFeedback.selectionClick();
+      HapticFeedbackService.instance.selectionClick();
       setState(() {
         _board[index] = value;
         _scores[_currentPlayer] += 10;
       });
     } else {
-      HapticFeedback.heavyImpact();
+      HapticFeedbackService.instance.heavyImpact();
       setState(() {
         _scores[_currentPlayer] -= 5;
         _errorIndex = index;

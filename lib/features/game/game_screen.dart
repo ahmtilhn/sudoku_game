@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
 import '../../data/game_session_store.dart';
@@ -11,6 +10,7 @@ import '../../services/ads_service.dart';
 import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
+import '../../services/haptic_feedback_service.dart';
 
 typedef GameCompleted =
     Future<void> Function({
@@ -215,7 +215,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     }
 
     if (widget.puzzle.solution[index] != value) {
-      HapticFeedback.heavyImpact();
+      HapticFeedbackService.instance.heavyImpact();
       final nextMistakes = _mistakes + 1;
       setState(() {
         _mistakes = nextMistakes;
@@ -237,7 +237,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       return;
     }
 
-    HapticFeedback.selectionClick();
+    HapticFeedbackService.instance.selectionClick();
     setState(() {
       _history.add(
         _MoveRecord(

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/user_safe_error.dart';
 import '../../domain/sudoku.dart';
@@ -19,6 +18,7 @@ import '../../widgets/player_avatar.dart';
 import 'matchmaking_stage.dart';
 import 'online_duel_screen.dart';
 import 'prematch_match_terms_card.dart';
+import '../../services/haptic_feedback_service.dart';
 
 class PreMatchReadyScreen extends StatefulWidget {
   const PreMatchReadyScreen({
@@ -182,7 +182,7 @@ class _PreMatchReadyScreenState extends State<PreMatchReadyScreen> {
         }
         if (!hadOpponent && hasOpponent && !_matchHapticSent) {
           _matchHapticSent = true;
-          unawaited(HapticFeedback.mediumImpact());
+          unawaited(HapticFeedbackService.instance.mediumImpact());
           unawaited(SoundEffectsService.instance.play(SoundEffect.matchFound));
         }
         if (!opponentWasReady && opponent?.ready == true) {
