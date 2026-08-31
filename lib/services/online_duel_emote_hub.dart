@@ -628,15 +628,51 @@ class OnlineDuelInlineEmoteSurface extends StatelessWidget {
       builder: (context, _) {
         if (!hub.visible) return const SizedBox.shrink();
         final color = accent ?? Theme.of(context).colorScheme.tertiary;
+        if (compact) {
+          const dimension = 48.0;
+          const bubbleScale = .70;
+          return SizedBox.square(
+            key: const ValueKey<String>('online-duel-inline-emotes'),
+            dimension: dimension,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                PositionedDirectional(
+                  start: dimension + 6,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: Transform.scale(
+                      scale: bubbleScale,
+                      alignment: AlignmentDirectional.bottomStart,
+                      child: OnlineDuelEmoteBubble(
+                        emoteId: hub.incomingEmoteId,
+                        accent: color,
+                      ),
+                    ),
+                  ),
+                ),
+                PositionedDirectional(
+                  start: 0,
+                  bottom: 0,
+                  child: _EmoteRoundButton(
+                    hub: hub,
+                    dimension: dimension,
+                    onTap: () => showOnlineDuelEmotePicker(context, hub),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
         return Column(
           key: const ValueKey<String>('online-duel-inline-emotes'),
           mainAxisSize: MainAxisSize.min,
           children: [
             OnlineDuelEmoteBubble(emoteId: hub.incomingEmoteId, accent: color),
-            SizedBox(height: compact ? 2 : 4),
+            const SizedBox(height: 4),
             _EmoteRoundButton(
               hub: hub,
-              dimension: compact ? 48 : 50,
+              dimension: 50,
               onTap: () => showOnlineDuelEmotePicker(context, hub),
             ),
           ],
