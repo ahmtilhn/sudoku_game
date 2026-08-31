@@ -116,21 +116,6 @@ enum SoundEffect {
 
   final String assetPath;
   final double volume;
-
-  bool get useMediaPlayer => const <SoundEffect>{
-    SoundEffect.puzzleComplete,
-    SoundEffect.perfectGame,
-    SoundEffect.puzzleFailed,
-    SoundEffect.careerLevelComplete,
-    SoundEffect.onlineVictory,
-    SoundEffect.onlineDefeat,
-    SoundEffect.opponentSurrendered,
-    SoundEffect.rankPromotion,
-    SoundEffect.rankDemotion,
-    SoundEffect.streakMilestone,
-    SoundEffect.achievementUnlocked,
-    SoundEffect.rareAchievement,
-  }.contains(this);
 }
 
 class SoundEffectsService {
@@ -147,6 +132,7 @@ class SoundEffectsService {
 
   final ValueNotifier<bool> enabled = ValueNotifier<bool>(true);
   List<AudioPlayer>? _players;
+  List<Future<void>>? _playerOperations;
 
   // Short Sudoku/game SFX should obey the iOS Ring/Silent switch and should
   // not interrupt music or podcasts already playing on the device. The generic
@@ -203,30 +189,90 @@ class SoundEffectsService {
     if (!_initialized || !enabled.value) return;
 
     final volume = (effect.volume * volumeScale).clamp(0.0, 1.0).toDouble();
+    final players = _players ??= List<AudioPlayer>.generate(
+      _poolSize,
+      (_) => AudioPlayer(),
+    );
+    final operations = _playerOperations ??= List<Future<void>>.generate(
+      _poolSize,
+      (_) => Future<void>.value(),
+    );
+
+    final slot = _nextPlayer;
+    _nextPlayer = (_nextPlayer + 1) % players.length;
+
+    final operation = _playOnPlayer(
+      previousOperation: operations[slot],
+      player: players[slot],
+      effect: effect,
+      volume: volume,
+    );
+    operations[slot] = operation;
+
     try {
-      final players = _players ??= List<AudioPlayer>.generate(
-        _poolSize,
-        (_) => AudioPlayer(),
-      );
-      final player = players[_nextPlayer];
-      _nextPlayer = (_nextPlayer + 1) % players.length;
-      await player.play(
-        AssetSource(effect.assetPath),
-        volume: volume,
-        mode: effect.useMediaPlayer
-            ? PlayerMode.mediaPlayer
-            : PlayerMode.lowLatency,
-        ctx: _audioContext,
-      );
+      await operation;
     } catch (error) {
       // Audio must never interrupt Sudoku or an online duel.
       debugPrint('Sound effect ${effect.name} unavailable: $error');
     }
   }
 
+  Future<void> _playOnPlayer({
+    required Future<void> previousOperation,
+    required AudioPlayer player,
+    required SoundEffect effect,
+    required double volume,
+  }) async {
+    // Calls to play() are intentionally fire-and-forget throughout the UI. A
+    // slot can therefore be selected again while its previous native command
+    // is still in flight. Serialize each slot so stop/play never race.
+    try {
+      await previousOperation;
+    } catch (_) {
+      // A failed earlier effect must not poison this pool slot forever.
+    }
+
+    if (!_initialized || !enabled.value) return;
+
+    // Do not use PlayerMode.lowLatency in this reusable pool. On Android that
+    // backend has no playback-completion event, so audioplayers requires the
+    // caller to stop it manually. Reusing a finite pool without reliable
+    // completion cleanup eventually leaves SoundPool-backed players stuck and
+    // subsequent taps become silent. It is also unsafe to alternate the same
+    // AudioPlayer instance between lowLatency and mediaPlayer modes.
+    //
+    // mediaPlayer has a normal completion lifecycle. Explicitly resetting a
+    // slot before replacing its source makes rapid repeated taps deterministic
+    // on both Android and iOS while still allowing up to _poolSize overlaps.
+    try {
+      await player.stop();
+    } catch (_) {
+      // A fresh/released player can be reset by play() below.
+    }
+
+    await player.play(
+      AssetSource(effect.assetPath),
+      volume: volume,
+      mode: PlayerMode.mediaPlayer,
+      ctx: _audioContext,
+    );
+  }
+
   Future<void> stopAll() async {
     final players = _players;
     if (players == null) return;
+
+    final operations = _playerOperations;
+    if (operations != null) {
+      await Future.wait(
+        operations.map((operation) async {
+          try {
+            await operation;
+          } catch (_) {}
+        }),
+      );
+    }
+
     await Future.wait(
       players.map((player) async {
         try {
