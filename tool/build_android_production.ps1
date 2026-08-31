@@ -97,10 +97,10 @@ try {
   foreach ($density in @("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi")) {
     $icon = Join-Path $projectRoot "android\app\src\main\res\mipmap-$density\ic_launcher_sudoku_duel.png"
     if (!(Test-Path -LiteralPath $icon)) {
-      throw "Launcher icon is missing for $density: $icon"
+      throw "Launcher icon is missing for ${density}: $icon"
     }
     if ((Get-Item -LiteralPath $icon).Length -lt 100) {
-      throw "Launcher icon looks invalid for $density: $icon"
+      throw "Launcher icon looks invalid for ${density}: $icon"
     }
   }
 
