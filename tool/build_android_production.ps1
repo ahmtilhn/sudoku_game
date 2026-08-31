@@ -117,6 +117,13 @@ try {
   Invoke-Checked flutter clean
   Invoke-Checked flutter pub get
 
+  $postPubGetDirty = @(git status --porcelain --untracked-files=all)
+  if ($LASTEXITCODE -ne 0) { throw "git status failed after flutter pub get." }
+  if ($postPubGetDirty.Count -gt 0) {
+    Write-Host ($postPubGetDirty -join [Environment]::NewLine)
+    throw "flutter pub get changed the checked-in source/lock state. Commit the dependency result before building production."
+  }
+
   Write-Host "Running release regression guards..."
   Invoke-Checked flutter test test/settings_screen_test.dart test/career_coin_reward_regression_test.dart
   Invoke-Checked pwsh -NoProfile -File (Join-Path $projectRoot "tool\verify_android_release_config.ps1")
