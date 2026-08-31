@@ -27,23 +27,26 @@ void main() {
     );
   });
 
-  test('customization and leaderboard do not block their entire UI on network', () {
-    final customization = File(
-      'lib/features/social/profile_customization_screen.dart',
-    ).readAsStringSync();
-    final leaderboard = File(
-      'lib/features/duel/leaderboards_screen.dart',
-    ).readAsStringSync();
+  test(
+    'customization and leaderboard do not block their entire UI on network',
+    () {
+      final customization = File(
+        'lib/features/social/profile_customization_screen.dart',
+      ).readAsStringSync();
+      final leaderboard = File(
+        'lib/features/duel/leaderboards_screen.dart',
+      ).readAsStringSync();
 
-    expect(customization, contains('buildRankIdentityFallback'));
-    expect(customization, contains('AvatarPresetCatalog.all'));
-    expect(customization, contains('TabBarView'));
-    expect(customization, contains('3 achievement slots'));
-    expect(customization, isNot(contains('_loading ? const Center')));
+      expect(customization, contains('buildRankIdentityFallback'));
+      expect(customization, contains('AvatarPresetCatalog.all'));
+      expect(customization, contains('TabBarView'));
+      expect(customization, contains('three_achievement_slots'));
+      expect(customization, isNot(contains('_loading ? const Center')));
 
-    expect(leaderboard, contains('buildRankIdentityFallback'));
-    expect(leaderboard, contains('Global RP leaderboard'));
-    expect(leaderboard, contains('loadLeaderboard('));
-    expect(leaderboard, isNot(contains('_loading && _profile == null')));
-  });
+      expect(leaderboard, contains('buildRankIdentityFallback'));
+      expect(leaderboard, contains('global_rp_leaderboard'));
+      expect(leaderboard, contains('loadLeaderboard('));
+      expect(leaderboard, isNot(contains('_loading && _profile == null')));
+    },
+  );
 }

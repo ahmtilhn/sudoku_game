@@ -2039,6 +2039,10 @@ class _ResultRankPanel extends StatelessWidget {
                 ),
             ],
           ),
+          if (value.rankUp || value.rewardCoins > 0) ...[
+            SizedBox(height: compact ? 5 : 6),
+            _RankPromotionRewardLine(result: value, compact: compact),
+          ],
           if (value.abandonmentPenalty > 0) ...[
             const SizedBox(height: 4),
             Text(
@@ -2074,6 +2078,103 @@ class _ResultRankPanel extends StatelessWidget {
     fontSize: compact ? 7.2 : 8.2,
     fontWeight: FontWeight.w700,
   );
+}
+
+class _RankPromotionRewardLine extends StatelessWidget {
+  const _RankPromotionRewardLine({required this.result, required this.compact});
+
+  final RankMatchResult result;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final rewardRanks = result.rewards
+        .map((reward) => reward.rankName.trim())
+        .where((name) => name.isNotEmpty)
+        .join(', ');
+    final transition = result.rankUp
+        ? '${result.rankBeforeName} -> ${result.rankAfterName}'
+        : rewardRanks;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 9,
+        vertical: compact ? 5 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFC94D).withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFFFFC94D).withValues(alpha: .22),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.workspace_premium_rounded,
+            color: const Color(0xFFFFC94D),
+            size: compact ? 15 : 16,
+          ),
+          const SizedBox(width: 6),
+          if (transition.isNotEmpty)
+            Expanded(
+              child: Text(
+                transition,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .86),
+                  fontSize: compact ? 8.5 : 9.5,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            )
+          else
+            const Spacer(),
+          if (result.rewardCoins > 0) ...[
+            const SizedBox(width: 7),
+            _RankRewardCoinPill(amount: result.rewardCoins, compact: compact),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RankRewardCoinPill extends StatelessWidget {
+  const _RankRewardCoinPill({required this.amount, required this.compact});
+
+  final int amount;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 6 : 7,
+        vertical: compact ? 3 : 4,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .22),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DuelAssetIcon(DuelAsset.coin, size: compact ? 13 : 14),
+          const SizedBox(width: 4),
+          Text(
+            context.tr('coin_reward_value', <Object>[amount]),
+            style: TextStyle(
+              color: const Color(0xFFFFD66B),
+              fontSize: compact ? 8.5 : 9.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ResultButtonLabel extends StatelessWidget {

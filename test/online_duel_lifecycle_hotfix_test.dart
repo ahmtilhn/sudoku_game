@@ -54,6 +54,19 @@ void main() {
   });
 
   test(
+    'rank result sheet surfaces promotion rewards from settlement payload',
+    () {
+      final source = File(
+        'lib/features/duel/online_duel_screen.dart',
+      ).readAsStringSync();
+      expect(source, contains('value.rankUp || value.rewardCoins > 0'));
+      expect(source, contains('result.rewards'));
+      expect(source, contains('DuelAssetIcon(DuelAsset.coin'));
+      expect(source, contains("context.tr('coin_reward_value'"));
+    },
+  );
+
+  test(
     'result actions route to main menu or online duel selection directly',
     () {
       final source = File(
@@ -74,11 +87,20 @@ void main() {
     final source = File(
       'lib/features/duel/online_duel_screen.dart',
     ).readAsStringSync();
-    expect(source, contains('fontSize: widget.compact ? 22 : 28'));
-    expect(source, contains("key: ValueKey<String>('duel-name-\$seatKey')"));
-    expect(source, contains('final children = <Widget>'));
-    expect(source, contains('score: score'));
-    expect(source, contains('_ScoreLine'));
+    expect(source, contains('class _HeaderPlayer extends StatelessWidget'));
+    expect(source, contains('final score = snapshot.scores[seat] ?? 0'));
+    expect(source, contains("context.tr('rp_signed_value'"));
+    expect(source, contains("score > 0 ? '+' : ''"));
+    expect(
+      source,
+      contains(
+        'textDirection: alignEnd ? TextDirection.rtl : TextDirection.ltr',
+      ),
+    );
+    expect(
+      source,
+      contains('children: [avatar, const SizedBox(width: 7), info]'),
+    );
   });
 
   test('all challenge acceptance paths converge on pre-match ready', () {
