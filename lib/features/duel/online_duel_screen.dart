@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/app_theme.dart';
 import '../../core/user_safe_error.dart';
@@ -26,6 +25,7 @@ import '../../widgets/sudoku_board.dart';
 import '../economy/coin_store_screen.dart';
 import 'matchmaking_screen.dart';
 import 'pre_match_ready_screen.dart';
+import '../../services/haptic_feedback_service.dart';
 
 class OnlineDuelScreen extends StatefulWidget {
   const OnlineDuelScreen({super.key, required this.roomId, this.controller});
@@ -111,7 +111,7 @@ class _OnlineDuelScreenState extends State<OnlineDuelScreen> {
         _syncTurnNotice(previous, snapshot);
         _syncDisconnectEscape(snapshot);
         if (!previousLocalTurn && snapshot.isLocalTurn) {
-          unawaited(HapticFeedback.mediumImpact());
+          unawaited(HapticFeedbackService.instance.mediumImpact());
         }
         _sendScreenLoadedAfterRender(snapshot);
         _showResultOnce(snapshot);

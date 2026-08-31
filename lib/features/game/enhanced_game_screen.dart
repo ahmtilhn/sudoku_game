@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../core/formatters.dart';
 import '../../data/career_catalog.dart';
@@ -22,6 +21,7 @@ import '../../widgets/in_page_header.dart';
 import '../../widgets/number_pad.dart';
 import '../../widgets/sudoku_board.dart';
 import 'hint_economy.dart';
+import '../../services/haptic_feedback_service.dart';
 
 typedef EnhancedGameCompleted =
     Future<void> Function({
@@ -307,7 +307,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
 
     if (widget.puzzle.solution[index] != value) {
       unawaited(SoundEffectsService.instance.play(SoundEffect.wrongMove));
-      unawaited(HapticFeedback.heavyImpact());
+      unawaited(HapticFeedbackService.instance.heavyImpact());
       setState(() {
         _mistakes++;
         _totalMistakes++;
@@ -326,7 +326,7 @@ class _EnhancedGameScreenState extends State<EnhancedGameScreen>
       return;
     }
 
-    unawaited(HapticFeedback.selectionClick());
+    unawaited(HapticFeedbackService.instance.selectionClick());
     setState(() {
       _history.add(
         UxSessionMove(
