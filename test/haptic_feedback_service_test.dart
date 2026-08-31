@@ -62,10 +62,12 @@ void main() {
     for (final entity in Directory('lib').listSync(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       final normalized = entity.path.replaceAll('\\', '/');
-      if (normalized.endsWith('lib/services/haptic_feedback_service.dart'))
+      if (normalized.endsWith('lib/services/haptic_feedback_service.dart')) {
         continue;
-      if (entity.readAsStringSync().contains('HapticFeedback.'))
+      }
+      if (entity.readAsStringSync().contains('HapticFeedback.')) {
         offenders.add(normalized);
+      }
     }
     expect(offenders, isEmpty, reason: 'All app haptics must honor Settings.');
   });
