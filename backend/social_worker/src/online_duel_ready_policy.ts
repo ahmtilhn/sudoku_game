@@ -37,6 +37,7 @@ export function applyReady(
   return [
     event(state, 'player_ready', now, readinessPayload(state, { seat })),
     ...readyWindowEvents,
+    ...maybeStartMatch(state, now),
   ];
 }
 
@@ -126,6 +127,23 @@ function maybeArmGameplayClock(
       eventId: `${state.roomId}:${state.revision}:game_started`,
     },
   ];
+}
+
+function maybeStartMatch(state: DuelState, now: number): PublicEvent[] {
+  if (
+    state.startedAt !== null ||
+    state.finishedAt !== null ||
+    !state.playerA.ready ||
+    !state.playerB.ready ||
+    !bothConnectedAndLoaded(state)
+  ) {
+    return [];
+  }
+
+  state.status = 'active';
+  state.lobbyDeadline = null;
+  state.readyDeadline = null;
+  return maybeArmGameplayClock(state, now);
 }
 
 function bothConnectedAndLoaded(state: DuelState): boolean {

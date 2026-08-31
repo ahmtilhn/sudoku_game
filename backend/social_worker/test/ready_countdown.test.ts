@@ -64,7 +64,7 @@ describe('ready countdown', () => {
     );
   });
 
-  it('finishes Ready countdown before arming the first playable turn', () => {
+  it('starts as soon as both loaded players are ready', () => {
     const duel = state();
     markConnected(duel, 'A', 1_001);
     markConnected(duel, 'B', 1_002);
@@ -75,39 +75,15 @@ describe('ready countdown', () => {
     expect(duel.readyDeadline).toBe(1_004 + READY_DEADLINE_MS);
 
     applyReady(duel, 'A', 1_100);
-    applyReady(duel, 'B', 1_200);
+    const startEvents = applyReady(duel, 'B', 1_200);
 
     expect(duel.playerA.ready).toBe(true);
     expect(duel.playerB.ready).toBe(true);
-    expect(duel.status).toBe('ready_window');
-    expect(duel.startedAt).toBeNull();
-
-    applyDueDeadlines(duel, duel.readyDeadline! - 1);
-    expect(duel.status).toBe('ready_window');
-    expect(duel.startedAt).toBeNull();
-
-    const deadline = duel.readyDeadline!;
-    const handoffEvents = applyDueDeadlines(duel, deadline);
-
     expect(duel.status).toBe('active');
-    expect(duel.startedAt).toBeNull();
-    expect(duel.turnStartedAt).toBeNull();
-    expect(duel.turnDeadline).toBeNull();
+    expect(duel.startedAt).toBe(1_200);
+    expect(duel.turnStartedAt).toBe(1_200);
+    expect(duel.turnDeadline).toBe(1_200 + TURN_DURATION_MS);
     expect(duel.readyDeadline).toBeNull();
-    expect(duel.playerA.screenLoaded).toBe(false);
-    expect(duel.playerB.screenLoaded).toBe(false);
-    expect(handoffEvents.map((event) => event.type)).toEqual(['snapshot']);
-
-    applyScreenLoaded(duel, 'A', deadline + 20);
-    expect(duel.startedAt).toBeNull();
-    expect(duel.turnDeadline).toBeNull();
-
-    const startAt = deadline + 40;
-    const startEvents = applyScreenLoaded(duel, 'B', startAt);
-
-    expect(duel.startedAt).toBe(startAt);
-    expect(duel.turnStartedAt).toBe(startAt);
-    expect(duel.turnDeadline).toBe(startAt + TURN_DURATION_MS);
     expect(startEvents.filter((event) => event.type === 'match_started')).toHaveLength(1);
     expect(startEvents.filter((event) => event.type === 'game_started')).toHaveLength(1);
   });
