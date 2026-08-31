@@ -50,7 +50,10 @@ void main() {
     expect(service, contains('contentType: AndroidContentType.sonification'));
     expect(service, isNot(contains('AudioContextConfigFocus.mixWithOthers')));
     expect(service, isNot(contains('respectSilence: true')));
-    expect(service, contains('PlayerMode.lowLatency'));
+    expect(service, contains('mode: PlayerMode.mediaPlayer'));
+    expect(service, isNot(contains('mode: PlayerMode.lowLatency')));
+    expect(service, contains('await player.stop()'));
+    expect(service, contains('List<Future<void>>? _playerOperations'));
     expect(service, contains('enum SoundEffect'));
     expect(service, contains('onlineVictory'));
     expect(service, contains('rankPromotion'));
