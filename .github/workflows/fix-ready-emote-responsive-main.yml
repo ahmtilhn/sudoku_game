@@ -19,95 +19,29 @@ jobs:
           ref: main
           fetch-depth: 2
 
-      - name: Make ready emotes layout-safe
-        shell: python
+      - name: Patch responsive ready emotes
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
+          from base64 import b64decode
 
           hub_path = Path('lib/services/online_duel_emote_hub.dart')
           hub = hub_path.read_text()
-          old = """        return Column(
-          key: const ValueKey<String>('online-duel-inline-emotes'),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            OnlineDuelEmoteBubble(emoteId: hub.incomingEmoteId, accent: color),
-            SizedBox(height: compact ? 2 : 4),
-            _EmoteRoundButton(
-              hub: hub,
-              dimension: compact ? 48 : 50,
-              onTap: () => showOnlineDuelEmotePicker(context, hub),
-            ),
-          ],
-        );"""
-          new = """        if (compact) {
-          const dimension = 48.0;
-          const bubbleScale = .70;
-          return SizedBox.square(
-            key: const ValueKey<String>('online-duel-inline-emotes'),
-            dimension: dimension,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                PositionedDirectional(
-                  start: dimension + 6,
-                  bottom: 0,
-                  child: IgnorePointer(
-                    child: Transform.scale(
-                      scale: bubbleScale,
-                      alignment: AlignmentDirectional.bottomStart,
-                      child: OnlineDuelEmoteBubble(
-                        emoteId: hub.incomingEmoteId,
-                        accent: color,
-                      ),
-                    ),
-                  ),
-                ),
-                PositionedDirectional(
-                  start: 0,
-                  bottom: 0,
-                  child: _EmoteRoundButton(
-                    hub: hub,
-                    dimension: dimension,
-                    onTap: () => showOnlineDuelEmotePicker(context, hub),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-        return Column(
-          key: const ValueKey<String>('online-duel-inline-emotes'),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            OnlineDuelEmoteBubble(emoteId: hub.incomingEmoteId, accent: color),
-            const SizedBox(height: 4),
-            _EmoteRoundButton(
-              hub: hub,
-              dimension: 50,
-              onTap: () => showOnlineDuelEmotePicker(context, hub),
-            ),
-          ],
-        );"""
+          old = b64decode('ICAgICAgICByZXR1cm4gQ29sdW1uKAogICAgICAgICAga2V5OiBjb25zdCBWYWx1ZUtleTxTdHJpbmc+KCdvbmxpbmUtZHVlbC1pbmxpbmUtZW1vdGVzJyksCiAgICAgICAgICBtYWluQXhpc1NpemU6IE1haW5BeGlzU2l6ZS5taW4sCiAgICAgICAgICBjaGlsZHJlbjogWwogICAgICAgICAgICBPbmxpbmVEdWVsRW1vdGVCdWJibGUoZW1vdGVJZDogaHViLmluY29taW5nRW1vdGVJZCwgYWNjZW50OiBjb2xvciksCiAgICAgICAgICAgIFNpemVkQm94KGhlaWdodDogY29tcGFjdCA/IDIgOiA0KSwKICAgICAgICAgICAgX0Vtb3RlUm91bmRCdXR0b24oCiAgICAgICAgICAgICAgaHViOiBodWIsCiAgICAgICAgICAgICAgZGltZW5zaW9uOiBjb21wYWN0ID8gNDggOiA1MCwKICAgICAgICAgICAgICBvblRhcDogKCkgPT4gc2hvd09ubGluZUR1ZWxFbW90ZVBpY2tlcihjb250ZXh0LCBodWIpLAogICAgICAgICAgICApLAogICAgICAgICAgXSwKICAgICAgICApOw==').decode()
+          new = b64decode('ICAgICAgICBpZiAoY29tcGFjdCkgewogICAgICAgICAgY29uc3QgZGltZW5zaW9uID0gNDguMDsKICAgICAgICAgIGNvbnN0IGJ1YmJsZVNjYWxlID0gLjcwOwogICAgICAgICAgcmV0dXJuIFNpemVkQm94LnNxdWFyZSgKICAgICAgICAgICAga2V5OiBjb25zdCBWYWx1ZUtleTxTdHJpbmc+KCdvbmxpbmUtZHVlbC1pbmxpbmUtZW1vdGVzJyksCiAgICAgICAgICAgIGRpbWVuc2lvbjogZGltZW5zaW9uLAogICAgICAgICAgICBjaGlsZDogU3RhY2soCiAgICAgICAgICAgICAgY2xpcEJlaGF2aW9yOiBDbGlwLm5vbmUsCiAgICAgICAgICAgICAgY2hpbGRyZW46IFsKICAgICAgICAgICAgICAgIFBvc2l0aW9uZWREaXJlY3Rpb25hbCgKICAgICAgICAgICAgICAgICAgc3RhcnQ6IGRpbWVuc2lvbiArIDYsCiAgICAgICAgICAgICAgICAgIGJvdHRvbTogMCwKICAgICAgICAgICAgICAgICAgY2hpbGQ6IElnbm9yZVBvaW50ZXIoCiAgICAgICAgICAgICAgICAgICAgY2hpbGQ6IFRyYW5zZm9ybS5zY2FsZSgKICAgICAgICAgICAgICAgICAgICAgIHNjYWxlOiBidWJibGVTY2FsZSwKICAgICAgICAgICAgICAgICAgICAgIGFsaWdubWVudDogQWxpZ25tZW50RGlyZWN0aW9uYWwuYm90dG9tU3RhcnQsCiAgICAgICAgICAgICAgICAgICAgICBjaGlsZDogT25saW5lRHVlbEVtb3RlQnViYmxlKAogICAgICAgICAgICAgICAgICAgICAgICBlbW90ZUlkOiBodWIuaW5jb21pbmdFbW90ZUlkLAogICAgICAgICAgICAgICAgICAgICAgICBhY2NlbnQ6IGNvbG9yLAogICAgICAgICAgICAgICAgICAgICAgKSwKICAgICAgICAgICAgICAgICAgICApLAogICAgICAgICAgICAgICAgICApLAogICAgICAgICAgICAgICAgKSwKICAgICAgICAgICAgICAgIFBvc2l0aW9uZWREaXJlY3Rpb25hbCgKICAgICAgICAgICAgICAgICAgc3RhcnQ6IDAsCiAgICAgICAgICAgICAgICAgIGJvdHRvbTogMCwKICAgICAgICAgICAgICAgICAgY2hpbGQ6IF9FbW90ZVJvdW5kQnV0dG9uKAogICAgICAgICAgICAgICAgICAgIGh1YjogaHViLAogICAgICAgICAgICAgICAgICAgIGRpbWVuc2lvbjogZGltZW5zaW9uLAogICAgICAgICAgICAgICAgICAgIG9uVGFwOiAoKSA9PiBzaG93T25saW5lRHVlbEVtb3RlUGlja2VyKGNvbnRleHQsIGh1YiksCiAgICAgICAgICAgICAgICAgICksCiAgICAgICAgICAgICAgICApLAogICAgICAgICAgICAgIF0sCiAgICAgICAgICAgICksCiAgICAgICAgICApOwogICAgICAgIH0KICAgICAgICByZXR1cm4gQ29sdW1uKAogICAgICAgICAga2V5OiBjb25zdCBWYWx1ZUtleTxTdHJpbmc+KCdvbmxpbmUtZHVlbC1pbmxpbmUtZW1vdGVzJyksCiAgICAgICAgICBtYWluQXhpc1NpemU6IE1haW5BeGlzU2l6ZS5taW4sCiAgICAgICAgICBjaGlsZHJlbjogWwogICAgICAgICAgICBPbmxpbmVEdWVsRW1vdGVCdWJibGUoZW1vdGVJZDogaHViLmluY29taW5nRW1vdGVJZCwgYWNjZW50OiBjb2xvciksCiAgICAgICAgICAgIGNvbnN0IFNpemVkQm94KGhlaWdodDogNCksCiAgICAgICAgICAgIF9FbW90ZVJvdW5kQnV0dG9uKAogICAgICAgICAgICAgIGh1YjogaHViLAogICAgICAgICAgICAgIGRpbWVuc2lvbjogNTAsCiAgICAgICAgICAgICAgb25UYXA6ICgpID0+IHNob3dPbmxpbmVEdWVsRW1vdGVQaWNrZXIoY29udGV4dCwgaHViKSwKICAgICAgICAgICAgKSwKICAgICAgICAgIF0sCiAgICAgICAgKTs=').decode()
           if old not in hub:
               raise SystemExit('Inline emote surface block not found')
           hub_path.write_text(hub.replace(old, new, 1))
 
           test_path = Path('test/pre_match_ready_emote_screen_test.dart')
           test = test_path.read_text()
-          old_test = """    expect(find.byIcon(Icons.front_hand_rounded), findsOneWidget);
-  });"""
-          new_test = """    expect(find.byIcon(Icons.front_hand_rounded), findsOneWidget);
-    expect(tester.takeException(), isNull);
-
-    final inlineSurface = find.byKey(
-      const ValueKey<String>('online-duel-inline-emotes'),
-    );
-    expect(inlineSurface, findsOneWidget);
-    expect(tester.getSize(inlineSurface).height, lessThanOrEqualTo(56));
-  });"""
+          old_test = b64decode('ICAgIGV4cGVjdChmaW5kLmJ5SWNvbihJY29ucy5mcm9udF9oYW5kX3JvdW5kZWQpLCBmaW5kc09uZVdpZGdldCk7CiAgfSk7').decode()
+          new_test = b64decode('ICAgIGV4cGVjdChmaW5kLmJ5SWNvbihJY29ucy5mcm9udF9oYW5kX3JvdW5kZWQpLCBmaW5kc09uZVdpZGdldCk7CiAgICBleHBlY3QodGVzdGVyLnRha2VFeGNlcHRpb24oKSwgaXNOdWxsKTsKCiAgICBmaW5hbCBpbmxpbmVTdXJmYWNlID0gZmluZC5ieUtleSgKICAgICAgY29uc3QgVmFsdWVLZXk8U3RyaW5nPignb25saW5lLWR1ZWwtaW5saW5lLWVtb3RlcycpLAogICAgKTsKICAgIGV4cGVjdChpbmxpbmVTdXJmYWNlLCBmaW5kc09uZVdpZGdldCk7CiAgICBleHBlY3QodGVzdGVyLmdldFNpemUoaW5saW5lU3VyZmFjZSkuaGVpZ2h0LCBsZXNzVGhhbk9yRXF1YWxUbyg1NikpOwogIH0pOw==').decode()
           if old_test not in test:
               raise SystemExit('Ready emote regression assertion block not found')
           test_path.write_text(test.replace(old_test, new_test, 1))
+          PY
 
       - uses: subosito/flutter-action@v2
         with:
